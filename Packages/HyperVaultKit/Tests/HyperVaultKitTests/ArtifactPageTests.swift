@@ -105,6 +105,17 @@ final class ArtifactPageTests: XCTestCase {
         XCTAssertEqual(page, .html("<h1>Group</h1>", base: URL(string: "https://hv.test/g/p-1")!))
     }
 
+    func testAGroupThePageRouteServesOnlyItsHeadTagsIsAGroupToo() async {
+        let headOnly = "<head>\n<link rel=\"icon\" href=\"https://hv.test/a/p-1/icon?size=192\" />\n<meta property=\"og:title\" content=\"G\" />\n</head>\n"
+        let group = #"{"slug":"p-1","title":"G","tags":[],"visibility":"private","files":[{"path":"index.html","content":"<h1>Group</h1>","size_bytes":15}]}"#
+        let transport = MockTransport(routes: [html(200, headOnly), .json(.get, "/api/artifact-groups/p-1", group)])
+        let page = await loader(transport).load(slug: "p-1")
+        XCTAssertEqual(page, .html("<h1>Group</h1>", base: URL(string: "https://hv.test/g/p-1")!))
+        XCTAssertTrue(ArtifactPageLoader.isBlank(headOnly))
+        XCTAssertFalse(ArtifactPageLoader.isBlank("<head><title>x</title></head><body>hi</body>"))
+        XCTAssertFalse(ArtifactPageLoader.isBlank("<h1>No head at all</h1>"))
+    }
+
     // MARK: Files
 
     func testTheFileViewerGivesUpItsSignedAddress() {

@@ -77,7 +77,10 @@ final class ArtifactDetailModel {
         pageState = .loading
         webFailure = nil
         if summary == nil { summary = await cachedSummary() }
-        async let metadata: Void = loadMetadata()
+        // A page not seen before is asked about first: a group is read another way from a page.
+        let known = summary != nil
+        if !known { await loadMetadata() }
+        async let metadata: Void = refreshMetadata(if: known)
         async let extras: Void = loadExtras()
         await loadPage()
         await metadata
@@ -109,6 +112,10 @@ final class ArtifactDetailModel {
     private func cachedSummary() async -> ArtifactSummary? {
         let entry = await env.cache.entry(ArtifactList.self, key: LibraryCache.artifactsKey, namespace: env.user.id)
         return entry?.value.items.first { $0.slug == slug }
+    }
+
+    private func refreshMetadata(if known: Bool) async {
+        if known { await loadMetadata() }
     }
 
     private func loadMetadata() async {

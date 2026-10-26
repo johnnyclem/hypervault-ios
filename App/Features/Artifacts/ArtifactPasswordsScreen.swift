@@ -134,9 +134,9 @@ struct ArtifactPasswordsScreen: View {
             VStack(alignment: .leading, spacing: HV.Space.s) {
                 Text("Copy this password now. It won't be shown again.")
                     .font(.hvCallout.weight(.semibold))
+                // Not selectable: the Copy button below is the way out, and it keeps the copy on this device.
                 Text(minted.plaintext)
                     .font(.system(.title3, design: .monospaced, weight: .semibold))
-                    .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 HStack(spacing: HV.Space.xs) {
                     Button {

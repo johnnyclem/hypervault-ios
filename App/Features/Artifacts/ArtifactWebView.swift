@@ -64,6 +64,8 @@ struct ArtifactWebView: UIViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = false
+        // A peek at a link would load it outside the rules below.
+        webView.allowsLinkPreview = false
         webView.underPageBackgroundColor = UIColor(Palette.background)
         webView.scrollView.contentInsetAdjustmentBehavior = .automatic
         #if DEBUG

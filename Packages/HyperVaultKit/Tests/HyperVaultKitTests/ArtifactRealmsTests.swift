@@ -96,6 +96,18 @@ final class ArtifactRealmsTests: XCTestCase {
         XCTAssertEqual(pinned.pins.last, .artifact("p-2"))
     }
 
+    func testDraggingAPinReordersOnlyThePages() {
+        let pins = SidebarPins(pins: [
+            SidebarPin(kind: "vault", ref: "nova.vault.cool"), .artifact("a"), SidebarPin(kind: "conversation", ref: "c-1"), .artifact("b"), .artifact("c"),
+        ])
+        func order(_ value: SidebarPins) -> [String] { value.pins.map(\.ref) }
+        XCTAssertEqual(order(pins.movingArtifact(from: 0, to: 3)), ["nova.vault.cool", "b", "c-1", "c", "a"], "a to the end")
+        XCTAssertEqual(order(pins.movingArtifact(from: 2, to: 0)), ["nova.vault.cool", "c", "c-1", "a", "b"], "c to the front")
+        XCTAssertEqual(order(pins.movingArtifact(from: 0, to: 1)), order(pins), "dropping it where it is changes nothing")
+        XCTAssertEqual(order(pins.movingArtifact(from: 5, to: 0)), order(pins), "out of range changes nothing")
+        XCTAssertEqual(order(pins.movingArtifact(from: 0, to: 9)), order(pins))
+    }
+
     func testReplacingPinsSendsTheWholeOrderedList() async throws {
         let transport = MockTransport(routes: [.json(.patch, "/api/sidebar-pins", #"{"pins":[]}"#)])
         _ = try await client(transport).send(.replaceSidebarPins([.artifact("p-1"), SidebarPin(kind: "vault", ref: "nova.vault.cool")]))

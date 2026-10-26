@@ -103,8 +103,8 @@ public struct ArtifactPageLoader: Sendable {
         switch response.status {
         case 200..<300:
             let html = String(decoding: response.data, as: UTF8.self)
-            // A group has no markup of its own: its link is under /g/.
-            if html.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // A group has no markup of its own (the server only adds its head tags): its link is under /g/.
+            if Self.isBlank(html) {
                 return await loadGroup(slug: slug, visibility: nil)
             }
             return .html(html, base: address)
@@ -133,6 +133,12 @@ public struct ArtifactPageLoader: Sendable {
               !Self.looksLikeStoragePath(source.content)
         else { return nil }
         return .html(source.content, base: base)
+    }
+
+    /// Nothing outside the head: no page to show.
+    static func isBlank(_ html: String) -> Bool {
+        let body = html.replacingOccurrences(of: #"<head[^>]*>[\s\S]*?</head>"#, with: "", options: [.regularExpression, .caseInsensitive])
+        return body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     static func looksLikeStoragePath(_ content: String) -> Bool {

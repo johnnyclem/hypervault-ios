@@ -38,6 +38,7 @@ enum ArtifactSheet: Identifiable, Hashable {
 struct ArtifactDetailScreen: View {
     @Environment(AppModel.self) private var app
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var model: ArtifactDetailModel
     @State private var sheet: ArtifactSheet?
     @State private var askPublic = false
@@ -106,7 +107,7 @@ struct ArtifactDetailScreen: View {
                     .background(Palette.background)
                 }
             }
-            .animation(.easeOut(duration: 0.2), value: model.progress < 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: model.progress < 1)
         case .blocked(let block):
             if block == .notAllowed {
                 // Retrying will not change a no; the web, where the person can sign in, might.

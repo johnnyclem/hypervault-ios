@@ -142,6 +142,12 @@ struct LibraryScreen: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
+        // Pins can be put in the order the person likes (the side menu keeps the same order).
+        ToolbarItem(placement: .topBarLeading) {
+            if model.pins.artifactSlugs.count > 1, filter == .all || filter == .file, query.isEmpty {
+                EditButton()
+            }
+        }
         ToolbarItem(placement: .primaryAction) {
             Menu {
                 Button { sheet = .newPage } label: { Label("A page from text or a file", systemImage: "doc.badge.plus") }
@@ -325,6 +331,9 @@ struct LibraryScreen: View {
                     .swipeActions {
                         Button { Task { await model.togglePin(slug: pin.slug, toasts: app.toasts) } } label: { Label("Unpin", systemImage: "pin.slash") }
                     }
+                }
+                .onMove { source, destination in
+                    Task { await model.movePin(from: source, to: destination, toasts: app.toasts) }
                 }
             } header: {
                 HVSectionHeader(title: "Pinned")

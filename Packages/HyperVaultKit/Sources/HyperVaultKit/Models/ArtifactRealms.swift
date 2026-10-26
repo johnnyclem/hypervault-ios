@@ -197,6 +197,18 @@ public struct SidebarPins: Sendable, Equatable {
     }
 
     public var artifactSlugs: [String] { pins.filter(\.isArtifact).map(\.ref) }
+
+    /// Moves one pinned page among the pinned pages, as a list's drag does: `source` is its place
+    /// among the artifact pins, `destination` the place it is dropped before (counted before it leaves).
+    /// Pins of other kinds keep the places they have.
+    public func movingArtifact(from source: Int, to destination: Int) -> SidebarPins {
+        var slugs = artifactSlugs
+        guard slugs.indices.contains(source), destination >= 0, destination <= slugs.count else { return self }
+        let moved = slugs.remove(at: source)
+        slugs.insert(moved, at: destination > source ? destination - 1 : destination)
+        var next = slugs.makeIterator()
+        return SidebarPins(pins: pins.map { $0.isArtifact ? (next.next().map(SidebarPin.artifact) ?? $0) : $0 })
+    }
 }
 
 public struct SidebarPinsReader: Sendable {

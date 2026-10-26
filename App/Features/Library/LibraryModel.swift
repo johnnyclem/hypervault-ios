@@ -219,6 +219,22 @@ final class LibraryModel {
         }
     }
 
+    /// A pinned page dragged to a new place among the pins. Back where it was if the server says no.
+    func movePin(from source: IndexSet, to destination: Int, toasts: ToastCenter) async {
+        guard let from = source.first else { return }
+        let before = pins
+        let next = pins.movingArtifact(from: from, to: destination)
+        guard next != before else { return }
+        pins = next
+        do {
+            _ = try await env.client.send(.replaceSidebarPins(next.pins))
+            Haptics.tap()
+        } catch {
+            pins = before
+            toasts.show(error: error)
+        }
+    }
+
     /// Leaves a page someone shared. Gone from the list at once; back if the server says no.
     func leave(_ item: SharedWithYouItem, toasts: ToastCenter) async {
         let before = sharedWithYou

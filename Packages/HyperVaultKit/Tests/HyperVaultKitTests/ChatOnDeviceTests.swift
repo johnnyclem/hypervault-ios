@@ -245,6 +245,8 @@ final class ChatOnDeviceTests: XCTestCase {
         let report = await store.flush(client: api)
         XCTAssertEqual(report.saved.map(\.conversationID), ["c1"])
         XCTAssertEqual(report.saved.first?.messageID, "m8")
+        XCTAssertEqual(report.saved.first?.userMessage, "when do we fly?", "a screen finds its waiting rows by what was said")
+        XCTAssertEqual(report.saved.first?.threadKey, "t1")
         XCTAssertEqual(report.remaining, 0)
         let after = await store.pending()
         XCTAssertTrue(after.isEmpty)
@@ -330,6 +332,8 @@ final class ChatOnDeviceTests: XCTestCase {
         await store.enqueue(PendingChatTurn(threadKey: "t", conversationID: "gone", userMessage: "a", assistantContent: "b", model: "m"))
         let report = await store.flush(client: client(transport))
         XCTAssertEqual(report.rejected.map(\.message), ["Conversation not found."])
+        XCTAssertEqual(report.rejected.map(\.threadKey), ["t"], "a screen settles the rows of a refused turn too")
+        XCTAssertEqual(report.rejected.map(\.userMessage), ["a"])
         XCTAssertEqual(report.remaining, 0)
     }
 

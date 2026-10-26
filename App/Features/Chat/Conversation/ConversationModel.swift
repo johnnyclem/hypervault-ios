@@ -272,13 +272,45 @@ final class ChatConversationModel {
         isStale = false
     }
 
-    /// Replays on-device turns that could not be saved while offline.
+    /// Replays on-device turns that could not be saved while offline, and settles the rows that waited for
+    /// them, in a chat that already existed as much as in one that is new: a turn that is saved gives its
+    /// reply the server's id (so it can be rated), and one the server refused for good says so. Turns the
+    /// outbox could not reach yet keep waiting.
     func syncOutbox() async {
         let report = await outbox.flush(client: client)
-        guard conversation == nil, let adopted = report.saved.first(where: { $0.threadKey == threadKey }) else { return }
-        let first = rows.first { $0.kind == .user }?.text ?? "New chat"
-        conversation = ChatConversation(id: adopted.conversationID, title: String(first.prefix(80)), updatedAt: Date())
-        for index in rows.indices where rows[index].state == .waitingToSync { rows[index].state = .saved }
+        let saved = report.saved.filter { $0.threadKey == threadKey }
+        let refused = report.rejected.filter { $0.threadKey == threadKey }
+        guard !saved.isEmpty || !refused.isEmpty else { return }
+        if conversation == nil, let adopted = saved.first {
+            let first = rows.first { $0.kind == .user }?.text ?? "New chat"
+            conversation = ChatConversation(id: adopted.conversationID, title: String(first.prefix(80)), updatedAt: Date())
+        }
+        for turn in saved where settleWaitingRows(for: turn.userMessage, as: .saved, serverID: turn.messageID) {
+            knownServerMessages += 2
+        }
+        for turn in refused {
+            settleWaitingRows(for: turn.userMessage, as: .notSaved(turn.message), serverID: nil)
+        }
+        if let id = saved.last?.conversationID {
+            Task { [cache, namespace] in
+                await cache.remove(key: "chat.conversation.\(id)", namespace: namespace)
+            }
+        }
+    }
+
+    /// The oldest message still waiting with these words, and the reply that follows it.
+    @discardableResult
+    private func settleWaitingRows(for userMessage: String, as state: ChatThreadRow.State, serverID: String?) -> Bool {
+        let words = userMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let user = rows.firstIndex(where: {
+            $0.kind == .user && $0.state == .waitingToSync && $0.text.trimmingCharacters(in: .whitespacesAndNewlines) == words
+        }) else { return false }
+        rows[user].state = state
+        if let reply = rows.indices.first(where: { $0 > user && rows[$0].kind == .assistant && rows[$0].state == .waitingToSync }) {
+            rows[reply].state = state
+            rows[reply].serverID = serverID
+        }
+        return true
     }
 
     // MARK: Choosing a model

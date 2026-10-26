@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 // Where the names go on a force graph. It works in screen points and knows nothing about drawing:
 // the caller says where each node is, how big its name is, and what else is on the screen, and gets
@@ -7,7 +10,7 @@ import Foundation
 
 public enum ForceLabelPlacer {
     /// A name that wants a place.
-    public struct Request: Sendable, Equatable {
+    public struct Request: Sendable {
         public var id: String
         /// The centre of the node it names.
         public var center: CGPoint
@@ -31,7 +34,7 @@ public enum ForceLabelPlacer {
     }
 
     /// A node as something a name must not cover.
-    public struct Obstacle: Sendable, Equatable {
+    public struct Obstacle: Sendable {
         public var id: String
         public var rect: CGRect
 
@@ -42,7 +45,7 @@ public enum ForceLabelPlacer {
     }
 
     /// A link, as the line it is drawn along.
-    public struct Segment: Sendable, Equatable {
+    public struct Segment: Sendable {
         public var from: CGPoint
         public var to: CGPoint
 
@@ -52,7 +55,7 @@ public enum ForceLabelPlacer {
         }
     }
 
-    public struct Options: Sendable, Equatable {
+    public struct Options: Sendable {
         /// Names stay inside this rectangle.
         public var bounds: CGRect
         /// Places that belong to something else (a legend, a row of buttons).
@@ -83,7 +86,7 @@ public enum ForceLabelPlacer {
         case below, above, trailing, leading
     }
 
-    public struct Placement: Sendable, Equatable {
+    public struct Placement: Sendable {
         public var id: String
         /// Where the text goes.
         public var frame: CGRect

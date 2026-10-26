@@ -26,8 +26,15 @@ private func temporaryCache() -> DiskCache {
     DiskCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-tools-\(UUID().uuidString)"))
 }
 
-private func client(_ transport: HTTPTransport) -> HVClient {
-    HVClient(baseURL: URL(string: "https://t.test")!, transport: transport, tokens: StaticTokenProvider(), retry: .none, sleep: { _ in })
+private func client(_ transport: HTTPTransport, tokens: TokenProvider = StaticTokenProvider()) -> HVClient {
+    HVClient(baseURL: URL(string: "https://t.test")!, transport: transport, tokens: tokens, retry: .none, sleep: { _ in })
+}
+
+/// Like the real auth service: a 401 gets one refreshed token and a second try,
+/// so a route that answers 401 for its own reasons shows its own sentence.
+private struct RefreshingTokens: TokenProvider {
+    func accessToken() async throws -> String? { "stale" }
+    func refreshAfterUnauthorized(rejected: String?) async throws -> String? { "fresh" }
 }
 
 private func pause(_ seconds: Double) async {
@@ -37,9 +44,9 @@ private func pause(_ seconds: Double) async {
 @MainActor
 final class ToolsLogicTests: XCTestCase {
     /// A model loaded from the fixtures. Routes in `extra` win over the fixtures'.
-    private func loadedModel(extra: [MockRoute], maxServers: Int = 20) async -> ToolsModel {
+    private func loadedModel(extra: [MockRoute], maxServers: Int = 20, tokens: TokenProvider = StaticTokenProvider()) async -> ToolsModel {
         let transport = MockTransport(routes: extra + ToolsFixtures.routes)
-        let model = ToolsModel(client: client(transport), cache: temporaryCache(), namespace: "u1", maxServers: maxServers)
+        let model = ToolsModel(client: client(transport, tokens: tokens), cache: temporaryCache(), namespace: "u1", maxServers: maxServers)
         await model.load()
         return model
     }
@@ -104,7 +111,7 @@ final class ToolsLogicTests: XCTestCase {
 
     func testRefreshThatWantsALoginMarksTheServer() async {
         let challenge = MockRoute.json(.post, "/api/mcp-servers/s1/refresh", #"{"error":"Authorization expired — reconnect this server.","auth_required":true}"#, status: 401)
-        let model = await loadedModel(extra: [challenge])
+        let model = await loadedModel(extra: [challenge], tokens: RefreshingTokens())
         var said: [String] = []
         model.reportError = { said.append(($0 as? HVError)?.userMessage ?? "") }
         await model.refresh(serverID: "s1")
@@ -135,7 +142,7 @@ final class ToolsLogicTests: XCTestCase {
     func testAServerThatWantsALoginSendsTheFlowToSignIn() async {
         let challenge = MockRoute.json(.post, "/api/mcp-servers", #"{"error":"This MCP server requires authorization.","auth_required":true,"url":"https://new.example.com/mcp"}"#, status: 401)
         let model = await loadedModel(extra: [challenge])
-        let flow = ToolsAddFlow(candidate: ToolsCandidate(url: "https://new.example.com/mcp", name: "New"), client: client(MockTransport(routes: [challenge])), model: model)
+        let flow = ToolsAddFlow(candidate: ToolsCandidate(url: "https://new.example.com/mcp", name: "New"), client: client(MockTransport(routes: [challenge]), tokens: RefreshingTokens()), model: model)
         let added = await flow.add()
         XCTAssertNil(added)
         guard case .needsSignIn = flow.stage else { return XCTFail("expected the sign-in step, got \(flow.stage)") }

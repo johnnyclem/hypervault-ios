@@ -225,7 +225,7 @@ final class MailModelTests: XCTestCase {
     }
 
     func testALostConnectionIsNotTakenForMailThatIsNotSetUp() async throws {
-        let transport = OfflineTransport()
+        let transport = MailOfflineTransport()
         let client = HVClient(baseURL: URL(string: "https://offline.hypervault.test")!, transport: transport, tokens: StaticTokenProvider(), retry: .none)
         let cache = DiskCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-offline-\(UUID().uuidString)"))
         let model = MailModel(client: client, cache: cache, namespace: "tests")
@@ -249,7 +249,7 @@ final class MailModelTests: XCTestCase {
 }
 
 /// A network that is never there: every request fails the way a phone with no signal does.
-private struct OfflineTransport: HTTPTransport {
+private struct MailOfflineTransport: HTTPTransport {
     func send(_ request: URLRequest) async throws -> HTTPResponse {
         throw URLError(.notConnectedToInternet)
     }

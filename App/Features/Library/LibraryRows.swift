@@ -8,7 +8,7 @@ enum LibraryRow {
     static let gap: CGFloat = HV.Space.s + 2
 
     /// The mark grows with the type, but stops short of taking the row from its words.
-    static func scaled(_ size: CGFloat) -> CGFloat { min(size, 52) }
+    static func scaled(_ size: CGFloat) -> CGFloat { min(size, 44) }
 }
 
 /// The shape every Library row shares: a mark, a title, a line under it and whatever trails. It sets
@@ -180,6 +180,7 @@ struct LibraryPinnedRow: View {
     let slug: String
     let title: String
     let icon: String?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         LibraryRowFrame(title: title) { size in
@@ -187,11 +188,14 @@ struct LibraryPinnedRow: View {
         } meta: {
             EmptyView()
         } trailing: {
-            Image(systemName: "pin.fill")
-                .font(.system(size: 12))
-                .foregroundStyle(Palette.textTertiary)
-                .accessibilityLabel("Pinned")
+            // The section is headed Pinned, so at the sizes where the name needs the room the glyph goes.
+            if !dynamicTypeSize.isAccessibilitySize {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.textTertiary)
+            }
         }
+        .accessibilityValue("Pinned")
     }
 }
 

@@ -225,7 +225,7 @@ struct PairApprovalScreen: View {
                     .textCase(.uppercase)
                     .tracking(1)
                 Text(model.code ?? "")
-                    .font(.system(size: 34, weight: .bold, design: .monospaced))
+                    .font(.system(.largeTitle, design: .monospaced, weight: .bold))
                     .tracking(3)
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)

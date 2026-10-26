@@ -96,6 +96,27 @@ struct ConnectGuideView: View {
                 .font(.hvFootnote.weight(.semibold))
                 .foregroundStyle(Palette.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
+            pasteBody(paste)
+                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(paste.label). Code, \(isSecret ? "holds your key" : "\(paste.text.split(separator: "\n").count) lines").")
+                .keysHidesWhenInactive(isSecret)
+            KeysCopyButton(title: ConnectCopy.copyLabel, text: paste.text, isSecret: isSecret)
+        }
+    }
+
+    /// A message or an address wraps, as prose does; code keeps its lines and scrolls sideways, exactly as shown.
+    @ViewBuilder
+    private func pasteBody(_ paste: ConnectGuide.Paste) -> some View {
+        if paste.language == "text" {
+            Text(paste.text)
+                .font(.hvMono)
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(HV.Space.s + 2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
             ScrollView(.horizontal, showsIndicators: false) {
                 Text(paste.text)
                     .font(.hvMono)
@@ -103,12 +124,6 @@ struct ConnectGuideView: View {
                     .fixedSize(horizontal: true, vertical: true)
                     .padding(HV.Space.s + 2)
             }
-            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(paste.label). Code, \(isSecret ? "holds your key" : "\(paste.text.split(separator: "\n").count) lines").")
-            .modifier(HideWhenInactive(active: isSecret))
-            KeysCopyButton(title: ConnectCopy.copyLabel, text: paste.text, isSecret: isSecret)
         }
     }
 
@@ -159,15 +174,6 @@ struct ConnectGuideView: View {
                     Text(source).font(.hvCaption).foregroundStyle(Palette.textSecondary)
                 }
             }
-        }
-    }
-
-    private struct HideWhenInactive: ViewModifier {
-        let active: Bool
-        @Environment(\.scenePhase) private var phase
-
-        func body(content: Content) -> some View {
-            content.blur(radius: active && phase != .active ? 14 : 0)
         }
     }
 

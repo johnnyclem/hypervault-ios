@@ -147,16 +147,21 @@ struct KeysSafariSheet: UIViewControllerRepresentable {
 // MARK: Small pieces
 
 private struct KeysHidesWhenInactive: ViewModifier {
-    @Environment(\.scenePhase) private var phase
+    let enabled: Bool
+    @State private var hidden = false
 
     func body(content: Content) -> some View {
-        content.blur(radius: phase == .active ? 0 : 14)
+        content
+            .blur(radius: enabled && hidden ? 14 : 0)
+            // Resigning active is what comes just before the app switcher takes its picture.
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in hidden = true }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in hidden = false }
     }
 }
 
 extension View {
-    /// Blurs a secret while the app is not in the foreground, so the app switcher's snapshot does not show it.
-    func keysHidesWhenInactive() -> some View { modifier(KeysHidesWhenInactive()) }
+    /// Blurs a secret while the app is leaving the foreground, so the app switcher's snapshot does not show it.
+    func keysHidesWhenInactive(_ enabled: Bool = true) -> some View { modifier(KeysHidesWhenInactive(enabled: enabled)) }
 }
 
 /// A calm notice with a tint: the amber "untested" and "the URL is the key" warnings, and the like.

@@ -99,8 +99,9 @@ final class ChatOnDeviceTests: XCTestCase {
             ChatWireMessage(role: .user, content: "a"), ChatWireMessage(role: .assistant, content: "b"), ChatWireMessage(role: .user, content: "c"),
         ])
         XCTAssertEqual(prompt, "The conversation so far:\nPerson: a\nAssistant: b\n\nThe person's latest message:\nc")
-        XCTAssertTrue(OnDevicePrompt.instructions(system: "", hasMemory: true).contains("HyperVault"))
-        XCTAssertTrue(OnDevicePrompt.instructions(system: "S", hasMemory: false).contains("do not pretend"))
+        XCTAssertTrue(OnDevicePrompt.instructions(system: "  ").contains("HyperVault"))
+        XCTAssertEqual(OnDevicePrompt.instructions(system: "S"), "S")
+        XCTAssertTrue(OnDevicePrompt.offlineSystem.contains("do not pretend"))
     }
 
     // MARK: a turn
@@ -142,8 +143,20 @@ final class ChatOnDeviceTests: XCTestCase {
         let outcome = try await chat.run(OnDeviceTurn(message: "now", history: history)) { _ in }
         XCTAssertFalse(outcome.usedMemory)
         XCTAssertEqual(model.seen.first?.messages.map(\.content), ["earlier", "reply", "now"])
-        XCTAssertTrue(model.seen.first?.system.isEmpty == true)
+        XCTAssertEqual(model.seen.first?.system, OnDevicePrompt.offlineSystem)
         XCTAssertEqual(outcome.saved, .saved(conversationID: "c2", messageID: "m1"))
+    }
+
+    func testAnUnsavedConversationKeepsItsLocalHistoryInFrontOfTheServersContext() async throws {
+        let transport = MockTransport(routes: [
+            .json(.post, "/api/chat/context", #"{"conversation_id":null,"system":"S","messages":[{"role":"user","content":"second"}],"next_position":0}"#),
+            .json(.post, "/api/chat/turns", #"{"conversation_id":"c3","reply":{"id":"m","role":"assistant","content":"x","model":"m"}}"#),
+        ])
+        let model = FakeModel()
+        let chat = OnDeviceChat(client: client(transport), provider: model, outbox: outbox())
+        let history = [ChatWireMessage(role: .user, content: "first"), ChatWireMessage(role: .assistant, content: "one")]
+        _ = try await chat.run(OnDeviceTurn(message: "second", history: history)) { _ in }
+        XCTAssertEqual(model.seen.first?.messages.map(\.content), ["first", "one", "second"])
     }
 
     func testAContextRefusalIsTheServersSentenceAndNothingIsGenerated() async {

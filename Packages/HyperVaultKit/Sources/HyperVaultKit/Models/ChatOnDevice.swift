@@ -132,14 +132,14 @@ public enum OnDevicePrompt {
     public static let defaultInstructions =
         "You are the person's assistant inside HyperVault. Answer plainly and briefly, in the language they write in."
 
-    /// The system prompt with a line that says where the rest of the thread is.
-    public static func instructions(system: String, hasMemory: Bool) -> String {
+    /// The system prompt used when the person's memory could not be reached.
+    public static let offlineSystem =
+        defaultInstructions + "\n\nYou do not have access to the person's saved memories right now; do not pretend to."
+
+    /// What the model is told: the server's system prompt, or a plain one when there is none.
+    public static func instructions(system: String) -> String {
         let trimmed = system.trimmingCharacters(in: .whitespacesAndNewlines)
-        var text = trimmed.isEmpty ? defaultInstructions : trimmed
-        if !hasMemory {
-            text += "\n\nYou do not have access to the person's saved memories right now; do not pretend to."
-        }
-        return text
+        return trimmed.isEmpty ? defaultInstructions : trimmed
     }
 
     /// Earlier turns as a short transcript, then the latest message.
@@ -225,11 +225,16 @@ public struct OnDeviceChat: Sendable {
         do {
             let context = try await client.send(.chatContext(message: message, conversationID: turn.conversationID, options: turn.options))
             system = context.system
-            wire = context.messages.isEmpty ? wire : context.messages
+            if !context.messages.isEmpty {
+                // A conversation the server has not seen yet (its earlier turns are
+                // still waiting in the outbox) comes back with only the new message.
+                wire = turn.conversationID == nil ? turn.history + context.messages : context.messages
+            }
             grounding = context.grounding
             conversationID = context.conversationID ?? turn.conversationID
         } catch let error as HVError where error.isOffline {
             usedMemory = false
+            system = OnDevicePrompt.offlineSystem
         }
         try Task.checkCancellation()
 

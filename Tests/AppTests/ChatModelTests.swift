@@ -402,11 +402,10 @@ private final class ChatSwitchedTransport: HTTPTransport, @unchecked Sendable {
 
     func goOnline() { lock.lock(); online = true; lock.unlock() }
 
+    private var isUp: Bool { lock.lock(); defer { lock.unlock() }; return online }
+
     func send(_ request: URLRequest) async throws -> HTTPResponse {
-        lock.lock()
-        let up = online
-        lock.unlock()
-        if !up { throw URLError(.notConnectedToInternet) }
+        if !isUp { throw URLError(.notConnectedToInternet) }
         return try await inner.send(request)
     }
 }

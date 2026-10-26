@@ -29,6 +29,18 @@ public struct APIFailure: Sendable, Equatable {
         self.body = body
         self.retryAfter = retryAfter
     }
+
+    /// The server's sentence for a person. Some routes answer `"missing_scope: This key can ..."`, the
+    /// machine code first, written for a model; what follows the code is what a person reads. Only a
+    /// prefix equal to the failure's own `code` is dropped, so an ordinary "Note: ..." is left alone.
+    public var plainMessage: String {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let code, !code.isEmpty, trimmed.hasPrefix("\(code): ") {
+            let rest = trimmed.dropFirst(code.count + 2).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !rest.isEmpty { return rest }
+        }
+        return message
+    }
 }
 
 /// Every way a HyperVault call can fail, in one type.
@@ -52,7 +64,7 @@ extension HVError: LocalizedError {
     /// A sentence safe to show in a toast or an inline state.
     public var userMessage: String {
         switch self {
-        case .api(let failure): return failure.message
+        case .api(let failure): return failure.plainMessage
         case .transport: return "Network hiccup. Check your connection and try again."
         case .decoding: return "The server answered in a way this version of the app does not understand. Update the app and try again."
         case .unauthorized: return "Your session ended. Sign in again."

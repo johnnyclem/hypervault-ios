@@ -37,7 +37,7 @@ the code wins. Do not invent endpoints.
 ## Kit: models and endpoints
 
 Models live in `Sources/HyperVaultKit/Models/<Domain>.swift`, endpoints in
-`Endpoints/<Domain>.swift`, tests in `Tests/HyperVaultKitTests/<Domain>Tests.swift`.
+`Endpoints/<Domain>Endpoints.swift` (the suffix matters: SwiftPM puts every file of a target in one namespace of object names, so `Models/Mail.swift` and `Endpoints/Mail.swift` collide), tests in `Tests/HyperVaultKitTests/<Domain>Tests.swift`.
 
 ```swift
 public struct Widget: Sendable, Codable, Identifiable, Equatable {

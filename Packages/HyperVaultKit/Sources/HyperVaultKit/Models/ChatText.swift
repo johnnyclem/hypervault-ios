@@ -133,3 +133,9 @@ public enum ChatToolProtocol {
         return nil
     }
 }
+
+extension ThinkingSplit {
+    /// What a bubble shows: the words, or the reasoning when that is all the
+    /// reply holds (a trace beats an empty bubble). `Thinking.strip` splits them.
+    public var shown: String { text.isEmpty ? reasoning : text }
+}

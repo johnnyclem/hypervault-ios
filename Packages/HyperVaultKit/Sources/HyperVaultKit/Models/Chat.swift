@@ -598,7 +598,7 @@ public struct ChatTurnResponse: Sendable, Equatable, Decodable {
 
         /// The reply without reasoning traces, falling back to the trace when
         /// the whole reply is one.
-        public var text: String { ChatThinking.visibleText(content) }
+        public var text: String { Thinking.strip(content).shown }
     }
 
     public struct Backend: Sendable, Equatable, Decodable {
@@ -829,7 +829,7 @@ public struct ChatThreadRow: Sendable, Identifiable, Equatable {
                     id: message.id, serverID: message.id, kind: .user, text: message.content, createdAt: message.createdAt
                 )
             case .assistant:
-                var text = ChatThinking.visibleText(message.content)
+                var text = Thinking.strip(message.content).shown
                 if let call = ChatToolProtocol.parseIntentCall(text) {
                     guard !call.visibleText.isEmpty else { return nil }
                     text = call.visibleText

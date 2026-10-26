@@ -292,10 +292,13 @@ public enum ChatMarkdown {
         var items: [ChatMarkdownListItem] = []
         var indents: [Int] = []
         var index = start
+        let firstOrdered = listMarker(lines[start])?.ordered
 
         while index < lines.count {
             let line = lines[index]
             if let marker = listMarker(line) {
+                // A numbered item after bullets (or the reverse) at the top level starts another list.
+                if !items.isEmpty, marker.indent <= (indents.first ?? 0), marker.ordered != firstOrdered { break }
                 while let last = indents.last, marker.indent < last { indents.removeLast() }
                 if indents.last.map({ marker.indent > $0 }) ?? true { indents.append(marker.indent) }
                 let depth = min(max(indents.count - 1, 0), 3)

@@ -314,6 +314,14 @@ final class ArtifactIconAndTypeNameTests: XCTestCase {
         XCTAssertEqual(ArtifactTypeName.name(type: ""), "Page")
     }
 
+    func testASlugReadsAsATitleWhenNothingBetterIsKnown() {
+        XCTAssertEqual(ArtifactSlugName.readable("pomodoro-timer-x7k2p9"), "Pomodoro timer")
+        XCTAssertEqual(ArtifactSlugName.readable("lease-pdf-123456"), "Lease pdf")
+        XCTAssertEqual(ArtifactSlugName.readable("budget-2026-q4"), "Budget 2026 q4", "a short last word is not a suffix")
+        XCTAssertEqual(ArtifactSlugName.readable("k3m9zz"), "K3m9zz", "a slug of only the suffix is all there is")
+        XCTAssertEqual(ArtifactSlugName.readable(""), "")
+    }
+
     func testARowAndASharedRowUseTheSameNames() {
         XCTAssertEqual(ArtifactSummary(slug: "a", title: "A", type: "react", isJsx: true).typeName, "React page")
         XCTAssertEqual(ArtifactSummary(slug: "a", title: "A", type: "react", isJsx: true).typeLabel, "react", "the web's word stays available")

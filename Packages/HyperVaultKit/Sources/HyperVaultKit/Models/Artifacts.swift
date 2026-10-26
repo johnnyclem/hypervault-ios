@@ -116,6 +116,22 @@ public struct ArtifactSummary: Sendable, Codable, Identifiable, Hashable {
     public var typeName: String { ArtifactTypeName.name(type: type, isJsx: isJsx) }
 }
 
+/// A page's name when only its slug is known (a pin whose page the list does not hold). The server
+/// builds a slug as the title in lower case with hyphens, then a hyphen and six random characters
+/// (`lib/slug.ts`), so taking that apart gives back something that reads as a title, not as an ID.
+public enum ArtifactSlugName {
+    public static func readable(_ slug: String) -> String {
+        var words = slug.split(separator: "-").map(String.init)
+        if words.count > 1, let last = words.last, last.count == 6,
+           last.allSatisfy({ $0.isASCII && ($0.isLetter && $0.isLowercase || $0.isNumber) }) {
+            words.removeLast()
+        }
+        let text = words.joined(separator: " ")
+        guard let first = text.first else { return slug }
+        return first.uppercased() + text.dropFirst()
+    }
+}
+
 /// The names the app gives the stored types of an artifact. The server keeps free text there
 /// (`html`, `react`, `pdf`...), so a type nobody listed still reads as a word rather than a code.
 public enum ArtifactTypeName {

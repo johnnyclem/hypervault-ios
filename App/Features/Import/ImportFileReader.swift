@@ -16,15 +16,26 @@ enum ImportFileReader {
     /// done on a background thread; a big export is read from disk by the
     /// system as needed, not loaded into memory.
     static func read(_ urls: [URL], chosen: ImportPlatform?) async throws -> ImportReadResult {
-        try await Task.detached(priority: .userInitiated) {
+        let work = Task.detached(priority: .userInitiated) { () throws -> ImportReadResult in
             var result = ImportReadResult()
-            for url in urls {
-                try Task.checkCancellation()
-                try readOne(url, chosen: chosen, into: &result)
+            do {
+                for url in urls {
+                    try Task.checkCancellation()
+                    try readOne(url, chosen: chosen, into: &result)
+                }
+            } catch {
+                remove(result.temporaryFiles)
+                throw error
             }
             result.documents = keepTheMainService(result.documents, notes: &result.notes)
             return result
-        }.value
+        }
+        // A detached task does not hear that its caller was cancelled.
+        return try await withTaskCancellationHandler {
+            try await work.value
+        } onCancel: {
+            work.cancel()
+        }
     }
 
     private static func readOne(_ url: URL, chosen: ImportPlatform?, into result: inout ImportReadResult) throws {

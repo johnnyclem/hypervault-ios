@@ -51,6 +51,12 @@ final class ImportModel {
         documents.first(where: \.disagrees).flatMap { $0.chosen }
     }
 
+    /// What to call the file in the review: its name, or "3 files" for several.
+    var fileName: String? {
+        guard !isPaste, let first = documents.first, !first.name.isEmpty else { return nil }
+        return documents.count > 1 ? "\(documents.count) files" : first.name
+    }
+
     /// A pasted transcript is a single conversation and can be titled.
     var isPaste: Bool { documents.first?.kind == .transcript }
 

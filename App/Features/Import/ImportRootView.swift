@@ -162,6 +162,7 @@ struct ImportScreen: View {
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
+            Button("Cancel") { model.backToChoose() }.buttonStyle(.hvGhost)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, HV.Space.xxl)
@@ -187,6 +188,9 @@ struct ImportScreen: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(model.isPaste ? "A pasted conversation" : "\(model.platform.title) history")
                             .font(.hvHeadline)
+                        if let name = model.fileName {
+                            Text(name).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(1)
+                        }
                         Text(foundSubtitle).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                     }
                 }

@@ -26,7 +26,7 @@ export const PEOPLE = [
   { key: "carol", email: "carol@e2e.test", name: "Carol Waitlisted", access: false },
   // A pool of further members. The server meters each person at 120 calls a minute, so a long
   // suite spreads its areas over these rather than waiting on one person's budget.
-  ...Array.from({ length: Number(process.env.HV_E2E_POOL_USERS ?? 12) }, (_, i) => {
+  ...Array.from({ length: Number(process.env.HV_E2E_POOL_USERS ?? 32) }, (_, i) => {
     const n = String(i + 1).padStart(2, "0");
     return { key: `pool${n}`, email: `pool${n}@e2e.test`, name: `Pool ${n}`, access: true };
   }),

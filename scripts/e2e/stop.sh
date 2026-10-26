@@ -22,6 +22,7 @@ stop_pid() {
 }
 
 stop_pid web
+stop_pid fakes
 stop_pid stack
 
 if [ -d "$DIR/pg" ]; then

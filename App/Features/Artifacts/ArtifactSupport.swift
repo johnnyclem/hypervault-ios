@@ -212,3 +212,12 @@ enum ArtifactLoad<Value> {
         return nil
     }
 }
+
+extension AppEnvironment {
+    /// Reads the person's own rows from Supabase (their addresses, pins, shares). Nil when this
+    /// server reports no Supabase project, in which case those parts simply do not appear.
+    var artifactTables: ArtifactTables? {
+        guard let config = capabilities.supabase else { return nil }
+        return ArtifactTables(config: config, tokens: auth)
+    }
+}

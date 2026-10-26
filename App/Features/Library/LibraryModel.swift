@@ -40,6 +40,7 @@ final class LibraryModel {
     var shown = LibraryModel.pageSize
     /// Set while something is being kept from a file.
     private(set) var busy: String?
+    private var lastFilter: YoursFilter?
 
     let env: AppEnvironment
 
@@ -51,7 +52,14 @@ final class LibraryModel {
 
     func load(filter: YoursFilter, query: String) async {
         shown = Self.pageSize
-        let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        // The web cuts a search at 100 characters, as the route does.
+        let text = String(query.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
+        // A different filter does not borrow the last one's rows while it loads.
+        if filter != lastFilter {
+            lastFilter = filter
+            items = []
+            phase = .loading
+        }
         if filter == .file {
             await loadFiles()
         } else {
@@ -125,7 +133,8 @@ final class LibraryModel {
 
     /// The parts that sit around the list: what was shared with the person, their pins, their addresses.
     func loadExtras() async {
-        let tables = ArtifactTables(config: env.auth.config, tokens: env.auth)
+        // These are the person's own rows, read as themselves; a server with no such project shows none.
+        guard let tables = env.artifactTables else { return }
         let userId = env.user.id
         async let shared = try? SharedWithYouReader(tables: tables, userId: userId).items()
         async let pinned = try? SidebarPinsReader(tables: tables, userId: userId).pins()
@@ -196,8 +205,10 @@ final class LibraryModel {
         let before = pins
         do {
             // The list is replaced whole, so start from what the server holds now.
-            let tables = ArtifactTables(config: env.auth.config, tokens: env.auth)
-            let current = (try? await SidebarPinsReader(tables: tables, userId: env.user.id).pins()) ?? before
+            var current = before
+            if let tables = env.artifactTables, let held = try? await SidebarPinsReader(tables: tables, userId: env.user.id).pins() {
+                current = held
+            }
             let next = current.toggling(artifact: slug)
             pins = next
             _ = try await env.client.send(.replaceSidebarPins(next.pins))

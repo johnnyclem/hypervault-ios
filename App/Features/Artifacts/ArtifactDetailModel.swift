@@ -32,6 +32,7 @@ final class ArtifactDetailModel {
 
     let env: AppEnvironment
     private let loader: ArtifactPageLoader
+    private var hasLoaded = false
 
     init(slug: String, env: AppEnvironment, loader: ArtifactPageLoader? = nil) {
         self.slug = slug
@@ -70,6 +71,9 @@ final class ArtifactDetailModel {
     // MARK: Loading
 
     func load() async {
+        // Coming back to the screen from something pushed over it keeps the page where it was.
+        guard !hasLoaded else { return }
+        hasLoaded = true
         pageState = .loading
         webFailure = nil
         if summary == nil { summary = await cachedSummary() }
@@ -146,8 +150,8 @@ final class ArtifactDetailModel {
 
     private func loadExtras() async {
         async let rated = try? env.client.send(.artifactFeedback(slug: slug))
-        async let claimed = try? realmReader.realms()
-        async let pinned = try? pinsReader.pins()
+        async let claimed = readRealms()
+        async let pinned = readPins()
         if let state = await rated { feedback = state.feedback }
         if let list = await claimed { realms = list }
         if let list = await pinned { pins = list }
@@ -155,12 +159,18 @@ final class ArtifactDetailModel {
 
     /// Reads the person's addresses again, after one was pointed at a page.
     func refreshRealms() async {
-        if let list = try? await realmReader.realms() { realms = list }
+        if let list = await readRealms() { realms = list }
     }
 
-    var tables: ArtifactTables { ArtifactTables(config: env.auth.config, tokens: env.auth) }
-    private var realmReader: ArtifactRealmReader { ArtifactRealmReader(tables: tables, userId: env.user.id) }
-    private var pinsReader: SidebarPinsReader { SidebarPinsReader(tables: tables, userId: env.user.id) }
+    private func readRealms() async -> [ArtifactRealm]? {
+        guard let tables = env.artifactTables else { return nil }
+        return try? await ArtifactRealmReader(tables: tables, userId: env.user.id).realms()
+    }
+
+    private func readPins() async -> SidebarPins? {
+        guard let tables = env.artifactTables else { return nil }
+        return try? await SidebarPinsReader(tables: tables, userId: env.user.id).pins()
+    }
 
     /// The page's row id, for connections. Nil for a page that is not the person's.
     func ensureRowID() async -> String? {
@@ -222,7 +232,7 @@ final class ArtifactDetailModel {
         let previous = pins
         do {
             // The pin list is replaced whole, so start from what the server holds now.
-            let current = (try? await pinsReader.pins()) ?? previous
+            let current = (await readPins()) ?? previous
             let next = current.toggling(artifact: slug)
             pins = next
             _ = try await env.client.send(.replaceSidebarPins(next.pins))

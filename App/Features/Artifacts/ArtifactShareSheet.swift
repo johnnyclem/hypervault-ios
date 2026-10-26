@@ -144,7 +144,7 @@ struct ArtifactShareSheet: View {
                 .pickerStyle(.menu)
             }
 
-            ShareLink(item: url, subject: Text(detail.title), message: Text(detail.title)) {
+            ShareLink(item: url, subject: Text(detail.title), preview: SharePreview(detail.title)) {
                 Label("Share link", systemImage: "square.and.arrow.up")
             }
             .buttonStyle(.hvPrimary)

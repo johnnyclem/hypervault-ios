@@ -152,7 +152,7 @@ struct ArtifactDetailScreen: View {
             ArtifactRealmHomeSheet(detail: model)
         case .files:
             GroupEditorView(env: model.env, slug: model.slug) { _ in
-                sheet = nil
+                self.sheet = nil
                 reload()
             }
         case .repair(let error):
@@ -229,6 +229,10 @@ struct ArtifactActionBar: View {
         .padding(.horizontal, HV.Space.m)
         .padding(.bottom, HV.Space.xxs)
         .padding(.top, HV.Space.xxs)
+        .frame(maxWidth: 560)
+        .frame(maxWidth: .infinity)
+        // Four labelled buttons stop fitting past the large sizes; the page above keeps scaling.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     private func item(_ title: String, _ symbol: String) -> some View {

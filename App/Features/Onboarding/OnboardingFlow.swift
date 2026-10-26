@@ -8,19 +8,22 @@ struct OnboardingFlow: View {
     @Environment(AppModel.self) private var model
     @AppStorage(PrefKey.onboarded) private var onboarded = false
     @State private var page = 0
-    @State private var showSignIn = false
+    /// The story plays until it has been seen once. After that, including after signing out, the way in comes first.
+    @State private var showStory = !UserDefaults.standard.bool(forKey: PrefKey.onboarded)
+    /// Back to the story is offered only on the visit that came through it.
+    @State private var cameFromStory = false
 
     private let pageCount = 4
 
     var body: some View {
         ZStack {
             AuroraBackground()
-            if showSignIn || onboarded {
-                SignInScreen(onBack: onboarded ? nil : { withAnimation(.snappy) { showSignIn = false } })
-                    .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
-            } else {
+            if showStory {
                 story
                     .transition(.opacity)
+            } else {
+                SignInScreen(onBack: cameFromStory ? { withAnimation(.snappy) { showStory = true } } : nil)
+                    .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
             }
         }
     }
@@ -69,7 +72,9 @@ struct OnboardingFlow: View {
     }
 
     private func finishStory() {
-        withAnimation(.snappy) { showSignIn = true }
+        onboarded = true
+        cameFromStory = true
+        withAnimation(.snappy) { showStory = false }
     }
 }
 
@@ -98,26 +103,35 @@ struct WelcomePage<Art: View>: View {
     let title: String
     let message: String
     @ViewBuilder var art: () -> Art
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        VStack(spacing: HV.Space.xl) {
-            Spacer(minLength: 0)
-            art()
-                .frame(height: 300)
-                .frame(maxWidth: .infinity)
-            VStack(spacing: HV.Space.s) {
-                Text(title)
-                    .font(.hvHero)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(message)
-                    .font(.hvBody)
-                    .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+        // The page scrolls when the words need more room than the screen has (a small phone, a large text
+        // size); the art gives way first, and goes entirely at accessibility sizes.
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: HV.Space.xl) {
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        art()
+                            .frame(height: min(300, max(140, proxy.size.height - 300)))
+                            .frame(maxWidth: .infinity)
+                    }
+                    VStack(spacing: HV.Space.s) {
+                        Text(title)
+                            .font(.hvHero)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(message)
+                            .font(.hvBody)
+                            .foregroundStyle(Palette.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, HV.Space.xl)
+                }
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
-            .padding(.horizontal, HV.Space.xl)
-            Spacer(minLength: 0)
+            .scrollBounceBehavior(.basedOnSize)
         }
         .hvReadableWidth()
     }

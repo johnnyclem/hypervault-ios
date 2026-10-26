@@ -35,6 +35,7 @@ struct ShareView: View {
             Spacer()
             if case .ready = model.phase {
                 Button("Keep") { Task { await model.keep() } }
+                    .buttonStyle(.hvGhost)
                     .font(.system(.body, design: .rounded, weight: .bold))
                     .disabled(model.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             } else {

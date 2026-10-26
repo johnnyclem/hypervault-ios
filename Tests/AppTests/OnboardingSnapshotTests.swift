@@ -19,6 +19,7 @@ final class OnboardingSnapshotTests: XCTestCase {
                 HVListSkeleton(rows: 3)
             }
             .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .hvScreenBackground(),
             named: "states"
         )

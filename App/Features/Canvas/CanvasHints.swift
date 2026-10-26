@@ -10,6 +10,7 @@ struct CanvasHints: View {
     var starterCopied: Bool
 
     @Environment(AppModel.self) private var app
+    @State private var canPaste = UIPasteboard.general.hasStrings
 
     var body: some View {
         VStack(spacing: HV.Space.l) {
@@ -31,19 +32,24 @@ struct CanvasHints: View {
                     .font(.hvCallout)
                     .foregroundStyle(Palette.textSecondary)
 
-                PasteButton(payloadType: String.self) { strings in
-                    let text = strings.joined(separator: "\n\n")
-                    guard !text.isEmpty else { return }
-                    model.stagePaste(text)
+                // The system's paste control looks switched off when there is nothing on the pasteboard, which
+                // is how a first run finds it; it appears when there is something to paste.
+                if canPaste {
+                    PasteButton(payloadType: String.self) { strings in
+                        let text = strings.joined(separator: "\n\n")
+                        guard !text.isEmpty else { return }
+                        model.stagePaste(text)
+                    }
+                    .labelStyle(.titleAndIcon)
+                    .buttonBorderShape(.capsule)
+                    .tint(Palette.blue)
                 }
-                .labelStyle(.titleAndIcon)
-                .buttonBorderShape(.capsule)
 
                 starterButton
             }
 
             VStack(spacing: HV.Space.s) {
-                HStack(spacing: HV.Space.xs) {
+                FlowLayout(spacing: HV.Space.xs) {
                     Text(HVCopy.hintTryLabel).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                     ForEach(HVCopy.hintExamples, id: \.self) { example in
                         Button {
@@ -71,6 +77,12 @@ struct CanvasHints: View {
         .padding(.horizontal, HV.Space.xl)
         .frame(maxWidth: 440)
         .frame(maxWidth: .infinity)
+        .onReceive(NotificationCenter.default.publisher(for: UIPasteboard.changedNotification)) { _ in
+            canPaste = UIPasteboard.general.hasStrings
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            canPaste = UIPasteboard.general.hasStrings
+        }
     }
 
     private var starterButton: some View {

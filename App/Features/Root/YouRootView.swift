@@ -16,25 +16,25 @@ struct YouRootView: View {
             Section {
                 profileCard
                     .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.s, trailing: HV.Space.m))
-            }
+            }.hvListRow()
 
             Section(header: HVSectionHeader(title: "Keep")) {
                 link(.library, symbol: "folder", tint: Palette.blue, title: "Library", subtitle: "Everything kept, with its graph")
                 link(.vaultItems, symbol: "lock.rectangle.stack", tint: Palette.violet, title: "Logins, cards & keys", subtitle: "Saved once, used by your agents")
                 link(.taskBoards, symbol: "checklist", tint: Palette.mint, title: "Task boards", subtitle: "Lists you share with your agents")
-            }
+            }.hvListRow()
 
             Section(header: HVSectionHeader(title: "Agents")) {
                 link(.agentsAndKeys, symbol: "key.horizontal", tint: Palette.amber, title: "Account & keys", subtitle: "Connect an agent, manage its keys")
                 link(.tools, symbol: "wrench.and.screwdriver", tint: Palette.coral, title: "Tools", subtitle: "Services your chats can use")
                 link(.mail, symbol: "tray.full", tint: Palette.sky, title: "Mail", subtitle: "Notes between you and your agents")
-            }
+            }.hvListRow()
 
             Section(header: HVSectionHeader(title: "Think")) {
                 link(.dreams, symbol: "moon.stars", tint: Palette.violet, title: "Dreams", subtitle: "Connections found overnight")
                 link(.digest, symbol: "scissors", tint: Palette.cyan, title: "Digest", subtitle: "Split big memories into small ones")
                 link(.truth, symbol: "checkmark.seal", tint: Palette.mint, title: "Truth", subtitle: "What you have asserted, and what rests on it")
-            }
+            }.hvListRow()
 
             Section(header: HVSectionHeader(title: "Account")) {
                 link(.realms, symbol: "globe", tint: Palette.blue, title: "Your address", subtitle: "Claim you.vault.cool and more")
@@ -43,7 +43,7 @@ struct YouRootView: View {
                 if env.isAdmin {
                     link(.admin, symbol: "person.badge.shield.checkmark", tint: Palette.rose, title: "Admin", subtitle: "Invites, waitlist, accounts")
                 }
-            }
+            }.hvListRow()
 
             Section {
                 Button(role: .destructive) {
@@ -63,7 +63,7 @@ struct YouRootView: View {
                     .foregroundStyle(Palette.textTertiary)
                     .frame(maxWidth: .infinity)
                     .padding(.top, HV.Space.s)
-            }
+            }.hvListRow()
         }
         .scrollContentBackground(.hidden)
         .hvScreenBackground()

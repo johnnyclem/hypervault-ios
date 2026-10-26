@@ -198,6 +198,7 @@ struct YoursListView: View {
             }
         }
         .buttonStyle(.plain)
+        .hvListRow()
         .contextMenu {
             Button("Put on the canvas", systemImage: "rectangle.on.rectangle") { onPull(item) }
             if let url = link(for: item) {

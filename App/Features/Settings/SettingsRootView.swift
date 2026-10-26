@@ -21,7 +21,7 @@ struct SettingsRootView: View {
 
     var body: some View {
         Form {
-            Section(header: Text("Look")) {
+            Section(header: HVSectionHeader(title: "Look")) {
                 Picker("Appearance", selection: $appearance) {
                     ForEach(AppearanceChoice.allCases) { choice in
                         Text(choice.title).tag(choice)
@@ -31,27 +31,27 @@ struct SettingsRootView: View {
 
                 VStack(alignment: .leading, spacing: HV.Space.s) {
                     Text("Accent").font(.hvBody)
-                    HStack(spacing: HV.Space.m) {
+                    HStack(spacing: HV.Space.xs) {
                         ForEach(AccentChoice.allCases) { choice in
                             accentSwatch(choice)
                         }
                     }
                 }
                 .padding(.vertical, HV.Space.xs)
-            }
+            }.hvListRow()
 
-            Section(header: Text("Feel")) {
+            Section(header: HVSectionHeader(title: "Feel")) {
                 Toggle("Haptics", isOn: $haptics)
-            }
+            }.hvListRow()
 
-            Section(header: Text("Search"), footer: Text("Find your pages and memories from your Home Screen. Names and short summaries are kept on this phone for search; keys are never included.")) {
+            Section(header: HVSectionHeader(title: "Search"), footer: Text("Find your pages and memories from your Home Screen. Names and short summaries are kept on this phone for search; keys are never included.")) {
                 // Search is switched off while the lock is on; the choice comes back with it.
                 Toggle("Show in Spotlight", isOn: Binding(get: { spotlight && !biometricLock }, set: { spotlight = $0 }))
                     .disabled(biometricLock)
                     .onChange(of: spotlight) { _, on in if !on { SpotlightIndexer.clear() } }
-            }
+            }.hvListRow()
 
-            Section(header: Text("Security"), footer: Text("Ask for \(model.lock.methodName) when you open HyperVault, and blank the app switcher. Your saved logins, cards and keys never leave the server, so there is nothing on this phone to unlock them. While the lock is on, widgets and Spotlight show nothing from your vault, and what you ask Siri to keep waits until you unlock the app.")) {
+            Section(header: HVSectionHeader(title: "Security"), footer: Text("Ask for \(model.lock.methodName) when you open HyperVault, and blank the app switcher. Your saved logins, cards and keys never leave the server, so there is nothing on this phone to unlock them. While the lock is on, widgets and Spotlight show nothing from your vault, and what you ask Siri to keep waits until you unlock the app.")) {
                 Toggle("Lock with \(model.lock.methodName)", isOn: Binding(
                     get: { biometricLock },
                     set: { wanted in
@@ -61,10 +61,10 @@ struct SettingsRootView: View {
                     }
                 ))
                 .onChange(of: biometricLock) { _, on in model.lock.preferenceChanged(to: on) }
-            }
+            }.hvListRow()
 
             if waiting > 0 {
-                Section(header: Text("Waiting"), footer: Text("Things you shared while there was no connection. They are kept the next time HyperVault can reach the server.")) {
+                Section(header: HVSectionHeader(title: "Waiting"), footer: Text("Things you shared while there was no connection. They are kept the next time HyperVault can reach the server.")) {
                     LabeledContent("Waiting to keep", value: "\(waiting)")
                     Button("Try now") {
                         Task {
@@ -75,15 +75,15 @@ struct SettingsRootView: View {
                 }
             }
 
-            Section(header: Text("Account")) {
+            Section(header: HVSectionHeader(title: "Account")) {
                 LabeledContent("Signed in as", value: env.user.email ?? env.user.displayName ?? "You")
                 LabeledContent("Server", value: env.server.baseURL.host() ?? env.server.baseURL.absoluteString)
                     .contextMenu {
                         Button("Copy address") { UIPasteboard.general.string = env.server.baseURL.absoluteString }
                     }
-            }
+            }.hvListRow()
 
-            Section(header: Text("Advanced"), footer: advancedFooter) {
+            Section(header: HVSectionHeader(title: "Advanced"), footer: advancedFooter) {
                 TextField("hypervault.store", text: $serverText)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -102,13 +102,13 @@ struct SettingsRootView: View {
                     }
                 }
                 .disabled(!canSwitchServer || isChangingServer)
-            }
+            }.hvListRow()
 
-            Section(header: Text("About")) {
+            Section(header: HVSectionHeader(title: "About")) {
                 LabeledContent("Version", value: versionText)
                 Link("Open hypervault.store", destination: env.server.baseURL)
                 Link("Read the privacy note", destination: env.webURL("/explain.md"))
-            }
+            }.hvListRow()
         }
         .scrollContentBackground(.hidden)
         .hvScreenBackground()
@@ -161,9 +161,11 @@ struct SettingsRootView: View {
                     Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
                 }
             }
-            .overlay(Circle().strokeBorder(Palette.border, lineWidth: accent == choice ? 0 : 1))
+            .overlay(Circle().strokeBorder(Palette.textTertiary.opacity(0.4), lineWidth: accent == choice ? 0 : 1))
             .scaleEffect(accent == choice ? 1.08 : 1)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: accent)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(choice.title)

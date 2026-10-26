@@ -52,7 +52,7 @@ struct CanvasComposer: View {
                 Image(systemName: "plus")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(Palette.textSecondary)
-                    .frame(width: 38, height: 38)
+                    .frame(width: 44, height: 44)
             }
             .accessibilityLabel("More")
 
@@ -95,13 +95,13 @@ struct CanvasComposer: View {
                 Image(systemName: "arrow.up")
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 38, height: 38)
+                    .frame(width: 44, height: 44)
                     .background(Palette.softGradient, in: Circle())
             }
             .accessibilityLabel("Send")
             .transition(.scale.combined(with: .opacity))
         } else if model.isBusy {
-            ProgressView().frame(width: 38, height: 38)
+            ProgressView().frame(width: 44, height: 44)
         } else if let onDictate {
             micButton(onDictate)
         }
@@ -113,7 +113,7 @@ struct CanvasComposer: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(isDictating ? Color.accentColor : Palette.textSecondary)
                 .symbolEffect(.variableColor.iterative, isActive: isDictating)
-                .frame(width: 38, height: 38)
+                .frame(width: 44, height: 44)
         }
         .accessibilityLabel(isDictating ? "Stop dictating" : "Dictate")
     }
@@ -167,7 +167,11 @@ private struct NoticeLine: View {
                 Button("Settings") { openURL(settings) }
                     .font(.system(.footnote, design: .rounded, weight: .semibold))
             }
-            Button(action: dismiss) { Image(systemName: "xmark") }
+            Button(action: dismiss) {
+                Image(systemName: "xmark")
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
                 .font(.system(size: 11, weight: .bold))
                 .accessibilityLabel("Dismiss")
         }

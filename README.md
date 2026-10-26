@@ -107,8 +107,8 @@ workflow publishes the PNGs to a `snapshots-<branch>` branch, so a screen can be
 at without opening Xcode. Seven more jobs run the UI tests beside them (the journeys; the
 screens behind the You tab, and the content and account journeys, in two; the layout sweep in the dark in one and at a
 large text size in three) and publish what the app looked like at each step to `ui-snapshots-<branch>`. Each job builds the
-app for itself and takes 13 to 20 minutes; GitHub runs five macOS jobs at a time, so the last ones start when the first
-have finished.
+app for itself and takes 5 to 20 minutes, depending on the machine GitHub gives it; GitHub runs five macOS jobs at a
+time, so the last ones start when the first have finished.
 
 ### How it is tested
 

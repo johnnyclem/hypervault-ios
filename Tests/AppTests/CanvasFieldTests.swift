@@ -102,6 +102,53 @@ final class CanvasFieldTests: CanvasTestCase {
         XCTAssertFalse(model.canAsk)
     }
 
+    func testAReturnTheFieldTookAsALineBreakIsTakenBackAndReported() {
+        let (model, _) = make([])
+        model.draft = "Plan my week\n"
+        XCTAssertEqual(model.draftChanged(from: "Plan my week", to: "Plan my week\n"), .returned)
+        XCTAssertEqual(model.draft, "Plan my week", "the line break is not part of what is sent")
+
+        // With the cursor in the middle of the line it is the same key.
+        model.draft = "Plan\n my week"
+        XCTAssertEqual(model.draftChanged(from: "Plan my week", to: "Plan\n my week"), .returned)
+        XCTAssertEqual(model.draft, "Plan my week")
+
+        // After a line that already ends in one.
+        model.draft = "one\ntwo\n\n"
+        XCTAssertEqual(model.draftChanged(from: "one\ntwo\n", to: "one\ntwo\n\n"), .returned)
+        XCTAssertEqual(model.draft, "one\ntwo\n")
+    }
+
+    func testReturnInAnEmptyFieldLeavesItEmpty() {
+        let (model, _) = make([])
+        model.draft = "\n"
+        XCTAssertEqual(model.draftChanged(from: "", to: "\n"), .returned)
+        XCTAssertEqual(model.draft, "")
+    }
+
+    func testOtherEditsAreNotReturn() {
+        let (model, _) = make([])
+        XCTAssertEqual(model.draftChanged(from: "hello", to: "hello!"), .edited)
+        XCTAssertEqual(model.draftChanged(from: "hello!", to: "hello"), .edited)
+        // Two lines arriving at once are a pasted block, not a key.
+        XCTAssertEqual(model.draftChanged(from: "", to: "first line\nsecond line"), .edited)
+        XCTAssertEqual(model.draft, "")
+    }
+
+    func testLineBreaksThePageWroteItselfAreNotReturn() {
+        let (model, _) = make([])
+        model.setDraft("first\n")
+        XCTAssertEqual(model.draftChanged(from: "", to: "first\n"), .edited)
+        XCTAssertEqual(model.draft, "first\n")
+    }
+
+    func testALongPasteIsReportedAsOne() {
+        let (model, _) = make([])
+        model.draft = aPaste
+        XCTAssertEqual(model.draftChanged(from: "", to: aPaste), .pasted)
+        XCTAssertEqual(model.staged, aPaste)
+    }
+
     func testReturnSendsWhatIsInTheField() async {
         let (model, transport) = make([.json(.get, "/api/backends", oneModel), .json(.post, "/api/chat", reply)])
         await model.loadBackends()

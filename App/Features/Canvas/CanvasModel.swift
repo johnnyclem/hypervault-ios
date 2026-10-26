@@ -32,6 +32,16 @@ struct KeepNotice: Equatable {
     var opensSettings = false
 }
 
+/// What a change to the field turned out to be.
+enum FieldChange: Equatable {
+    /// Typing, deleting, or a write the page made itself.
+    case edited
+    /// A block of text arrived at once. It is held above the field instead.
+    case pasted
+    /// Return was pressed. The line break is taken back out, and the page is to send.
+    case returned
+}
+
 /// The canvas: a field, a short stack of cards and a thread. It follows the web
 /// app's canvas closely (components/canvas/*) so the same words do the same
 /// things on either: commands run without a model, pulling never guesses,
@@ -383,17 +393,25 @@ final class CanvasModel: CanvasCommandHost {
         draft = text
     }
 
-    /// The field changed. A block of text arriving in one step is a paste: it is held above the
-    /// field instead, to be kept or asked about. The field gives no paste event, so this is read from
-    /// the change itself.
-    func draftChanged(from old: String, to new: String) {
+    /// The field changed, and this reads what the person did from the change itself, since the field
+    /// gives no paste event and no Return. A block of text arriving in one step is a paste: it is held
+    /// above the field instead, to be kept or asked about. A lone line break is Return: a field that
+    /// grows with its text breaks the line on it instead of submitting, whatever its Send key says.
+    @discardableResult
+    func draftChanged(from old: String, to new: String) -> FieldChange {
         if let mine = written {
             written = nil
-            if mine == new { return }
+            if mine == new { return .edited }
         }
-        guard let inserted = PasteDiff.insertion(old: old, new: new), PasteStaging.shouldStage(inserted) else { return }
+        guard let inserted = PasteDiff.insertion(old: old, new: new) else { return .edited }
+        if inserted == "\n" {
+            draft = old
+            return .returned
+        }
+        guard PasteStaging.shouldStage(inserted) else { return .edited }
         draft = old
         stagePaste(inserted)
+        return .pasted
     }
 
     // MARK: Keeping

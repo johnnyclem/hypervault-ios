@@ -61,15 +61,11 @@ struct CanvasComposer: View {
                 .lineLimit(1...6)
                 .focused($focused)
                 .submitLabel(.send)
-                .onSubmit {
-                    // Words still arriving from dictation would refill the field the moment it is sent.
-                    if isDictating { onDictate?() }
-                    Task { await model.submit() }
-                    focused = true
-                }
+                .onSubmit(sendFromKeyboard)
                 .padding(.vertical, 9)
                 .onChange(of: model.draft) { old, new in
-                    model.draftChanged(from: old, to: new)
+                    // A field that grows with its text takes Return as a line break and never calls onSubmit.
+                    if model.draftChanged(from: old, to: new) == .returned { sendFromKeyboard() }
                 }
 
             trailing
@@ -77,6 +73,14 @@ struct CanvasComposer: View {
         .padding(.horizontal, HV.Space.xs)
         .padding(.vertical, HV.Space.xs)
         .hvGlass(radius: 26)
+    }
+
+    /// Return, or the Send key: send what is in the field, or keep the paste waiting above it.
+    private func sendFromKeyboard() {
+        // Words still arriving from dictation would refill the field the moment it is sent.
+        if isDictating { onDictate?() }
+        Task { await model.submit() }
+        focused = true
     }
 
     @ViewBuilder

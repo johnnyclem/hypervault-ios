@@ -64,6 +64,7 @@ struct TruthEntryScreen: View {
             rippleSection
             if !model.ref.isHosted { removeSection }
         }
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .hvScreenBackground()
         .navigationTitle(row.type == .tb ? "Signed truth" : "Unverified claim")
@@ -98,11 +99,12 @@ struct TruthEntryScreen: View {
             }
             .padding(.vertical, HV.Space.xxs)
             .accessibilityElement(children: .combine)
+            .hvListRow()
         }
     }
 
     private var detailSection: some View {
-        Section("Record") {
+        Section {
             if row.type == .tb {
                 if let signer = row.line.signedBy { detail("Signed by", signer) }
                 if let answers = row.answerableBy { detail("Answerable", answers) }
@@ -124,17 +126,25 @@ struct TruthEntryScreen: View {
                     }
                 }
                 .padding(.vertical, 2)
+                .hvListRow()
             }
-            detail("Id", row.line.id)
+            detail("Id", row.line.id, isReference: true)
+        } header: {
+            HVSectionHeader(title: "Record")
         }
     }
 
-    private func detail(_ title: String, _ value: String) -> some View {
+    /// A label over its value. An id is a reference to copy, so it is set as one.
+    private func detail(_ title: String, _ value: String, isReference: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
-            Text(verbatim: value).font(.hvBody).textSelection(.enabled)
+            Text(verbatim: value)
+                .font(isReference ? .hvMono : .hvBody)
+                .foregroundStyle(Palette.textPrimary)
+                .textSelection(.enabled)
         }
         .accessibilityElement(children: .combine)
+        .hvListRow()
     }
 
     // MARK: Trace and ripple
@@ -145,14 +155,15 @@ struct TruthEntryScreen: View {
             case .loading:
                 HVLoadingState(message: "Tracing").listRowBackground(Color.clear)
             case .failed(let message):
-                Text(message).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
+                Text(message).font(.hvFootnote).foregroundStyle(Palette.textSecondary).hvListRow()
             case .loaded(let derivation):
-                TruthTraceView(derivation: derivation)
+                // What rests on this entry is the next section's job, from the ripple, which reaches further.
+                TruthTraceView(derivation: derivation, showsDependents: false).hvListRow()
             }
         } header: {
             HVSectionHeader(title: "Trace")
         } footer: {
-            Text("What this rests on, one row each, and what rests on it. The premise it fails on is marked.")
+            Text("What this rests on, one row each. The premise it fails on is marked.")
         }
     }
 
@@ -162,14 +173,15 @@ struct TruthEntryScreen: View {
             case .loading:
                 HVLoadingState().listRowBackground(Color.clear)
             case .failed(let message):
-                Text(message).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
+                Text(message).font(.hvFootnote).foregroundStyle(Palette.textSecondary).hvListRow()
             case .loaded(let ripple):
-                Text(ripple.sentence).font(.hvCallout).foregroundStyle(Palette.textSecondary)
+                Text(ripple.sentence).font(.hvCallout).foregroundStyle(Palette.textSecondary).hvListRow()
+                let named = claims(in: ripple)
                 ForEach(ripple.entries) { entry in
-                    TruthBriefRow(entry: entry)
+                    TruthBriefRow(entry: entry, claims: named, listedUnder: row.id).hvListRow()
                 }
                 ForEach(ripple.context) { context in
-                    contextRow(context)
+                    contextRow(context).hvListRow()
                 }
             }
         } header: {
@@ -177,6 +189,13 @@ struct TruthEntryScreen: View {
         } footer: {
             Text("Other entries, and the memories and pages built on them: what a change to this would reach.")
         }
+    }
+
+    /// What each entry in the ripple says, and this one too, so a row can name where it came from.
+    private func claims(in ripple: TruthRipple) -> [String: String] {
+        var out = [row.id: row.line.text]
+        for entry in ripple.entries where !entry.text.isEmpty { out[entry.id] = entry.text }
+        return out
     }
 
     @ViewBuilder
@@ -215,6 +234,7 @@ struct TruthEntryScreen: View {
     private var removeSection: some View {
         Section {
             Button("Remove from this ledger", role: .destructive) { confirmRemove = true }
+                .hvListRow()
         } footer: {
             Text("A mirror ledger is a copy of a stenographer stream. Removing an entry only removes the copy.")
         }

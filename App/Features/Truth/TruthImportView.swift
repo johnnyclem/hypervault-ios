@@ -54,10 +54,14 @@ struct TruthImportView: View {
         Section {
             if !ledger.isHosted {
                 Button { showPicker = true } label: { Label("Choose a .jsonl file", systemImage: "doc") }
+                    .buttonStyle(.truthRow)
+                    .hvListRow()
                 Button { paste() } label: { Label("Paste from the clipboard", systemImage: "doc.on.clipboard") }
+                    .buttonStyle(.truthRow)
+                    .hvListRow()
                 if preview.lineCount > 0 || fileName != nil {
                     VStack(alignment: .leading, spacing: 2) {
-                        if let fileName { Text(fileName).font(.hvFootnote.weight(.semibold)) }
+                        if let fileName { Text(fileName).font(.hvFootnote.weight(.semibold)).foregroundStyle(Palette.textPrimary) }
                         Text(preview.summary).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                         if let problem = preview.firstProblem {
                             Text("Line \(problem.line): \(problem.error)").font(.hvFootnote).foregroundStyle(Palette.danger)
@@ -65,28 +69,39 @@ struct TruthImportView: View {
                             Text("That file is larger than 2 MB.").font(.hvFootnote).foregroundStyle(Palette.danger)
                         }
                     }
+                    .hvListRow()
                 }
                 Button {
                     runStream()
                 } label: {
                     HStack {
-                        Text("Import into \(ledger.name)").fontWeight(.semibold)
+                        Label("Import into \(ledger.name)", systemImage: "square.and.arrow.down").fontWeight(.semibold)
                         Spacer()
                         if isWorking { ProgressView() }
                     }
                 }
+                .buttonStyle(.truthRow)
                 .disabled(!preview.canSend || isWorking)
-                if let message { Text(message).font(.hvFootnote).foregroundStyle(Palette.textSecondary) }
+                .hvListRow()
+                // The button above is off until there is something to send; this says what turns it on.
+                if !preview.canSend, preview.lineCount == 0, fileName == nil {
+                    Text("Choose a file or paste from the clipboard to turn import on.")
+                        .font(.hvCaption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .hvListRow()
+                }
+                if let message { Text(message).font(.hvFootnote).foregroundStyle(Palette.textSecondary).hvListRow() }
                 ForEach(lineErrors) { error in
-                    Text("Line \(error.line): \(error.error)").font(.hvFootnote).foregroundStyle(Palette.danger)
+                    Text("Line \(error.line): \(error.error)").font(.hvFootnote).foregroundStyle(Palette.danger).hvListRow()
                 }
             } else {
                 Text("A hosted ledger is written here, not imported. Choose a mirror ledger to import a stenographer stream.")
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.textSecondary)
+                    .hvListRow()
             }
         } header: {
-            Text("A stenographer stream")
+            HVSectionHeader(title: "A stenographer stream")
         } footer: {
             Text("The export_wiki_entries file. One transaction: if any line is refused, nothing is written and every bad line is named. Importing again is safe.")
         }
@@ -96,22 +111,31 @@ struct TruthImportView: View {
 
     private var pageSection: some View {
         Section {
-            TextField("The page's name or link", text: $pageName)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            HVLabeledField(
+                title: "The page's name or link",
+                footnote: Self.slug(from: pageName).isEmpty ? "Name the page to turn filing on." : nil
+            ) {
+                TextField("The page's name or link", text: $pageName, prompt: truthPrompt("my-page or its link"))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
+            .padding(.vertical, HV.Space.xxs)
+            .hvListRow()
             Button {
                 filePage()
             } label: {
                 HStack {
-                    Text("File its lines for review").fontWeight(.semibold)
+                    Label("File its lines for review", systemImage: "tray.and.arrow.down").fontWeight(.semibold)
                     Spacer()
                     if isFilingPage { ProgressView() }
                 }
             }
+            .buttonStyle(.truthRow)
             .disabled(Self.slug(from: pageName).isEmpty || isFilingPage)
-            if let pageMessage { Text(pageMessage).font(.hvFootnote).foregroundStyle(Palette.textSecondary) }
+            .hvListRow()
+            if let pageMessage { Text(pageMessage).font(.hvFootnote).foregroundStyle(Palette.textSecondary).hvListRow() }
         } header: {
-            Text("A page ledger")
+            HVSectionHeader(title: "A page ledger")
         } footer: {
             Text("For ledgers typed into a page of yours. Every line becomes a proposal on the docket, in \(ledger.name). Nothing is truth until you approve it there, one card at a time. The page is left as it is.")
         }

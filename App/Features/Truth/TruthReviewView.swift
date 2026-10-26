@@ -21,6 +21,7 @@ private struct DecisionRequest: Identifiable {
 struct TruthReviewScreen: View {
     @Environment(AppModel.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var model: TruthReviewModel
     @State private var drag: CGFloat = 0
     @State private var request: DecisionRequest?
@@ -104,11 +105,20 @@ struct TruthReviewScreen: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: HV.Space.xxs) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(model.deck.isFinished ? "Docket clear" : "Card \(model.deck.position) of \(model.deck.total)")
-                    .font(.hvTitle3)
-                Spacer()
-                if model.schedule.due { HVTag(text: "A review is due", tint: Palette.blue) }
+            // At a large text size the title takes the width, and the tag goes under it.
+            let title = Text(model.deck.isFinished ? "Docket clear" : "Card \(model.deck.position) of \(model.deck.total)")
+                .font(.hvTitle3)
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: HV.Space.xs) {
+                    title
+                    if model.schedule.due { HVTag(text: "A review is due", tint: Palette.blue) }
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline) {
+                    title
+                    Spacer()
+                    if model.schedule.due { HVTag(text: "A review is due", tint: Palette.blue) }
+                }
             }
             Text(headerLine)
                 .font(.hvFootnote)
@@ -211,7 +221,7 @@ struct TruthReviewScreen: View {
 
     private func actions(_ item: TruthDocketItem) -> some View {
         VStack(spacing: HV.Space.s) {
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: HV.Space.xs), GridItem(.flexible(), spacing: HV.Space.xs)], spacing: HV.Space.xs) {
+            LazyVGrid(columns: actionColumns, spacing: HV.Space.xs) {
                 actionButton(.refute, item)
                 actionButton(.deferral, item)
                 actionButton(.strike, item)
@@ -242,6 +252,12 @@ struct TruthReviewScreen: View {
         }
     }
 
+    /// Two buttons to a row, one at a large text size, where "Ask an agent" would not fit beside another.
+    private var actionColumns: [GridItem] {
+        let column = GridItem(.flexible(), spacing: HV.Space.xs)
+        return dynamicTypeSize.isAccessibilitySize ? [column] : [column, column]
+    }
+
     /// Why an action is not on offer, once each, so the person is not left guessing.
     private func unavailableReasons(for item: TruthDocketItem) -> [String] {
         let reasons: [String] = TruthAction.allCases.compactMap { action in
@@ -258,7 +274,7 @@ struct TruthReviewScreen: View {
             if action == .deferral { deferNow(item) } else { open(action, item) }
         } label: {
             Label(state.label, systemImage: symbol(action))
-                .lineLimit(1)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                 .minimumScaleFactor(0.8)
         }
         .disabled(!state.isAvailable || model.isWorking)

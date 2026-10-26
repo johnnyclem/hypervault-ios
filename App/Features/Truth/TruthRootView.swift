@@ -124,7 +124,7 @@ struct TruthScreen: View {
                 historySection(sections.history)
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .refreshable { await model.refresh() }
     }
@@ -134,51 +134,63 @@ struct TruthScreen: View {
     @ViewBuilder
     private var headerRows: some View {
         if let overview = model.overview {
-            VStack(alignment: .leading, spacing: HV.Space.s) {
-                HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
-                    Text(model.active?.name ?? "Ledger").font(.hvTitle)
-                    if let kind = model.active?.kind { HVTag(text: kind.title, tint: kind == .hosted ? Palette.blue : Palette.textSecondary) }
-                }
-                Text(summaryLine(overview.summary))
-                    .font(.hvCallout)
-                    .foregroundStyle(Palette.textSecondary)
-                Text(model.active?.isHosted == true
-                    ? "Written here: you and your agents assert into it, and the review decides it."
-                    : "A mirror of a stenographer stream. Import to update it; decide its items there.")
-                    .font(.hvFootnote)
-                    .foregroundStyle(Palette.textTertiary)
-            }
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
-            .accessibilityElement(children: .combine)
-
-            NavigationLink(value: TruthDestination.review) {
-                HVRow(
-                    symbol: "checklist", tint: Palette.blue, title: overview.review?.due == true ? "A review is due" : "Review docket",
-                    subtitle: overview.docket?.sentence ?? "Open UVs, appeals and derivation reviews, one card at a time."
-                )
-                .frame(minHeight: 44)
-            }
-            .listRowBackground(Palette.surface)
-
-            Toggle(isOn: Binding(get: { overview.chatTruth }, set: { setCiting($0) })) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Cite in chat")
-                    Text("Put the ledger at the head of every chat turn, so a signed TB outranks recalled memory.")
-                        .font(.hvCaption)
+            // Its own section: a bare row at the top of the card below would take the card's rounded corners
+            // and leave the visible rows square.
+            Section {
+                VStack(alignment: .leading, spacing: HV.Space.s) {
+                    HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
+                        Text(model.active?.name ?? "Ledger").font(.hvTitle)
+                        if let kind = model.active?.kind { HVTag(text: kind.title, tint: kind == .hosted ? Palette.blue : Palette.textSecondary) }
+                    }
+                    TruthSummaryStats(summary: overview.summary)
+                    Text(model.active?.isHosted == true
+                        ? "Written here: you and your agents assert into it, and the review decides it."
+                        : "A mirror of a stenographer stream. Import to update it; decide its items there.")
+                        .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                 }
+                .padding(.vertical, HV.Space.xxs)
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             }
-            .disabled(model.isCiteBusy)
-            .listRowBackground(Palette.surface)
+
+            Section {
+                NavigationLink(value: TruthDestination.review) {
+                    docketRow(overview)
+                }
+                .hvListRow()
+
+                Toggle(isOn: Binding(get: { overview.chatTruth }, set: { setCiting($0) })) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Cite in chat")
+                        Text("Put the ledger at the head of every chat turn, so a signed TB outranks recalled memory.")
+                            .font(.hvCaption)
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                }
+                .disabled(model.isCiteBusy)
+                .hvListRow()
+            }
         }
     }
 
-    private func summaryLine(_ summary: TruthSummary) -> String {
-        var parts = ["\(summary.cited) standing", "\(summary.flags) unverified"]
-        if summary.contested > 0 { parts.append("\(summary.contested) under appeal") }
-        parts.append("\(summary.displaced) in history")
-        return parts.joined(separator: " · ")
+    /// The row to the review. Its second line is the whole sentence about what waits, never cut short: the
+    /// shared row stops at two lines, and "1 nominated by ag..." loses what it was there to say.
+    private func docketRow(_ overview: TruthOverview) -> some View {
+        HStack(spacing: HV.Space.s + 2) {
+            HVIconBadge(symbol: "checklist", tint: Palette.blue)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(overview.review?.due == true ? "A review is due" : "Review docket")
+                    .font(.hvBody)
+                    .foregroundStyle(Palette.textPrimary)
+                Text(overview.docket?.sentence ?? "Open UVs, appeals and reviews, one card at a time.")
+                    .font(.hvFootnote)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(minHeight: 44)
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
@@ -206,19 +218,19 @@ struct TruthScreen: View {
     private func entriesSection(title: String, note: String, rows: [TruthEntryRow], empty: String) -> some View {
         Section {
             if rows.isEmpty {
-                Text(empty).font(.hvCallout).foregroundStyle(Palette.textSecondary)
+                Text(empty).font(.hvCallout).foregroundStyle(Palette.textSecondary).hvListRow()
             } else {
                 ForEach(rows) { row in
                     NavigationLink(value: TruthDestination.entry(ref(row))) {
                         TruthEntryRowView(row: row)
                     }
-                    .listRowBackground(Palette.surface)
+                    .hvListRow()
                 }
             }
         } header: {
             VStack(alignment: .leading, spacing: 2) {
                 HVSectionHeader(title: title, detail: "\(rows.count)")
-                Text(note).font(.hvCaption).foregroundStyle(Palette.textTertiary).textCase(nil)
+                Text(note).font(.hvCaption).foregroundStyle(Palette.textSecondary).textCase(nil)
             }
         }
     }
@@ -232,7 +244,7 @@ struct TruthScreen: View {
                         NavigationLink(value: TruthDestination.entry(ref(row))) {
                             TruthEntryRowView(row: row).opacity(0.8)
                         }
-                        .listRowBackground(Palette.surface)
+                        .hvListRow()
                     }
                 }
             } header: {
@@ -245,7 +257,7 @@ struct TruthScreen: View {
                         Image(systemName: "chevron.down")
                             .font(.system(size: 11, weight: .bold))
                             .rotationEffect(.degrees(historyOpen ? 0 : -90))
-                            .foregroundStyle(Palette.textTertiary)
+                            .foregroundStyle(Palette.textSecondary)
                     }
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
@@ -256,6 +268,7 @@ struct TruthScreen: View {
                 if historyOpen {
                     Text("Overridden, refuted and verified entries, and anything that no longer stands. Kept for the record, never cited.")
                         .font(.hvCaption)
+                        .foregroundStyle(Palette.textSecondary)
                 }
             }
         }
@@ -340,7 +353,7 @@ struct TruthScreen: View {
         case .drafts:
             TruthDraftsScreen(client: client, ledger: model.activeSlug ?? "default") { Task { await model.changed() } }
         case .notices:
-            TruthNoticesScreen(client: client)
+            TruthNoticesScreen(client: client, ledger: model.active)
         case .stale:
             TruthStaleScreen(client: client)
         case .signers:

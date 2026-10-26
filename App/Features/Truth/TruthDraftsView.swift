@@ -66,13 +66,15 @@ struct TruthDraftsScreen: View {
     var body: some View {
         List {
             Section {
-                Picker("Status", selection: Binding(get: { model.status }, set: { next in Task { await model.select(next) } })) {
+                TruthChoicePicker(title: "Status", selection: Binding(get: { model.status }, set: { next in Task { await model.select(next) } })) {
                     ForEach(TruthProposalStatus.allCases) { status in Text(status.title).tag(status) }
                 }
-                .pickerStyle(.segmented)
                 .listRowBackground(Color.clear)
             } footer: {
+                // A footer in a grouped list sits on the page as quiet text; in a plain list it got its own black band.
                 Text("Candidates chat compaction or an agent staged. HyperVault never signs truth: each draft waits for a notary in stenographer.")
+                    .font(.hvFootnote)
+                    .foregroundStyle(Palette.textSecondary)
             }
             switch model.phase {
             case .loading:
@@ -87,12 +89,12 @@ struct TruthDraftsScreen: View {
                 } else {
                     ForEach(proposals) { proposal in
                         draftRow(proposal)
-                            .listRowBackground(Palette.surface)
+                            .hvListRow()
                     }
                 }
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .hvScreenBackground()
         .navigationTitle("Drafts")
@@ -128,10 +130,9 @@ struct TruthDraftsScreen: View {
 
     private func draftRow(_ proposal: TruthProposal) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HStack(spacing: HV.Space.xs) {
+            TruthTagFlow {
                 TruthTypeTag(type: proposal.isTombstone ? .tb : .uv)
                 HVTag(text: proposal.status.title, tint: Palette.textSecondary)
-                Spacer(minLength: 0)
             }
             TruthClaimText(text: proposal.headline, lines: 4)
             if !proposal.evidenceLines.isEmpty {
@@ -141,22 +142,22 @@ struct TruthDraftsScreen: View {
             if let verify = proposal.verifyBy { Text("Verify by: \(verify)").font(.hvFootnote).foregroundStyle(Palette.textSecondary) }
             if let signal = proposal.signalDetail { Text("Signal: \(signal)").font(.hvFootnote).foregroundStyle(Palette.textSecondary) }
             Text(footer(proposal)).font(.hvCaption).foregroundStyle(Palette.textTertiary)
-            HStack {
+            HStack(spacing: HV.Space.xs) {
                 ForEach(proposal.status.moves) { next in
-                    Button(next.moveTitle) {
+                    // Dismissing is the one move that cannot be undone from here, so it reads as such.
+                    Button(next.moveTitle, role: next == .dismissed ? .destructive : nil) {
                         if next == .dismissed { confirmDismiss = proposal } else { move(proposal, to: next) }
                     }
-                    .buttonStyle(.hvGhost)
-                    .frame(minHeight: 44)
                     .disabled(model.busy.contains(proposal.id))
                 }
             }
+            .truthAlignedGhost()
         }
         .padding(.vertical, HV.Space.xxs)
     }
 
     private func footer(_ proposal: TruthProposal) -> String {
-        var parts = ["from \(proposal.origin)"]
+        var parts = ["From \(proposal.originPhrase)"]
         if let created = proposal.createdAt { parts.append(created.formatted(date: .abbreviated, time: .omitted)) }
         if let exported = proposal.exportedAt { parts.append("exported \(exported.formatted(date: .abbreviated, time: .omitted))") }
         return parts.joined(separator: " · ")

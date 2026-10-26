@@ -36,6 +36,10 @@ extension TruthStatusTone {
 /// Tags side by side, wrapping onto the next line when the text is large.
 struct TruthTagFlow: Layout {
     var spacing: CGFloat = HV.Space.xs
+    /// The gap between lines, when it should differ from the gap between neighbours.
+    var rowSpacing: CGFloat?
+
+    private var lineGap: CGFloat { rowSpacing ?? spacing }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let limit = proposal.width ?? .infinity
@@ -47,7 +51,7 @@ struct TruthTagFlow: Layout {
             let size = view.sizeThatFits(.unspecified)
             if x > 0, x + size.width > limit {
                 x = 0
-                y += rowHeight + spacing
+                y += rowHeight + lineGap
                 rowHeight = 0
             }
             x += size.width + spacing
@@ -65,13 +69,92 @@ struct TruthTagFlow: Layout {
             let size = view.sizeThatFits(.unspecified)
             if x > bounds.minX, x + size.width > bounds.maxX {
                 x = bounds.minX
-                y += rowHeight + spacing
+                y += rowHeight + lineGap
                 rowHeight = 0
             }
             view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
             x += size.width + spacing
             rowHeight = max(rowHeight, size.height)
         }
+    }
+}
+
+extension View {
+    /// Ghost buttons carry 12pt of padding of their own so the tap target is wide enough. In the body of a
+    /// row that pushes their words in from the text above them, so it is taken back here.
+    func truthAlignedGhost() -> some View {
+        self
+            .buttonStyle(.hvGhost)
+            .padding(.horizontal, -HV.Space.s)
+    }
+}
+
+/// A choice between a few options. A segmented control stays at its small size however large the text is set,
+/// so at the largest sizes the choice becomes a menu whose words can be read.
+struct TruthChoicePicker<Selection: Hashable, Content: View>: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let title: String
+    @Binding var selection: Selection
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            Picker(title, selection: $selection, content: content)
+                .pickerStyle(.menu)
+                .frame(minHeight: 44)
+        } else {
+            Picker(title, selection: $selection, content: content)
+                .pickerStyle(.segmented)
+        }
+    }
+}
+
+/// The hint inside an empty field. The system's own is too faint to read; this is the quietest grey that
+/// still passes, so it reads as a hint beside the typed text and not as a value.
+func truthPrompt(_ text: String) -> Text {
+    Text(text).foregroundStyle(Palette.textTertiary)
+}
+
+/// An action in a row of a list, beside others that read as buttons. On it is the accent; off it is a
+/// readable grey, not the system's faded blue that looks like a caption.
+struct TruthRowButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(isEnabled ? AnyShapeStyle(TintShapeStyle()) : AnyShapeStyle(Palette.textSecondary))
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.55 : 1)
+    }
+}
+
+extension ButtonStyle where Self == TruthRowButtonStyle {
+    static var truthRow: TruthRowButtonStyle { TruthRowButtonStyle() }
+}
+
+/// The ledger's counts, each a number over its word. They wrap as units, so a number never ends a line
+/// with its word on the next.
+struct TruthSummaryStats: View {
+    let summary: TruthSummary
+
+    var body: some View {
+        TruthTagFlow(spacing: HV.Space.l, rowSpacing: HV.Space.s) {
+            ForEach(summary.stats) { stat in
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("\(stat.count)")
+                        .font(.system(.title3, design: .rounded, weight: .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(stat.label)
+                        .font(.hvCaption)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .fixedSize()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(summary.sentence)
     }
 }
 
@@ -112,7 +195,7 @@ struct TruthStandingBadge: View {
                 Text(standing.title)
             }
             .font(.system(.caption2, design: .rounded, weight: .semibold))
-            .foregroundStyle(standing.tint)
+            .foregroundStyle(standing.tint.hvInk())
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(standing.tint.opacity(0.14), in: Capsule())
@@ -140,6 +223,7 @@ struct TruthClaimText: View {
 
 /// A row of the ledger page.
 struct TruthEntryRowView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let row: TruthEntryRow
 
     var body: some View {
@@ -162,7 +246,7 @@ struct TruthEntryRowView: View {
                 Text(detail)
                     .font(.hvCaption)
                     .foregroundStyle(Palette.textTertiary)
-                    .lineLimit(2)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
             }
             ForEach(row.contestedBy) { uv in
                 HStack(alignment: .top, spacing: HV.Space.xs) {
@@ -171,7 +255,7 @@ struct TruthEntryRowView: View {
                     Text("Contested by \(uv.author ?? "someone"): \(uv.text)")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
-                        .lineLimit(3)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                 }
                 .padding(.leading, HV.Space.xs)
             }
@@ -216,6 +300,7 @@ struct TruthEvidenceRow: View {
 
 /// Evidence for a decision or an assertion: a kind, what it points at, what it shows.
 struct TruthEvidenceEditor: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Binding var rows: [TruthEvidenceDraft]
     var label = "Evidence"
 
@@ -224,29 +309,17 @@ struct TruthEvidenceEditor: View {
             Text(label).font(.hvFootnote.weight(.semibold)).foregroundStyle(Palette.textSecondary)
             ForEach($rows) { $row in
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
-                    HStack(spacing: HV.Space.xs) {
-                        Menu {
-                            Picker("Kind", selection: $row.kind) {
-                                ForEach(TruthEvidenceKind.allCases) { kind in
-                                    Text(kind.isSettling ? kind.title : "\(kind.title) (a question)").tag(kind)
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 3) {
-                                Text(row.kind.title).font(.system(.footnote, design: .monospaced, weight: .semibold))
-                                Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .bold))
-                            }
-                            .padding(.horizontal, HV.Space.s)
-                            .frame(minHeight: 44)
-                            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+                    // At a large text size the kind and the reference each need the whole width.
+                    if dynamicTypeSize.isAccessibilitySize {
+                        kindMenu($row)
+                        refField($row)
+                    } else {
+                        HStack(spacing: HV.Space.xs) {
+                            kindMenu($row)
+                            refField($row)
                         }
-                        .accessibilityLabel("Evidence kind: \(row.kind.title)")
-                        TextField("sha, path:line, test name", text: $row.ref)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .hvFieldChrome()
                     }
-                    TextField("What it shows (optional)", text: $row.detail)
+                    TextField("What it shows (optional)", text: $row.detail, prompt: truthPrompt("What it shows (optional)"))
                         .font(.hvFootnote)
                         .hvFieldChrome()
                 }
@@ -256,8 +329,35 @@ struct TruthEvidenceEditor: View {
             } label: {
                 Label("Add evidence", systemImage: "plus")
             }
-            .buttonStyle(.hvGhost)
+            .truthAlignedGhost()
         }
+    }
+
+    private func kindMenu(_ row: Binding<TruthEvidenceDraft>) -> some View {
+        Menu {
+            Picker("Kind", selection: row.kind) {
+                ForEach(TruthEvidenceKind.allCases) { kind in
+                    Text(kind.isSettling ? kind.title : "\(kind.title) (a question)").tag(kind)
+                }
+            }
+        } label: {
+            HStack(spacing: 3) {
+                Text(row.wrappedValue.kind.title).font(.system(.footnote, design: .monospaced, weight: .semibold))
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .bold))
+            }
+            .foregroundStyle(Palette.textPrimary)
+            .padding(.horizontal, HV.Space.s)
+            .frame(minHeight: 44)
+            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        }
+        .accessibilityLabel("Evidence kind: \(row.wrappedValue.kind.title)")
+    }
+
+    private func refField(_ row: Binding<TruthEvidenceDraft>) -> some View {
+        TextField("What it points at", text: row.ref, prompt: truthPrompt("sha, path:line, test name"))
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .hvFieldChrome()
     }
 }
 
@@ -276,13 +376,14 @@ struct TruthTraceRowView: View {
                     .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: HV.Space.xs) {
+                TruthTagFlow {
                     if node.failing != nil {
                         Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 12)).foregroundStyle(Palette.amber)
                             .accessibilityLabel("Fails here")
                     }
                     Text(node.typeTag)
                         .font(.system(.caption2, design: .monospaced, weight: .bold))
+                        .foregroundStyle(Palette.textPrimary)
                         .padding(.horizontal, 6).padding(.vertical, 2)
                         .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
                     HVTag(text: node.statusLabel, tint: node.missing ? Palette.textSecondary : TruthStatus.tone(node.status).tint)
@@ -302,6 +403,7 @@ struct TruthTraceRowView: View {
                     .foregroundStyle(Palette.textTertiary)
             }
         }
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
     }
@@ -318,6 +420,9 @@ struct TruthTraceRowView: View {
 /// The trace of an entry: its premises, one row each, and what rests on it.
 struct TruthTraceView: View {
     let derivation: TruthDerivation
+    /// The entries resting on this one. The entry screen shows them in its own section, from the ripple, so
+    /// it leaves them out here; they would be the same rows twice.
+    var showsDependents = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -331,7 +436,7 @@ struct TruthTraceView: View {
                     .foregroundStyle(Palette.textSecondary)
                     .padding(.top, HV.Space.xs)
             }
-            if !derivation.dependents.isEmpty {
+            if showsDependents, !derivation.dependents.isEmpty {
                 Text("Rests on it")
                     .font(.system(.caption, design: .rounded, weight: .semibold))
                     .textCase(.uppercase)
@@ -349,10 +454,14 @@ struct TruthTraceView: View {
 /// An entry in brief: a dependent, a ripple entry, a successor.
 struct TruthBriefRow: View {
     let entry: TruthEntryBrief
+    /// Claims by entry id, so a row can name the entry it was reached through and not show its id.
+    var claims: [String: String] = [:]
+    /// An entry the row is listed under: "rests on" it says nothing a heading has not already said.
+    var listedUnder: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: HV.Space.xs) {
+            TruthTagFlow {
                 TruthTypeTag(type: entry.type)
                 TruthStatusBadge(status: entry.status)
                 TruthStandingBadge(standing: entry.standing)
@@ -364,13 +473,19 @@ struct TruthBriefRow: View {
             if let sentence = entry.reasonSentence {
                 Text(sentence).font(.hvCaption).foregroundStyle(Palette.textSecondary)
             }
-            if let via = entry.via, let depth = entry.depth {
-                Text("\(depth == 1 ? "Rests on" : "Reached through") \(TruthID.short(via))")
+            if let via = entry.via, let depth = entry.depth, via != listedUnder {
+                Text(viaPhrase(via: via, depth: depth))
                     .font(.hvCaption)
                     .foregroundStyle(Palette.textTertiary)
             }
         }
         .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
+    }
+
+    /// "Rests on" the entry it was reached through, named by what it says when that is known.
+    private func viaPhrase(via: String, depth: Int) -> String {
+        let name = claims[via].map { TruthWords.quoted($0, limit: 48) } ?? TruthID.short(via)
+        return (depth == 1 ? "Rests on " : "Reached through ") + name
     }
 }

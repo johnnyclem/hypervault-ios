@@ -10,16 +10,18 @@ struct TruthAssertView: View {
     let onDone: () -> Void
 
     @State private var model: TruthAssertModel
-    @State private var draft = TruthAssertDraft(type: .uv)
+    @State private var draft: TruthAssertDraft
     @State private var errorMessage: String?
     @FocusState private var focus: Field?
 
     private enum Field: Hashable { case text, basis, verify }
 
-    init(client: HVClient, ledger: TruthLedger, onDone: @escaping () -> Void) {
+    /// `draft` is what the form starts with: empty for a person, filled for a preview.
+    init(client: HVClient, ledger: TruthLedger, draft: TruthAssertDraft = TruthAssertDraft(type: .uv), onDone: @escaping () -> Void) {
         self.ledger = ledger
         self.onDone = onDone
         _model = State(initialValue: TruthAssertModel(client: client))
+        _draft = State(initialValue: draft)
     }
 
     var body: some View {
@@ -54,31 +56,41 @@ struct TruthAssertView: View {
 
     private var form: some View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
-            Picker("Kind", selection: $draft.type) {
+            TruthChoicePicker(title: "Kind", selection: $draft.type) {
                 Text("UV: I believe this").tag(TruthEntryType.uv)
                 Text("TB: I stand behind this").tag(TruthEntryType.tb)
             }
-            .pickerStyle(.segmented)
             Text(draft.type == .tb
                 ? "A TB is signed by you and answerable to you. It needs evidence, and it outranks recalled memory."
                 : "A UV is a belief to be checked. It goes on the docket, and is never shown as proven.")
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
 
-            TextField(draft.type == .tb ? "The claim: what is settled, and what it replaces" : "What you believe, in full sentences", text: $draft.text, axis: .vertical)
+            HVLabeledField(
+                title: draft.type == .tb ? "The claim" : "What you believe",
+                footnote: draft.type == .tb ? "What is settled, and what it replaces." : "In full sentences."
+            ) {
+                TextField(
+                    draft.type == .tb ? "The claim" : "What you believe",
+                    text: $draft.text,
+                    prompt: truthPrompt(draft.type == .tb ? "Retries are capped at 5, not 3." : "Retries are idempotent."),
+                    axis: .vertical
+                )
                 .lineLimit(3...8)
                 .font(.system(.body, design: .serif))
                 .focused($focus, equals: .text)
-                .hvFieldChrome(isFocused: focus == .text)
+            }
 
             if draft.type == .uv {
-                TextField("Why you believe it", text: $draft.basis, axis: .vertical)
-                    .lineLimit(2...5)
-                    .focused($focus, equals: .basis)
-                    .hvFieldChrome(isFocused: focus == .basis)
-                TextField("Where to look to check it (a file, a symbol, a place)", text: $draft.verifyBy)
-                    .focused($focus, equals: .verify)
-                    .hvFieldChrome(isFocused: focus == .verify)
+                HVLabeledField(title: "Why you believe it") {
+                    TextField("Why you believe it", text: $draft.basis, prompt: truthPrompt("The design doc"), axis: .vertical)
+                        .lineLimit(2...5)
+                        .focused($focus, equals: .basis)
+                }
+                HVLabeledField(title: "Where to check it", footnote: "A file, a symbol or a place to look.") {
+                    TextField("Where to check it", text: $draft.verifyBy, prompt: truthPrompt("src/retry.ts"))
+                        .focused($focus, equals: .verify)
+                }
             } else {
                 TruthEvidenceEditor(rows: $draft.evidence, label: "Evidence (at least one)")
                 retiring
@@ -87,9 +99,6 @@ struct TruthAssertView: View {
             if let errorMessage {
                 Text(errorMessage).font(.hvFootnote).foregroundStyle(Palette.danger)
             }
-            if let hint = draft.problem, draft.text.trimmingCharacters(in: .whitespacesAndNewlines).count > 0 {
-                Text(hint).font(.hvCaption).foregroundStyle(Palette.textTertiary)
-            }
             Button {
                 send()
             } label: {
@@ -97,6 +106,13 @@ struct TruthAssertView: View {
             }
             .buttonStyle(.hvPrimary)
             .disabled(!draft.canSend || model.isSending)
+            // Said while the button is off, so it is plain what turns it on, not only once something is typed.
+            if let hint = draft.problem {
+                Text(hint)
+                    .font(.hvCaption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
         }
     }
 
@@ -106,9 +122,15 @@ struct TruthAssertView: View {
                 Text("Later saves that state the dead value get a warning.")
                     .font(.hvCaption)
                     .foregroundStyle(Palette.textSecondary)
-                TextField("Dead value, e.g. 30", text: $draft.deadValue).hvFieldChrome()
-                TextField("Subject, e.g. LOG_BUDGET (optional)", text: $draft.subject).hvFieldChrome()
-                TextField("What replaced it (optional)", text: $draft.currentValue).hvFieldChrome()
+                HVLabeledField(title: "The dead value") {
+                    TextField("The dead value", text: $draft.deadValue, prompt: truthPrompt("30"))
+                }
+                HVLabeledField(title: "Subject (optional)") {
+                    TextField("Subject", text: $draft.subject, prompt: truthPrompt("LOG_BUDGET"))
+                }
+                HVLabeledField(title: "What replaced it (optional)") {
+                    TextField("What replaced it", text: $draft.currentValue, prompt: truthPrompt("100"))
+                }
             }
             .padding(.top, HV.Space.xs)
         } label: {
@@ -186,31 +208,31 @@ struct TruthNewLedgerView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.m) {
                     if !hostedOnly {
-                        Picker("Kind", selection: $kind) {
+                        TruthChoicePicker(title: "Kind", selection: $kind) {
                             Text("Hosted").tag(TruthLedgerKind.hosted)
                             Text("Mirror").tag(TruthLedgerKind.mirror)
                         }
-                        .pickerStyle(.segmented)
                     }
                     Text(kind == .hosted
                         ? "A hosted ledger is written here: you and your agents assert into it, and the review decides it."
                         : "A mirror holds a stream imported from stenographer. Decide its items there.")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
-                    TextField("Name", text: $name)
-                        .focused($focused)
-                        .onChange(of: name) { _, new in if !slugEdited { slug = TruthLedgerSlug.suggest(from: new) } }
-                        .hvFieldChrome(isFocused: focused)
-                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
-                        TextField("slug", text: $slug)
+                    HVLabeledField(title: "Name") {
+                        TextField("Name", text: $name, prompt: truthPrompt("Team notes"))
+                            .focused($focused)
+                            .onChange(of: name) { _, new in if !slugEdited { slug = TruthLedgerSlug.suggest(from: new) } }
+                    }
+                    // The footnote says why the button below is off until there is a short name.
+                    HVLabeledField(
+                        title: "Short name",
+                        footnote: slug.isEmpty ? "Give it a name to start." : "What the ledger goes by. Lowercase letters, digits, - and _."
+                    ) {
+                        TextField("Short name", text: $slug, prompt: truthPrompt("team-notes"))
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .font(.hvMono)
                             .onChange(of: slug) { _, new in if new != TruthLedgerSlug.suggest(from: name) { slugEdited = true } }
-                            .hvFieldChrome()
-                        Text("The short name the ledger goes by. Lowercase letters, digits, - and _.")
-                            .font(.hvCaption)
-                            .foregroundStyle(Palette.textTertiary)
                     }
                     if let errorMessage {
                         Text(errorMessage).font(.hvFootnote).foregroundStyle(Palette.danger)

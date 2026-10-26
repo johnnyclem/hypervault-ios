@@ -18,13 +18,14 @@ struct TruthHandleForm: View {
             Text("It goes on everything you assert or decide, and it is set once. Pick the name you want to answer to.")
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
-            TextField("Your name or handle", text: $handle)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .focused($focused)
-                .submitLabel(.done)
-                .onSubmit { save() }
-                .hvFieldChrome(isFocused: focused)
+            HVLabeledField(title: "Your name or handle") {
+                TextField("Your name or handle", text: $handle, prompt: truthPrompt("sam"))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .focused($focused)
+                    .submitLabel(.done)
+                    .onSubmit { save() }
+            }
             if let errorMessage {
                 Text(errorMessage).font(.hvFootnote).foregroundStyle(Palette.danger)
             }
@@ -126,30 +127,29 @@ struct TruthDecisionSheet: View {
         if item.kind == .appeal, action != .deferral { appealPicker }
         switch action {
         case .approve:
-            if !item.kind.isProposal { noteField("Note (optional): it goes on the record") }
+            if !item.kind.isProposal { noteField(footnote: "It goes on the record.") }
         case .refute:
             if !item.kind.isProposal {
                 TruthEvidenceEditor(rows: $draft.evidence, label: "Evidence that refutes it (at least one)")
-                noteField("Note (optional)")
+                noteField()
             }
         case .deferral:
             deferralPicker
         case .strike:
-            VStack(alignment: .leading, spacing: HV.Space.xs) {
-                Text("Your opinion").font(.hvFootnote.weight(.semibold)).foregroundStyle(Palette.textSecondary)
-                TextField("Why this is struck. It goes in the ruling, answerable to you.", text: $draft.opinion, axis: .vertical)
+            HVLabeledField(title: "Your opinion", footnote: "It goes in the ruling, answerable to you.") {
+                TextField("Your opinion", text: $draft.opinion, prompt: truthPrompt("Why this is struck"), axis: .vertical)
                     .lineLimit(3...8)
-                    .hvFieldChrome()
             }
         case .ask:
             askInputs
         }
     }
 
-    private func noteField(_ prompt: String) -> some View {
-        TextField(prompt, text: $draft.note, axis: .vertical)
-            .lineLimit(2...6)
-            .hvFieldChrome()
+    private func noteField(footnote: String? = nil) -> some View {
+        HVLabeledField(title: "Note (optional)", footnote: footnote) {
+            TextField("Note", text: $draft.note, prompt: truthPrompt("Anything worth keeping with the decision"), axis: .vertical)
+                .lineLimit(2...6)
+        }
     }
 
     private var appealPicker: some View {
@@ -167,7 +167,7 @@ struct TruthDecisionSheet: View {
                             Text(verbatim: uv.assertion).font(.hvCallout).foregroundStyle(Palette.textPrimary)
                             Text(uv.author).font(.hvCaption).foregroundStyle(Palette.textSecondary)
                         }
-                        Spacer(minLength: 0)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
@@ -207,9 +207,10 @@ struct TruthDecisionSheet: View {
                     ForEach(model.rooms) { room in Text(room.title).tag(room.id) }
                 }
                 .pickerStyle(.menu)
-                TextField("Your question (optional). The claim, basis and verify-by go with it.", text: $draft.question, axis: .vertical)
-                    .lineLimit(2...6)
-                    .hvFieldChrome()
+                HVLabeledField(title: "Your question (optional)", footnote: "The claim, basis and verify-by go with it.") {
+                    TextField("Your question", text: $draft.question, prompt: truthPrompt("What would settle this?"), axis: .vertical)
+                        .lineLimit(2...6)
+                }
             }
         }
     }

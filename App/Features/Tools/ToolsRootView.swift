@@ -114,6 +114,7 @@ struct ToolsScreen: View {
                 ToolsToolkitCard(status: model.toolkit, needsCompile: model.needsCompile)
                     .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.s, trailing: HV.Space.m))
             }
+            .hvListRow()
 
             Section(header: HVSectionHeader(title: "Connected", detail: "\(model.servers.count) of \(model.maxServers)")) {
                 ForEach(model.servers) { server in
@@ -122,11 +123,13 @@ struct ToolsScreen: View {
                     }
                 }
             }
+            .hvListRow()
 
             Section(footer: Text("Changes you make here are saved at once. They reach new chats after you compile.")) {
                 Button { sheet = .catalog } label: { Label("Browse the catalog", systemImage: "square.grid.2x2") }
                 Button { sheet = .add(nil) } label: { Label("Add by address", systemImage: "link") }
             }
+            .hvListRow()
         }
         .scrollContentBackground(.hidden)
     }
@@ -171,7 +174,7 @@ struct ToolsStep: View {
         HStack(alignment: .top, spacing: HV.Space.s) {
             Text("\(number)")
                 .font(.system(.footnote, design: .rounded, weight: .bold))
-                .foregroundStyle(Palette.blue)
+                .foregroundStyle(Palette.blue.hvInk())
                 .frame(width: 26, height: 26)
                 .background(Palette.blue.opacity(0.14), in: Circle())
                 .accessibilityHidden(true)
@@ -249,10 +252,7 @@ struct ToolsToolkitCard: View {
         HStack(alignment: .top, spacing: HV.Space.s + 2) {
             HVIconBadge(symbol: status.toolkit == nil ? "hammer" : "checkmark.seal", tint: needsCompile ? Palette.amber : Palette.mint, size: 40)
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: HV.Space.xs) {
-                    Text(title).font(.hvHeadline)
-                    if needsCompile, status.toolkit != nil { HVTag(text: "Out of date", tint: Palette.amber) }
-                }
+                headline
                 Text(detail).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                 if let toolkit = status.toolkit, toolkit.isLexical {
                     Text("Matches by wording only, so a request has to sound like the tool's name.")
@@ -263,6 +263,26 @@ struct ToolsToolkitCard: View {
             Spacer(minLength: 0)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    /// The headline, with "Out of date" beside it when it fits on one line and under it when it does not,
+    /// so the headline itself is never the thing that wraps.
+    @ViewBuilder
+    private var headline: some View {
+        if needsCompile, status.toolkit != nil {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: HV.Space.xs) {
+                    Text(title).font(.hvHeadline)
+                    HVTag(text: "Out of date", tint: Palette.amber)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.hvHeadline)
+                    HVTag(text: "Out of date", tint: Palette.amber)
+                }
+            }
+        } else {
+            Text(title).font(.hvHeadline)
+        }
     }
 
     private var title: String {

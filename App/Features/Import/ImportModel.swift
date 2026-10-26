@@ -239,6 +239,8 @@ extension ImportModel {
         switch seed {
         case .choose:
             break
+        case .paste:
+            source = .other
         case .review, .sending, .done, .stopped:
             let history = ImportInspector.inspect(Data(ImportFixtures.chatgpt(count: 340).utf8), name: "conversations.json", hint: .chatgpt)
             documents = [history]
@@ -273,10 +275,20 @@ extension ImportModel {
 }
 
 enum ImportFixtures {
+    /// What people actually ask, so the review screen shows titles that read like a history and not a counter.
+    private static let titles = [
+        "Planning a week in Lisbon", "Fix my cover letter", "Why is my sourdough flat?", "SQL window functions, explained",
+        "Names for a bakery", "Tax receipts checklist", "Rust lifetimes, again", "A toast for Dad's 60th",
+        "Weekend hike near Boulder", "Rewrite this email, politely", "Compare standing desks", "Garden bed layout for shade",
+        "Practice Spanish: ordering food", "Debug a flaky CI test", "Summarise this contract", "Birthday ideas for a ten-year-old",
+        "How does a heat pump work?", "Draft a project update", "Meal prep for a busy week", "Photo editing basics",
+        "Learn chess openings", "Budget for a kitchen remodel", "Explain compound interest", "Gift ideas under fifty dollars",
+    ]
+
     /// ChatGPT-shaped conversations, enough to make several parts.
     static func chatgpt(count: Int) -> String {
         let items = (0..<count).map { i in
-            #"{"title":"Conversation \#(i + 1)","conversation_id":"c\#(i)","current_node":"a","mapping":{"a":{"id":"a","message":null,"parent":null,"children":[]}},"pad":"\#(String(repeating: "x", count: 4_000))"}"#
+            #"{"title":"\#(titles[i % titles.count])","conversation_id":"c\#(i)","current_node":"a","mapping":{"a":{"id":"a","message":null,"parent":null,"children":[]}},"pad":"\#(String(repeating: "x", count: 4_000))"}"#
         }
         return "[" + items.joined(separator: ",") + "]"
     }

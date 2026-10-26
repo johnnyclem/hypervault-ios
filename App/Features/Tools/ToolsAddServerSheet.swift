@@ -266,21 +266,23 @@ struct ToolsAddServerSheet: View {
                 .font(.hvCallout)
                 .foregroundStyle(Palette.textSecondary)
 
-            VStack(alignment: .leading, spacing: HV.Space.s) {
-                TextField("https://mcp.example.com/mcp", text: $flow.url)
-                    .keyboardType(.URL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .focused($focus, equals: .url)
-                    .submitLabel(.next)
-                    .onSubmit { focus = .name }
-                    .hvFieldChrome(isFocused: focus == .url)
-                    .accessibilityLabel("Server address")
-                TextField("Name (optional)", text: $flow.name)
-                    .focused($focus, equals: .name)
-                    .submitLabel(.done)
-                    .hvFieldChrome(isFocused: focus == .name)
-                    .accessibilityLabel("Name")
+            VStack(alignment: .leading, spacing: HV.Space.m) {
+                HVLabeledField(title: "Server address") {
+                    // The example is a verbatim prompt: as a plain string key SwiftUI links the URL, and the
+                    // empty field then looks filled in, in link blue.
+                    TextField("Server address", text: $flow.url, prompt: Text(verbatim: "https://mcp.example.com/mcp"))
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .focused($focus, equals: .url)
+                        .submitLabel(.next)
+                        .onSubmit { focus = .name }
+                }
+                HVLabeledField(title: "Name (optional)") {
+                    TextField("Name", text: $flow.name, prompt: Text(verbatim: "Team notes"))
+                        .focused($focus, equals: .name)
+                        .submitLabel(.done)
+                }
             }
 
             headersSection
@@ -318,24 +320,20 @@ struct ToolsAddServerSheet: View {
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                     ForEach($flow.headers) { $row in
-                        HStack(spacing: HV.Space.xs) {
-                            TextField("Header", text: $row.name)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .hvFieldChrome()
-                                .accessibilityLabel("Header name")
-                            SecureField("Value", text: $row.value)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .hvFieldChrome()
-                                .accessibilityLabel("Header value")
-                            Button {
-                                flow.removeHeader(row.id)
-                            } label: {
-                                Image(systemName: "minus.circle.fill").foregroundStyle(Palette.textTertiary)
-                                    .frame(width: 44, height: 44)
+                        VStack(alignment: .leading, spacing: HV.Space.s) {
+                            HVLabeledField(title: "Header name") {
+                                TextField("Header name", text: $row.name, prompt: Text(verbatim: "X-Api-Key"))
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
                             }
-                            .accessibilityLabel("Remove header")
+                            HVLabeledField(title: "Value") {
+                                SecureField("Value", text: $row.value, prompt: Text("The key or token"))
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                            }
+                            Button("Remove this header", role: .destructive) { flow.removeHeader(row.id) }
+                                .buttonStyle(.hvGhost)
+                                .padding(.leading, -HV.Space.s)
                         }
                     }
                     Button {
@@ -402,7 +400,7 @@ struct ToolsAddServerSheet: View {
                         .foregroundStyle(Palette.textSecondary)
                 }
                 Spacer(minLength: 0)
-                if let transport = flow.transport { HVTag(text: transport) }
+                if let transport = flow.transport { HVTag(text: McpRegistryEntry.transportLabel(for: transport)) }
             }
 
             Label(

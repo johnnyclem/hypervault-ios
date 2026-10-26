@@ -214,18 +214,24 @@ struct ToolsAuthChallengeView: View {
             Button {
                 Task { if let server = await flow.signIn() { onConnected(server) } }
             } label: {
-                if flow.isWorking { ProgressView().tint(.white) } else { Text("Sign in on the service's page") }
+                if flow.isWorking { ProgressView().tint(Palette.textSecondary) } else { Text("Sign in on the service's page") }
             }
             .buttonStyle(.hvPrimary)
             .disabled(flow.isWorking)
 
+            // A ghost button carries its own side padding for the tap target; pulling the outer
+            // ones back lets their words line up with the edges of the card's content.
             HStack {
                 Button("Use a token instead") { flow.useToken() }
                     .buttonStyle(.hvGhost)
+                    .padding(.leading, -HV.Space.s)
                     .disabled(flow.isWorking)
                 if let onCancel {
                     Spacer()
-                    Button("Cancel", action: onCancel).buttonStyle(.hvGhost).disabled(flow.isWorking)
+                    Button("Cancel", action: onCancel)
+                        .buttonStyle(.hvGhost)
+                        .padding(.trailing, -HV.Space.s)
+                        .disabled(flow.isWorking)
                 }
             }
         }
@@ -233,31 +239,37 @@ struct ToolsAuthChallengeView: View {
 
     private var tokenForm: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            TextField("Header", text: $flow.headerName)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .hvFieldChrome()
-                .accessibilityLabel("Header name")
-            SecureField("API key or token", text: $flow.token)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .focused($tokenFocused)
-                .submitLabel(.go)
-                .onSubmit { submit() }
-                .hvFieldChrome(isFocused: tokenFocused)
-                .accessibilityLabel("API key or token")
+            HVLabeledField(title: "Header name") {
+                TextField("Header name", text: $flow.headerName)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
+            HVLabeledField(title: "API key or token") {
+                SecureField("API key or token", text: $flow.token)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .focused($tokenFocused)
+                    .submitLabel(.go)
+                    .onSubmit { submit() }
+            }
             Button {
                 submit()
             } label: {
-                if flow.isWorking { ProgressView().tint(.white) } else { Text(flow.target.existing == nil ? "Connect" : "Replace the token") }
+                if flow.isWorking { ProgressView().tint(Palette.textSecondary) } else { Text(flow.target.existing == nil ? "Connect" : "Replace the token") }
             }
             .buttonStyle(.hvPrimary)
             .disabled(!flow.canSubmitToken)
             HStack {
-                Button("Back") { flow.backToChoice() }.buttonStyle(.hvGhost).disabled(flow.isWorking)
+                Button("Back") { flow.backToChoice() }
+                    .buttonStyle(.hvGhost)
+                    .padding(.leading, -HV.Space.s)
+                    .disabled(flow.isWorking)
                 if let onCancel {
                     Spacer()
-                    Button("Cancel", action: onCancel).buttonStyle(.hvGhost).disabled(flow.isWorking)
+                    Button("Cancel", action: onCancel)
+                        .buttonStyle(.hvGhost)
+                        .padding(.trailing, -HV.Space.s)
+                        .disabled(flow.isWorking)
                 }
             }
         }

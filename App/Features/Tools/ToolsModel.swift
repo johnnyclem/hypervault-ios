@@ -9,7 +9,12 @@ enum ToolsCompileState: Equatable {
     case finished(McpCompileResult)
     /// The connection dropped, but the toolkit turned out to be built.
     case recovered(McpToolkit)
+    /// The server refused or the build broke, in the server's own words.
     case failed(String)
+    /// The connection dropped and the toolkit never turned up afterwards.
+    case lostConnection(String)
+    /// Every tool is switched off. That is a choice to make in the list, so trying again cannot help.
+    case nothingToCompile
     /// The person stopped waiting; the server may still finish.
     case stopped
 
@@ -362,11 +367,15 @@ final class ToolsModel {
                 } else if Task.isCancelled {
                     compile = .stopped
                 } else {
-                    compile = .failed(error.userMessage)
+                    compile = .lostConnection(error.userMessage)
                 }
             default:
-                compile = .failed(error.mcpCompileSentence)
-                Haptics.failure()
+                if error.isMcpNothingToCompile {
+                    compile = .nothingToCompile
+                } else {
+                    compile = .failed(error.mcpCompileSentence)
+                    Haptics.failure()
+                }
             }
         } catch {
             compile = .failed(error.localizedDescription)

@@ -23,12 +23,17 @@ struct ToolsCompileSheet: View {
                     case .recovered(let toolkit):
                         recovered(toolkit)
                     case .failed(let message):
-                        failed(message)
+                        failed(message, symbol: "exclamationmark.circle")
+                    case .lostConnection(let message):
+                        failed(message, symbol: "wifi.exclamationmark")
+                    case .nothingToCompile:
+                        nothingToCompile
                     case .stopped:
                         stopped
                     }
                 }
-                .padding(HV.Space.l)
+                // The same side margin as the other Tools sheets, so the edges stay put from one to the next.
+                .padding(HV.Space.m)
                 .hvReadableWidth()
             }
             .hvScreenBackground()
@@ -125,10 +130,10 @@ struct ToolsCompileSheet: View {
 
     private func statsCard(_ stats: McpToolkitStats, label: String) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
-            HStack(alignment: .top) {
-                stat(stats.toolCount, "Tools", "Every tool you left switched on.")
-                stat(stats.uniqueSelectorCount, "Ways to ask", "Distinct things a chat can say to reach a tool.")
-                stat(stats.collisionCount, "Look-alikes", "Pairs of tools that are easy to mix up.")
+            // Three across when they fit; stacked at the larger text sizes, where "Ways to ask" would not.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top) { statColumns(stats) }
+                VStack(alignment: .leading, spacing: HV.Space.s) { statColumns(stats) }
             }
             Text("Ways to ask are the different things a chat can say to reach a tool. Look-alikes are pairs of tools that are easy to mix up.")
                 .font(.hvCaption)
@@ -141,6 +146,13 @@ struct ToolsCompileSheet: View {
         }
         .hvCard()
         .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func statColumns(_ stats: McpToolkitStats) -> some View {
+        stat(stats.toolCount, "Tools", "Every tool you left switched on.")
+        stat(stats.uniqueSelectorCount, "Ways to ask", "Distinct things a chat can say to reach a tool.")
+        stat(stats.collisionCount, "Look-alikes", "Pairs of tools that are easy to mix up.")
     }
 
     private func stat(_ value: Int, _ title: String, _ help: String) -> some View {
@@ -182,13 +194,25 @@ struct ToolsCompileSheet: View {
 
     // MARK: Trouble
 
-    private func failed(_ message: String) -> some View {
+    private func failed(_ message: String, symbol: String) -> some View {
         VStack(spacing: HV.Space.l) {
-            HVErrorState(message: message)
+            HVErrorState(message: message, symbol: symbol)
             VStack(spacing: HV.Space.xs) {
                 Button("Try again") { model.startCompile() }.buttonStyle(.hvPrimary)
                 Button("Close") { model.dismissCompile(); dismiss() }.buttonStyle(.hvGhost)
             }
+        }
+    }
+
+    /// Every tool is off. Trying again cannot change that, so the way out is back to the list.
+    private var nothingToCompile: some View {
+        VStack(spacing: HV.Space.l) {
+            HVEmptyState(
+                symbol: "slider.horizontal.3",
+                title: "Nothing to compile",
+                message: "Every tool is switched off, so there is nothing for your chats to use. Switch on at least one, then compile again."
+            )
+            Button("Choose tools") { model.dismissCompile(); dismiss() }.buttonStyle(.hvPrimary)
         }
     }
 

@@ -131,8 +131,8 @@ xcodebuild -project HyperVault.xcodeproj -scheme HyperVault -destination 'platfo
 
 To add a journey, give the controls identifiers (`.accessibilityIdentifier("canvas.send")`), teach `UITestWorld` any
 route the screen needs, and write steps in `Tests/UITests`; [docs/FEATURE_GUIDE.md](docs/FEATURE_GUIDE.md) has the
-details. Each step keeps a screenshot with the result, and CI publishes them next to the snapshots (the `ui/` folder
-of the `snapshots-<branch>` branch).
+details. Each step keeps a screenshot with the result, and CI publishes them to the `ui-snapshots-<branch>` branch
+(`git fetch origin ui-snapshots-<branch>`), in a job that runs beside the unit tests.
 
 ### Server gaps the app works around
 

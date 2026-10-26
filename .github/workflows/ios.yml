@@ -41,11 +41,6 @@ jobs:
           xcodebuild -version
           swift --version
 
-      # The first minutes after a build are when Spotlight indexes what it made, on a runner with three cores; the UI
-      # tests' first launches took a minute each until it was off.
-      - name: Keep Spotlight off the build
-        run: sudo mdutil -a -i off || true
-
       - name: Install tools
         run: brew install xcodegen xcbeautify
 
@@ -59,12 +54,7 @@ jobs:
           echo "Using simulator $id"
           echo "id=$id" >> "$GITHUB_OUTPUT"
 
-      # Booted now, so it has settled by the time the build is done and the journeys start.
-      - name: Boot the simulator
-        run: xcrun simctl boot "${{ steps.sim.outputs.id }}" || true
-
       - name: Build
-        id: build
         run: |
           set -o pipefail
           xcodebuild build-for-testing \
@@ -74,42 +64,9 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             2>&1 | tee build.log | xcbeautify --renderer github-actions
 
-      # The journeys: the whole app, launched on the simulator and driven with taps and typing. The app is a
-      # debug build whose network is canned inside it (App/Core/UITestHarness.swift); nothing here reaches a
-      # real server. They run before the unit tests because they are the quick gate, and the unit tests below
-      # run whether or not they pass.
-      - name: UI tests
-        id: uitests
-        run: |
-          set -o pipefail
-          xcrun simctl bootstatus "${{ steps.sim.outputs.id }}" -b > /dev/null
-          xcodebuild test-without-building \
-            -project HyperVault.xcodeproj -scheme HyperVault \
-            -destination "id=${{ steps.sim.outputs.id }}" \
-            -derivedDataPath build \
-            -only-testing:HyperVaultUITests \
-            -parallel-testing-enabled NO \
-            -resultBundlePath build/ui-tests.xcresult \
-            CODE_SIGNING_ALLOWED=NO \
-            2>&1 | tee ui-test.log | xcbeautify --renderer github-actions
-
-      # Every journey step attached a screenshot to the result; they are written out as PNGs next to the
-      # unit tests' snapshots, so they are uploaded and published with them (the ui/ folder).
-      - name: Export the UI test screenshots
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        run: python3 scripts/export_ui_screenshots.py build/ui-tests.xcresult build/snapshot-out/snapshots/ui
-
-      - name: Upload the UI test results
-        if: ${{ !cancelled() && steps.uitests.outcome == 'failure' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ui-test-results
-          path: build/ui-tests.xcresult
-          if-no-files-found: ignore
-
+      # The unit tests and the snapshot renders. The UI tests (the whole app launched and driven) are the next
+      # job, which runs beside this one, so they add no time to a push.
       - name: Test
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           # xcodebuild hands TEST_RUNNER_* to the test process without the prefix.
           TEST_RUNNER_HV_SNAPSHOT_DIR: ${{ github.workspace }}/build/snapshot-out
@@ -155,8 +112,112 @@ jobs:
         if: failure()
         run: |
           echo "---- errors ----"
-          grep -hE "error:|\*\* (BUILD|TEST) FAILED|Test Case .* failed" build.log ui-test.log test.log 2>/dev/null | sort -u | head -80
+          grep -hE "error:|\*\* (BUILD|TEST) FAILED|Test Case .* failed" build.log test.log 2>/dev/null | sort -u | head -80
+
+  # The journeys: the real app launched on a simulator and driven with taps and typing, through the welcome story,
+  # sign-in, the canvas, each tab, the Library, Settings and the waitlist. The app is a debug build whose network is
+  # canned inside it (App/Core/UITestHarness.swift); nothing here reaches a real server. They take as long as the unit
+  # tests on a runner of three cores, so they have a job of their own and a push waits for the slower of the two.
+  ui:
+    name: UI tests (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pick the newest Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$latest" ]; then sudo xcode-select -s "$latest/Contents/Developer"; fi
+          xcodebuild -version
+
+      # Spotlight indexing what the build just made competes with the build and the tests for three cores.
+      - name: Keep Spotlight off the build
+        run: sudo mdutil -a -i off || true
+
+      - name: Install tools
+        run: brew install xcodegen xcbeautify
+
+      - name: Generate the project
+        run: xcodegen generate
+
+      - name: Pick a simulator
+        id: sim
+        run: |
+          id=$(xcrun simctl list devices available iPhone -j | python3 scripts/pick_simulator.py)
+          echo "Using simulator $id"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project HyperVault.xcodeproj -scheme HyperVault \
+            -destination "id=${{ steps.sim.outputs.id }}" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build.log | xcbeautify --renderer github-actions
+
+      - name: UI tests
+        id: uitests
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -project HyperVault.xcodeproj -scheme HyperVault \
+            -destination "id=${{ steps.sim.outputs.id }}" \
+            -derivedDataPath build \
+            -only-testing:HyperVaultUITests \
+            -parallel-testing-enabled NO \
+            -resultBundlePath build/ui-tests.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee ui-test.log | xcbeautify --renderer github-actions
+
+      # Every journey step attached a screenshot to the result; they are written out as PNGs, uploaded, and
+      # published to ui-snapshots-<branch> (git fetch origin ui-snapshots-<branch>), so a journey can be looked at
+      # without a simulator.
+      - name: Export the screenshots
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: python3 scripts/export_ui_screenshots.py build/ui-tests.xcresult build/ui-screenshots
+
+      - name: Upload the screenshots
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots
+          path: build/ui-screenshots
+          if-no-files-found: ignore
+
+      - name: Upload the result bundle
+        if: ${{ !cancelled() && steps.uitests.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results
+          path: build/ui-tests.xcresult
+          if-no-files-found: ignore
+
+      - name: Publish the screenshots to a branch
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: |
+          if [ ! -d build/ui-screenshots ]; then echo "no screenshots"; exit 0; fi
+          slug=$(echo "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" | tr '/' '-')
+          dir=$(mktemp -d)
+          cp -R build/ui-screenshots "$dir/ui"
+          cd "$dir"
+          git init -q
+          git checkout -q -b "ui-snapshots-$slug"
+          git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -q -m "UI test screenshots for $GITHUB_SHA"
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git push -f -q origin "ui-snapshots-$slug"
+
+      - name: Summarise failures
+        if: failure()
+        run: |
+          echo "---- errors ----"
+          grep -hE "error:|\*\* (BUILD|TEST) FAILED|Test Case .* failed" build.log ui-test.log 2>/dev/null | sort -u | head -80
           echo "---- failing tests ----"
-          grep -hoE "Test Case '[^']+' failed" ui-test.log test.log 2>/dev/null | sort -u | head -80
-          echo "---- UI test failures, as the result bundle records them ----"
+          grep -hoE "Test Case '[^']+' failed" ui-test.log 2>/dev/null | sort -u | head -80
+          echo "---- failures, as the result bundle records them ----"
           python3 scripts/summarize_xcresult.py build/ui-tests.xcresult || true

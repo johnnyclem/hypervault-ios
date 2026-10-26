@@ -47,6 +47,10 @@ jobs:
       - name: Generate the project
         run: xcodegen generate
 
+      # Release is never built here, so this is what keeps the UI-test mode out of it.
+      - name: Check the UI-test mode is debug-only
+        run: python3 scripts/check_debug_only.py
+
       - name: Pick a simulator
         id: sim
         run: |

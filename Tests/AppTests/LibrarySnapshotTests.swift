@@ -153,7 +153,7 @@ final class LibrarySnapshotTests: XCTestCase {
         let routes = Self.routes + [
             .json(.get, "/api/yours/card", #"{"id":"x1","kind":"page","name":"Focus playlist","href":"/a/focus-playlist-1","updated_at":"2026-10-20T10:00:00.000Z"}"#),
         ]
-        try snapshot(PreviewHost(routes: routes, embedInNavigation: false) { SheetHost { ArtifactConnectionsSheet(detail: $0) } }, named: "page-connections")
+        try snapshot(PreviewHost(routes: routes, embedInNavigation: false) { SheetHost { ArtifactConnectionsSheet(detail: $0) } }, named: "page-connections", settle: 3)
     }
 
     func testPasswordsScreen() throws {

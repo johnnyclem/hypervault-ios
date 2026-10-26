@@ -88,12 +88,15 @@ struct ArtifactShareSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                linkSection
-                if model.canManage { peopleSection }
+            ScrollView {
+                VStack(alignment: .leading, spacing: HV.Space.l) {
+                    linkSection
+                    if model.canManage { peopleSection }
+                }
+                .padding(HV.Space.m)
+                .hvReadableWidth()
             }
-            .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             .hvScreenBackground()
             .navigationTitle("Share")
             .navigationBarTitleDisplayMode(.inline)
@@ -121,7 +124,8 @@ struct ArtifactShareSheet: View {
     private var url: URL { detail.link(host: host) }
 
     private var linkSection: some View {
-        Section {
+        VStack(alignment: .leading, spacing: HV.Space.s) {
+            HVSectionHeader(title: "Link")
             VStack(alignment: .leading, spacing: HV.Space.xs) {
                 Text(url.absoluteString)
                     .font(.hvMono)
@@ -131,25 +135,28 @@ struct ArtifactShareSheet: View {
                 if let line = linkLine {
                     Text(line).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                 }
-            }
-            .padding(.vertical, HV.Space.xxs)
-
-            if detail.realms.count > 0 {
-                Picker("Link from", selection: $host) {
-                    Text(detail.env.server.baseURL.host ?? "HyperVault").tag(String?.none)
-                    ForEach(detail.realms) { realm in
-                        Text(realm.host).tag(String?.some(realm.host))
+                if !detail.realms.isEmpty {
+                    Divider()
+                    HStack {
+                        Text("Link from").font(.hvFootnote).foregroundStyle(Palette.textSecondary)
+                        Spacer()
+                        Picker("Link from", selection: $host) {
+                            Text(detail.env.server.baseURL.host ?? "HyperVault").tag(String?.none)
+                            ForEach(detail.realms) { realm in
+                                Text(realm.host).tag(String?.some(realm.host))
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
                     }
                 }
-                .pickerStyle(.menu)
             }
+            .hvCard(padding: HV.Space.m, radius: HV.Radius.m)
 
             ShareLink(item: url, subject: Text(detail.title), preview: SharePreview(detail.title)) {
                 Label("Share link", systemImage: "square.and.arrow.up")
             }
             .buttonStyle(.hvPrimary)
-            .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
-            .listRowBackground(Color.clear)
 
             Button {
                 ArtifactPasteboard.copy(url.absoluteString)
@@ -159,10 +166,6 @@ struct ArtifactShareSheet: View {
                 Label(LibraryCopy.copyLink, systemImage: "doc.on.doc")
             }
             .buttonStyle(.hvSecondary)
-            .listRowInsets(EdgeInsets(top: 0, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
-            .listRowBackground(Color.clear)
-        } header: {
-            HVSectionHeader(title: "Link")
         }
     }
 
@@ -179,27 +182,26 @@ struct ArtifactShareSheet: View {
     // MARK: People
 
     private var peopleSection: some View {
-        Section {
+        VStack(alignment: .leading, spacing: HV.Space.s) {
+            HVSectionHeader(title: LibraryCopy.sharePeople)
             switch model.list {
             case .loading:
                 HVLoadingState()
-                    .listRowBackground(Color.clear)
             case .failed(let message):
                 HVErrorState(message: message) { Task { await model.load() } }
-                    .listRowBackground(Color.clear)
             case .loaded(let list):
                 addForm(list)
-                if let error = model.error {
-                    ArtifactErrorLine(message: error)
-                        .listRowBackground(Color.clear)
-                }
-                ForEach(list.people) { person in
-                    personRow(person, list: list)
+                if let error = model.error { ArtifactErrorLine(message: error) }
+                if !list.people.isEmpty {
+                    VStack(spacing: 0) {
+                        ForEach(Array(list.people.enumerated()), id: \.element.id) { index, person in
+                            if index > 0 { Divider().padding(.leading, 56) }
+                            personRow(person, list: list)
+                        }
+                    }
+                    .hvCard(padding: 0, radius: HV.Radius.m)
                 }
             }
-        } header: {
-            HVSectionHeader(title: LibraryCopy.sharePeople)
-        } footer: {
             Text(LibraryCopy.shareFooter)
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
@@ -238,8 +240,6 @@ struct ArtifactShareSheet: View {
                 .buttonStyle(.hvSecondary)
                 .disabled(!ArtifactShareEmail.isValid(email) || role == nil || model.pending)
         }
-        .padding(.vertical, HV.Space.xs)
-        .listRowBackground(Color.clear)
     }
 
     private func personRow(_ person: ArtifactSharePerson, list: ArtifactShareList) -> some View {
@@ -258,9 +258,8 @@ struct ArtifactShareSheet: View {
                 .disabled(model.pending)
                 .accessibilityLabel("Remove \(person.name)")
         }
-        .swipeActions(edge: .trailing) {
-            Button(role: .destructive) { removing = person } label: { Label(LibraryCopy.shareRemove, systemImage: "person.badge.minus") }
-        }
+        .padding(.horizontal, HV.Space.m)
+        .padding(.vertical, HV.Space.s)
         .accessibilityElement(children: .combine)
         .accessibilityAction(named: "Remove") { removing = person }
     }

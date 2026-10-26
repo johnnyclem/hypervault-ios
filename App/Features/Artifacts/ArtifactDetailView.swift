@@ -108,10 +108,18 @@ struct ArtifactDetailScreen: View {
             }
             .animation(.easeOut(duration: 0.2), value: model.progress < 1)
         case .blocked(let block):
-            ArtifactBlockedView(
-                title: block.title, message: block.message, symbol: symbol(for: block),
-                primary: ("Try again", { reload() }), secondary: ("Open in Safari", openSafari)
-            )
+            if block == .notAllowed {
+                // Retrying will not change a no; the web, where the person can sign in, might.
+                ArtifactBlockedView(
+                    title: block.title, message: block.message, symbol: symbol(for: block),
+                    primary: ("Open in Safari", openSafari), secondary: ("Try again", { reload() })
+                )
+            } else {
+                ArtifactBlockedView(
+                    title: block.title, message: block.message, symbol: symbol(for: block),
+                    primary: ("Try again", { reload() }), secondary: ("Open in Safari", openSafari)
+                )
+            }
         }
     }
 
@@ -237,7 +245,9 @@ struct ArtifactActionBar: View {
 
     private func item(_ title: String, _ symbol: String) -> some View {
         VStack(spacing: 3) {
-            Image(systemName: symbol).font(.system(size: 19, weight: .medium))
+            Image(systemName: symbol)
+                .font(.system(size: 19, weight: .medium))
+                .frame(height: 24)
             Text(title).font(.system(.caption2, design: .rounded, weight: .medium))
         }
         .foregroundStyle(Palette.textPrimary)

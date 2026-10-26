@@ -82,6 +82,7 @@ struct LibraryScreen: View {
             content
         }
         .listStyle(.plain)
+        .listRowSeparatorTint(Palette.hairline)
         .scrollContentBackground(.hidden)
         .hvScreenBackground()
         .navigationTitle(LibraryCopy.title)
@@ -120,7 +121,7 @@ struct LibraryScreen: View {
                     .accessibilityAddTraits(filter == option ? .isSelected : [])
                 }
                 NavigationLink(value: Route.mail) {
-                    HVChip(title: "Mail", symbol: "tray")
+                    HVChip(title: "Mail")
                 }
                 .buttonStyle(.plain)
             }
@@ -205,6 +206,7 @@ struct LibraryScreen: View {
                 NavigationLink(value: route(for: item)) {
                     LibraryItemRow(item: item)
                 }
+                .libraryRow()
                 .simultaneousGesture(TapGesture().onEnded { model.stampOpen(item) })
                 .contextMenu { itemMenu(item) }
             }
@@ -247,6 +249,7 @@ struct LibraryScreen: View {
                 NavigationLink(value: Route.artifact(slug: row.summary.slug)) {
                     LibraryFileRow(row: row)
                 }
+                .libraryRow()
                 .swipeActions(edge: .leading, allowsFullSwipe: true) { visibilitySwipe(row) }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) { pendingDelete = row } label: { Label("Delete", systemImage: "trash") }
@@ -318,6 +321,7 @@ struct LibraryScreen: View {
                         .accessibilityElement(children: .combine)
                         .accessibilityLabel("\(pin.title), pinned")
                     }
+                    .libraryRow()
                     .swipeActions {
                         Button { Task { await model.togglePin(slug: pin.slug, toasts: app.toasts) } } label: { Label("Unpin", systemImage: "pin.slash") }
                     }
@@ -336,6 +340,7 @@ struct LibraryScreen: View {
                     NavigationLink(value: Route.artifact(slug: item.slug)) {
                         LibrarySharedRow(item: item)
                     }
+                    .libraryRow()
                     .swipeActions {
                         Button(role: .destructive) { leaving = item } label: { Label("Leave", systemImage: "rectangle.portrait.and.arrow.right") }
                     }
@@ -516,5 +521,14 @@ private struct LibraryConfirmations: ViewModifier {
             } message: { _ in
                 Text("It stays with its owner. You can no longer open it unless they add you again.")
             }
+    }
+}
+
+extension View {
+    /// A row on paper, not on the list's own white or black, with its separator in line with the text.
+    fileprivate func libraryRow() -> some View {
+        self
+            .listRowBackground(Color.clear)
+            .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + 50 }
     }
 }

@@ -109,9 +109,11 @@ struct ArtifactHistorySheet: View {
                 List {
                     ForEach(list.versions) { version in
                         NavigationLink(value: version) { ArtifactVersionRow(version: version) }
+                            .listRowBackground(Color.clear)
                     }
                 }
                 .listStyle(.plain)
+                .listRowSeparatorTint(Palette.hairline)
                 .scrollContentBackground(.hidden)
                 .refreshable { await model.load() }
             }
@@ -226,6 +228,7 @@ struct ArtifactVersionScreen: View {
             ArtifactErrorLine(message: message)
         case .loaded(let lines):
             ArtifactDiffView(lines: lines)
+                .frame(maxHeight: 480)
                 .hvCard(padding: 0, radius: HV.Radius.m)
         }
     }

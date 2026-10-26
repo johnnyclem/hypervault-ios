@@ -89,11 +89,14 @@ struct LibraryFileRow: View {
                                 .foregroundStyle(Palette.textTertiary)
                         }
                         if row.connections > 0 {
-                            Label("\(row.connections)", systemImage: "link")
-                                .font(.system(.caption2, design: .rounded, weight: .medium))
-                                .foregroundStyle(Palette.blue)
-                                .labelStyle(.titleAndIcon)
-                                .accessibilityLabel(row.connections == 1 ? "1 connection" : "\(row.connections) connections")
+                            HStack(spacing: 3) {
+                                Image(systemName: "link")
+                                Text("\(row.connections)")
+                            }
+                            .font(.system(.caption2, design: .rounded, weight: .medium))
+                            .foregroundStyle(Palette.blue)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(row.connections == 1 ? "1 connection" : "\(row.connections) connections")
                         }
                     }
                 }

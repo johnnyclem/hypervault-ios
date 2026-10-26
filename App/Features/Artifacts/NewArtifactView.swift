@@ -171,6 +171,14 @@ struct NewArtifactView: View {
 
     // MARK: Form
 
+    /// "0 KB", "12 KB": the formatter's own "Zero KB" reads oddly next to a limit.
+    private static func size(_ bytes: Int) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        formatter.allowsNonnumericFormatting = false
+        return formatter.string(fromByteCount: Int64(bytes))
+    }
+
     private static var fileTypes: [UTType] {
         var types: [UTType] = [.html, .plainText, .text, .sourceCode]
         for ext in ["jsx", "tsx", "md", "markdown"] {
@@ -255,7 +263,7 @@ struct NewArtifactView: View {
                     Label("From \(name)", systemImage: "doc").font(.hvCaption).foregroundStyle(Palette.textSecondary)
                 }
                 Spacer()
-                Text("\(ByteCountFormatter.string(fromByteCount: Int64(model.contentBytes), countStyle: .file)) of \(NewArtifactModel.megabytes(model.byteLimit))")
+                Text("\(Self.size(model.contentBytes)) of \(NewArtifactModel.megabytes(model.byteLimit))")
                     .font(.hvCaption)
                     .foregroundStyle(model.isOverLimit ? Palette.danger : Palette.textTertiary)
             }

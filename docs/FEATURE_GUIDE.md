@@ -199,9 +199,12 @@ canned hosts end in `.invalid`; anything that builds its own `URLSession` reques
    never by skipping it.
 
 **Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
-any iPhone simulator; `make test-unit` runs the rest. CI quiets a clone of its simulator first
-(`scripts/prepare_ui_simulator.sh`: no keyboard introduction, no autocorrect, Reduce Motion on), publishes the step
+any iPhone simulator; `make test-unit` runs the rest. CI runs them before the unit tests, publishes the step
 screenshots next to the snapshots (the `ui/` folder), and uploads the `.xcresult` when a journey fails.
+
+XCUITest is slow where it looks: every query walks the screen, and `waitForExistence` always takes about a second.
+`HyperVaultUITestCase.require` looks first and waits only when the element is missing; keep to it, and to few
+queries per step, or a journey that takes seconds on a laptop takes minutes on CI.
 
 ## Definition of done
 

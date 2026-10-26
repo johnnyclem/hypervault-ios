@@ -18,7 +18,7 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
 
         step("A long paste waits above the field") {
             // The harness left a note on the pasteboard; the canvas offers the system's Paste button for it.
-            tap(button("Paste"), "the Paste button", whenHittable: false)
+            tapPaste()
             let chip = element("canvas.pasted")
             require(chip, "the chip that says what was pasted")
             XCTAssertTrue(chip.label.hasPrefix("Pasted - "), "The chip says \"\(chip.label)\".")
@@ -37,12 +37,10 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
         }
 
         step("A typed note is answered by the model") {
-            enter("Remember to buy milk on Friday", into: field("canvas.field"), "the canvas field")
+            enter("Remember to buy milk on Friday", into: textField("canvas.field"), "the canvas field")
             tap(element("canvas.send"), "Send")
-            let reply = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Reply: ")).firstMatch
-            require(reply, "the model's reply")
-            XCTAssertTrue(reply.label.contains("Remember to buy milk on Friday"), "The reply says \"\(reply.label)\".")
             require(text("You said: Remember to buy milk on Friday"), "the note as it was sent")
+            require(text("Reply: Noted: Remember to buy milk on Friday"), "the model's reply")
         }
 
         step("The reply can be kept too") {
@@ -51,9 +49,10 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
         }
 
         step("Hide takes a card off the page and nothing else") {
-            tap(button("Hide Lisbon trip checklist"), "Hide on the checklist card")
-            requireGone(button("Hide Lisbon trip checklist"), "the hidden card")
+            tap(button("Hide Noted: Remember to buy milk on Friday"), "Hide on the card of the kept reply")
+            requireGone(button("Hide Noted: Remember to buy milk on Friday"), "the hidden card")
             XCTAssertEqual(count(ofText: keptLine), 1, "Only the card that was hidden should have gone.")
+            XCTAssertTrue(button("Hide Lisbon trip checklist").exists, "The other card should stay.")
         }
     }
 
@@ -61,7 +60,7 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
         launch(.signedIn)
 
         step("Saying \"show my memories\" puts them on the page") {
-            enter("show my memories", into: field("canvas.field"), "the canvas field")
+            enter("show my memories", into: textField("canvas.field"), "the canvas field")
             tap(element("canvas.send"), "Send")
             require(button("Hide Trip to Lisbon: ferry and passports"), "the Lisbon memory's card")
             require(button("Hide Auth decision: passkeys first"), "the auth memory's card")

@@ -21,7 +21,7 @@ final class WaitlistJourneyTests: HyperVaultUITestCase {
         }
 
         step("The field takes a code, and a wrong one is refused") {
-            let code = field("waitlist.code")
+            let code = textField("waitlist.code")
             enter("HV-NOPE-NOPE", into: code, "the invite code field")
             XCTAssertTrue(element("waitlist.redeem").isEnabled, "With a code typed, the button should be on.")
             tap(element("waitlist.redeem"), "Use this code")
@@ -32,7 +32,7 @@ final class WaitlistJourneyTests: HyperVaultUITestCase {
         }
 
         step("The right code opens the door to the canvas") {
-            let code = field("waitlist.code")
+            let code = textField("waitlist.code")
             tap(code, "the invite code field")
             clear(code)
             code.typeText("HV-OPEN-DOOR")

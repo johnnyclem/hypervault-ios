@@ -77,15 +77,15 @@ class HyperVaultUITestCase: XCTestCase {
         query.matching(NSPredicate(format: "label == %@ OR identifier == %@", name, name)).firstMatch
     }
 
-    /// A text field, text view or search field, by identifier or label. SwiftUI makes a multi-line field a text view
-    /// and a one-line field a text field, so this looks for whichever the screen has.
-    func field(_ name: String, file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
-        let candidates = [
-            named(name, in: app.textViews), named(name, in: app.textFields),
-            named(name, in: app.secureTextFields), named(name, in: app.searchFields),
-        ]
-        waitUntil("the field \(name)", file: file, line: line) { candidates.contains { $0.exists } }
-        return candidates.first { $0.exists } ?? element(name)
+    /// A text field, by identifier or label. (SwiftUI's fields that grow with their text, like the canvas's, are text
+    /// fields to XCUITest too.)
+    func textField(_ name: String) -> XCUIElement {
+        named(name, in: app.textFields)
+    }
+
+    /// A search field, by its placeholder.
+    func searchField(_ name: String) -> XCUIElement {
+        named(name, in: app.searchFields)
     }
 
     /// A button by its label.
@@ -148,8 +148,10 @@ class HyperVaultUITestCase: XCTestCase {
         XCTFail("Gave up waiting for: \(what).", file: file, line: line)
     }
 
-    /// Waits for the element to appear.
+    /// Waits for the element to appear. (Looking first matters: `waitForExistence` always takes about a second, and a
+    /// journey asks hundreds of times for things that are already there.)
     func require(_ element: XCUIElement, _ what: String, timeout: TimeInterval? = nil, file: StaticString = #filePath, line: UInt = #line) {
+        if element.exists { return }
         if element.waitForExistence(timeout: timeout ?? patience) { return }
         attachScreenshot("Missing - \(what)")
         XCTFail("Never saw \(what).", file: file, line: line)
@@ -162,12 +164,13 @@ class HyperVaultUITestCase: XCTestCase {
 
     // MARK: Doing
 
-    /// Waits for the element, then taps it. A system control that draws itself outside the app's own view tree (the
-    /// Paste button) is not reported as hittable, so it is tapped as soon as it exists.
-    func tap(_ element: XCUIElement, _ what: String, whenHittable: Bool = true, file: StaticString = #filePath, line: UInt = #line) {
+    /// Waits for the element, gives it a moment to stop moving, then taps it. An element that is on the page but
+    /// scrolled out of view is tapped anyway: XCUITest scrolls it into view first.
+    func tap(_ element: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
         require(element, what, file: file, line: line)
-        if whenHittable {
-            waitUntil("\(what) to be tappable", file: file, line: line) { element.exists && element.isHittable }
+        let settled = Date().addingTimeInterval(4)
+        while Date() < settled, !(element.exists && element.isHittable) {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.25))
         }
         element.tap()
     }
@@ -176,6 +179,14 @@ class HyperVaultUITestCase: XCTestCase {
     func enter(_ text: String, into field: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
         tap(field, what, file: file, line: line)
         field.typeText(text)
+    }
+
+    /// Taps the system's Paste control. It draws itself outside the app's own view tree, so it is tapped as soon as it
+    /// exists rather than waited on to be hittable.
+    func tapPaste(file: StaticString = #filePath, line: UInt = #line) {
+        let paste = button("Paste")
+        require(paste, "the Paste button", file: file, line: line)
+        paste.tap()
     }
 
     /// Clears a field the way a person does: by deleting what is in it.

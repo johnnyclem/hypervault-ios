@@ -62,7 +62,15 @@ struct ForceGraphView: View {
                     .contentShape(Rectangle())
                     .gesture(dragGesture)
                     .simultaneousGesture(pinchGesture(in: proxy.size))
-                    .accessibilityHidden(true)
+                    // The picture is read as its nodes (each a button that opens it). This is scoped to the picture: put
+                    // on the whole view it would replace the zoom and fit buttons and the legend, and nothing but a
+                    // pinch could reach them.
+                    .accessibilityChildren {
+                        ForEach(nodes) { node in
+                            Button(node.label) { onOpen(node.id) }
+                                .accessibilityHint("\(model.degree(of: node.id)) connections. Opens it.")
+                        }
+                    }
                 VStack(spacing: 0) {
                     if !legend.isEmpty { legendBar }
                     Spacer(minLength: 0)
@@ -96,12 +104,6 @@ struct ForceGraphView: View {
             if !camera.userMoved { fit(animated: false) }
         }
         .onDisappear { model.stop() }
-        .accessibilityChildren {
-            ForEach(nodes) { node in
-                Button(node.label) { onOpen(node.id) }
-                    .accessibilityHint("\(model.degree(of: node.id)) connections. Opens it.")
-            }
-        }
     }
 
     // MARK: Drawing

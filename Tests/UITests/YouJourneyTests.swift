@@ -29,7 +29,8 @@ final class YouJourneyTests: HyperVaultUITestCase {
 
         step("The graph view draws the map") {
             tap(element("library.view"), "the view button")
-            require(button("Fit the whole graph"), "the graph's controls")
+            require(button("Passport checklist"), "the graph's node for the Passport checklist memory")
+            require(button("Fit the whole graph"), "the graph's Fit button")
             XCTAssertEqual(element("library.view").label, "Show as a list")
         }
 
@@ -69,8 +70,9 @@ final class YouJourneyTests: HyperVaultUITestCase {
             let dark = segment("Dark")
             tap(dark, "the Dark appearance")
             waitUntil("Dark to be the chosen appearance") { dark.isSelected }
-            tap(segment("Light"), "the Light appearance")
-            waitUntil("Light to be the chosen appearance") { segment("Light").isSelected }
+            attachScreenshot("Settings in the dark appearance")
+            tap(segment("System"), "the System appearance")
+            waitUntil("System to be the chosen appearance") { segment("System").isSelected }
             XCTAssertFalse(segment("Dark").isSelected)
         }
     }

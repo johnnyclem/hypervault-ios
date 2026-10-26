@@ -302,7 +302,7 @@ enum UITestWorld {
         }
     }
 
-    /// `POST /api/chat`: the connected model's reply, which says what it was told.
+    /// `POST /api/chat`: the connected model's reply, which says what it was told (short, so its title is all of it).
     private static var chatRoute: MockRoute {
         MockRoute(.post, "/api/chat") { request in
             let message = request.jsonBody?["message"] as? String ?? ""
@@ -311,7 +311,7 @@ enum UITestWorld {
                 "reply": .object([
                     "id": .string("r-uitest"),
                     "role": .string("assistant"),
-                    "content": .string("Got it. I will keep this in mind: \(message)"),
+                    "content": .string("Noted: \(message)"),
                     "model": .string("claude-opus-4-8"),
                     "truncated": .bool(false),
                 ]),

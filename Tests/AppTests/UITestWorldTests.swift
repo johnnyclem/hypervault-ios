@@ -86,7 +86,7 @@ final class UITestWorldTests: XCTestCase {
         let backends = try await api.send(.canvasBackends)
         XCTAssertEqual(backends.map(\.id), ["b1"])
         let turn = try await api.send(.canvasChat(backendId: "b1", message: "Buy milk", conversationId: nil, pulled: []))
-        XCTAssertEqual(turn.content, "Got it. I will keep this in mind: Buy milk")
+        XCTAssertEqual(turn.content, "Noted: Buy milk")
 
         let none = try await client(.signedInEmpty).send(.canvasBackends)
         XCTAssertTrue(none.isEmpty)

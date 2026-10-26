@@ -69,7 +69,7 @@ final class SignedOutJourneyTests: HyperVaultUITestCase {
         }
 
         step("An address gets a code sent") {
-            let address = field("email.address")
+            let address = textField("email.address")
             enter("sam@example.com", into: address, "the email field")
             XCTAssertTrue(element("email.send").isEnabled, "With an address typed, the button should be on.")
             // Return is the keyboard's Send key, as a person would press it.
@@ -79,7 +79,7 @@ final class SignedOutJourneyTests: HyperVaultUITestCase {
         }
 
         step("A wrong code is turned down in plain words") {
-            enter("000000", into: field("email.code"), "the code field")
+            enter("000000", into: textField("email.code"), "the code field")
             let error = element("email.error")
             require(error, "the line that turns the code down")
             XCTAssertEqual(error.label, "That code has expired. Ask for a new one.")

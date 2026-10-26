@@ -36,7 +36,7 @@ final class TabsJourneyTests: HyperVaultUITestCase {
         step("Searching by name narrows the list") {
             tap(segment("All"), "the All filter")
             require(element("yours.row.m1"), "the full list again")
-            enter("bakery", into: field("Search by name"), "the search field")
+            enter("bakery", into: searchField("Search by name"), "the search field")
             requireGone(element("yours.row.m1"), "rows that do not match the search")
             XCTAssertTrue(element("yours.row.a1").exists, "The match should stay.")
         }
@@ -76,7 +76,9 @@ final class TabsJourneyTests: HyperVaultUITestCase {
 
         step("Graph draws the map") {
             tap(segment("Graph"), "the Graph mode")
-            require(button("Fit the whole graph"), "the graph's controls")
+            // The map is read as its nodes, each a button that opens its memory, and its zoom controls stay reachable.
+            require(button("Passport checklist"), "the graph's node for the Passport checklist memory")
+            require(button("Fit the whole graph"), "the graph's Fit button")
             requireGone(element("memory.row.m1"), "the list, now that the graph shows")
         }
 

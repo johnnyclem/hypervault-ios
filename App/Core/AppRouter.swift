@@ -5,11 +5,13 @@ import SwiftUI
 enum AppSheet: Identifiable, Hashable {
     case pair(code: String?)
     case invite(code: String?)
+    case connectAgent
 
     var id: String {
         switch self {
         case .pair(let code): return "pair-\(code ?? "")"
         case .invite(let code): return "invite-\(code ?? "")"
+        case .connectAgent: return "connect-agent"
         }
     }
 }

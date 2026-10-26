@@ -62,7 +62,7 @@ struct CanvasHints: View {
                         Text(HVCopy.hintAskLine).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                     } else {
                         Text(HVCopy.hintConnectLine).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
-                        Button(HVCopy.connectAILabel) { app.router.open(.route(.agentsAndKeys)) }
+                        Button(HVCopy.connectAILabel) { app.router.sheet = .connectAgent }
                             .buttonStyle(.hvGhost)
                     }
                 }

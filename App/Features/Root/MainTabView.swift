@@ -42,6 +42,8 @@ struct MainTabView: View {
                 PairApprovalView(code: code)
             case .invite:
                 InviteLinkSheet()
+            case .connectAgent:
+                ConnectAgentSheet()
             }
         }
     }

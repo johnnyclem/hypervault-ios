@@ -158,7 +158,7 @@ private struct NoModelRow: View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
             Text(HVCopy.noModelLine).font(.hvCallout).foregroundStyle(Palette.textSecondary)
             Button(HVCopy.connectAILabel) {
-                app.router.open(.route(.agentsAndKeys))
+                app.router.sheet = .connectAgent
             }
             .buttonStyle(.hvSecondary)
             .frame(maxWidth: 260)

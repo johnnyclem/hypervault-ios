@@ -46,14 +46,15 @@ struct AdminInviteDetailView: View {
                 }
                 .padding(.vertical, HV.Space.xxs)
             }
+            .hvListRow()
 
             Section(header: HVSectionHeader(title: "Hand it over")) {
                 AdminCopyButton(text: invite.code, title: "Copy the code")
                 ShareLink(item: invite.shareURL(server: server), message: Text("Your HyperVault invite: \(invite.code)")) {
                     Label("Share the invite link", systemImage: "square.and.arrow.up")
-                        .frame(minHeight: 44, alignment: .leading)
                 }
             }
+            .hvListRow()
 
             Section(
                 header: HVSectionHeader(title: "Manage"),
@@ -88,6 +89,7 @@ struct AdminInviteDetailView: View {
                     Text("The code stops working at once and is deleted. People who already joined with it keep their access.")
                 }
             }
+            .hvListRow()
         }
         .scrollContentBackground(.hidden)
     }

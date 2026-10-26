@@ -36,6 +36,7 @@ struct ToolsServerDetailView: View {
     private func detail(_ server: McpServer) -> some View {
         List {
             Section { header(server) }
+                .hvListRow()
 
             Section(footer: Text("Takes effect for new chats after you compile.")) {
                 Toggle("Use in chats", isOn: Binding(
@@ -44,6 +45,7 @@ struct ToolsServerDetailView: View {
                 ))
                 .tint(Palette.mint)
             }
+            .hvListRow()
 
             toolsSection(server)
 
@@ -62,6 +64,7 @@ struct ToolsServerDetailView: View {
                     Text("Your chats keep using what is already compiled until you compile again. You can add the server back later.")
                 }
             }
+            .hvListRow()
         }
         .scrollContentBackground(.hidden)
         .modifier(ToolsOptionalSearch(isOn: server.tools.count > 10, text: $query, prompt: "Find a tool"))
@@ -152,6 +155,7 @@ struct ToolsServerDetailView: View {
                 }
             }
         }
+        .hvListRow()
     }
 
     // MARK: Manage

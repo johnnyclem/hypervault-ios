@@ -32,22 +32,31 @@ struct AdminScreen: View {
         self.dashboard = dashboard
     }
 
+    /// For previews, which need a model already part way.
+    init(model: AdminModel, dashboard: URL) {
+        _model = State(initialValue: model)
+        self.dashboard = dashboard
+    }
+
     var body: some View {
         List {
             Section {
                 notice
                     .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.s, trailing: HV.Space.m))
             }
+            .hvListRow()
 
             Section(header: HVSectionHeader(title: "New invite code")) {
                 mintForm
             }
+            .hvListRow()
 
             if let minted = model.justMinted {
                 Section(header: HVSectionHeader(title: "Just minted")) {
                     AdminMintedCard(invite: minted, server: env.server.baseURL) { model.dismissMinted() }
                         .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.s, trailing: HV.Space.m))
                 }
+                .hvListRow()
             }
 
             Section(
@@ -65,6 +74,7 @@ struct AdminScreen: View {
                     }
                 }
             }
+            .hvListRow()
 
             Section(header: HVSectionHeader(title: "People")) {
                 NavigationLink(value: AdminRoute.accounts) {
@@ -76,6 +86,7 @@ struct AdminScreen: View {
                     }
                 }
             }
+            .hvListRow()
         }
         .scrollContentBackground(.hidden)
         .scrollDismissesKeyboard(.interactively)
@@ -109,26 +120,21 @@ struct AdminScreen: View {
 
     private var mintForm: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            HStack {
-                Text("Uses").font(.hvBody)
-                Spacer()
-                TextField("1", text: $model.usesText)
+            HVLabeledField(title: "Uses", footnote: "How many people can join with this code.") {
+                TextField("How many people can use the code", text: $model.usesText, prompt: Text(verbatim: "1"))
                     .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 90)
-                    .hvFieldChrome()
-                    .accessibilityLabel("How many people can use the code")
             }
-            TextField("Note, like “Launch batch” (optional)", text: $model.note)
-                .focused($noteFocused)
-                .submitLabel(.done)
-                .hvFieldChrome(isFocused: noteFocused)
-                .accessibilityLabel("Note")
+            HVLabeledField(title: "Note (optional)") {
+                TextField("Note", text: $model.note, prompt: Text(verbatim: "Launch batch"))
+                    .focused($noteFocused)
+                    .submitLabel(.done)
+            }
             Button {
                 noteFocused = false
                 Task { await model.mint() }
             } label: {
-                if model.isMinting { ProgressView().tint(.white) } else { Text("Create code") }
+                // The button is off while it works, and an off primary button is paper, so the spinner is grey.
+                if model.isMinting { ProgressView().tint(Palette.textSecondary) } else { Text("Create code") }
             }
             .buttonStyle(.hvPrimary)
             .disabled(model.isMinting)
@@ -199,23 +205,29 @@ struct AdminMintedCard: View {
             Text("\(invite.maxUses) \(invite.maxUses == 1 ? "use" : "uses")" + (invite.note.map { $0.isEmpty ? "" : " · \($0)" } ?? ""))
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
+            // Two buttons share this row, so each must be its own tap target: a bare button in a list row
+            // takes the whole row, and both would fire together.
             HStack(spacing: HV.Space.s) {
-                AdminCopyButton(text: invite.code, title: "Copy code")
+                AdminCopyButton(text: invite.code, title: "Copy code", minHeight: 44)
                 ShareLink(item: invite.shareURL(server: server), message: Text("Your HyperVault invite: \(invite.code)")) {
                     Label("Share link", systemImage: "square.and.arrow.up")
-                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
                         .frame(minHeight: 44)
                 }
             }
-            Button("Done", action: onDismiss).buttonStyle(.hvGhost)
+            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+            .buttonStyle(.borderless)
+            Button("Done", action: onDismiss).buttonStyle(.hvGhost).padding(.leading, -HV.Space.s)
         }
     }
 }
 
-/// Copies to the pasteboard for ten minutes, then lets go.
+/// Copies to the pasteboard for ten minutes, then lets go. It takes the look of whatever holds it: a
+/// plain label in a list row, sized by the caller anywhere else.
 struct AdminCopyButton: View {
     let text: String
     let title: String
+    /// Zero in a list row, which is already tall enough; the tap target a card needs elsewhere.
+    var minHeight: CGFloat = 0
     @State private var copied = false
 
     var body: some View {
@@ -232,10 +244,8 @@ struct AdminCopyButton: View {
             }
         } label: {
             Label(copied ? "Copied" : title, systemImage: copied ? "checkmark" : "doc.on.doc")
-                .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                .frame(minHeight: 44)
+                .frame(minHeight: minHeight)
         }
-        .buttonStyle(.borderless)
     }
 }
 
@@ -244,22 +254,16 @@ struct AdminCopyButton: View {
     PreviewHost { AdminPreviewHost(minted: true) }
 }
 
-/// The Admin screen with a few codes already minted, for previews and snapshots.
+/// The Admin screen with a few codes already minted, for previews and snapshots. `minted` shows the
+/// code just made, as it is straight after "Create code".
 struct AdminPreviewHost: View {
     @Environment(AppEnvironment.self) private var env
-    @State private var ready = false
     var minted = false
 
     var body: some View {
-        Group {
-            if ready { AdminRootView() } else { HVLoadingState() }
-        }
-        .task {
-            var book = AdminInviteBook()
-            for invite in AdminFixtures.invites { book.upsert(invite) }
-            await env.cache.store(book, key: "admin.invites", namespace: env.user.id)
-            ready = true
-        }
+        let model = AdminModel(client: env.client, cache: env.cache, namespace: env.user.id)
+        model.previewSeed(minted: minted ? AdminFixtures.invites.first : nil)
+        return AdminScreen(model: model, dashboard: env.webURL("admin"))
     }
 }
 #endif

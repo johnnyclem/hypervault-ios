@@ -562,6 +562,22 @@ public struct McpRegistryEntry: Sendable, Codable, Hashable, Identifiable {
 
     public var normalizedURL: String { McpServer.normalize(url) }
 
+    /// The transport as a person reads it: the catalog row and the preview header say the same words.
+    public var transportLabel: String { Self.transportLabel(for: transport) }
+
+    /// `streamable-http` and `sse` are the registry's own values; neither belongs on screen as written.
+    public static func transportLabel(for transport: String) -> String {
+        let key = transport.lowercased().replacingOccurrences(of: "_", with: "-")
+        switch key {
+        case "sse": return "SSE"
+        case "streamable-http", "http": return "Streamable HTTP"
+        default:
+            // A transport this app has not met: its own name, with spaces for hyphens, rather than a wrong one.
+            let words = key.replacingOccurrences(of: "-", with: " ").trimmingCharacters(in: .whitespaces)
+            return words.isEmpty ? "Streamable HTTP" : String(words.prefix(1)).uppercased() + String(words.dropFirst())
+        }
+    }
+
     /// The registry's short name is often just "mcp" (the last part of
     /// `app.linear/mcp`); when it says nothing, the full id does.
     public var displayName: String {
@@ -714,6 +730,12 @@ extension HVError {
     /// sentence is in `message`, not `error`.
     public var mcpCompileSentence: String {
         failure?.body?["message"]?.string ?? userMessage
+    }
+
+    /// The compile route refused because every tool is switched off. That is a choice
+    /// for the person to make, not a failure to try again.
+    public var isMcpNothingToCompile: Bool {
+        failure?.body?["error"]?.string == "no_enabled_tools"
     }
 }
 

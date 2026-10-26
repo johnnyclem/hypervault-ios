@@ -182,12 +182,32 @@ final class ToolsLogicTests: XCTestCase {
         XCTAssertEqual(model.toolkit.toolkit?.id, "k2")
     }
 
-    func testACompileThatTheServerRefusesShowsItsSentence() async {
+    func testACompileWithEveryToolOffIsAChoiceNotAFailure() async {
         let refused = MockRoute.json(.post, "/api/toolkits/compile", #"{"error":"no_enabled_tools","message":"Every tool is toggled off — enable at least one."}"#, status: 422)
         let model = await loadedModel(extra: [refused])
         model.startCompile()
         for _ in 0..<40 where model.compile.isRunning { await pause(0.1) }
-        XCTAssertEqual(model.compile, .failed("Every tool is toggled off — enable at least one."))
+        XCTAssertEqual(model.compile, .nothingToCompile, "trying again cannot help, so the sheet must not offer it")
+    }
+
+    func testACompileThatBreaksShowsTheServersSentence() async {
+        let broken = MockRoute.json(.post, "/api/toolkits/compile", #"{"error":"embed_failed","message":"The index could not be built. Try again in a moment."}"#, status: 502)
+        let model = await loadedModel(extra: [broken])
+        model.startCompile()
+        for _ in 0..<40 where model.compile.isRunning { await pause(0.1) }
+        XCTAssertEqual(model.compile, .failed("The index could not be built. Try again in a moment."))
+        model.dismissCompile()
+        XCTAssertEqual(model.compile, .idle)
+    }
+
+    func testAConnectionThatDropsAndNeverComesBackIsSaidToBeLost() async {
+        let model = ToolsModel(client: client(DroppedCompileTransport()), cache: temporaryCache(), namespace: "u4", maxServers: 20)
+        model.recoveryPoll = 10_000_000
+        await model.load()
+        model.startCompile()
+        for _ in 0..<60 where model.compile.isRunning { await pause(0.1) }
+        guard case .lostConnection(let sentence) = model.compile else { return XCTFail("expected lostConnection, got \(model.compile)") }
+        XCTAssertEqual(sentence, "Network hiccup. Check your connection and try again.")
     }
 
     func testACompileCutOffByTheNetworkIsFoundOnceItLands() async {
@@ -219,6 +239,21 @@ private struct HangingTransport: HTTPTransport {
     func send(_ request: URLRequest) async throws -> HTTPResponse {
         try await Task.sleep(nanoseconds: 60_000_000_000)
         return HTTPResponse(status: 504)
+    }
+}
+
+/// Answers the compile call with a dropped connection, and the toolkit as it was before: never built since.
+private struct DroppedCompileTransport: HTTPTransport {
+    func send(_ request: URLRequest) async throws -> HTTPResponse {
+        let path = request.url?.path ?? ""
+        if path == "/api/toolkits/compile" { throw URLError(.networkConnectionLost) }
+        if path == "/api/mcp-servers" {
+            return HTTPResponse(status: 200, data: Data(#"{"servers":[{"id":"s1","name":"A","url":"https://a.example.com","tools_cache":[{"name":"t"}]}]}"#.utf8))
+        }
+        if path == "/api/toolkits" {
+            return HTTPResponse(status: 200, data: Data(#"{"toolkit":{"id":"k1","stats":{"toolCount":1,"uniqueSelectorCount":1,"providerCount":1,"collisionCount":0},"embedder_label":"semantic","compiled_at":"2020-01-01T00:00:00+00:00"},"stale":true}"#.utf8))
+        }
+        return HTTPResponse(status: 404, data: Data(#"{"error":"No route"}"#.utf8))
     }
 }
 

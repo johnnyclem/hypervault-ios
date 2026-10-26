@@ -145,6 +145,7 @@ struct ToolsCatalogSheet: View {
                 Section(header: HVSectionHeader(title: "Suggested")) {
                     ForEach(catalog.suggested) { entry in row(entry) }
                 }
+                .hvListRow()
             }
             Section(header: HVSectionHeader(title: catalog.isSearching ? "Matches" : "From the MCP registry"),
                     footer: footer) {
@@ -153,6 +154,7 @@ struct ToolsCatalogSheet: View {
                 }
                 ForEach(catalog.results) { entry in row(entry) }
             }
+            .hvListRow()
         }
         .scrollContentBackground(.hidden)
         .refreshable { await catalog.search() }
@@ -217,7 +219,7 @@ struct ToolsCatalogRow: View {
                             .foregroundStyle(Palette.textSecondary)
                             .lineLimit(2)
                             .multilineTextAlignment(.leading)
-                        HVTag(text: entry.transport == "sse" ? "SSE" : "Streamable HTTP")
+                        HVTag(text: entry.transportLabel)
                     }
                     Spacer(minLength: 0)
                 }
@@ -229,15 +231,29 @@ struct ToolsCatalogRow: View {
             addControl
         }
         .frame(minHeight: 44)
+        // Without this the list measures the separator from the "Added" label on the one row that has it,
+        // and draws a stub under it. Every row's separator starts at its title instead, past the icon.
+        .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + Self.titleColumn }
     }
+
+    /// The icon badge and the gap after it: where a row's title begins.
+    private static let titleColumn: CGFloat = 36 + HV.Space.s + 2
 
     @ViewBuilder
     private var addControl: some View {
         if isAdded {
-            Label("Added", systemImage: "checkmark")
-                .font(.system(.footnote, design: .rounded, weight: .semibold))
-                .foregroundStyle(Palette.mint)
-                .frame(minWidth: 44, minHeight: 44)
+            // The same capsule as "Add", in mint and not tappable, so every row ends the same way.
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark").font(.system(size: 11, weight: .bold))
+                Text("Added")
+            }
+            .font(.system(.footnote, design: .rounded, weight: .semibold))
+            .foregroundStyle(Palette.mint.hvInk())
+            .padding(.horizontal, HV.Space.m)
+            .frame(minHeight: 44)
+            .background(Palette.mint.opacity(0.14), in: Capsule())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(entry.displayName) is added")
         } else if isAdding {
             ProgressView().frame(width: 44, height: 44)
         } else {
@@ -247,7 +263,7 @@ struct ToolsCatalogRow: View {
                     .padding(.horizontal, HV.Space.m)
                     .frame(minHeight: 44)
                     .background(Palette.blue.opacity(0.14), in: Capsule())
-                    .foregroundStyle(Palette.blue)
+                    .foregroundStyle(Palette.blue.hvInk())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Add \(entry.displayName)")

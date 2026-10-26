@@ -17,6 +17,7 @@ struct ImportScreen: View {
     @State private var model: ImportModel
     @State private var picking = false
     @FocusState private var pasteFocused: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(client: HVClient, importBytes: Int) {
         _model = State(initialValue: ImportModel(client: client, importBytes: importBytes))
@@ -30,7 +31,8 @@ struct ImportScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HV.Space.l) {
-                intro
+                // Said once, where the choice is made. Every later step has its own heading.
+                if model.stage == .choose { intro }
                 switch model.stage {
                 case .choose: choose
                 case .reading: reading
@@ -45,6 +47,9 @@ struct ImportScreen: View {
             .animation(.easeInOut(duration: 0.2), value: model.stage)
         }
         .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            if pinsChooseAction, let source = model.source { chooseActionBar(source) }
+        }
         .hvScreenBackground()
         .navigationTitle("Import")
         .navigationBarTitleDisplayMode(.inline)
@@ -89,7 +94,8 @@ struct ImportScreen: View {
 
             if let source = model.source {
                 ImportGuideCard(guide: source.guide)
-                if source == .other { pasteArea } else { fileArea(source) }
+                if source == .other { pasteArea }
+                if !pinsChooseAction { chooseAction(source) }
                 if let error = model.readError {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
                         .font(.hvFootnote)
@@ -103,15 +109,41 @@ struct ImportScreen: View {
         }
     }
 
-    private func fileArea(_ source: ImportPlatform) -> some View {
-        VStack(spacing: HV.Space.xs) {
-            Button("Choose the export file") { picking = true }
-                .buttonStyle(.hvPrimary)
-            Text("The zip you downloaded, or \(source.exportFileName). You can choose several files at once.")
-                .font(.hvCaption)
-                .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
+    /// The step after choosing a service. The guide above it runs longer than the screen, so the button
+    /// is pinned under the scroll, where it is always in reach. At the largest text sizes a pinned bar
+    /// would take half the screen, so it goes back to the end of the page.
+    private var pinsChooseAction: Bool {
+        model.stage == .choose && model.source != nil && !dynamicTypeSize.isAccessibilitySize
+    }
+
+    @ViewBuilder
+    private func chooseAction(_ source: ImportPlatform) -> some View {
+        if source == .other {
+            Button("Check what I pasted") {
+                pasteFocused = false
+                model.readPasted()
+            }
+            .buttonStyle(.hvPrimary)
+            .disabled(model.pasted.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        } else {
+            VStack(spacing: HV.Space.xs) {
+                Button("Choose the export file") { picking = true }
+                    .buttonStyle(.hvPrimary)
+                Text("The zip you downloaded, or \(source.exportFileName). You can choose several files at once.")
+                    .font(.hvCaption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
         }
+    }
+
+    private func chooseActionBar(_ source: ImportPlatform) -> some View {
+        chooseAction(source)
+            .padding(HV.Space.m)
+            .hvGlass()
+            .padding(.horizontal, HV.Space.s)
+            .padding(.bottom, HV.Space.xxs)
+            .hvReadableWidth()
     }
 
     private var pasteArea: some View {
@@ -143,12 +175,6 @@ struct ImportScreen: View {
                 Spacer()
                 Button("Pick a text file") { picking = true }.buttonStyle(.hvGhost)
             }
-            Button("Check what I pasted") {
-                pasteFocused = false
-                model.readPasted()
-            }
-            .buttonStyle(.hvPrimary)
-            .disabled(model.pasted.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
 
@@ -212,9 +238,9 @@ struct ImportScreen: View {
             .hvCard()
 
             if model.isPaste {
-                TextField("Name it (optional)", text: $model.pasteTitle)
-                    .hvFieldChrome()
-                    .accessibilityLabel("Conversation name")
+                HVLabeledField(title: "Name it (optional)") {
+                    TextField("Conversation name", text: $model.pasteTitle, prompt: Text("A few words to find it by"))
+                }
             }
 
             VStack(spacing: HV.Space.xs) {
@@ -299,10 +325,9 @@ struct ImportScreen: View {
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
             }
-            HStack(alignment: .top) {
-                count(model.totals.imported, "Imported")
-                count(model.totals.skipped, "Skipped")
-                count(model.totals.messages, "Messages")
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top) { counts }
+                VStack(spacing: HV.Space.s) { counts }
             }
             .hvCard()
             .accessibilityElement(children: .combine)
@@ -326,6 +351,13 @@ struct ImportScreen: View {
             text += " \(model.totals.tooLarge) \(model.totals.tooLarge == 1 ? "was" : "were") too large for the server to take."
         }
         return text
+    }
+
+    @ViewBuilder
+    private var counts: some View {
+        count(model.totals.imported, "Imported")
+        count(model.totals.skipped, "Skipped")
+        count(model.totals.messages, "Messages")
     }
 
     private func count(_ value: Int, _ label: String) -> some View {
@@ -402,7 +434,7 @@ struct ImportGuideCard: View {
                     HStack(alignment: .top, spacing: HV.Space.s) {
                         Text("\(index + 1)")
                             .font(.system(.footnote, design: .rounded, weight: .bold))
-                            .foregroundStyle(guide.tint)
+                            .foregroundStyle(guide.tint.hvInk())
                             .frame(width: 24, height: 24)
                             .background(guide.tint.opacity(0.14), in: Circle())
                             .accessibilityHidden(true)
@@ -430,7 +462,7 @@ struct ImportGuideCard: View {
 
 /// A seeded Import screen for previews and snapshots.
 struct ImportPreviewHost: View {
-    enum Seed { case choose, review, sending, done, stopped, nothing }
+    enum Seed { case choose, paste, review, sending, done, stopped, nothing }
 
     @Environment(AppEnvironment.self) private var env
     let stage: Seed

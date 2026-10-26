@@ -264,6 +264,23 @@ final class ImportTests: XCTestCase {
         XCTAssertEqual(totals.summary(platform: .chatgpt), "Imported 120 conversations (480 messages) from ChatGPT. Open Chat to continue them on any backend.")
     }
 
+    func testTheFinishLineGroupsBigNumbersAndSaysOneInTheSingular() {
+        let english = Locale(identifier: "en_US")
+        var big = ImportTotals()
+        big.add(ImportOutcome(platform: .chatgpt, imported: 1_337, skipped: 0, messages: 4_120))
+        XCTAssertEqual(
+            big.summary(platform: .chatgpt, locale: english),
+            "Imported 1,337 conversations (4,120 messages) from ChatGPT. Open Chat to continue them on any backend."
+        )
+
+        var one = ImportTotals()
+        one.add(ImportOutcome(platform: .other, imported: 1, skipped: 0, messages: 1))
+        XCTAssertEqual(
+            one.summary(platform: .other, locale: english),
+            "Imported 1 conversation (1 message). Open Chat to continue them on any backend."
+        )
+    }
+
     func testARequestTheServerFindsTooHeavyIsHalved() async throws {
         let document = inspect(chatgptHistory(count: 40))
         let plan = ImportPlan(documents: [document], maxBatchBytes: 10_000_000, maxBatchConversations: 50)

@@ -19,8 +19,10 @@ struct AdminAccountToolsView: View {
         var id: Int { self == .revoke ? 0 : 1 }
     }
 
-    init(client: HVClient, ownID: String, dashboard: URL) {
-        _model = State(initialValue: AdminAccountModel(client: client, ownID: ownID))
+    init(client: HVClient, ownID: String, dashboard: URL, accountID: String = "") {
+        let model = AdminAccountModel(client: client, ownID: ownID)
+        model.idText = accountID
+        _model = State(initialValue: model)
         self.dashboard = dashboard
     }
 
@@ -30,10 +32,12 @@ struct AdminAccountToolsView: View {
                 intro
                     .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.s, trailing: HV.Space.m))
             }
+            .hvListRow()
 
             Section(header: HVSectionHeader(title: "Account ID"), footer: idFooter) {
                 idField
             }
+            .hvListRow()
 
             if let id = model.accountID {
                 actions(for: id)
@@ -47,6 +51,7 @@ struct AdminAccountToolsView: View {
                             .foregroundStyle(Palette.textSecondary)
                     }
                 }
+                .hvListRow()
             }
         }
         .scrollContentBackground(.hidden)
@@ -149,6 +154,7 @@ struct AdminAccountToolsView: View {
                 Label("Remove from the waitlist", systemImage: "person.fill.xmark")
             }
         }
+        .hvListRow()
         .disabled(model.isWorking)
 
         Section(header: HVSectionHeader(title: "Plan")) {
@@ -163,6 +169,7 @@ struct AdminAccountToolsView: View {
                 Label("Set the plan to \(model.plan.title)", systemImage: "creditcard")
             }
         }
+        .hvListRow()
         .disabled(model.isWorking)
 
         Section(header: HVSectionHeader(title: "Name")) {
@@ -177,6 +184,7 @@ struct AdminAccountToolsView: View {
             }
             .disabled(model.displayName.trimmingCharacters(in: .whitespaces).isEmpty)
         }
+        .hvListRow()
         .disabled(model.isWorking)
 
         Section(header: HVSectionHeader(title: "Danger"), footer: Text("Deleting removes the sign-in and everything the person saved. There is no undo.")) {
@@ -185,6 +193,7 @@ struct AdminAccountToolsView: View {
             }
             .disabled(model.isSelf || model.isWorking)
         }
+        .hvListRow()
     }
 
     private var confirmTitle: String {
@@ -213,9 +222,15 @@ struct AdminDeleteAccountSheet: View {
     /// Returns whether the account was deleted.
     var onDelete: () async -> Bool
 
-    @State private var typed = ""
+    @State private var typed: String
     @State private var isWorking = false
     @FocusState private var focused: Bool
+
+    init(accountID: String, typed: String = "", onDelete: @escaping () async -> Bool) {
+        self.accountID = accountID
+        self.onDelete = onDelete
+        _typed = State(initialValue: typed)
+    }
 
     private var matches: Bool { typed.trimmingCharacters(in: .whitespaces) == "DELETE" }
 
@@ -236,14 +251,11 @@ struct AdminDeleteAccountSheet: View {
                             .hvCard(padding: HV.Space.s)
                     }
 
-                    VStack(alignment: .leading, spacing: HV.Space.xs) {
-                        Text("Type DELETE to go on").font(.hvFootnote).foregroundStyle(Palette.textSecondary)
-                        TextField("DELETE", text: $typed)
+                    HVLabeledField(title: "Type DELETE to go on") {
+                        TextField("Type DELETE to confirm", text: $typed, prompt: Text(verbatim: "DELETE"))
                             .textInputAutocapitalization(.characters)
                             .autocorrectionDisabled()
                             .focused($focused)
-                            .hvFieldChrome(isFocused: focused)
-                            .accessibilityLabel("Type DELETE to confirm")
                     }
 
                     VStack(spacing: HV.Space.xs) {
@@ -255,19 +267,17 @@ struct AdminDeleteAccountSheet: View {
                             }
                         } label: {
                             HStack {
-                                if isWorking { ProgressView().tint(.white) }
+                                if isWorking { ProgressView().tint(Palette.textSecondary) }
                                 Text("Delete the account forever")
                             }
-                            .frame(maxWidth: .infinity, minHeight: 44)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(Palette.danger)
+                        .buttonStyle(AdminDestructiveButtonStyle())
                         .disabled(!matches || isWorking)
 
                         Button("Cancel") { dismiss() }.buttonStyle(.hvGhost).disabled(isWorking)
                     }
                 }
-                .padding(HV.Space.l)
+                .padding(HV.Space.m)
                 .hvReadableWidth()
             }
             .hvScreenBackground()
@@ -279,6 +289,31 @@ struct AdminDeleteAccountSheet: View {
     }
 }
 
+/// The filled action that cannot be undone: the primary button's size, shape and off state, in red.
+/// The design system has no destructive variant of the primary button yet.
+struct AdminDestructiveButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(.headline, design: .rounded, weight: .semibold))
+            .foregroundStyle(isEnabled ? Color.white : Palette.textSecondary)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .padding(.horizontal, HV.Space.l)
+            .background {
+                // A fixed deep red, not Palette.danger: that one is bright in dark mode, where white on it falls short.
+                if isEnabled {
+                    Capsule().fill(Color(hex: 0xDC2626))
+                } else {
+                    Capsule().fill(Palette.surfaceRaised)
+                }
+            }
+            .overlay(Capsule().strokeBorder(isEnabled ? Color.white.opacity(0.18) : Palette.border, lineWidth: 1))
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
+    }
+}
+
 #if DEBUG
 #Preview("Accounts") {
     PreviewHost { AdminAccountsPreview() }
@@ -286,9 +321,11 @@ struct AdminDeleteAccountSheet: View {
 
 struct AdminAccountsPreview: View {
     @Environment(AppEnvironment.self) private var env
+    /// An account ID already pasted, so the actions below it are on screen.
+    var accountID = ""
 
     var body: some View {
-        AdminAccountToolsView(client: env.client, ownID: env.user.id, dashboard: env.webURL("admin"))
+        AdminAccountToolsView(client: env.client, ownID: env.user.id, dashboard: env.webURL("admin"), accountID: accountID)
     }
 }
 #endif

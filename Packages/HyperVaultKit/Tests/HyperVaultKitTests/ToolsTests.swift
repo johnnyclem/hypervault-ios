@@ -318,6 +318,23 @@ final class ToolsTests: XCTestCase {
         }
     }
 
+    func testOnlyAnEmptyToolboxIsNothingToCompile() async {
+        func refusal(_ body: String, status: Int) async -> HVError? {
+            let transport = MockTransport(routes: [.json(.post, "/api/toolkits/compile", body, status: status)])
+            do {
+                _ = try await client(transport).send(.compileMcpToolkit)
+                return nil
+            } catch {
+                return error as? HVError
+            }
+        }
+        let empty = await refusal(#"{"error":"no_enabled_tools","message":"Every tool is toggled off — enable at least one."}"#, status: 422)
+        XCTAssertEqual(empty?.isMcpNothingToCompile, true)
+        let broken = await refusal(#"{"error":"embed_failed","message":"The index could not be built."}"#, status: 502)
+        XCTAssertEqual(broken?.isMcpNothingToCompile, false, "a real failure is still a failure")
+        XCTAssertFalse(HVError.transport("offline").isMcpNothingToCompile)
+    }
+
     // MARK: Registry
 
     func testRegistrySearchAndLiveness() async throws {
@@ -356,6 +373,15 @@ final class ToolsTests: XCTestCase {
         )
         XCTAssertEqual(merged.map(\.name), ["a", "c", "b", "d"])
         XCTAssertEqual(merged.map(\.dead), [false, false, true, true])
+    }
+
+    func testTheTransportReadsTheSameEverywhere() {
+        XCTAssertEqual(McpRegistryEntry.transportLabel(for: "streamable-http"), "Streamable HTTP")
+        XCTAssertEqual(McpRegistryEntry.transportLabel(for: "Streamable_HTTP"), "Streamable HTTP")
+        XCTAssertEqual(McpRegistryEntry.transportLabel(for: "sse"), "SSE")
+        XCTAssertEqual(McpRegistryEntry.transportLabel(for: "web-socket"), "Web socket", "an unknown one keeps its own name")
+        XCTAssertEqual(McpRegistryEntry(registryId: "a/b", name: "b", url: "https://a.example/mcp", transport: "sse").transportLabel, "SSE")
+        XCTAssertEqual(McpRegistryEntry(registryId: "a/b", name: "b", url: "https://a.example/mcp").transportLabel, "Streamable HTTP")
     }
 
     func testACatalogNameThatSaysNothingFallsBackToTheRegistryId() {

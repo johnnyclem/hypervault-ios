@@ -83,11 +83,51 @@ final class ToolsSnapshotTests: XCTestCase {
     func testCompileFailed() throws {
         try snapshot(
             PreviewHost(routes: ToolsFixtures.routes, embedInNavigation: false) {
-                ToolsModelHost(prepare: { $0.previewCompile(.failed("Every tool is toggled off — enable at least one.")) }) { model, _ in
+                ToolsModelHost(prepare: { $0.previewCompile(.failed("The index could not be built. Try again in a moment.")) }) { model, _ in
                     ToolsCompileSheet(model: model)
                 }
             },
             named: "tools-compile-failed"
+        )
+    }
+
+    func testCompileLostTheConnection() throws {
+        try snapshot(
+            PreviewHost(routes: ToolsFixtures.routes, embedInNavigation: false) {
+                ToolsModelHost(prepare: { $0.previewCompile(.lostConnection("Network hiccup. Check your connection and try again.")) }) { model, _ in
+                    ToolsCompileSheet(model: model)
+                }
+            },
+            named: "tools-compile-offline"
+        )
+    }
+
+    func testCompileWithEveryToolOff() throws {
+        try snapshot(
+            PreviewHost(routes: ToolsFixtures.routes, embedInNavigation: false) {
+                ToolsModelHost(prepare: { $0.previewCompile(.nothingToCompile) }) { model, _ in ToolsCompileSheet(model: model) }
+            },
+            named: "tools-compile-nothing"
+        )
+    }
+
+    // MARK: Large text
+
+    func testConnectedToolsAtLargeText() throws {
+        try snapshot(
+            PreviewHost(routes: ToolsFixtures.routes) { ToolsRootView() }.environment(\.dynamicTypeSize, .accessibility2),
+            named: "tools-list-large"
+        )
+    }
+
+    func testCompileDoneAtLargeText() throws {
+        let result = try HVCoding.decoder(.verbatim).decode(McpCompileResult.self, from: Data(ToolsFixtures.compileJSON.utf8))
+        try snapshot(
+            PreviewHost(routes: ToolsFixtures.routes, embedInNavigation: false) {
+                ToolsModelHost(prepare: { $0.previewCompile(.finished(result)) }) { model, _ in ToolsCompileSheet(model: model) }
+            }
+            .environment(\.dynamicTypeSize, .accessibility2),
+            named: "tools-compile-done-large"
         )
     }
 

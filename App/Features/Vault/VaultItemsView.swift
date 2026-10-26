@@ -74,6 +74,13 @@ struct VaultItemsView: View {
     private func list(_ model: VaultItemsModel) -> some View {
         @Bindable var model = model
         return List {
+            Section {
+                filters(model)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+            }
+            .listRowSeparator(.hidden)
+
             let shown = model.visible
             if shown.isEmpty {
                 Section {
@@ -96,9 +103,6 @@ struct VaultItemsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        // The filters stay in view above the list, so what is shown is always what was asked for, and the chips
-        // run the width of the screen and off its edge instead of stopping at the list's margin.
-        .safeAreaInset(edge: .top, spacing: 0) { filters(model) }
         .searchable(text: $model.query, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search")
         .refreshable { await model.load() }
     }
@@ -122,11 +126,19 @@ struct VaultItemsView: View {
                     chip(category.label, category: category, model: model)
                 }
             }
-            .padding(.horizontal, HV.Space.m)
-            .padding(.vertical, HV.Space.xs)
+            // Room at the end, so the last chip can scroll clear of the fade.
+            .padding(.trailing, HV.Space.xl)
+            .padding(.vertical, HV.Space.xxs)
         }
-        .background(Palette.background)
-        .overlay(alignment: .bottom) { Rectangle().fill(Palette.hairline).frame(height: 1) }
+        // The row stops where the cards below it stop, so a chip that does not fit would end in a hard cut.
+        // It fades out instead, which says there is more to scroll to.
+        .mask(
+            LinearGradient(
+                stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.92), .init(color: .clear, location: 1)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
         .accessibilityElement(children: .contain)
     }
 

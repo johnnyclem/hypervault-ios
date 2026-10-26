@@ -274,7 +274,7 @@ struct KeysChevron: View {
 
     var body: some View {
         Image(systemName: "chevron.right")
-            .font(.system(size: 13, weight: .semibold))
+            .font(.system(.footnote, weight: .semibold))
             .foregroundStyle(Palette.textTertiary)
             .rotationEffect(.degrees(isOpen ? 90 : 0))
             .accessibilityHidden(true)

@@ -144,14 +144,6 @@ struct ChatModelsContent: View {
             if !canStoreKeys {
                 noEncryptionBanner
             }
-            if env.features.onDeviceInference {
-                Section {
-                    ChatOnDeviceRow(status: onDevice.status())
-                } header: {
-                    HVSectionHeader(title: "On this iPhone")
-                }
-            }
-            networkSection
             Section {
                 if model.backends.isEmpty {
                     emptyModels
@@ -170,8 +162,18 @@ struct ChatModelsContent: View {
             } header: {
                 HVSectionHeader(title: "Your models", detail: model.backends.isEmpty ? nil : "\(model.backends.count) of \(env.limits.maxBackends)")
             } footer: {
-                Text("Your key is stored encrypted on HyperVault's server, which makes the calls to your model. It is shown once, when you connect, and never again.")
-                    .font(.hvCaption)
+                if canStoreKeys {
+                    Text("Your key is stored encrypted on HyperVault's server, which makes the calls to your model. It is shown once, when you connect, and never again.")
+                        .font(.hvCaption)
+                }
+            }
+            networkSection
+            if env.features.onDeviceInference {
+                Section {
+                    ChatOnDeviceRow(status: onDevice.status())
+                } header: {
+                    HVSectionHeader(title: "On this iPhone")
+                }
             }
         }
         .scrollContentBackground(.hidden)

@@ -8,8 +8,10 @@ models, on-device chat and reading replies aloud.
   options sheet, bubbles, markdown and read-aloud.
 - `RoomScreen`: a room. `Rooms/` holds the list, creation, members and the model.
 - `Models/`: connect, edit and disconnect your own models (`/api/backends`).
-- `OnDevice/`: availability and the Foundation Models adapter. The turn itself
-  (context, generate, save, the offline outbox) is `OnDeviceChat` in the Kit.
+- `OnDevice/`: availability, the Foundation Models adapter, and models on the
+  person's own network. The turn itself (context, generate, save, the offline
+  outbox) is `OnDeviceChat` in the Kit; a model on this iPhone and a model on
+  the home network are two `ChatModelProvider`s behind it.
 
 ## Left out on purpose
 
@@ -21,5 +23,7 @@ models, on-device chat and reading replies aloud.
 - Importing a `.jsx` or `.pdf` from the composer (the web has it): Import and Keep
   already cover that on the phone.
 - Shared chat pages (`/c/<slug>`) open in Safari from the share sheet.
-- Calling a model on the phone's own network directly: the server makes every
-  model call, so Ollama or LM Studio need a tunnel address or a cloud endpoint.
+- Connected models (`/api/backends`) are called by the server, which refuses
+  addresses that only mean something on one network. So a home Ollama is added
+  under "On your network" instead: the phone calls it directly (no key, no tools)
+  and the turn is saved to the vault afterwards.

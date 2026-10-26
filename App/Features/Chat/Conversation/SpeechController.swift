@@ -12,12 +12,12 @@ import SwiftUI
 final class ChatSpeechController: NSObject {
     private(set) var speakingID: String?
 
-    @ObservationIgnored private let synthesizer = AVSpeechSynthesizer()
-
-    override init() {
-        super.init()
-        synthesizer.delegate = self
-    }
+    /// Made on first use: a view that is built and thrown away costs nothing.
+    @ObservationIgnored private lazy var synthesizer: AVSpeechSynthesizer = {
+        let made = AVSpeechSynthesizer()
+        made.delegate = self
+        return made
+    }()
 
     func isSpeaking(_ id: String) -> Bool { speakingID == id }
 

@@ -140,8 +140,9 @@ struct ChatFlowLayout: Layout {
 /// The colour a model family wears wherever it appears: its row on the Models screen, the pill on an
 /// imported chat, its dot and its bubble in a room. It follows who the model is, never where it sits in
 /// a list, so Claude is the same orange on every screen. The cases are in the order a clash falls through.
+/// Rose is last and no family owns it: it sits too close to the red of a failed turn.
 enum ChatAgentTone: CaseIterable, Hashable {
-    case coral, mint, blue, rose, amber, violet, sky, cyan
+    case coral, mint, blue, violet, amber, cyan, sky, rose
 
     var color: Color {
         switch self {
@@ -162,9 +163,9 @@ enum ChatAgentTone: CaseIterable, Hashable {
         case "anthropic", "custom-anthropic": self = .coral
         case "openai": self = .mint
         case "gemini": self = .blue
-        case "xai": self = .rose
+        case "xai": self = .violet
         case "mistral": self = .amber
-        case "ollama", "lmstudio": self = .violet
+        case "ollama", "lmstudio": self = .cyan
         default: self = .sky
         }
     }

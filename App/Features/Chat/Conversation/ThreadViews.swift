@@ -399,7 +399,9 @@ struct ChatGroundingView: View {
         .foregroundStyle(Palette.textSecondary)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .frame(maxWidth: large ? .infinity : 300, alignment: .leading)
+        // The flow layout offers the chip the full width, which a greedy frame would take: only the
+        // large-text chip spreads, the rest hug their words and wrap side by side.
+        .frame(maxWidth: large ? .infinity : nil, alignment: .leading)
         .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: large ? HV.Radius.m : 100, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: large ? HV.Radius.m : 100, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
     }
@@ -605,6 +607,8 @@ struct ChatThinkingBubble: View {
                     }
                     .buttonStyle(.hvGhost)
                     .frame(minHeight: 44)
+                    // The ghost button pads its own label; take that back so "Stop" lines up with the text above.
+                    .padding(.leading, -HV.Space.s)
                     .transition(.opacity)
                 }
             }

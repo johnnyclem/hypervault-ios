@@ -191,13 +191,13 @@ struct ChatModelsContent: View {
             ForEach(locals) { local in
                 Button { localForm = .edit(local) } label: {
                     HStack(spacing: HV.Space.s + 2) {
-                        HVIconBadge(symbol: "desktopcomputer", tint: Palette.violet)
+                        HVIconBadge(symbol: "desktopcomputer", tint: ChatAgentTone(provider: "ollama").color)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(local.displayName).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(2)
+                            Text(local.displayName).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(nil)
                             Text("\(local.model) \u{00B7} \(URL(string: ChatLocalModel.normalizedBase(local.baseURL))?.host ?? local.baseURL)")
                                 .font(.hvFootnote)
                                 .foregroundStyle(Palette.textSecondary)
-                                .lineLimit(2)
+                                .lineLimit(nil)
                         }
                         Spacer(minLength: HV.Space.xs)
                         Image(systemName: "chevron.right").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
@@ -329,14 +329,18 @@ struct ChatOnDeviceRow: View {
 struct ChatBackendRow: View {
     let backend: ChatBackend
     let registry: [Capabilities.ProviderSpec]
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    /// Two lines are enough at normal sizes; at the large ones nothing is cut to an ellipsis.
+    private var lineLimit: Int? { typeSize.isAccessibilitySize ? nil : 2 }
 
     var body: some View {
         HStack(spacing: HV.Space.s + 2) {
             HVIconBadge(symbol: Self.symbol(for: backend.provider), tint: Self.tint(for: backend.provider))
             VStack(alignment: .leading, spacing: 2) {
-                Text(backend.name).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(2)
-                Text(detail).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(2)
-                Text(usage).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(2)
+                Text(backend.name).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(lineLimit)
+                Text(detail).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(lineLimit)
+                Text(usage).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(lineLimit)
             }
             Spacer(minLength: HV.Space.xs)
             Image(systemName: "chevron.right").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)

@@ -233,7 +233,7 @@ final class ChatModelTests: XCTestCase {
     // MARK: Who wears which colour
 
     func testAModelKeepsItsColourWhoeverElseIsInTheRoom() {
-        XCTAssertEqual(ChatAgentTone.tones(forProviders: ["xai", "gemini", "anthropic"]), [.rose, .blue, .coral])
+        XCTAssertEqual(ChatAgentTone.tones(forProviders: ["xai", "gemini", "anthropic"]), [.violet, .blue, .coral])
         XCTAssertEqual(ChatAgentTone.tones(forProviders: ["anthropic", "openai"]), [.coral, .mint])
         XCTAssertEqual(ChatAgentTone.tones(forProviders: ["openai", "anthropic"]), [.mint, .coral])
     }
@@ -273,7 +273,7 @@ final class ChatModelTests: XCTestCase {
         await model.load()
         let handles = model.members.map(\.handle)
         XCTAssertEqual(handles, ["grok", "gemini", "claude"])
-        XCTAssertEqual(model.composerPrompt, "grok, take the first pass. gemini, review it after.")
+        XCTAssertEqual(model.composerPrompt, "grok, draft it. gemini, review it.")
         // The example is a real address: typed as it stands, it goes to the first two members.
         XCTAssertEqual(ChatRoomHandles.mentions(in: model.composerPrompt, handles: handles), ["grok", "gemini"])
     }

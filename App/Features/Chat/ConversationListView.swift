@@ -7,6 +7,7 @@ struct ChatConversationListView: View {
     @State private var model: ChatListModel
     @State private var pendingDelete: ChatConversation?
     @State private var reloadToken = 0
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     init(client: HVClient, cache: DiskCache, namespace: String) {
         _model = State(initialValue: ChatListModel(client: client, cache: cache, namespace: namespace))
@@ -62,7 +63,7 @@ struct ChatConversationListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 VStack(spacing: 0) {
-                    if model.platforms.count > 1 { filterChips }
+                    if showsFilter, !typeSize.isAccessibilitySize { filterChips }
                     list
                 }
             }
@@ -76,6 +77,14 @@ struct ChatConversationListView: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
+            }
+            if showsFilter, typeSize.isAccessibilitySize {
+                // Too big to scroll sideways: the filters wrap onto as many lines as they need, and
+                // scroll away with the list.
+                ChatFlowLayout(spacing: HV.Space.xs) { filterButtons }
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: HV.Space.xs, trailing: 0))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
             }
             if model.visible.isEmpty {
                 Text("Nothing matches.")
@@ -113,13 +122,17 @@ struct ChatConversationListView: View {
     /// scroll sideways without being cut off at the list's inset.
     private var filterChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: HV.Space.xs) {
-                chip("All", selected: model.platform == nil) { model.platform = nil }
-                ForEach(model.platforms, id: \.self) { name in
-                    chip(name, selected: model.platform == name) { model.platform = name }
-                }
-            }
-            .padding(.horizontal, HV.Space.m)
+            HStack(spacing: HV.Space.xs) { filterButtons }
+                .padding(.horizontal, HV.Space.m)
+        }
+    }
+
+    private var showsFilter: Bool { model.platforms.count > 1 }
+
+    @ViewBuilder private var filterButtons: some View {
+        chip("All", selected: model.platform == nil) { model.platform = nil }
+        ForEach(model.platforms, id: \.self) { name in
+            chip(name, selected: model.platform == name) { model.platform = name }
         }
     }
 

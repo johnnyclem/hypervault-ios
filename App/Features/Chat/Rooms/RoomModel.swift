@@ -47,7 +47,7 @@ final class ChatRoomModel {
         switch handles.count {
         case 0: return "Say something to the room"
         case 1: return "\(handles[0]), what do you think?"
-        default: return "\(handles[0]), take the first pass. \(handles[1]), review it after."
+        default: return "\(handles[0]), draft it. \(handles[1]), review it."
         }
     }
 

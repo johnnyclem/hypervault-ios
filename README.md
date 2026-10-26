@@ -13,9 +13,9 @@ talks to `hypervault.store` with a bearer token.
 | --- | --- |
 | **Canvas** | A quiet page and a field. Paste something to keep it, say "show my memories", "pull the trip notes onto the page", "hide that", or just ask. The canvas follows the web app's rules word for word (the command grammar is a tested port of `lib/canvas/commands.ts`). |
 | **Yours** | Everything kept, most recently used first: memories, pages, files, groups of files and keys, with the four quiet filters and search. |
-| **Memory** | The memory wiki (search, ask, graph), memorize and import, and "Git for a Mind": branches, diffs, merges with conflict resolution, time travel, revert. Dreams and Digest review. |
-| **Chat** | Conversations and group rooms with several agents, your own models, replies read aloud, and on-device chat where Apple Intelligence exists. |
-| **You** | Library and pages (with the page rendered in a sandboxed web view), saved logins, cards and keys, agent keys and the Connect picker, pairing, mail, the truth ledger and its review docket, task boards, tools, import, your address, admin. |
+| **Memory** | The memory wiki (search with recall, ask, a force-directed graph), memorize from text, a file or a link, and "Git for a Mind": branches, commit log, compare, merge with conflict resolution, time travel, restore and undelete. Dreams and Digest review. |
+| **Chat** | Conversations and group rooms with several agents, your own models (connected through the server, or on your own network and called by the phone directly), replies you can keep, rate and read aloud, and on-device chat where Apple Intelligence exists. |
+| **You** | The Library (files as a file manager, with a list and graph view) and pages rendered in a sandboxed web view with sharing, source editing and history; saved logins, cards and keys; agent keys and the Connect picker for 33 clients; pairing; mail; the truth ledger and its swipeable review docket; task boards; tools (MCP servers); import of ChatGPT, Claude, Gemini and Grok histories; your address; admin. |
 
 Only a phone can do these, so the app does them:
 
@@ -30,7 +30,8 @@ Only a phone can do these, so the app does them:
 
 ## Run it
 
-You need Xcode 16 or later and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+You need a current Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen). CI builds with
+the newest Xcode on GitHub's macOS runner (26.x when this was written); the deployment target is iOS 17.
 
 ```sh
 brew install xcodegen
@@ -60,7 +61,10 @@ project to sign in against, what the server supports and its limits.
   `/a/[slug]` page read the web cookie only, until
   [hypervault#180](https://github.com/johnnyclem/hypervault/pull/180) lands. Without it
   the app still signs in, keeps, chats and browses, and those screens show the
-  server's own refusal.
+  server's own refusal. Where a route is cookie-only and a read is possible another way,
+  the app reads the same rows through Supabase with the person's own token (the keys
+  list, claimed addresses, pins and pages shared with you), exactly as the web's account
+  page does.
 - **Sign-in redirects.** Add `hypervault://auth/callback` to the Supabase project's
   redirect allow-list. Sign in with Apple needs the Apple provider turned on in
   Supabase; email codes need the email provider. The sign-in screen offers only what
@@ -102,6 +106,25 @@ on a macOS simulator. The app's snapshot tests render screens in light and dark 
 workflow publishes the PNGs to a `snapshots-<branch>` branch, so a screen can be looked
 at without opening Xcode.
 
+### Server gaps the app works around
+
+Found while building against the real routes. None block the app, and each is a small
+server change if you want the app to do more:
+
+- **Admin has no list routes**, and the tables have no read policy for a user's token, so the
+  Admin screen cannot list invites, the waitlist or accounts. It mints invites and acts on
+  an account ID you paste, and remembers codes minted on the phone.
+- **Pairing is switched off in production** (`/api/pair/*` answers 404), so the app hides
+  that row and says so when it is off.
+- **The MCP sign-in callback needs the web cookie**, so connecting a tool that signs in
+  through the browser works only while you are also signed in to the site in Safari.
+  Redirecting that callback to `hypervault://mcp-oauth?ok=1` (the app already understands
+  it) would fix it.
+- **Some lists are capped by the routes**: Yours at 50 rows, `/api/artifacts` at 200,
+  memories at 200. The screens say so and lean on search.
+- **No streaming for remote chat** (see below), and **imports are synchronous**, so the app
+  sends them in batches and resumes.
+
 ## Deliberate limits
 
 - **Not streaming.** `POST /api/chat` answers after the whole turn, so remote chats
@@ -112,6 +135,23 @@ at without opening Xcode.
 - **Payment is on the web.** Upgrading opens the web page; there is no In-App Purchase.
 - **The web's 37 style themes** are CSS looks for web pages and are not ported; the app
   has system light and dark and five accents.
+- **Models on your own network** (Ollama, LM Studio) are called by the phone directly,
+  because the server refuses private addresses. They stream, take no tools and need the
+  local network permission.
+- **Dreams and Digest** run when you ask, as the server does them; there is no background
+  job to wait for.
+
+## What has and has not been tested
+
+- The Kit (API client, auth, every model and rule) has 678 unit tests, run on Linux and
+  macOS in CI. Fixtures follow the routes' real output.
+- The app builds for the simulator in CI with 208 tests (screen state machines, link
+  parsing, sign-in and access phases) and renders every screen in light and dark, and the
+  main ones at the largest text sizes, to PNGs the workflow publishes.
+- **Not yet done:** a run on a physical device, against the production Supabase project, with
+  a real Google or Apple sign-in. On-device chat (Foundation Models), Face ID, dictation,
+  the scanner, widgets and the share extension compile and are exercised only as far as the
+  simulator allows. Expect rough edges there, and please report them.
 
 ## License
 

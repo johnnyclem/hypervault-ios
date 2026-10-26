@@ -9,17 +9,27 @@ import XCTest
 /// A screen that fails its check does not stop the sweep: the rest are still looked at, and the failures say which.
 @MainActor
 final class LayoutSweepTests: HyperVaultUITestCase {
-    private static let dark = ["-AppleInterfaceStyle", "Dark"]
-    private static let large = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+    /// How a sweep launches the app: the dark appearance is the simulator's, the large text size is a launch argument.
+    private struct Mode {
+        let name: String
+        let arguments: [String]
+        let appearance: XCUIDevice.Appearance?
+    }
+
+    private static let dark = Mode(name: "dark", arguments: [], appearance: .dark)
+    private static let large = Mode(
+        name: "large", arguments: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"], appearance: nil
+    )
 
     // MARK: The tabs
 
-    func testTheTabsInTheDark() { sweepTabs("dark", Self.dark) }
+    func testTheTabsInTheDark() { sweepTabs(Self.dark) }
 
-    func testTheTabsAtAnAccessibilityTextSize() { sweepTabs("large", Self.large) }
+    func testTheTabsAtAnAccessibilityTextSize() { sweepTabs(Self.large) }
 
-    private func sweepTabs(_ mode: String, _ arguments: [String]) {
-        launch(.signedIn, arguments: arguments)
+    private func sweepTabs(_ setting: Mode) {
+        let mode = setting.name
+        launch(.signedIn, arguments: setting.arguments, appearance: setting.appearance)
         continueAfterFailure = true
 
         look(mode, "canvas with its hints", key: element("canvas.field"), "the canvas field", dumpTree: true)
@@ -47,12 +57,13 @@ final class LayoutSweepTests: HyperVaultUITestCase {
 
     // MARK: What the You tab opens
 
-    func testTheYouScreensInTheDark() { sweepYouScreens("dark", Self.dark) }
+    func testTheYouScreensInTheDark() { sweepYouScreens(Self.dark) }
 
-    func testTheYouScreensAtAnAccessibilityTextSize() { sweepYouScreens("large", Self.large) }
+    func testTheYouScreensAtAnAccessibilityTextSize() { sweepYouScreens(Self.large) }
 
-    private func sweepYouScreens(_ mode: String, _ arguments: [String]) {
-        launch(.signedIn, arguments: arguments)
+    private func sweepYouScreens(_ setting: Mode) {
+        let mode = setting.name
+        launch(.signedIn, arguments: setting.arguments, appearance: setting.appearance)
         continueAfterFailure = true
 
         let screens: [(row: String, title: String, name: String, key: () -> XCUIElement, what: String)] = [
@@ -112,12 +123,13 @@ final class LayoutSweepTests: HyperVaultUITestCase {
 
     // MARK: Memory, chat and a page
 
-    func testWhatTheTabsOpenInTheDark() { sweepOpened("dark", Self.dark) }
+    func testWhatTheTabsOpenInTheDark() { sweepOpened(Self.dark) }
 
-    func testWhatTheTabsOpenAtAnAccessibilityTextSize() { sweepOpened("large", Self.large) }
+    func testWhatTheTabsOpenAtAnAccessibilityTextSize() { sweepOpened(Self.large) }
 
-    private func sweepOpened(_ mode: String, _ arguments: [String]) {
-        launch(.signedIn, arguments: arguments)
+    private func sweepOpened(_ setting: Mode) {
+        let mode = setting.name
+        launch(.signedIn, arguments: setting.arguments, appearance: setting.appearance)
         continueAfterFailure = true
 
         openTab("Memory")
@@ -143,12 +155,13 @@ final class LayoutSweepTests: HyperVaultUITestCase {
 
     // MARK: Before anyone is in
 
-    func testTheWelcomeAndTheWaitlistInTheDark() { sweepWelcome("dark", Self.dark) }
+    func testTheWelcomeAndTheWaitlistInTheDark() { sweepWelcome(Self.dark) }
 
-    func testTheWelcomeAndTheWaitlistAtAnAccessibilityTextSize() { sweepWelcome("large", Self.large) }
+    func testTheWelcomeAndTheWaitlistAtAnAccessibilityTextSize() { sweepWelcome(Self.large) }
 
-    private func sweepWelcome(_ mode: String, _ arguments: [String]) {
-        launch(.signedOut, arguments: arguments)
+    private func sweepWelcome(_ setting: Mode) {
+        let mode = setting.name
+        launch(.signedOut, arguments: setting.arguments, appearance: setting.appearance)
         continueAfterFailure = true
 
         for page in 1...4 {
@@ -160,7 +173,7 @@ final class LayoutSweepTests: HyperVaultUITestCase {
         tap(element("signin.email"), "Continue with email")
         look(mode, "the email sheet", key: element("email.send"), "the Send me a code button")
 
-        launch(.waitlisted, arguments: arguments)
+        launch(.waitlisted, arguments: setting.arguments, appearance: setting.appearance)
         continueAfterFailure = true
         look(mode, "the waitlist", key: element("waitlist.code"), "the invite code field")
     }
@@ -173,6 +186,10 @@ final class LayoutSweepTests: HyperVaultUITestCase {
     private func look(_ mode: String, _ screen: String, key: XCUIElement, _ what: String, dumpTree: Bool = false, file: StaticString = #filePath, line: UInt = #line) {
         let started = Date()
         XCTContext.runActivity(named: "\(mode): \(screen)") { _ in
+            // What the screen is for has to be there before it is looked at (not a skeleton, not the launch splash fading).
+            // A key below the fold of a large text size is not in the tree yet, so this waits only a few seconds for it.
+            _ = key.waitForExistence(timeout: 4)
+            RunLoop.current.run(until: Date().addingTimeInterval(1))
             attachScreenshot("\(mode) - \(screen)")
             let tree = app.debugDescription
             let notes = LayoutReport.notes(from: tree)

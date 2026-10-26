@@ -63,6 +63,7 @@ struct OnboardingFlow: View {
                 if page == 0 {
                     Button("I already have an account") { finishStory() }
                         .buttonStyle(.hvGhost)
+                        .multilineTextAlignment(.center)
                         .accessibilityIdentifier("welcome.haveAccount")
                 } else {
                     Color.clear.frame(height: 36)
@@ -259,7 +260,7 @@ struct WelcomePageAnyAI: View {
         ) {
             FlowLayout(spacing: HV.Space.s) {
                 ForEach(Array(names.enumerated()), id: \.offset) { index, name in
-                    HVChip(title: name, isSelected: index % 4 == 0)
+                    HVChip(title: name, isSelected: index % 4 == 0, minTarget: 0)
                 }
             }
             .padding(.horizontal, HV.Space.xl)

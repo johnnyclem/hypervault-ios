@@ -10,6 +10,7 @@ struct YouRootView: View {
 
     @State private var waiting = 0
     @State private var confirmSignOut = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         List {
@@ -89,7 +90,12 @@ struct YouRootView: View {
     }
 
     private var profileCard: some View {
-        HStack(spacing: HV.Space.m) {
+        // Beside the words while they have the room. At an accessibility size the avatar would leave them a narrow
+        // column, and an email address would be broken mid-word ("sam@ex-ample.com"), so it goes above them.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: HV.Space.s))
+            : AnyLayout(HStackLayout(spacing: HV.Space.m))
+        return layout {
             HVAvatar(
                 name: env.user.displayName ?? env.user.email ?? "?",
                 imageURL: env.user.avatarUrl.flatMap(URL.init(string:)),
@@ -102,8 +108,9 @@ struct YouRootView: View {
                     Text(email).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                 }
             }
-            Spacer()
+            if !dynamicTypeSize.isAccessibilitySize { Spacer() }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("you.profile")
     }

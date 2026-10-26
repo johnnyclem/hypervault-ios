@@ -42,8 +42,14 @@ class HyperVaultUITestCase: XCTestCase {
     /// where the rules of a journey are set: the first failure ends it, and a system alert that appears over the app
     /// (a permission, a save-password offer) is dismissed rather than left to swallow the next tap.
     @discardableResult
-    func launch(_ scenario: Scenario, arguments extra: [String] = [], file: StaticString = #filePath, line: UInt = #line) -> XCUIApplication {
+    func launch(_ scenario: Scenario, arguments extra: [String] = [], appearance: XCUIDevice.Appearance? = nil, file: StaticString = #filePath, line: UInt = #line) -> XCUIApplication {
         continueAfterFailure = false
+        // The dark appearance is the simulator's own (the app follows the system unless Settings says otherwise): a launch
+        // argument does not turn it on. It is put back for whatever test runs next.
+        if let appearance {
+            XCUIDevice.shared.appearance = appearance
+            addTeardownBlock { XCUIDevice.shared.appearance = .light }
+        }
         _ = addUIInterruptionMonitor(withDescription: "System alert") { alert in
             for title in ["Not Now", "Don\u{2019}t Allow", "Don't Allow", "OK", "Cancel"] {
                 let candidate = alert.buttons[title]

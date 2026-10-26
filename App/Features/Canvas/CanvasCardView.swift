@@ -11,6 +11,9 @@ struct CanvasCardView: View {
     @State private var showFiles = false
     @State private var copied = false
     @State private var sealed = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.s + 2) {
@@ -31,22 +34,43 @@ struct CanvasCardView: View {
                 Text(card.title)
                     .font(.hvHeadline)
                     .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(2)
-                HStack(spacing: HV.Space.xs) {
-                    Text(card.kind.singular.uppercased())
-                        .font(.system(.caption2, design: .rounded, weight: .bold))
-                        .foregroundStyle(card.kind.tint)
-                        .tracking(0.6)
-                    if let subtitle = card.subtitle, !subtitle.isEmpty {
-                        Text("·").foregroundStyle(Palette.textTertiary)
-                        Text(subtitle)
-                            .font(.hvFootnote)
-                            .foregroundStyle(Palette.textSecondary)
-                            .lineLimit(2)
+                    .lineLimit(isLarge ? 4 : 2)
+                // Side by side while the words have the room. At an accessibility size each half would get a
+                // sliver of the card and be broken mid-word ("MEM-ORY", "Bud-get"), so the kind sits over the line.
+                if isLarge {
+                    VStack(alignment: .leading, spacing: 2) { kindLabel; subtitleLabel }
+                } else {
+                    HStack(spacing: HV.Space.xs) {
+                        kindLabel
+                        if hasSubtitle {
+                            Text("·").foregroundStyle(Palette.textTertiary)
+                            subtitleLabel
+                        }
                     }
                 }
             }
             Spacer(minLength: 0)
+        }
+    }
+
+    private var kindLabel: some View {
+        Text(card.kind.singular.uppercased())
+            .font(.system(.caption2, design: .rounded, weight: .bold))
+            .foregroundStyle(card.kind.tint)
+            .tracking(0.6)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var hasSubtitle: Bool { !(card.subtitle ?? "").isEmpty }
+
+    @ViewBuilder
+    private var subtitleLabel: some View {
+        if let subtitle = card.subtitle, !subtitle.isEmpty {
+            Text(subtitle)
+                .font(.hvFootnote)
+                .foregroundStyle(Palette.textSecondary)
+                .lineLimit(isLarge ? 6 : 2)
         }
     }
 

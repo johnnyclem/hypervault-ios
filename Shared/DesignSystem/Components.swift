@@ -154,6 +154,9 @@ struct HVChip: View {
     let title: String
     var symbol: String?
     var isSelected = false
+    /// The height of the area that answers a tap. The pill is shorter than a finger, so the room around it counts
+    /// (nothing is drawn there); pass 0 where a chip is only drawn, never tapped.
+    var minTarget: CGFloat = 44
 
     var body: some View {
         HStack(spacing: 6) {
@@ -170,6 +173,8 @@ struct HVChip: View {
         )
         .overlay(Capsule().strokeBorder(isSelected ? Color.clear : Palette.border, lineWidth: 1))
         .animation(.easeOut(duration: 0.15), value: isSelected)
+        .frame(minHeight: minTarget)
+        .contentShape(Rectangle())
     }
 }
 

@@ -147,9 +147,9 @@ server change if you want the app to do more:
 
 ## What has and has not been tested
 
-- The Kit (API client, auth, every model and rule) has about 730 unit tests, run on Linux and
+- The Kit (API client, auth, every model and rule) has about 750 unit tests, run on Linux and
   macOS in CI. Fixtures follow the routes' real output.
-- The app builds for the simulator in CI with 341 tests (screen state machines, link
+- The app builds for the simulator in CI with 459 tests (screen state machines, link
   parsing, sign-in and access phases) and renders every screen in light and dark, and the
   main ones at the largest text sizes, to PNGs the workflow publishes.
 - **Not yet done:** a run on a physical device, against the production Supabase project, with

@@ -90,7 +90,14 @@ struct ImportScreen: View {
         VStack(alignment: .leading, spacing: HV.Space.l) {
             VStack(alignment: .leading, spacing: HV.Space.s) {
                 HVSectionHeader(title: "Where is it from?")
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: HV.Space.s)], spacing: HV.Space.s) {
+                // Two or three cards across while their names fit. At an accessibility size one card takes the width: in half of
+                // it a name is broken in two ("Gem-/ini", "An-/thropic").
+                LazyVGrid(
+                    columns: dynamicTypeSize.isAccessibilitySize
+                        ? [GridItem(.flexible())]
+                        : [GridItem(.adaptive(minimum: 150), spacing: HV.Space.s)],
+                    spacing: HV.Space.s
+                ) {
                     ForEach(ImportPlatform.allCases) { platform in
                         ImportSourceCard(platform: platform, isSelected: model.source == platform) {
                             model.source = platform

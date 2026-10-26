@@ -78,6 +78,11 @@ struct ToolsServerDetailView: View {
             Text(server.url)
                 .font(.hvMono)
                 .foregroundStyle(Palette.textSecondary)
+                // An address is read as one thing: kept to a line or two, shrunk a little, with its middle left out rather
+                // than broken at a hyphen ("mcp.lin-/ear.app").
+                .lineLimit(2)
+                .minimumScaleFactor(0.6)
+                .truncationMode(.middle)
                 .textSelection(.enabled)
             HStack(spacing: HV.Space.xs) {
                 switch server.authType {

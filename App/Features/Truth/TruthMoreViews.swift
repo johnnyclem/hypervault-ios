@@ -6,66 +6,129 @@ import SwiftUI
 
 // MARK: Notices
 
+/// One notice, ready to show: the event, its sentence with the claim in it where the ledger knows the
+/// entry, and that entry so the notice can open it.
+struct TruthNotice: Identifiable, Hashable {
+    let event: TruthEvent
+    let sentence: String
+    let ref: TruthEntryRef?
+
+    var id: String { event.id }
+
+    /// Who did it and when, in one quiet line.
+    var detail: String? {
+        var parts: [String] = []
+        if let by = event.byAuthor { parts.append("By \(by)") }
+        if let when = event.createdAt { parts.append(when.formatted(date: .abbreviated, time: .shortened)) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+}
+
+/// What changed in the ledger. The server's events name an entry by its id; the open ledger says what that
+/// entry claims, so a notice reads as the claim it is about and leads to it.
+@MainActor
+@Observable
+final class TruthNoticesModel {
+    private(set) var phase: TruthLoad<[TruthNotice]> = .loading
+    @ObservationIgnored private let client: HVClient
+    @ObservationIgnored private let ledger: TruthLedger?
+
+    init(client: HVClient, ledger: TruthLedger?) {
+        self.client = client
+        self.ledger = ledger
+    }
+
+    func load() async {
+        let client = self.client
+        let slug = ledger?.slug
+        do {
+            async let list = client.send(.truthEvents())
+            // Only the ledger on screen is asked: a notice about an entry elsewhere keeps a short id.
+            async let overview = try? client.send(.truth(ledger: slug))
+            let events = try await list.events
+            let answered: TruthOverview? = await overview
+            phase = .loaded(Self.notices(events, rows: answered?.sections.all ?? [], ledger: ledger))
+        } catch {
+            phase = .failed(TruthModel.sentence(error))
+        }
+    }
+
+    static func notices(_ events: [TruthEvent], rows: [TruthEntryRow], ledger: TruthLedger?) -> [TruthNotice] {
+        let byId = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let claims = byId.mapValues { $0.line.text }
+        return events.map { (event: TruthEvent) -> TruthNotice in
+            var ref: TruthEntryRef?
+            if let ledger, let row = byId[event.entryId] {
+                ref = TruthEntryRef(row: row, ledger: ledger.slug, isHosted: ledger.isHosted)
+            }
+            return TruthNotice(event: event, sentence: TruthWords.readable(event.summary, claims: claims), ref: ref)
+        }
+    }
+}
+
 /// What changed in the ledger: your entries that were challenged, overturned,
 /// upheld, verified, undermined or mended, newest first.
 struct TruthNoticesScreen: View {
-    @State private var phase: TruthLoad<[TruthEvent]> = .loading
-    private let client: HVClient
+    @State private var model: TruthNoticesModel
 
-    init(client: HVClient) {
-        self.client = client
+    init(client: HVClient, ledger: TruthLedger? = nil) {
+        _model = State(initialValue: TruthNoticesModel(client: client, ledger: ledger))
     }
 
     var body: some View {
         List {
-            switch phase {
+            switch model.phase {
             case .loading:
                 HVLoadingState().listRowBackground(Color.clear)
             case .failed(let message):
-                HVErrorState(message: message) { Task { await load() } }.listRowBackground(Color.clear)
-            case .loaded(let events):
-                if events.isEmpty {
+                HVErrorState(message: message) { Task { await model.load() } }.listRowBackground(Color.clear)
+            case .loaded(let notices):
+                if notices.isEmpty {
                     HVEmptyState(symbol: "bell", title: "Nothing has changed.", message: "When one of your entries is challenged, overturned, verified or undermined, it shows up here.")
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                 } else {
-                    ForEach(events) { event in
-                        VStack(alignment: .leading, spacing: HV.Space.xxs) {
-                            HStack(spacing: HV.Space.xs) {
-                                TruthTypeTag(type: event.entryType)
-                                HVTag(text: event.kind.title, tint: event.kind.isSetback ? Palette.amber : Palette.mint)
-                                Spacer(minLength: 0)
-                                if let when = event.createdAt {
-                                    Text(when.formatted(date: .abbreviated, time: .shortened)).font(.hvCaption).foregroundStyle(Palette.textTertiary)
-                                }
-                            }
-                            Text(verbatim: event.summary).font(.hvCallout)
-                            if let by = event.byAuthor {
-                                Text("By \(by)").font(.hvCaption).foregroundStyle(Palette.textSecondary)
-                            }
-                        }
-                        .padding(.vertical, HV.Space.xxs)
-                        .accessibilityElement(children: .combine)
-                        .listRowBackground(Palette.surface)
+                    ForEach(notices) { notice in
+                        row(notice)
                     }
                 }
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .hvScreenBackground()
         .navigationTitle("Notices")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
-        .refreshable { await load() }
+        .task { await model.load() }
+        .refreshable { await model.load() }
     }
 
-    private func load() async {
-        do {
-            phase = .loaded(try await client.send(.truthEvents()).events)
-        } catch {
-            phase = .failed(TruthModel.sentence(error))
+    /// A notice about an entry this ledger holds opens it; one about an entry elsewhere only reads.
+    @ViewBuilder
+    private func row(_ notice: TruthNotice) -> some View {
+        if let ref = notice.ref {
+            NavigationLink(value: TruthDestination.entry(ref)) { content(notice) }
+                .hvListRow()
+        } else {
+            content(notice).hvListRow()
         }
+    }
+
+    private func content(_ notice: TruthNotice) -> some View {
+        VStack(alignment: .leading, spacing: HV.Space.xs) {
+            TruthTagFlow {
+                TruthTypeTag(type: notice.event.entryType)
+                HVTag(text: notice.event.kind.title, tint: notice.event.kind.isSetback ? Palette.amber : Palette.mint)
+            }
+            Text(verbatim: notice.sentence)
+                .font(.hvCallout)
+                .foregroundStyle(Palette.textPrimary)
+            if let detail = notice.detail {
+                Text(detail).font(.hvCaption).foregroundStyle(Palette.textSecondary)
+            }
+        }
+        .padding(.vertical, HV.Space.xxs)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -130,7 +193,7 @@ struct TruthStaleScreen: View {
                 }
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .hvScreenBackground()
         .navigationTitle("Out of date")
@@ -154,26 +217,27 @@ struct TruthStaleScreen: View {
         Section {
             ForEach(item.edges) { edge in
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
-                    Text(edge.whatMoved).font(.hvCallout)
+                    Text(edge.readableWhatMoved).font(.hvCallout).foregroundStyle(Palette.textPrimary)
                     if let entry = edge.entry { TruthBriefRow(entry: entry) }
                     if let successor = edge.successor {
                         Text("Replaced by").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textSecondary)
                         TruthBriefRow(entry: successor)
                         Button("Move to the new one") { resolve(.relink, item: item, edge: edge) }
-                            .buttonStyle(.hvGhost)
-                            .frame(minHeight: 44)
+                            .truthAlignedGhost()
                     }
                 }
                 .padding(.vertical, HV.Space.xxs)
+                .hvListRow()
             }
+            // The one that stops tracking is red and on the far side, so it is not tapped for "Still fine".
             HStack {
                 Button("Still fine") { resolve(.reaffirm, item: item) }
                 Spacer()
                 Button("Stop tracking", role: .destructive) { confirmStop = item }
             }
-            .buttonStyle(.hvGhost)
-            .frame(minHeight: 44)
+            .truthAlignedGhost()
             .disabled(model.busy.contains(item.id))
+            .hvListRow()
         } header: {
             Button {
                 open(item)
@@ -191,7 +255,6 @@ struct TruthStaleScreen: View {
             .buttonStyle(.plain)
             .disabled(!canOpen(item))
         }
-        .listRowBackground(Palette.surface)
     }
 
     private func canOpen(_ item: TruthStaleItem) -> Bool {
@@ -242,14 +305,14 @@ struct TruthSignersScreen: View {
             case .loaded(let signers):
                 Section {
                     if let handle = signers.handle {
-                        Label(handle, systemImage: "person.fill").font(.hvBody)
+                        Label(handle, systemImage: "person.fill").font(.hvBody).hvListRow()
                     } else {
                         TruthHandleForm { try await save($0) }
                             .listRowInsets(EdgeInsets())
                             .listRowBackground(Color.clear)
                     }
                 } header: {
-                    Text("You")
+                    HVSectionHeader(title: "You")
                 } footer: {
                     Text(signers.handle == nil
                         ? "You have not chosen a name yet."
@@ -257,18 +320,19 @@ struct TruthSignersScreen: View {
                 }
                 Section {
                     if signers.agents.isEmpty {
-                        Text("No agent keys yet.").foregroundStyle(Palette.textSecondary)
+                        Text("No agent keys yet.").foregroundStyle(Palette.textSecondary).hvListRow()
                     }
                     ForEach(signers.agents) { signer in
-                        Label(signer.id, systemImage: "sparkle")
+                        Label(signer.id, systemImage: "sparkle").hvListRow()
                     }
                 } header: {
-                    Text("Your agents")
+                    HVSectionHeader(title: "Your agents")
                 } footer: {
                     Text("An agent signs its UVs as agent:<its key name>. Nothing an agent writes is a TB: a person promotes it.")
                 }
             }
         }
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .hvScreenBackground()
         .navigationTitle("Signers")
@@ -380,6 +444,7 @@ struct TruthSidecarScreen: View {
                 objections(inbox)
             }
         }
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .hvScreenBackground()
         .navigationTitle("Sidecar inbox")
@@ -403,7 +468,7 @@ struct TruthSidecarScreen: View {
     private func proposals(_ inbox: TruthInbox) -> some View {
         Section {
             if let list = inbox.proposals {
-                if list.isEmpty { Text("Nothing waiting.").foregroundStyle(Palette.textSecondary) }
+                if list.isEmpty { Text("Nothing waiting.").foregroundStyle(Palette.textSecondary).hvListRow() }
                 ForEach(list) { proposal in
                     VStack(alignment: .leading, spacing: HV.Space.xs) {
                         HStack(spacing: HV.Space.xs) {
@@ -415,19 +480,18 @@ struct TruthSidecarScreen: View {
                         if let signal = proposal.signalDetail { Text("Signal: \(signal)").font(.hvFootnote).foregroundStyle(Palette.textSecondary) }
                         Text([proposal.author.map { "drafted by \($0)" }, proposal.createdAt?.formatted(date: .abbreviated, time: .omitted)].compactMap { $0 }.joined(separator: " · "))
                             .font(.hvCaption)
-                            .foregroundStyle(Palette.textTertiary)
+                            .foregroundStyle(Palette.textSecondary)
                         HStack {
                             Button("Notarize") { notarize(proposal) }
-                                .buttonStyle(.hvGhost)
                                 .disabled(!inbox.notary || model.busy.contains(proposal.id))
                             Spacer()
-                            Button("Dismiss") { dismissing = proposal }
-                                .buttonStyle(.hvGhost)
+                            Button("Dismiss", role: .destructive) { dismissing = proposal }
                                 .disabled(!inbox.notary || model.busy.contains(proposal.id))
                         }
-                        .frame(minHeight: 44)
+                        .truthAlignedGhost()
                     }
                     .padding(.vertical, HV.Space.xxs)
+                    .hvListRow()
                 }
             } else {
                 Text("The sidecar did not answer its proposals route. It may be down.")
@@ -435,7 +499,7 @@ struct TruthSidecarScreen: View {
                     .foregroundStyle(Palette.textSecondary)
             }
         } header: {
-            Text("Awaiting a notary")
+            HVSectionHeader(title: "Awaiting a notary")
         } footer: {
             Text("Notarizing signs the proposal under your truth handle.")
         }
@@ -445,14 +509,15 @@ struct TruthSidecarScreen: View {
     private func objections(_ inbox: TruthInbox) -> some View {
         Section {
             if let list = inbox.objections {
-                if list.isEmpty { Text("No objections pending.").foregroundStyle(Palette.textSecondary) }
+                if list.isEmpty { Text("No objections pending.").foregroundStyle(Palette.textSecondary).hvListRow() }
                 ForEach(list) { objection in
                     VStack(alignment: .leading, spacing: 3) {
                         if let literal = objection.literal { Text("“\(literal)”").font(.system(.callout, design: .serif)).italic() }
                         if let text = objection.objection { Text(verbatim: text).font(.hvCallout) }
-                        if let tb = objection.tbId { Text("Contradicts TB \(TruthID.short(tb))").font(.hvCaption).foregroundStyle(Palette.textTertiary) }
+                        if let tb = objection.tbId { Text("Contradicts TB \(TruthID.short(tb))").font(.hvCaption).foregroundStyle(Palette.textSecondary) }
                     }
                     .padding(.vertical, HV.Space.xxs)
+                    .hvListRow()
                 }
             } else {
                 Text("The sidecar did not answer its flags route. Objections are only served when it is set to deliver them.")
@@ -460,7 +525,7 @@ struct TruthSidecarScreen: View {
                     .foregroundStyle(Palette.textSecondary)
             }
         } header: {
-            Text("Pending objections")
+            HVSectionHeader(title: "Pending objections")
         }
     }
 

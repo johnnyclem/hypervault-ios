@@ -253,3 +253,39 @@ final class ArtifactsTests: XCTestCase {
         XCTAssertEqual(odd.status, .unknown)
     }
 }
+
+final class LibraryCopyTests: XCTestCase {
+    func testAgoMatchesTheWebsRounding() {
+        XCTAssertEqual(LibraryCopy.ago(seconds: 0), "Just now")
+        XCTAssertEqual(LibraryCopy.ago(seconds: -30), "Just now")
+        XCTAssertEqual(LibraryCopy.ago(seconds: .nan), "Just now")
+        XCTAssertEqual(LibraryCopy.ago(seconds: 59), "Just now")
+        XCTAssertEqual(LibraryCopy.ago(seconds: 60), "1 min ago")
+        XCTAssertEqual(LibraryCopy.ago(seconds: 3_599), "59 min ago")
+        XCTAssertEqual(LibraryCopy.ago(seconds: 3_600), "1 hr ago")
+        XCTAssertEqual(LibraryCopy.ago(seconds: 86_400), "Yesterday")
+        XCTAssertEqual(LibraryCopy.ago(seconds: 86_400 * 3), "3 days ago")
+        XCTAssertEqual(LibraryCopy.ago(seconds: 86_400 * 45), "1 month ago")
+        XCTAssertEqual(LibraryCopy.ago(seconds: 86_400 * 100), "3 months ago")
+        XCTAssertEqual(LibraryCopy.ago(seconds: 86_400 * 400), "1 year ago")
+        XCTAssertEqual(LibraryCopy.ago(seconds: 86_400 * 800), "2 years ago")
+    }
+
+    func testRowsAreTimedByLastOpenThenLastChange() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let opened = KeptItem(id: "1", kind: .page, name: "A", updatedAt: now.addingTimeInterval(-86_400 * 10), lastOpenedAt: now.addingTimeInterval(-120), href: "/a/a")
+        let changed = KeptItem(id: "2", kind: .page, name: "B", updatedAt: now.addingTimeInterval(-7_200), href: "/a/b")
+        let neither = KeptItem(id: "3", kind: .page, name: "C", href: "/a/c")
+        XCTAssertEqual(LibraryCopy.ago(for: opened, now: now), "2 min ago")
+        XCTAssertEqual(LibraryCopy.ago(for: changed, now: now), "2 hr ago")
+        XCTAssertNil(LibraryCopy.ago(for: neither, now: now))
+    }
+
+    func testEmptyLines() {
+        XCTAssertEqual(LibraryCopy.emptyLine(filter: .all, query: ""), "Nothing kept yet.")
+        XCTAssertEqual(LibraryCopy.emptyLine(filter: .all, query: "  "), "Nothing kept yet.")
+        XCTAssertEqual(LibraryCopy.emptyLine(filter: .all, query: "trip"), "Nothing here.")
+        XCTAssertEqual(LibraryCopy.emptyLine(filter: .key, query: ""), "Nothing here.")
+        XCTAssertEqual(LibraryCopy.truncated, "These are the most recent. Search by name to find the rest.")
+    }
+}

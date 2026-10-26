@@ -174,3 +174,54 @@ final class ArtifactPageTests: XCTestCase {
         XCTAssertNil(ArtifactLinks.primaryHost([]))
     }
 }
+
+final class ArtifactLinkRouterTests: XCTestCase {
+    let router = ArtifactLinkRouter(serverHost: "hypervault.store", domains: ["vault.cool"])
+
+    func action(_ text: String) -> ArtifactLinkAction { router.action(for: URL(string: text)!) }
+
+    func testTheBrokenPagesFixItLinkOpensTheRepair() {
+        XCTAssertEqual(
+            action("https://hypervault.store/vault?repair=pomo-1&error=SyntaxError%3A%20Unexpected%20token"),
+            .repair(slug: "pomo-1", error: "SyntaxError: Unexpected token")
+        )
+        XCTAssertEqual(action("https://nova.vault.cool/vault?repair=pomo-1"), .repair(slug: "pomo-1", error: nil))
+        XCTAssertEqual(action("https://hypervault.store/vault/library?repair=pomo-1&error="), .repair(slug: "pomo-1", error: nil))
+    }
+
+    func testAnotherSitesRepairLinkIsJustALink() {
+        let url = URL(string: "https://evil.example/vault?repair=pomo-1")!
+        XCTAssertEqual(router.action(for: url), .external(url))
+    }
+
+    func testHyperVaultLinksStayInTheApp() {
+        let page = URL(string: "https://hypervault.store/a/other-1")!
+        XCTAssertEqual(router.action(for: page), .hyperVault(page))
+        let realm = URL(string: "https://nova.vault.cool/a/other-1")!
+        XCTAssertEqual(router.action(for: realm), .hyperVault(realm))
+        let apex = URL(string: "https://vault.cool/d/x")!
+        XCTAssertEqual(router.action(for: apex), .hyperVault(apex))
+        let scheme = URL(string: "hypervault://artifact/other-1")!
+        XCTAssertEqual(router.action(for: scheme), .hyperVault(scheme))
+    }
+
+    func testLookalikeHostsAreNotOurs() {
+        for text in ["https://hypervault.store.evil.example/a/x", "https://evilvault.cool/a/x", "https://vault.cool.evil.example/a/x"] {
+            let url = URL(string: text)!
+            XCTAssertEqual(router.action(for: url), .external(url), text)
+        }
+    }
+
+    func testEverythingElseOnTheWebGoesToSafari() {
+        for text in ["https://example.com/a/x", "http://example.com", "mailto:sam@example.com", "tel:+15551234567", "sms:+15551234567"] {
+            let url = URL(string: text)!
+            XCTAssertEqual(router.action(for: url), .external(url), text)
+        }
+    }
+
+    func testAPageCannotNavigateToWhatItShouldNot() {
+        for text in ["javascript:alert(1)", "file:///etc/passwd", "data:text/html,hi", "blob:https://x/1", "itms-services://?action=download-manifest&url=x", "x-apple-reminderkit://"] {
+            XCTAssertEqual(router.action(for: URL(string: text)!), .blocked, text)
+        }
+    }
+}

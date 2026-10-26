@@ -125,7 +125,7 @@ final class AppHandoffTests: XCTestCase {
     }
 
     func testNoConnectionSaysNothingAboutThePage() async {
-        let result = await AppHandoff.check(returnURL: AppHandoff.returnURL(on: site), transport: OfflineTransport())
+        let result = await AppHandoff.check(returnURL: AppHandoff.returnURL(on: site), transport: NoConnectionTransport())
         XCTAssertEqual(result, .unknown)
     }
 
@@ -153,6 +153,6 @@ private struct FollowingTransport: HTTPTransport {
     }
 }
 
-private struct OfflineTransport: HTTPTransport {
+private struct NoConnectionTransport: HTTPTransport {
     func send(_ request: URLRequest) async throws -> HTTPResponse { throw URLError(.notConnectedToInternet) }
 }

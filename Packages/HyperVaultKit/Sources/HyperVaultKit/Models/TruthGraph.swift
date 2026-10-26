@@ -233,7 +233,9 @@ public struct TruthStaleItem: Sendable, Decodable, Hashable, Identifiable {
     public let ledger: TruthLedger?
     public let edges: [TruthStaleEdge]
 
-    public var id: String { key }
+    /// The server's `key` names the item alone, so a memory resting on entries
+    /// in two ledgers comes back twice under one key. A row is the item in one ledger.
+    public var id: String { "\(ledger?.id ?? "-"):\(key)" }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Keys.self)

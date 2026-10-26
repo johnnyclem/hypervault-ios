@@ -260,7 +260,8 @@ final class MailModel {
 
     /// Sends a note from the person to their agents, then shows Sent.
     func send(subject: String, text: String) async throws {
-        _ = try await client.send(.mailSend(subject: subject, text: text, mailbox: mailboxParam))
+        // Any 2xx means it is sent; the answer is not read, so it cannot turn a sent note into a failed one.
+        _ = try await client.sendRaw(.mailSend(subject: subject, text: text, mailbox: mailboxParam))
         filter = .sent
         resetList()
         await loadList(quiet: false)
@@ -303,6 +304,8 @@ final class MailModel {
 /// Files made for the share sheet live in the temporary folder, under their own names.
 enum MailShareFile {
     static func write(_ data: Data, named name: String) throws -> URL {
+        // What an earlier export left behind, never shared or never cleared.
+        PrivateTemporaryFiles.removeStale(prefix: "hv-share-")
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("hv-share-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let url = folder.appendingPathComponent(name)

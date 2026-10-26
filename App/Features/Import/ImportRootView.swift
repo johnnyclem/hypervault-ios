@@ -17,6 +17,8 @@ struct ImportScreen: View {
     @State private var model: ImportModel
     @State private var picking = false
     @FocusState private var pasteFocused: Bool
+    /// The Stop button is what VoiceOver is on while an import runs, and it goes when the import ends.
+    @AccessibilityFocusState private var resultFocused: Bool
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(client: HVClient, importBytes: Int) {
@@ -45,6 +47,12 @@ struct ImportScreen: View {
             .padding(HV.Space.m)
             .hvReadableWidth()
             .animation(.easeInOut(duration: 0.2), value: model.stage)
+        }
+        .onChange(of: model.stage) { _, stage in
+            switch stage {
+            case .done, .stopped: resultFocused = true
+            default: break
+            }
         }
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
@@ -289,7 +297,7 @@ struct ImportScreen: View {
                 ProgressView(value: progress?.fraction ?? 0)
                     .progressViewStyle(.linear)
                     .accessibilityLabel("Import progress")
-                    .accessibilityValue("\(Int((progress?.fraction ?? 0) * 100)) percent")
+                    .accessibilityValue("\(Int((progress?.fraction ?? 0) * 100)) percent. \(sendingLine(progress))")
                 Text(sendingLine(progress)).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
             }
             .hvCard()
@@ -319,7 +327,10 @@ struct ImportScreen: View {
             }
             .accessibilityHidden(true)
             VStack(spacing: HV.Space.xs) {
-                Text("All in").font(.hvTitle)
+                Text("All in")
+                    .font(.hvTitle)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityFocused($resultFocused)
                 Text(model.totals.summary(platform: model.platform))
                     .font(.hvCallout)
                     .foregroundStyle(Palette.textSecondary)
@@ -376,6 +387,8 @@ struct ImportScreen: View {
                 Label("The import stopped", systemImage: "pause.circle.fill")
                     .font(.hvHeadline)
                     .foregroundStyle(Palette.warning)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityFocused($resultFocused)
                 Text(reason).font(.hvCallout).foregroundStyle(Palette.textSecondary)
                 if let progress = model.progress, progress.conversationsTotal > 0 {
                     Text("\(model.totals.imported) conversation\(model.totals.imported == 1 ? " is" : "s are") already in, out of \(progress.conversationsTotal).")

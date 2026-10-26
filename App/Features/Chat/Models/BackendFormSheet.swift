@@ -108,11 +108,10 @@ struct ChatBackendFormSheet: View {
                     }
                 }
                 if spec.isCustom {
-                    Picker("API style", selection: $draft.provider) {
+                    FeatureChoicePicker(title: "API style", selection: $draft.provider) {
                         Text("OpenAI-compatible").tag("custom")
                         Text("Anthropic-compatible").tag("custom-anthropic")
                     }
-                    .pickerStyle(.segmented)
                 }
             } else {
                 LabeledContent("Provider", value: spec.label)

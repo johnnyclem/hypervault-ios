@@ -43,6 +43,18 @@ final class ImportZipInflaterTests: XCTestCase {
         XCTAssertTrue(result.notes[0].hasSuffix("and used 1.") || result.notes[0].contains("and used 1."), result.notes[0])
     }
 
+    func testTheCopyOfAZipGoesOnceItsConversationsAreOut() async throws {
+        let zip = try fixtureZip()
+        defer { try? FileManager.default.removeItem(at: zip) }
+        let result = try await ImportFileReader.read([zip], chosen: .chatgpt)
+        defer { ImportFileReader.remove(result.temporaryFiles) }
+        XCTAssertEqual(result.documents.count, 1)
+        let names = try FileManager.default.contentsOfDirectory(atPath: FileManager.default.temporaryDirectory.path)
+        let leftCopies = names.filter { $0.hasPrefix(ImportFileReader.temporaryPrefix) && $0.hasSuffix(zip.lastPathComponent) }
+        XCTAssertEqual(leftCopies, [], "the whole export is not kept while the person reads the review")
+        XCTAssertEqual(result.temporaryFiles.count, 1, "only the extracted conversations are kept, for the documents that read them")
+    }
+
     func testAPlainJSONFileIsReadAsItIs() async throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("conversations-\(UUID().uuidString).json")
         try Data(ImportZipFixture.conversations.utf8).write(to: url)
@@ -76,10 +88,29 @@ final class ImportZipInflaterTests: XCTestCase {
 
 @MainActor
 final class ImportModelTests: XCTestCase {
-    private func model(_ routes: [MockRoute]) -> ImportModel {
-        let transport = MockTransport(routes: routes)
+    private func model(_ routes: [MockRoute], announcer: FeatureAnnouncer? = nil) -> ImportModel {
+        model(transport: MockTransport(routes: routes), announcer: announcer)
+    }
+
+    private func model(transport: HTTPTransport, announcer: FeatureAnnouncer? = nil) -> ImportModel {
         let client = HVClient(baseURL: URL(string: "https://t.test")!, transport: transport, tokens: StaticTokenProvider(), retry: .none, sleep: { _ in })
-        return ImportModel(client: client, importBytes: 50_000_000)
+        return ImportModel(client: client, importBytes: 50_000_000, announcer: announcer ?? FeaturesRecordingAnnouncer())
+    }
+
+    private func history(_ count: Int) -> ImportDocument {
+        ImportInspector.inspect(Data(ImportFixtures.chatgpt(count: count).utf8), name: "conversations.json", hint: .chatgpt)
+    }
+
+    /// What the app made in the temporary folder for the file with this token in its name.
+    private func copies(of token: String) -> [String] {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: FileManager.default.temporaryDirectory.path)) ?? []
+        return names.filter { $0.hasPrefix(ImportFileReader.temporaryPrefix) && $0.contains(token) }
+    }
+
+    private func write(_ text: String, token: String) throws -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("export-\(token).json")
+        try Data(text.utf8).write(to: url)
+        return url
     }
 
     private func settle(_ model: ImportModel, until done: (ImportModel.Stage) -> Bool) async {
@@ -131,6 +162,135 @@ final class ImportModelTests: XCTestCase {
         await settle(model) { $0 == .done }
         XCTAssertEqual(model.stage, .done)
         XCTAssertEqual(model.totals.imported, 150, "the failed part was sent again, and counted once")
+    }
+
+    // MARK: Leaving, stopping and the screen's sleep
+
+    func testTheScreenStaysAwakeOnlyWhileSendingAndSaysWhenTheImportEnds() async {
+        let speech = FeaturesRecordingAnnouncer()
+        let model = model([.json(.post, "/api/import", #"{"platform":"other","imported":1,"skipped":0,"messages":2,"message":"ok"}"#)], announcer: speech)
+        model.source = .other
+        model.pasted = "User: hi\nAssistant: hello"
+        model.readPasted()
+        XCTAssertFalse(UIApplication.shared.isIdleTimerDisabled)
+        model.start()
+        XCTAssertTrue(UIApplication.shared.isIdleTimerDisabled, "kept awake while it sends")
+        await settle(model) { $0 == .done }
+        XCTAssertFalse(UIApplication.shared.isIdleTimerDisabled)
+        XCTAssertEqual(ImportAwake.holds, 0)
+        XCTAssertEqual(speech.spoken.first, "Importing 1 conversation. Keep HyperVault open.")
+        XCTAssertEqual(speech.spoken.last?.hasPrefix("Import finished. Imported 1 conversation (2 messages)"), true, "\(speech.spoken)")
+    }
+
+    func testAFailureGivesTheScreenItsSleepBackAndSaysSo() async {
+        let speech = FeaturesRecordingAnnouncer()
+        let model = model([.failure(.post, "/api/import", status: 500, message: "The server had a problem. Try again in a moment.")], announcer: speech)
+        model.previewSeedDocuments([history(3)])
+        model.start()
+        await settle(model) { if case .stopped = $0 { return true } else { return false } }
+        XCTAssertEqual(model.stage, .stopped("The server had a problem. Try again in a moment."))
+        XCTAssertFalse(UIApplication.shared.isIdleTimerDisabled)
+        XCTAssertEqual(speech.spoken.last, "The import stopped. The server had a problem. Try again in a moment. 0 of 3 conversations are in. You can continue it.")
+    }
+
+    func testStoppingGivesTheScreenItsSleepBackAndSaysSo() async {
+        let speech = FeaturesRecordingAnnouncer()
+        let model = model(transport: ImportHangingTransport(), announcer: speech)
+        model.previewSeedDocuments([history(3)])
+        model.start()
+        XCTAssertTrue(UIApplication.shared.isIdleTimerDisabled)
+        model.stop()
+        await settle(model) { if case .stopped = $0 { return true } else { return false } }
+        XCTAssertEqual(model.stage, .stopped("You stopped the import."))
+        XCTAssertFalse(UIApplication.shared.isIdleTimerDisabled)
+        XCTAssertEqual(ImportAwake.holds, 0)
+        XCTAssertEqual(speech.spoken.last, "Import stopped. 0 of 3 conversations are in. You can continue it.")
+    }
+
+    func testLeavingTheScreenMidImportCancelsTheRunAndGivesTheScreenItsSleepBack() async {
+        let hanging = ImportHangingTransport()
+        var model: ImportModel? = model(transport: hanging)
+        model?.previewSeedDocuments([history(3)])
+        model?.start()
+        for _ in 0..<200 where hanging.started == 0 { try? await Task.sleep(nanoseconds: 10_000_000) }
+        XCTAssertEqual(hanging.started, 1, "a request is on its way")
+        XCTAssertTrue(UIApplication.shared.isIdleTimerDisabled)
+
+        // The screen is popped: nothing else holds the model.
+        weak var gone = model
+        model = nil
+        XCTAssertNil(gone)
+
+        for _ in 0..<200 where UIApplication.shared.isIdleTimerDisabled { try? await Task.sleep(nanoseconds: 10_000_000) }
+        XCTAssertFalse(UIApplication.shared.isIdleTimerDisabled, "the run ended with nobody to tell, and still gave the sleep back")
+        XCTAssertEqual(ImportAwake.holds, 0)
+        XCTAssertEqual(hanging.cancelled, 1, "the request in flight was cancelled, not left to finish unseen")
+    }
+
+    func testLeavingTheScreenRemovesTheCopyOfTheExport() async throws {
+        let token = UUID().uuidString
+        let source = try write(ImportFixtures.chatgpt(count: 3), token: token)
+        defer { try? FileManager.default.removeItem(at: source) }
+        var model: ImportModel? = model([])
+        model?.read([source])
+        for _ in 0..<200 where model?.stage != .review { try? await Task.sleep(nanoseconds: 10_000_000) }
+        XCTAssertEqual(model?.stage, .review)
+        XCTAssertEqual(copies(of: token).count, 1, "the copy lives while the review is on screen")
+        try? await Task.sleep(nanoseconds: 50_000_000)
+
+        model = nil
+        XCTAssertEqual(copies(of: token), [])
+    }
+
+    func testAFileWithNothingToImportIsNotKept() async throws {
+        let token = UUID().uuidString
+        let source = try write(#"{"user":{"userId":"u"},"sessions":[]}"#, token: token)
+        defer { try? FileManager.default.removeItem(at: source) }
+        let model = model([])
+        model.read([source])
+        await settle(model) { $0 == .review }
+        XCTAssertEqual(model.stage, .review)
+        XCTAssertNil(model.plan)
+        XCTAssertEqual(copies(of: token), [], "nothing will be sent, so the copy goes at once")
+    }
+
+    func testStartingOverRemovesTheCopyToo() async throws {
+        let token = UUID().uuidString
+        let source = try write(ImportFixtures.chatgpt(count: 3), token: token)
+        defer { try? FileManager.default.removeItem(at: source) }
+        let model = model([])
+        model.read([source])
+        await settle(model) { $0 == .review }
+        XCTAssertEqual(copies(of: token).count, 1)
+        model.backToChoose()
+        XCTAssertEqual(copies(of: token), [])
+    }
+}
+
+/// Never answers; says when a request arrived and when one was cancelled, as URLSession does.
+private final class ImportHangingTransport: HTTPTransport, @unchecked Sendable {
+    private let lock = NSLock()
+    private var arrived = 0
+    private var cancellations = 0
+
+    var started: Int { lock.lock(); defer { lock.unlock() }; return arrived }
+    var cancelled: Int { lock.lock(); defer { lock.unlock() }; return cancellations }
+
+    private func count(arrival: Bool) {
+        lock.lock()
+        if arrival { arrived += 1 } else { cancellations += 1 }
+        lock.unlock()
+    }
+
+    func send(_ request: URLRequest) async throws -> HTTPResponse {
+        count(arrival: true)
+        do {
+            try await Task.sleep(nanoseconds: 60_000_000_000)
+        } catch {
+            count(arrival: false)
+            throw error
+        }
+        return HTTPResponse(status: 200)
     }
 }
 

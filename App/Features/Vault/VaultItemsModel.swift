@@ -21,6 +21,15 @@ enum VaultGrantsPhase: Equatable {
     }
 
     var hasFailed: Bool { self == .failed }
+
+    /// The same keys with one switch set. A switch moves at once when it is tapped, and goes back through
+    /// here alone if the server refuses it, so the other switches, which may have moved and been accepted
+    /// since, are left as they are. While loading or after a failed read there are no switches to set.
+    func setting(_ keyID: String, to allowed: Bool) -> VaultGrantsPhase {
+        guard case .loaded(var ids) = self else { return self }
+        if allowed { ids.insert(keyID) } else { ids.remove(keyID) }
+        return .loaded(ids)
+    }
 }
 
 enum VaultGrantsCopy {

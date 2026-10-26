@@ -66,7 +66,7 @@ struct TruthDraftsScreen: View {
     var body: some View {
         List {
             Section {
-                TruthChoicePicker(title: "Status", selection: Binding(get: { model.status }, set: { next in Task { await model.select(next) } })) {
+                FeatureChoicePicker(title: "Status", selection: Binding(get: { model.status }, set: { next in Task { await model.select(next) } })) {
                     ForEach(TruthProposalStatus.allCases) { status in Text(status.title).tag(status) }
                 }
                 .listRowBackground(Color.clear)

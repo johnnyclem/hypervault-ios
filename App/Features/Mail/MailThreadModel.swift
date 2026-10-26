@@ -124,13 +124,17 @@ final class MailThreadModel {
     // MARK: Acting
 
     /// Answers the newest message. The reply goes to `self`, the agents' side.
+    /// Any 2xx means it is sent: what the route answers is not read, and showing
+    /// it in the thread is best effort, so a hiccup after the send never makes
+    /// the person send it again (the route does not tell a repeat from a new reply).
     func reply(_ text: String) async throws {
         guard let newest, !isSending else { return }
         isSending = true
         defer { isSending = false }
-        _ = try await client.send(.mailReply(id: newest.id, text: text, mailbox: mailbox))
-        let page = try await client.send(.mailThread(threadId: threadID, mailbox: mailbox))
-        messages = MailThreads.mergeNewest(messages, page.messages)
+        _ = try await client.sendRaw(.mailReply(id: newest.id, text: text, mailbox: mailbox))
+        if let page = try? await client.send(.mailThread(threadId: threadID, mailbox: mailbox)) {
+            messages = MailThreads.mergeNewest(messages, page.messages)
+        }
     }
 
     func move(to folder: MailFolder) async throws -> MailMoveResult {

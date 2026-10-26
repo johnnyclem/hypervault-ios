@@ -158,10 +158,9 @@ struct AdminAccountToolsView: View {
         .disabled(model.isWorking)
 
         Section(header: HVSectionHeader(title: "Plan")) {
-            Picker("Plan", selection: $model.plan) {
+            FeatureChoicePicker(title: "Plan", selection: $model.plan) {
                 ForEach(AdminPlan.allCases) { plan in Text(plan.title).tag(plan) }
             }
-            .pickerStyle(.segmented)
             Button {
                 let plan = model.plan
                 Task { await model.change(.plan(plan), done: "Set \(model.shortID) to \(plan.title).") }

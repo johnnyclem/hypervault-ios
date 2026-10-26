@@ -320,10 +320,15 @@ public struct ChatOutboxReport: Sendable, Equatable {
         public let threadKey: String
         public let conversationID: String
         public let messageID: String?
+        /// What the person wrote, so a screen can find the rows that were waiting for this turn.
+        public let userMessage: String
     }
 
+    /// A turn the server refused for good, in its own words; it is out of the outbox and will not be tried again.
     public struct Rejected: Sendable, Equatable {
         public let turnID: String
+        public let threadKey: String
+        public let userMessage: String
         public let message: String
     }
 
@@ -380,7 +385,7 @@ public actor ChatTurnOutbox {
         outer: for turn in queue {
             var conversationID = turn.conversationID ?? created[turn.threadKey]
             if let known = conversationID, let existing = await alreadySaved(turn, in: known, client: client) {
-                report.saved.append(.init(turnID: turn.id, threadKey: turn.threadKey, conversationID: known, messageID: existing))
+                report.saved.append(.init(turnID: turn.id, threadKey: turn.threadKey, conversationID: known, messageID: existing, userMessage: turn.userMessage))
                 await remove(turn.id)
                 continue
             }
@@ -390,11 +395,14 @@ public actor ChatTurnOutbox {
                 )
                 conversationID = result.conversationID
                 created[turn.threadKey] = result.conversationID
-                report.saved.append(.init(turnID: turn.id, threadKey: turn.threadKey, conversationID: result.conversationID, messageID: result.reply.id))
-                await remove(turn.id)
+                report.saved.append(.init(
+                    turnID: turn.id, threadKey: turn.threadKey, conversationID: result.conversationID,
+                    messageID: result.reply.id, userMessage: turn.userMessage
+                ))
+                await complete(turn, conversationID: result.conversationID)
             } catch let error as HVError {
                 if let status = error.status, (400..<500).contains(status), status != 429, status != 401 {
-                    report.rejected.append(.init(turnID: turn.id, message: error.userMessage))
+                    report.rejected.append(.init(turnID: turn.id, threadKey: turn.threadKey, userMessage: turn.userMessage, message: error.userMessage))
                     await remove(turn.id)
                     continue
                 }
@@ -417,6 +425,22 @@ public actor ChatTurnOutbox {
     private func remove(_ id: String) async {
         var all = await load()
         all.removeAll { $0.id == id }
+        items = all
+        await persist()
+    }
+
+    /// A turn is saved. If it made the conversation, the turns of the same
+    /// thread still waiting join that conversation in the same write, so a
+    /// flush that stops half way (or the app being closed) does not leave them
+    /// to start a second one.
+    private func complete(_ turn: PendingChatTurn, conversationID: String) async {
+        var all = await load()
+        all.removeAll { $0.id == turn.id }
+        if turn.conversationID == nil {
+            for index in all.indices where all[index].threadKey == turn.threadKey && all[index].conversationID == nil {
+                all[index].conversationID = conversationID
+            }
+        }
         items = all
         await persist()
     }

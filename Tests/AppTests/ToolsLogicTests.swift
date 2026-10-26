@@ -44,9 +44,14 @@ private func pause(_ seconds: Double) async {
 @MainActor
 final class ToolsLogicTests: XCTestCase {
     /// A model loaded from the fixtures. Routes in `extra` win over the fixtures'.
-    private func loadedModel(extra: [MockRoute], maxServers: Int = 20, tokens: TokenProvider = StaticTokenProvider()) async -> ToolsModel {
+    private func loadedModel(
+        extra: [MockRoute], maxServers: Int = 20, tokens: TokenProvider = StaticTokenProvider(), speech: FeaturesRecordingAnnouncer? = nil
+    ) async -> ToolsModel {
         let transport = MockTransport(routes: extra + ToolsFixtures.routes)
-        let model = ToolsModel(client: client(transport, tokens: tokens), cache: temporaryCache(), namespace: "u1", maxServers: maxServers)
+        let model = ToolsModel(
+            client: client(transport, tokens: tokens), cache: temporaryCache(), namespace: "u1", maxServers: maxServers,
+            announcer: speech ?? FeaturesRecordingAnnouncer()
+        )
         await model.load()
         return model
     }
@@ -94,6 +99,50 @@ final class ToolsLogicTests: XCTestCase {
         let model = await loadedModel(extra: [refused])
         await model.setEnabled(false, serverID: "s1")
         XCTAssertEqual(model.server(id: "s1")?.enabled, true)
+    }
+
+    // MARK: Signing in again
+
+    private func authFlow(for serverID: String?, routes: [MockRoute] = []) async -> ToolsAuthFlow {
+        let api = client(MockTransport(routes: routes + ToolsFixtures.routes))
+        let model = ToolsModel(client: api, cache: temporaryCache(), namespace: "u1", maxServers: 20)
+        await model.load()
+        let existing = serverID.flatMap { model.server(id: $0) }
+        let target = ToolsAuthTarget(url: existing?.url ?? "https://new.example.com/mcp", name: existing?.name, existing: existing)
+        return ToolsAuthFlow(target: target, client: api, model: model)
+    }
+
+    func testAServerSignedInThroughALoginDoesNotOfferATokenInPlaceOfIt() async {
+        // The server keeps the login and sends its bearer over any Authorization header, so a token would be saved and unused.
+        let flow = await authFlow(for: "s1")
+        XCTAssertEqual(flow.target.existing?.authType, .oauth)
+        XCTAssertFalse(flow.offersToken)
+        flow.useToken()
+        XCTAssertEqual(flow.mode, .choose)
+    }
+
+    func testAServerWithAPastedTokenOrNoneStillTakesOne() async {
+        let withToken = await authFlow(for: "s2")
+        XCTAssertTrue(withToken.offersToken)
+        withToken.useToken()
+        XCTAssertEqual(withToken.mode, .token)
+        let fresh = await authFlow(for: nil)
+        XCTAssertTrue(fresh.offersToken)
+    }
+
+    func testALoginThatIsGoneSaysToAddTheServerAgainAndDoesNotSwitchToATokenForASignedInServer() async {
+        let gone = MockRoute.json(.post, "/api/mcp-servers/oauth/start", #"{"error":"This server doesn't advertise an OAuth login. Add an API token instead.","oauth_available":false}"#, status: 409)
+        let signedIn = await authFlow(for: "s1", routes: [gone])
+        let server = await signedIn.signIn()
+        XCTAssertNil(server)
+        XCTAssertEqual(signedIn.mode, .choose)
+        XCTAssertEqual(signedIn.note, ToolsAuthFlow.loginGoneNote)
+
+        // A server being added has no login to lose, so the token form is the way in, as before.
+        let adding = await authFlow(for: nil, routes: [gone])
+        _ = await adding.signIn()
+        XCTAssertEqual(adding.mode, .token)
+        XCTAssertEqual(adding.note, "This server doesn't advertise an OAuth login. Add an API token instead.")
     }
 
     func testRemovingAServerForgetsItAndRemembersToCompile() async {
@@ -171,11 +220,14 @@ final class ToolsLogicTests: XCTestCase {
     // MARK: Compile
 
     func testACompileThatSucceedsClearsTheNudge() async {
-        let model = await loadedModel(extra: [])
+        let speech = FeaturesRecordingAnnouncer()
+        let model = await loadedModel(extra: [], speech: speech)
         XCTAssertTrue(model.needsCompile)
         model.startCompile()
         XCTAssertTrue(model.compile.isRunning)
+        XCTAssertTrue(speech.spoken.isEmpty, "working says nothing; the sheet shows a clock")
         for _ in 0..<40 where model.compile.isRunning { await pause(0.1) }
+        XCTAssertEqual(speech.spoken, ["Your toolkit is ready. 5 tools. New chats can use them now."])
         guard case .finished(let result) = model.compile else { return XCTFail("expected finished, got \(model.compile)") }
         XCTAssertEqual(result.stats.uniqueSelectorCount, 5)
         XCTAssertFalse(model.needsCompile)
@@ -184,45 +236,54 @@ final class ToolsLogicTests: XCTestCase {
 
     func testACompileWithEveryToolOffIsAChoiceNotAFailure() async {
         let refused = MockRoute.json(.post, "/api/toolkits/compile", #"{"error":"no_enabled_tools","message":"Every tool is toggled off — enable at least one."}"#, status: 422)
-        let model = await loadedModel(extra: [refused])
+        let speech = FeaturesRecordingAnnouncer()
+        let model = await loadedModel(extra: [refused], speech: speech)
         model.startCompile()
         for _ in 0..<40 where model.compile.isRunning { await pause(0.1) }
         XCTAssertEqual(model.compile, .nothingToCompile, "trying again cannot help, so the sheet must not offer it")
+        XCTAssertEqual(speech.spoken, ["Nothing to compile. Every tool is switched off."])
     }
 
     func testACompileThatBreaksShowsTheServersSentence() async {
         let broken = MockRoute.json(.post, "/api/toolkits/compile", #"{"error":"embed_failed","message":"The index could not be built. Try again in a moment."}"#, status: 502)
-        let model = await loadedModel(extra: [broken])
+        let speech = FeaturesRecordingAnnouncer()
+        let model = await loadedModel(extra: [broken], speech: speech)
         model.startCompile()
         for _ in 0..<40 where model.compile.isRunning { await pause(0.1) }
         XCTAssertEqual(model.compile, .failed("The index could not be built. Try again in a moment."))
+        XCTAssertEqual(speech.spoken, ["The build failed. The index could not be built. Try again in a moment."])
         model.dismissCompile()
         XCTAssertEqual(model.compile, .idle)
     }
 
     func testAConnectionThatDropsAndNeverComesBackIsSaidToBeLost() async {
-        let model = ToolsModel(client: client(DroppedCompileTransport()), cache: temporaryCache(), namespace: "u4", maxServers: 20)
+        let speech = FeaturesRecordingAnnouncer()
+        let model = ToolsModel(client: client(DroppedCompileTransport()), cache: temporaryCache(), namespace: "u4", maxServers: 20, announcer: speech)
         model.recoveryPoll = 10_000_000
         await model.load()
         model.startCompile()
         for _ in 0..<60 where model.compile.isRunning { await pause(0.1) }
         guard case .lostConnection(let sentence) = model.compile else { return XCTFail("expected lostConnection, got \(model.compile)") }
         XCTAssertEqual(sentence, "Network hiccup. Check your connection and try again.")
+        XCTAssertEqual(speech.spoken, ["The connection was lost. Network hiccup. Check your connection and try again."])
     }
 
     func testACompileCutOffByTheNetworkIsFoundOnceItLands() async {
         let flaky = FlakyCompileTransport()
-        let model = ToolsModel(client: client(flaky), cache: temporaryCache(), namespace: "u2", maxServers: 20)
+        let speech = FeaturesRecordingAnnouncer()
+        let model = ToolsModel(client: client(flaky), cache: temporaryCache(), namespace: "u2", maxServers: 20, announcer: speech)
         model.recoveryPoll = 50_000_000
         await model.load()
         model.startCompile()
         for _ in 0..<60 where model.compile.isRunning { await pause(0.1) }
         guard case .recovered(let toolkit) = model.compile else { return XCTFail("expected recovered, got \(model.compile)") }
         XCTAssertEqual(toolkit.id, "k9")
+        XCTAssertEqual(speech.spoken, ["Your toolkit is ready. The connection dropped while it was building, and it finished on the server."])
     }
 
     func testStoppingTheWaitSaysSo() async {
-        let model = ToolsModel(client: client(HangingTransport()), cache: temporaryCache(), namespace: "u3", maxServers: 20)
+        let speech = FeaturesRecordingAnnouncer()
+        let model = ToolsModel(client: client(HangingTransport()), cache: temporaryCache(), namespace: "u3", maxServers: 20, announcer: speech)
         model.didAdd(McpServer(id: "x", name: "X", url: "https://x.example.com", tools: [McpToolInfo(name: "t")]), message: nil)
         model.startCompile()
         XCTAssertTrue(model.compile.isRunning)
@@ -230,6 +291,7 @@ final class ToolsLogicTests: XCTestCase {
         model.stopWaiting()
         for _ in 0..<40 where model.compile.isRunning { await pause(0.1) }
         XCTAssertEqual(model.compile, .stopped)
+        XCTAssertEqual(speech.spoken, ["Stopped waiting. HyperVault may still finish building on the server."])
         UserDefaults.standard.removeObject(forKey: "tools.uncompiled.u3")
     }
 }

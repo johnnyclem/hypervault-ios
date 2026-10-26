@@ -282,6 +282,17 @@ final class TruthTests: XCTestCase {
         XCTAssertNotNil(edge.staleSince)
     }
 
+    func testTheSameItemStaleInTwoLedgersIsTwoRows() throws {
+        let json = """
+        {"items":[{"item":{"kind":"memory","id":"mem1","title":"Case summary"},"key":"memory:mem1","ledger":{"id":"l1","slug":"team","name":"Team","kind":"hosted"},"edges":[]},
+                  {"item":{"kind":"memory","id":"mem1","title":"Case summary"},"key":"memory:mem1","ledger":{"id":"l2","slug":"home","name":"Home","kind":"hosted"},"edges":[]}],
+         "total":2}
+        """
+        let worklist = try HVCoding.decoder().decode(TruthStaleWorklist.self, from: Data(json.utf8))
+        XCTAssertEqual(worklist.items.map(\.key), ["memory:mem1", "memory:mem1"])
+        XCTAssertEqual(Set(worklist.items.map(\.id)).count, 2, "a list keyed by id must not see the same row twice")
+    }
+
     func testResolvingAStaleItem() throws {
         let item = try HVCoding.decoder().decode(TruthContextItem.self, from: Data(#"{"kind":"memory","id":"mem1","title":"T"}"#.utf8))
         let body = TruthStaleResolution.relink.body(item: item, entries: ["E1"], to: ["E9"], ledger: "team")

@@ -241,10 +241,87 @@ final class MailModelTests: XCTestCase {
         XCTAssertFalse(model.isMailUnavailable)
     }
 
+    func testANoteThatWentThroughIsSentWhateverTheAnswerLooksLike() async throws {
+        let sends = Tally()
+        let post = MockRoute(.post, "/api/mail/messages") { request in
+            _ = sends.record(request)
+            return HTTPResponse(status: 201, data: Data(#"{"ok":true}"#.utf8))
+        }
+        let model = model([post] + MailPreviewData.routes)
+        await model.start()
+        try await model.send(subject: "Plan", text: "Start with the garden notes.")
+        XCTAssertEqual(sends.count, 1)
+        XCTAssertEqual(model.filter, .sent)
+    }
+
     func testMailThatWorksIsNotMarkedUnavailable() async throws {
         let model = model(MailPreviewData.routes)
         await model.start()
         XCTAssertFalse(model.isMailUnavailable)
+    }
+}
+
+/// Says whether the reply route has been called, for a route that must answer differently afterwards.
+private final class MailReplySent: @unchecked Sendable {
+    private let lock = NSLock()
+    private var flag = false
+    var value: Bool { lock.lock(); defer { lock.unlock() }; return flag }
+    func mark() { lock.lock(); flag = true; lock.unlock() }
+}
+
+@MainActor
+final class MailThreadModelTests: XCTestCase {
+    private let box = MailPreviewData.boxA
+
+    /// A thread that loads, a reply route that answers `reply`, and a thread route
+    /// that fails once the reply has gone through.
+    private func model(reply: HTTPResponse, refreshFails: Bool, sent: MailReplySent, sends: Tally) -> MailThreadModel {
+        let replyRoute = MockRoute(.post, "/api/mail/messages/*") { request in
+            _ = sends.record(request)
+            sent.mark()
+            return reply
+        }
+        let threadRoute = MockRoute(.get, "/api/mail/messages") { _ in
+            if refreshFails, sent.value { return HTTPResponse(status: 500, data: Data(#"{"error":"The server had a problem."}"#.utf8)) }
+            return HTTPResponse(status: 200, data: Data(MailPreviewData.thread.utf8))
+        }
+        let env = AppEnvironment.preview(routes: [replyRoute, threadRoute] + MailPreviewData.threadRoutes)
+        return MailThreadModel(client: env.client, threadID: MailPreviewData.threadID, mailbox: box)
+    }
+
+    private let created = HTTPResponse(status: 201, data: Data(#"{"message":{"id":"r1","thread_id":"11111111-1111-4111-8111-111111111111"},"thread_id":"11111111-1111-4111-8111-111111111111"}"#.utf8))
+
+    func testAReplyThatWentThroughIsSentEvenIfTheThreadCannotBeReadAfterwards() async throws {
+        let sends = Tally()
+        let model = model(reply: created, refreshFails: true, sent: MailReplySent(), sends: sends)
+        await model.load()
+        XCTAssertEqual(model.phase, .loaded)
+        try await model.reply("Thanks, that works.")
+        XCTAssertEqual(sends.count, 1)
+        XCTAssertFalse(model.isSending, "the button is free again, and the screen clears the draft")
+    }
+
+    func testAReplyWhoseAnswerIsNotReadableIsStillSent() async throws {
+        let sends = Tally()
+        let odd = HTTPResponse(status: 201, data: Data(#"{"ok":true}"#.utf8))
+        let model = model(reply: odd, refreshFails: false, sent: MailReplySent(), sends: sends)
+        await model.load()
+        try await model.reply("Thanks.")
+        XCTAssertEqual(sends.count, 1)
+    }
+
+    func testAReplyTheServerRefusesStillThrowsSoTheDraftStaysForAnotherTry() async throws {
+        let sends = Tally()
+        let refused = HTTPResponse(status: 403, data: Data(#"{"error":"missing_scope: This key cannot send mail.","code":"missing_scope"}"#.utf8))
+        let model = model(reply: refused, refreshFails: false, sent: MailReplySent(), sends: sends)
+        await model.load()
+        do {
+            try await model.reply("Thanks.")
+            XCTFail("a refused reply is not a sent one")
+        } catch {
+            XCTAssertEqual(MailModel.sentence(error), "This key cannot send mail.")
+        }
+        XCTAssertFalse(model.isSending)
     }
 }
 
@@ -331,6 +408,54 @@ final class TruthReviewModelTests: XCTestCase {
         XCTAssertEqual(model.handle, "johnny")
         let outcome = try await model.decide(.approve, item: item, draft: TruthDecisionDraft())
         XCTAssertEqual(outcome.status, "promoted")
+    }
+
+    func testTryAgainAfterTheLedgersFailedToLoadLoadsThem() async throws {
+        let asked = Tally()
+        let flaky = MockRoute(.get, "/api/truth/ledgers") { request in
+            if asked.record(request) == 1 {
+                return HTTPResponse(status: 500, data: Data(#"{"error":"The server had a problem. Try again in a moment."}"#.utf8))
+            }
+            return HTTPResponse(status: 200, data: Data(TruthPreviewData.ledgers.utf8))
+        }
+        let model = model([flaky] + TruthPreviewData.reviewRoutes)
+        await model.start(preferring: nil)
+        XCTAssertEqual(model.phase, .failed("The server had a problem. Try again in a moment."))
+        XCTAssertNil(model.ledger)
+
+        await model.retry(preferring: nil)
+        XCTAssertEqual(asked.count, 2, "the ledgers were asked for again")
+        XCTAssertEqual(model.phase, .loaded)
+        XCTAssertEqual(model.ledger?.slug, "team")
+        XCTAssertEqual(model.deck.total, 3)
+    }
+
+    func testTheScreenComingBackAfterAFailedFirstLoadStartsAgain() async throws {
+        let asked = Tally()
+        let flaky = MockRoute(.get, "/api/truth/ledgers") { request in
+            if asked.record(request) == 1 { return HTTPResponse(status: 500, data: Data(#"{"error":"Try again."}"#.utf8)) }
+            return HTTPResponse(status: 200, data: Data(TruthPreviewData.ledgers.utf8))
+        }
+        let model = model([flaky] + TruthPreviewData.reviewRoutes)
+        await model.start(preferring: nil)
+        await model.start(preferring: nil)
+        XCTAssertEqual(model.phase, .loaded)
+        XCTAssertEqual(model.ledger?.slug, "team")
+    }
+
+    func testTryAgainAfterTheDeckFailedReloadsTheDeckOnly() async throws {
+        let asked = Tally()
+        let flaky = MockRoute(.get, "/api/truth/review") { request in
+            if asked.record(request) == 1 { return HTTPResponse(status: 500, data: Data(#"{"error":"Something broke."}"#.utf8)) }
+            return HTTPResponse(status: 200, data: Data(TruthPreviewData.docket.utf8))
+        }
+        let model = model([flaky] + TruthPreviewData.reviewRoutes)
+        await model.start(preferring: nil)
+        XCTAssertEqual(model.phase, .failed("Something broke."))
+        XCTAssertNotNil(model.ledger)
+        await model.retry(preferring: nil)
+        XCTAssertEqual(model.phase, .loaded)
+        XCTAssertEqual(model.deck.total, 3)
     }
 
     func testAMirrorLedgerOffersNothingToDecide() async throws {

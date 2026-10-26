@@ -189,6 +189,99 @@ final class ChatModelTests: XCTestCase {
         XCTAssertNotNil(model.notice)
     }
 
+    /// A phone that starts offline and is told when the network is back.
+    private func offlineChat(
+        conversationID: String?, namespace: String, routes: [MockRoute]
+    ) -> (model: ChatConversationModel, network: ChatSwitchedTransport) {
+        let env = AppEnvironment.preview(routes: [])
+        let network = ChatSwitchedTransport(routes: routes)
+        let client = HVClient(baseURL: env.client.baseURL, transport: network, tokens: StaticTokenProvider(), retry: .none, sleep: { _ in })
+        let model = ChatConversationModel(
+            conversationID: conversationID, client: client, cache: env.cache, namespace: namespace,
+            limits: env.limits, features: env.features, onDevice: .fixed(.ready, provider: FakeOnDeviceModel()),
+            outbox: ChatTurnOutbox(cache: env.cache, namespace: namespace)
+        )
+        let existing = conversationID.map { ChatConversation(id: $0, title: "Trip", updatedAt: Date()) }
+        model.seed(rows: [], conversation: existing, choice: .onDevice)
+        return (model, network)
+    }
+
+    func testAReplyQueuedInAChatThatAlreadyExistsStopsWaitingOnceTheOutboxSavesIt() async {
+        let (model, network) = offlineChat(conversationID: "c1", namespace: "existing", routes: [
+            .json(.get, "/api/conversations/c1", #"{"conversation":{"id":"c1","title":"Trip"},"messages":[]}"#),
+            .json(.post, "/api/chat/turns", #"{"conversation_id":"c1","reply":{"id":"m77","role":"assistant","content":"x","model":"fake-on-device"}}"#),
+        ])
+        model.draft = "hi"
+        model.sendDraft()
+        await settle(model)
+        XCTAssertEqual(model.rows.map(\.state), [.waitingToSync, .waitingToSync])
+
+        network.goOnline()
+        await model.syncOutbox()
+        XCTAssertEqual(model.rows.map(\.state), [.saved, .saved])
+        XCTAssertNil(model.rows[0].serverID)
+        XCTAssertEqual(model.rows[1].serverID, "m77", "the reply can be rated, and the thread can be pulled to refresh")
+        XCTAssertEqual(model.conversationID, "c1")
+    }
+
+    func testAQueuedTurnTheServerRefusesForGoodSaysSoInsteadOfWaiting() async {
+        let (model, network) = offlineChat(conversationID: "c1", namespace: "refused", routes: [
+            .json(.get, "/api/conversations/c1", #"{"error":"Conversation not found."}"#, status: 404),
+            .failure(.post, "/api/chat/turns", status: 404, message: "Conversation not found."),
+        ])
+        model.draft = "hi"
+        model.sendDraft()
+        await settle(model)
+        XCTAssertEqual(model.rows.map(\.state), [.waitingToSync, .waitingToSync])
+
+        network.goOnline()
+        await model.syncOutbox()
+        XCTAssertEqual(model.rows.map(\.state), [.notSaved("Conversation not found."), .notSaved("Conversation not found.")])
+    }
+
+    func testOnlyTheTurnsTheOutboxSavedStopWaiting() async {
+        // Two turns wait; the connection comes back for the first and the second is met by a server hiccup.
+        let posts = ChatPostCount()
+        let (model, network) = offlineChat(conversationID: "c1", namespace: "half", routes: [
+            .json(.get, "/api/conversations/c1", #"{"conversation":{"id":"c1","title":"Trip"},"messages":[]}"#),
+            MockRoute(.post, "/api/chat/turns") { _ in
+                if posts.next() == 1 {
+                    return HTTPResponse(status: 200, data: Data(#"{"conversation_id":"c1","reply":{"id":"m1","role":"assistant","content":"x","model":"m"}}"#.utf8))
+                }
+                return HTTPResponse(status: 503, data: Data(#"{"error":"Try again."}"#.utf8))
+            },
+        ])
+        model.draft = "one"
+        model.sendDraft()
+        await settle(model)
+        model.draft = "two"
+        model.sendDraft()
+        await settle(model)
+        XCTAssertEqual(model.rows.map(\.state), Array(repeating: ChatThreadRow.State.waitingToSync, count: 4))
+
+        network.goOnline()
+        await model.syncOutbox()
+        XCTAssertEqual(model.rows.map(\.state), [.saved, .saved, .waitingToSync, .waitingToSync])
+        XCTAssertEqual(model.rows[1].serverID, "m1")
+        XCTAssertNil(model.rows[3].serverID)
+    }
+
+    func testAChatThatWasNewWhenItWasWrittenIsAdoptedAndItsRowsSettled() async {
+        let (model, network) = offlineChat(conversationID: nil, namespace: "fresh", routes: [
+            .json(.post, "/api/chat/turns", #"{"conversation_id":"c42","reply":{"id":"m5","role":"assistant","content":"x","model":"m"}}"#),
+        ])
+        model.draft = "hi"
+        model.sendDraft()
+        await settle(model)
+        XCTAssertNil(model.conversationID)
+
+        network.goOnline()
+        await model.syncOutbox()
+        XCTAssertEqual(model.conversationID, "c42")
+        XCTAssertEqual(model.rows.map(\.state), [.saved, .saved])
+        XCTAssertEqual(model.rows[1].serverID, "m5")
+    }
+
     func testConsecutiveToolStepsFoldIntoOneGroup() {
         func step() -> ChatThreadRow { ChatThreadRow(kind: .tool, toolTurn: ChatToolTurn(intent: "x")) }
         let rows = [
@@ -297,4 +390,30 @@ private struct OfflineAlways: HTTPTransport {
     func send(_ request: URLRequest) async throws -> HTTPResponse {
         throw URLError(.notConnectedToInternet)
     }
+}
+
+/// Drops every request until it is told the network is back, then answers from its routes.
+private final class ChatSwitchedTransport: HTTPTransport, @unchecked Sendable {
+    private let inner: MockTransport
+    private let lock = NSLock()
+    private var online = false
+
+    init(routes: [MockRoute]) { inner = MockTransport(routes: routes) }
+
+    func goOnline() { lock.lock(); online = true; lock.unlock() }
+
+    private var isUp: Bool { lock.lock(); defer { lock.unlock() }; return online }
+
+    func send(_ request: URLRequest) async throws -> HTTPResponse {
+        if !isUp { throw URLError(.notConnectedToInternet) }
+        return try await inner.send(request)
+    }
+}
+
+/// Numbers the calls a route gets, from any thread.
+private final class ChatPostCount: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    func next() -> Int { lock.lock(); defer { lock.unlock() }; count += 1; return count }
 }

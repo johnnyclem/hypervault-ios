@@ -35,8 +35,8 @@ struct RealmDetailView: View {
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
                     Text(claim.host)
                         .font(.system(.title3, design: .monospaced, weight: .semibold))
-                        .minimumScaleFactor(0.7)
-                        .lineLimit(2)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
                     Text("Serves your whole vault. Visitors see this address's look; you still get your dashboard.")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
@@ -48,12 +48,16 @@ struct RealmDetailView: View {
                     Label("Visit \(claim.host)", systemImage: "safari")
                 }
             }
+            .hvListRow()
 
             lookSection(claim, saving: saving)
             homeSection(claim, saving: saving)
 
             if let warning {
+                // The notice carries its own tint and border, so it sits on the page and not on a paper row.
                 Section { KeysNotice(text: warning, symbol: "lock.fill") }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
             }
         }
         .scrollContentBackground(.hidden)
@@ -82,6 +86,7 @@ struct RealmDetailView: View {
             } footer: {
                 Text("Every address can wear its own. Changes show on the next visit.")
             }
+            .hvListRow()
         }
     }
 
@@ -115,15 +120,19 @@ struct RealmDetailView: View {
                 }
             }
             if let gated = options.first(where: { $0.slug == home }), gated.isGated {
-                Text("\u{1F512} That page is \(gated.visibility == "password" ? "password-gated" : "private"), so visitors to \(claim.host) get the lock page. Make it public to serve it here.")
-                    .font(.hvFootnote)
-                    .foregroundStyle(Palette.textSecondary)
+                Label(
+                    "That page is \(gated.visibility == "password" ? "password-gated" : "private"), so visitors to \(claim.host) get the lock page. Make it public to serve it here.",
+                    systemImage: "lock.fill"
+                )
+                .font(.hvFootnote)
+                .foregroundStyle(Palette.textSecondary)
             }
         } header: {
             HVSectionHeader(title: "Home page")
         } footer: {
             Text("Pick one of your pages and \(claim.host) opens straight to it, with nothing after the address.")
         }
+        .hvListRow()
     }
 
     // MARK: Saving

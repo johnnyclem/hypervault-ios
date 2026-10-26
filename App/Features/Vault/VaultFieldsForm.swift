@@ -38,20 +38,27 @@ struct VaultDraft {
     }
 }
 
-/// The fields for one kind, with the keyboards and content types that fit. Secrets (a password, a security
+/// The fields for one kind, with the keyboards and content types that fit. Every field has its label above
+/// it, because a placeholder is faint and goes the moment someone types. Secrets (a password, a security
 /// code, a key's value) are secure fields with a Show switch for checking what was typed; they never ask
 /// the system to remember anything: no `.newPassword` (which offers to save it), no autocorrection.
+///
+/// It is a stack of fields, not Form rows: the screen that holds it scrolls it with the rest of its content.
 struct VaultFieldsForm: View {
     @Binding var draft: VaultDraft
     /// A new key can say what kind it is; replacing a value keeps the kind it has.
     var showsKindPicker = true
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        switch draft.kind {
-        case .login: loginFields
-        case .card: cardFields
-        case .contact: contactFields
-        case .opaque, .header, .oauthGrant: keyFields
+        VStack(alignment: .leading, spacing: HV.Space.l) {
+            switch draft.kind {
+            case .login: loginFields
+            case .card: cardFields
+            case .contact: contactFields
+            case .opaque, .header, .oauthGrant: keyFields
+            }
         }
     }
 
@@ -63,21 +70,29 @@ struct VaultFieldsForm: View {
 
     @ViewBuilder
     private var loginFields: some View {
-        Section {
-            TextField("Website (optional)", text: binding("url"))
+        HVLabeledField(
+            title: "Website (optional)",
+            footnote: "Include the full address, starting with https://, so an agent knows where it signs in."
+        ) {
+            // Verbatim: a plain string is read as Markdown, and an address in it is drawn as a link.
+            TextField("Website", text: binding("url"), prompt: Text(verbatim: "https://github.com"))
                 .keyboardType(.URL)
                 .textContentType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-            TextField("Username", text: binding("username"))
+        }
+        HVLabeledField(title: "Username") {
+            TextField("Username or email", text: binding("username"))
                 .textContentType(.username)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+        }
+        HVLabeledField(title: "Password") {
             VaultSecretField(title: "Password", text: binding("password"), contentType: .password)
-            TextField("Notes (optional)", text: binding("notes"), axis: .vertical)
+        }
+        HVLabeledField(title: "Notes (optional)") {
+            TextField("Anything an agent should know", text: binding("notes"), axis: .vertical)
                 .lineLimit(2...5)
-        } footer: {
-            Text("Include the full address, starting with https://, so an agent knows where it signs in.")
         }
     }
 
@@ -87,36 +102,60 @@ struct VaultFieldsForm: View {
     private var cardFields: some View {
         let digits = (draft.fields["number"] ?? "").filter(\.isNumber)
         let brand = VaultItems.cardBrand(digits)
-        Section {
-            HStack {
-                TextField("Card number", text: Binding(
-                    get: { draft.fields["number"] ?? "" },
-                    set: { draft.fields["number"] = VaultItems.formatCardNumber($0) }
-                ))
-                .keyboardType(.numberPad)
-                .textContentType(.creditCardNumber)
-                .autocorrectionDisabled()
-                .monospacedDigit()
-                if brand != .other { VaultBrandCard(brand: brand) }
+        VStack(alignment: .leading, spacing: HV.Space.xs) {
+            HVLabeledField(title: "Card number", footnote: "The list shows only the brand and the last four digits.") {
+                HStack {
+                    TextField("1234 5678 9012 3456", text: Binding(
+                        get: { draft.fields["number"] ?? "" },
+                        set: { draft.fields["number"] = VaultItems.formatCardNumber($0) }
+                    ))
+                    .keyboardType(.numberPad)
+                    .textContentType(.creditCardNumber)
+                    .autocorrectionDisabled()
+                    .monospacedDigit()
+                    if brand != .other { VaultBrandCard(brand: brand) }
+                }
             }
             if digits.count >= 12, !VaultItems.luhnValid(digits) {
                 KeysInlineMessage(text: "That card number doesn't look right. Check it for a typo.")
             }
-            HStack(spacing: HV.Space.m) {
-                TextField("MM", text: limited("expMonth", 2))
-                    .keyboardType(.numberPad)
-                    .textContentType(.creditCardExpirationMonth)
-                TextField("YY", text: limited("expYear", 4))
-                    .keyboardType(.numberPad)
-                    .textContentType(.creditCardExpirationYear)
-                VaultSecretField(title: "CVC", text: limited("cvc", 4), keyboard: .numberPad, contentType: .creditCardSecurityCode)
+        }
+        // Side by side while there is room; stacked at accessibility sizes, where two fields would each be a sliver.
+        if dynamicTypeSize.isAccessibilitySize {
+            monthField
+            yearField
+        } else {
+            HStack(alignment: .top, spacing: HV.Space.s) {
+                monthField
+                yearField
             }
-            TextField("Cardholder (optional)", text: binding("cardholder"))
+        }
+        HVLabeledField(title: "Security code (optional)") {
+            VaultSecretField(title: "Security code", text: limited("cvc", 4), keyboard: .numberPad, contentType: .creditCardSecurityCode)
+        }
+        HVLabeledField(title: "Cardholder (optional)") {
+            TextField("Name on the card", text: binding("cardholder"))
                 .textContentType(.creditCardName)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
-        } footer: {
-            Text("The list shows only the brand and the last four digits.")
+        }
+    }
+
+    private var monthField: some View {
+        HVLabeledField(title: "Expiry month") {
+            TextField("MM", text: limited("expMonth", 2))
+                .keyboardType(.numberPad)
+                .textContentType(.creditCardExpirationMonth)
+                .monospacedDigit()
+        }
+    }
+
+    private var yearField: some View {
+        HVLabeledField(title: "Expiry year") {
+            TextField("YY", text: limited("expYear", 4))
+                .keyboardType(.numberPad)
+                .textContentType(.creditCardExpirationYear)
+                .monospacedDigit()
         }
     }
 
@@ -132,39 +171,52 @@ struct VaultFieldsForm: View {
 
     @ViewBuilder
     private var contactFields: some View {
-        Section {
-            TextField("Full name (optional)", text: binding("fullName"))
+        HVLabeledField(title: "Full name") {
+            TextField("Jane Appleseed", text: binding("fullName"))
                 .textContentType(.name)
                 .textInputAutocapitalization(.words)
-            TextField("Email (optional)", text: binding("email"))
+        }
+        HVLabeledField(title: "Email") {
+            TextField("jane@appleseed.dev", text: binding("email"))
                 .keyboardType(.emailAddress)
                 .textContentType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-            TextField("Phone (optional)", text: binding("phone"))
+        }
+        HVLabeledField(title: "Phone") {
+            TextField("+1 555 0100", text: binding("phone"))
                 .keyboardType(.phonePad)
                 .textContentType(.telephoneNumber)
-            TextField("Address (optional)", text: binding("address"), axis: .vertical)
+        }
+        HVLabeledField(title: "Address") {
+            TextField("Street, city, postcode", text: binding("address"), axis: .vertical)
                 .lineLimit(2...5)
                 .textContentType(.fullStreetAddress)
-        } footer: {
-            Text("Add at least one. The list shows an email, or the last four digits of a phone number, never the rest.")
         }
+        Text("Add at least one. The list shows an email, or the last four digits of a phone number, never the rest.")
+            .font(.hvCaption)
+            .foregroundStyle(Palette.textSecondary)
     }
 
     // MARK: Key
 
     @ViewBuilder
     private var keyFields: some View {
-        Section {
-            if showsKindPicker {
+        if showsKindPicker {
+            HVLabeledField(title: "Kind") {
                 Picker("Kind", selection: $draft.kind) {
                     ForEach(VaultDraft.keyKinds, id: \.self) { kind in Text(kind.label).tag(kind) }
                 }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+        }
+        HVLabeledField(
+            title: "Value",
+            footnote: "An API token, a header value or an OAuth grant. The agents you allow read it by name."
+        ) {
             VaultSecretField(title: "Value", text: $draft.value, contentType: nil)
-        } footer: {
-            Text("An API token, a header value or an OAuth grant. The agents you allow read it by name.")
         }
     }
 }
@@ -196,7 +248,10 @@ struct VaultSecretField: View {
                     .frame(minWidth: 44, minHeight: 44)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.plain)
+            // The tap area is 44pt square, but the field it sits in takes its height from the text, so a
+            // secret field is as tall as the others. The button's extra height overlaps the field's own padding.
+            .padding(.vertical, -HV.Space.s)
             .accessibilityLabel(revealed ? "Hide \(title.lowercased())" : "Show \(title.lowercased())")
         }
         .onChange(of: scenePhase) { _, phase in

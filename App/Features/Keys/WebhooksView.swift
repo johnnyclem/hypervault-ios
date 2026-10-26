@@ -132,6 +132,7 @@ struct WebhooksView: View {
                             NavigationLink(value: WebhookDestination.hook(hook.id)) { WebhookRow(hook: hook) }
                         }
                     }
+                    .hvListRow()
                 }
                 .scrollContentBackground(.hidden)
                 .refreshable { await model.load() }
@@ -143,25 +144,37 @@ struct WebhooksView: View {
 private struct WebhookRow: View {
     let hook: OutboundWebhook
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
+
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
+
     var body: some View {
-        HStack(spacing: HV.Space.s + 2) {
-            HVIconBadge(symbol: "dot.radiowaves.left.and.right", tint: tint)
+        KeysRowLayout {
+            HVIconBadge(symbol: "dot.radiowaves.left.and.right", tint: tint, size: min(tile, 56))
+        } words: {
             VStack(alignment: .leading, spacing: 2) {
-                Text(hook.title).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(1)
-                Text(summary).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(1)
+                Text(hook.title).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(isLarge ? nil : 1)
+                Text(summary).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(isLarge ? nil : 2)
+                if isLarge, let statusTag { statusTag.padding(.top, 2) }
             }
-            Spacer(minLength: HV.Space.xs)
-            if !hook.enabled { HVTag(text: "Off", tint: Palette.textSecondary) } else if hook.isFailing { HVTag(text: "Failing", tint: Palette.warning) }
+        } trailing: {
+            if let statusTag { statusTag }
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 
+    private var statusTag: HVTag? {
+        if !hook.enabled { return HVTag(text: "Off", tint: Palette.textSecondary) }
+        if hook.isFailing { return HVTag(text: "Failing", tint: Palette.warning) }
+        return nil
+    }
+
     private var tint: Color { !hook.enabled ? Palette.textSecondary : (hook.isFailing ? Palette.warning : Palette.coral) }
 
     private var summary: String {
-        let events = hook.events.contains("truth.*") ? "Everything" : hook.events.map(WebhookRules.eventTitle).joined(separator: ", ")
-        return events
+        hook.events.contains("truth.*") ? "Everything" : hook.events.map(WebhookRules.eventTitle).joined(separator: ", ")
     }
 }
 
@@ -211,6 +224,7 @@ private struct WebhookDetailView: View {
                         .foregroundStyle(Palette.warning)
                 }
             }
+            .hvListRow()
 
             Section {
                 Toggle("Send events", isOn: Binding(get: { hook.enabled }, set: { setEnabled(hook, $0) }))
@@ -233,6 +247,7 @@ private struct WebhookDetailView: View {
             } footer: {
                 Text("A test is a signed truth.test ping, sent now.")
             }
+            .hvListRow()
 
             if !deliveries.isEmpty {
                 Section(header: HVSectionHeader(title: "Recent deliveries")) {
@@ -250,6 +265,7 @@ private struct WebhookDetailView: View {
                         .accessibilityElement(children: .combine)
                     }
                 }
+                .hvListRow()
             }
 
             Section {
@@ -258,6 +274,7 @@ private struct WebhookDetailView: View {
             } footer: {
                 Text("It stops at once, and its delivery history goes with it.")
             }
+            .hvListRow()
         }
         .scrollContentBackground(.hidden)
         .task { deliveries = await model.deliveries(of: hook) }
@@ -336,48 +353,68 @@ private struct AddWebhookSheet: View {
     }
 
     private var form: some View {
-        Form {
-            Section(footer: Text("Where HyperVault posts. Private and local addresses are refused.")) {
-                TextField("https://example.com/hooks/hypervault", text: $url)
-                    .keyboardType(.URL)
-                    .textContentType(.URL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField("Name (optional)", text: $name)
-            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: HV.Space.l) {
+                HVLabeledField(title: "Address", footnote: "Where HyperVault posts. Private and local addresses are refused.") {
+                    TextField("Address", text: $url, prompt: Text(verbatim: "https://example.com/hooks/hypervault"))
+                        .keyboardType(.URL)
+                        .textContentType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
 
-            Section(header: Text("Events")) {
+                HVLabeledField(title: "Name (optional)") {
+                    TextField("What do you call it?", text: $name)
+                }
+
+                eventsCard
+
+                HVLabeledField(
+                    title: "Only for (optional)",
+                    footnote: "Only entries whose author or signer is named are delivered. Leave empty for all. Separate names with commas."
+                ) {
+                    TextField("grok, claude", text: $authors)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+
+                VStack(alignment: .leading, spacing: HV.Space.s) {
+                    if let error { KeysInlineMessage(text: error) }
+                    Button {
+                        Task { await save() }
+                    } label: {
+                        if saving { ProgressView().tint(.white) } else { Text("Add webhook") }
+                    }
+                    .buttonStyle(.hvPrimary)
+                    .disabled(!canSave || saving)
+                }
+            }
+            .padding(HV.Space.m)
+            .hvReadableWidth()
+        }
+        .scrollDismissesKeyboard(.interactively)
+    }
+
+    /// Everything, or a choice of events. The choices appear only when Everything is off.
+    private var eventsCard: some View {
+        VStack(alignment: .leading, spacing: HV.Space.xs) {
+            HVSectionHeader(title: "Events")
+            VStack(spacing: 0) {
                 Toggle("Everything", isOn: $everything)
+                    .padding(.vertical, HV.Space.xs)
                 if !everything {
                     ForEach(model.events.filter { $0 != "truth.*" }, id: \.self) { event in
+                        Divider().overlay(Palette.hairline)
                         Toggle(WebhookRules.eventTitle(event), isOn: Binding(
                             get: { chosen.contains(event) },
                             set: { if $0 { chosen.insert(event) } else { chosen.remove(event) } }
                         ))
+                        .padding(.vertical, HV.Space.xs)
                     }
                 }
             }
-
-            Section(footer: Text("Only entries whose author or signer is named are delivered. Leave empty for all. Separate names with commas.")) {
-                TextField("Only for (optional)", text: $authors)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-            }
-
-            Section {
-                if let error { KeysInlineMessage(text: error) }
-                Button {
-                    Task { await save() }
-                } label: {
-                    if saving { ProgressView().tint(.white) } else { Text("Add webhook") }
-                }
-                .buttonStyle(.hvPrimary)
-                .disabled(!canSave || saving)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
-            }
+            .hvCard(padding: HV.Space.m)
         }
-        .scrollContentBackground(.hidden)
     }
 
     private var canSave: Bool {
@@ -448,6 +485,46 @@ private let webhooksPreviewJSON = #"""
 
 #Preview("Webhooks") {
     PreviewHost(routes: [.json(.get, "/api/webhooks", webhooksPreviewJSON)]) { WebhooksView() }
+}
+
+/// A preview and snapshot helper: the Add sheet over a loaded model.
+struct WebhookAddPreview: View {
+    @Environment(AppEnvironment.self) private var env
+    @State private var model: WebhooksModel?
+
+    var body: some View {
+        Group {
+            if let model { AddWebhookSheet(model: model) } else { HVLoadingState() }
+        }
+        .task {
+            let loaded = WebhooksModel(client: env.client)
+            await loaded.load()
+            model = loaded
+        }
+    }
+}
+
+/// A preview and snapshot helper: one hook's page over a loaded model.
+struct WebhookDetailPreview: View {
+    let hookID: String
+
+    @Environment(AppEnvironment.self) private var env
+    @State private var model: WebhooksModel?
+
+    var body: some View {
+        Group {
+            if let model { WebhookDetailView(hookID: hookID, model: model) } else { HVLoadingState() }
+        }
+        .task {
+            let loaded = WebhooksModel(client: env.client)
+            await loaded.load()
+            model = loaded
+        }
+    }
+}
+
+#Preview("Webhooks, add") {
+    PreviewHost(routes: [.json(.get, "/api/webhooks", webhooksPreviewJSON)], embedInNavigation: false) { WebhookAddPreview() }
 }
 
 #Preview("Webhooks, none") {

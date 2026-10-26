@@ -25,7 +25,8 @@ struct VaultTile: View {
     @ViewBuilder
     private var card: some View {
         if let brand = secret.cardBrand, brand != .other {
-            VaultBrandCard(brand: brand)
+            // Drawn for a 36pt tile; it grows with the tiles beside it instead of sitting small in a larger box.
+            VaultBrandCard(brand: brand).scaleEffect(size / 36)
         } else {
             symbol("creditcard", tint: Palette.violet)
         }

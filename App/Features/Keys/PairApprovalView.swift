@@ -201,6 +201,10 @@ struct PairApprovalScreen: View {
                 }
                 .labelStyle(.titleAndIcon)
                 .buttonBorderShape(.capsule)
+                .controlSize(.large)
+                // The system draws its label in white on the tint. The accent is bright in dark mode, where
+                // white would not read, so it takes the deep blue the primary button starts from.
+                .tint(Color(hex: 0x2563EB))
                 if let message = model.message { KeysInlineMessage(text: message).multilineTextAlignment(.center) }
             }
             .frame(maxWidth: 420)
@@ -242,7 +246,8 @@ struct PairApprovalScreen: View {
 
             VStack(spacing: HV.Space.xs) {
                 Text(PairingCopy.approveNote).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
-                Text(PairingCopy.whereItGoes).font(.hvFootnote).foregroundStyle(Palette.textTertiary)
+                // What the person needs to know before approving, so it is as readable as the line above it.
+                Text(PairingCopy.whereItGoes).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
             }
             .multilineTextAlignment(.center)
 

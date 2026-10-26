@@ -11,8 +11,10 @@ struct VaultItemDetailView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    @State private var grants: Set<String>?
+    @State private var grants = VaultGrantsPhase.loading
+    /// Why the last switch change was refused, in the server's words. A failed read has its own sentence.
     @State private var grantsError: String?
     @State private var pending: Set<String> = []
     @State private var editing = false
@@ -40,6 +42,7 @@ struct VaultItemDetailView: View {
                 header(secret)
                     .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.s, trailing: HV.Space.m))
             }
+            .hvListRow()
 
             Section {
                 LabeledContent("Type", value: secret.kind.label)
@@ -50,6 +53,7 @@ struct VaultItemDetailView: View {
                 Label("The value is encrypted and never shown again.", systemImage: "lock.fill")
                     .font(.hvFootnote)
             }
+            .hvListRow()
 
             allowedKeys(secret)
 
@@ -68,17 +72,20 @@ struct VaultItemDetailView: View {
             } header: {
                 HVSectionHeader(title: "How an agent reads it")
             }
+            .hvListRow()
 
             Section {
                 Button { editing = true } label: { Label("Rename or add a note", systemImage: "pencil") }
                 Button { Task { await startReplacing() } } label: { Label("Replace the value", systemImage: "arrow.triangle.2.circlepath") }
             }
+            .hvListRow()
 
             Section {
                 Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: "trash").foregroundStyle(Palette.danger) }
             } footer: {
                 Text("Deleting it cuts off every agent at once.")
             }
+            .hvListRow()
         }
         .scrollContentBackground(.hidden)
         .task(id: secret.id) { await loadGrants(secret) }
@@ -97,7 +104,7 @@ struct VaultItemDetailView: View {
         HStack(spacing: HV.Space.m) {
             VaultTile(secret: secret, size: 48)
             VStack(alignment: .leading, spacing: 2) {
-                Text(secret.name).font(.hvTitle3).lineLimit(2)
+                Text(secret.name).font(.hvTitle3).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 Text(secret.subtitle).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
             }
             Spacer(minLength: 0)
@@ -115,12 +122,20 @@ struct VaultItemDetailView: View {
                     Text("No agent keys yet. Connect an agent, then allow it here.")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
-                    Button("Connect an agent") { connecting = true }.buttonStyle(.hvGhost)
+                    Button("Connect an agent") { connecting = true }.buttonStyle(.hvGhost).padding(.leading, -HV.Space.s)
+                }
+            } else if grants.hasFailed {
+                // No switches at all: a row of them would read as "none allowed" when nobody knows.
+                VStack(alignment: .leading, spacing: HV.Space.xs) {
+                    Label(VaultGrantsCopy.loadFailed, systemImage: "exclamationmark.circle")
+                        .font(.hvFootnote)
+                        .foregroundStyle(Palette.textSecondary)
+                    Button("Try again") { Task { await loadGrants(secret) } }.buttonStyle(.hvGhost).padding(.leading, -HV.Space.s)
                 }
             } else {
                 ForEach(model.keys) { key in
                     Toggle(isOn: Binding(
-                        get: { grants?.contains(key.id) ?? false },
+                        get: { grants.granted.contains(key.id) },
                         set: { toggle(key, on: $0, secret: secret) }
                     )) {
                         VStack(alignment: .leading, spacing: 2) {
@@ -128,7 +143,7 @@ struct VaultItemDetailView: View {
                             Text(key.prefixLabel).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                         }
                     }
-                    .disabled(grants == nil || pending.contains(key.id))
+                    .disabled(!grants.isLoaded || pending.contains(key.id))
                 }
                 if let grantsError { KeysInlineMessage(text: grantsError) }
             }
@@ -137,24 +152,22 @@ struct VaultItemDetailView: View {
         } footer: {
             Text("Only the agent keys switched on here can read it.")
         }
+        .hvListRow()
     }
 
     private func loadGrants(_ secret: VaultSecret) async {
         grantsError = nil
-        do {
-            grants = try await model.grantedKeyIDs(for: secret)
-        } catch {
-            grants = []
-            grantsError = keysMessage(for: error)
-        }
+        grants = .loading
+        grants = await model.grantsPhase(for: secret)
     }
 
     /// The switch moves at once and goes back if the server says no.
     private func toggle(_ key: AgentKey, on: Bool, secret: VaultSecret) {
-        let before = grants ?? []
+        guard grants.isLoaded else { return }
+        let before = grants.granted
         var next = before
         if on { next.insert(key.id) } else { next.remove(key.id) }
-        grants = next
+        grants = .loaded(next)
         pending.insert(key.id)
         grantsError = nil
         Task {
@@ -163,7 +176,7 @@ struct VaultItemDetailView: View {
                 try await model.setGranted(on, keyID: key.id, for: secret)
                 Haptics.select()
             } catch {
-                grants = before
+                grants = .loaded(before)
                 grantsError = keysMessage(for: error)
                 Haptics.failure()
             }
@@ -233,24 +246,31 @@ private struct VaultEditSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    TextField("Name", text: $newName)
-                        .font(.system(.body, design: .monospaced))
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("Note (optional)", text: $note)
-                } footer: {
-                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
-                        Text("Agents ask for it by name, so renaming it changes what they ask for. \(VaultItems.nameHint)")
+            ScrollView {
+                VStack(alignment: .leading, spacing: HV.Space.l) {
+                    VStack(alignment: .leading, spacing: HV.Space.xs) {
+                        HVLabeledField(
+                            title: "Name",
+                            footnote: "Agents ask for it by name, so renaming it changes what they ask for. \(VaultItems.nameHint)"
+                        ) {
+                            TextField("github.com", text: $newName)
+                                .font(.system(.body, design: .monospaced))
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                        }
                         if !trimmedName.isEmpty, !VaultItems.isValidName(trimmedName) {
                             KeysInlineMessage(text: "Use letters, digits, dots, dashes and underscores. No spaces.")
                         }
-                        if let error { KeysInlineMessage(text: error) }
                     }
+                    HVLabeledField(title: "Note (optional)") {
+                        TextField("What is it for?", text: $note)
+                    }
+                    if let error { KeysInlineMessage(text: error) }
                 }
+                .padding(HV.Space.m)
+                .hvReadableWidth()
             }
-            .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             .hvScreenBackground()
             .navigationTitle("Edit")
             .navigationBarTitleDisplayMode(.inline)
@@ -307,20 +327,22 @@ private struct VaultReplaceSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
+            ScrollView {
+                VStack(alignment: .leading, spacing: HV.Space.l) {
                     Text("The saved value is never shown, so type the whole entry again. The agents you allowed keep their access.")
-                        .font(.hvFootnote)
+                        .font(.hvCallout)
                         .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    // The kind stays as it was: only a key can pick among the key kinds, and that is its own choice.
+                    VaultFieldsForm(draft: $draft, showsKindPicker: false)
+                    VStack(alignment: .leading, spacing: HV.Space.xs) {
+                        if draft.isTouched, let problem = draft.problem { KeysInlineMessage(text: problem, isError: false) }
+                        if let error { KeysInlineMessage(text: error) }
+                    }
                 }
-                // The kind stays as it was: only a key can pick among the key kinds, and that is its own choice.
-                VaultFieldsForm(draft: $draft, showsKindPicker: false)
-                Section {
-                    if draft.isTouched, let problem = draft.problem { KeysInlineMessage(text: problem, isError: false) }
-                    if let error { KeysInlineMessage(text: error) }
-                }
+                .padding(HV.Space.m)
+                .hvReadableWidth()
             }
-            .scrollContentBackground(.hidden)
             .scrollDismissesKeyboard(.interactively)
             .hvScreenBackground()
             .navigationTitle("Replace \(secret.name)")
@@ -358,6 +380,30 @@ private struct VaultReplaceSheet: View {
 
 #Preview("Vault card") {
     PreviewHost(routes: VaultPreviewData.routes) { VaultEntryPreview(name: "visa-4242") }
+}
+
+/// A preview and snapshot helper: the rename sheet, or the replace sheet, over a loaded model.
+struct VaultChangePreview: View {
+    let name: String
+    var replacing = false
+
+    @Environment(AppEnvironment.self) private var env
+    @State private var model: VaultItemsModel?
+
+    var body: some View {
+        Group {
+            if let model, let secret = model.secret(named: name) {
+                if replacing { VaultReplaceSheet(secret: secret, model: model) } else { VaultEditSheet(secret: secret, model: model) }
+            } else {
+                HVLoadingState()
+            }
+        }
+        .task {
+            let loaded = VaultItemsModel(client: env.client, rest: env.keysRest, userID: env.user.id)
+            await loaded.load()
+            model = loaded
+        }
+    }
 }
 
 struct VaultEntryPreview: View {

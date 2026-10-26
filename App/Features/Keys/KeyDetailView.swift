@@ -10,6 +10,7 @@ struct KeyDetailView: View {
 
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var confirmRevoke = false
     @State private var showSteps = false
@@ -36,6 +37,7 @@ struct KeyDetailView: View {
                 header(key, status: status)
                     .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.s, trailing: HV.Space.m))
             }
+            .hvListRow()
 
             Section {
                 LabeledContent("Key", value: key.prefixLabel)
@@ -52,6 +54,7 @@ struct KeyDetailView: View {
             } footer: {
                 Text("The key itself was shown once, when it was made. It cannot be shown again.")
             }
+            .hvListRow()
 
             if key.hasMailControls {
                 Section(footer: Text("Reading its mailbox is always allowed. Sending is your choice.")) {
@@ -61,20 +64,22 @@ struct KeyDetailView: View {
                     ))
                     .disabled(model.changing.contains(key.id))
                 }
+                .hvListRow()
             }
 
             Section {
                 Button { showSteps = true } label: {
-                    HVRow(symbol: "list.bullet.rectangle", tint: Palette.blue, title: "Setup steps", subtitle: "Steps for an agent, with this key's place marked")
+                    HVRow(symbol: "list.bullet.rectangle", tint: Palette.blue, title: "Setup steps", subtitle: "Steps for an agent, with this key's place marked") { KeysChevron() }
                 }
                 if let status, !status.complete {
                     Button {
                         app.router.open(.route(.artifact(slug: status.slug)))
                     } label: {
-                        HVRow(symbol: "doc.text", tint: Palette.violet, title: "Its challenge page", subtitle: "The page the agent has to rewrite")
+                        HVRow(symbol: "doc.text", tint: Palette.violet, title: "Its challenge page", subtitle: "The page the agent has to rewrite") { KeysChevron() }
                     }
                 }
             }
+            .hvListRow()
 
             Section {
                 Button(role: .destructive) { confirmRevoke = true } label: {
@@ -84,6 +89,7 @@ struct KeyDetailView: View {
             } footer: {
                 Text("The agent using it stops working at once. The row is kept for audit.")
             }
+            .hvListRow()
         }
         .scrollContentBackground(.hidden)
         .confirmationDialog("Revoke \(key.displayName ?? key.prefixLabel)?", isPresented: $confirmRevoke, titleVisibility: .visible) {
@@ -98,18 +104,19 @@ struct KeyDetailView: View {
     }
 
     private func header(_ key: AgentKey, status: AgentSetupStatus?) -> some View {
-        HStack(spacing: HV.Space.m) {
+        let tag = status.map { HVTag(text: $0.complete ? "Agent connected" : "Setup pending", tint: $0.complete ? Palette.success : Palette.warning) }
+        return HStack(alignment: dynamicTypeSize.isAccessibilitySize ? .top : .center, spacing: HV.Space.m) {
             HVIconBadge(symbol: key.isPaired ? "link" : "key.horizontal", tint: status?.complete == true ? Palette.mint : Palette.amber, size: 48)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(key.displayName ?? "Untitled key").font(.hvTitle3)
                 if key.isPaired {
                     Text("Made by approving an AI tool").font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                 }
+                // Beside the name while it fits; under it at accessibility sizes, where the name needs the width.
+                if dynamicTypeSize.isAccessibilitySize, let tag { tag }
             }
             Spacer(minLength: 0)
-            if let status {
-                HVTag(text: status.complete ? "Agent connected" : "Setup pending", tint: status.complete ? Palette.success : Palette.warning)
-            }
+            if !dynamicTypeSize.isAccessibilitySize, let tag { tag }
         }
         .accessibilityElement(children: .combine)
     }

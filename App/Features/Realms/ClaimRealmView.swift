@@ -65,24 +65,17 @@ struct ClaimRealmView: View {
         VStack(alignment: .leading, spacing: HV.Space.l) {
             VStack(alignment: .leading, spacing: HV.Space.xs) {
                 Text("Pick your name").font(.hvHeadline)
-                HStack(spacing: HV.Space.xs) {
-                    TextField("nova", text: $name)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.asciiCapable)
-                        .submitLabel(.done)
-                        .focused($nameFocused)
-                        .onChange(of: name) { _, value in
-                            let lowered = value.lowercased()
-                            if lowered != value { name = lowered }
-                            failure = nil
-                        }
-                        .hvFieldChrome(isFocused: nameFocused)
-                    Text(".\(chosenBase)")
-                        .font(.system(.footnote, design: .monospaced))
-                        .foregroundStyle(Palette.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
+                // The domain sits beside the field while they fit and under it when they do not, so neither
+                // is squeezed at the largest text sizes.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: HV.Space.xs) {
+                        nameField
+                        domainSuffix
+                    }
+                    VStack(alignment: .leading, spacing: HV.Space.xs) {
+                        nameField
+                        domainSuffix
+                    }
                 }
                 availabilityLine
                     .frame(minHeight: 20, alignment: .leading)
@@ -101,6 +94,29 @@ struct ClaimRealmView: View {
         }
         .padding(HV.Space.m)
         .hvReadableWidth()
+    }
+
+    private var nameField: some View {
+        TextField("nova", text: $name)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .keyboardType(.asciiCapable)
+            .submitLabel(.done)
+            .focused($nameFocused)
+            .onChange(of: name) { _, value in
+                let lowered = value.lowercased()
+                if lowered != value { name = lowered }
+                failure = nil
+            }
+            .hvFieldChrome(isFocused: nameFocused)
+    }
+
+    private var domainSuffix: some View {
+        Text(".\(chosenBase)")
+            .font(.system(.footnote, design: .monospaced))
+            .foregroundStyle(Palette.textSecondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
     }
 
     /// The one filled action, pinned where the thumb is, so it is there whatever the portfolio's length.
@@ -129,11 +145,16 @@ struct ClaimRealmView: View {
             base = domain.domain
         } label: {
             VStack(alignment: .leading, spacing: HV.Space.xs) {
-                HStack {
-                    Text(domain.domain).font(.system(.body, design: .monospaced, weight: .semibold)).foregroundStyle(Palette.textPrimary)
-                    Spacer(minLength: HV.Space.xs)
-                    if domain.featured { HVTag(text: "Featured", tint: Palette.blue) }
-                    if !domain.available { HVTag(text: "Coming soon") }
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        Text(domain.domain).font(.system(.body, design: .monospaced, weight: .semibold)).foregroundStyle(Palette.textPrimary)
+                        Spacer(minLength: HV.Space.xs)
+                        domainTags(domain)
+                    }
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
+                        Text(domain.domain).font(.system(.body, design: .monospaced, weight: .semibold)).foregroundStyle(Palette.textPrimary)
+                        HStack { domainTags(domain) }
+                    }
                 }
                 if !domain.tagline.isEmpty {
                     Text(domain.tagline).font(.hvFootnote).foregroundStyle(Palette.textSecondary).multilineTextAlignment(.leading)
@@ -160,6 +181,12 @@ struct ClaimRealmView: View {
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityHint(domain.available ? "Choose this domain" : "Not open yet")
+    }
+
+    @ViewBuilder
+    private func domainTags(_ domain: Capabilities.PortfolioDomain) -> some View {
+        if domain.featured { HVTag(text: "Featured", tint: Palette.blue) }
+        if !domain.available { HVTag(text: "Coming soon") }
     }
 
     @ViewBuilder

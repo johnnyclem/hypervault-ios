@@ -3,9 +3,9 @@ import SwiftUI
 import XCTest
 @testable import HyperVault
 
-/// The graph's first frame: where the layout stands when the picture is first framed.
+/// The logic behind the Memory screens that is worth pinning down apart from how they look.
 @MainActor
-final class MemoryGraphLayoutTests: XCTestCase {
+final class MemoryLogicTests: XCTestCase {
     private func tree(_ count: Int) -> (nodes: [ForceGraphNode], edges: [ForceGraphEdge]) {
         let nodes = (0..<count).map { ForceGraphNode(id: "n\($0)", label: "Node \($0)", color: Palette.blue, weight: 1 + Double($0 % 4)) }
         let edges = (1..<count).map { ForceGraphEdge(source: "n\($0)", target: "n\($0 / 2)", isStrong: $0 % 7 == 0) }
@@ -39,5 +39,15 @@ final class MemoryGraphLayoutTests: XCTestCase {
         model.update(nodes: nodes, edges: edges, reduceMotion: true)
         XCTAssertFalse(model.isSimulating)
         XCTAssertEqual(model.points.count, 24)
+    }
+
+    func testAReceiptNeverBreaksBeforeItsDots() {
+        let receipt = MemoryProvenance(
+            commitId: "8b41d07a-2c93-4f55-a6e0-1d7c93b4e802", message: "memorize: Passport checklist",
+            authorKind: .agent, authorKeyPrefix: "hv_ab12cdef", committedAt: Date(timeIntervalSinceNow: -86_400 * 30)
+        )
+        let line = MemoryReceiptText.line(receipt)
+        XCTAssertTrue(line.contains("\u{00A0}\u{00B7} "), line)
+        XCTAssertFalse(line.contains(" \u{00B7}"), "a plain space before a dot is where a line would break: \(line)")
     }
 }

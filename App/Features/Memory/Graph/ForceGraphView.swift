@@ -545,7 +545,7 @@ enum ForceGraphRenderer {
         for placement in placements {
             guard let label = resolved[placement.id] else { continue }
             let backing = placement.frame.insetBy(dx: -4, dy: -2)
-            context.fill(Path(roundedRect: backing, cornerRadius: 5), with: .color(Palette.background.opacity(0.82)))
+            context.fill(Path(roundedRect: backing, cornerRadius: 5), with: .color(Palette.background.opacity(0.9)))
             context.draw(label, at: CGPoint(x: placement.frame.midX, y: placement.frame.midY), anchor: .center)
         }
     }

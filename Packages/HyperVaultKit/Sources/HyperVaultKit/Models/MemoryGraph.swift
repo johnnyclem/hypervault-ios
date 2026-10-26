@@ -1,7 +1,7 @@
 import Foundation
 
 /// A page a memory is bridged to, as far as the graph needs to know it.
-public struct MemoryGraphArtifact: Sendable, Hashable {
+public struct MemoryGraphArtifact: Sendable, Hashable, Identifiable {
     public let id: String
     public let title: String
     public let slug: String?

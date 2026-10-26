@@ -114,6 +114,23 @@ final class ForceLabelsTests: XCTestCase {
         XCTAssertTrue(screen.contains(one.frame))
     }
 
+    func testANameHangsOffTheNodesCornerWhenTheStraightPlacesAreTaken() throws {
+        let center = CGPoint(x: 200, y: 300)
+        // Above, beside and to the left are kept out; a link runs down the right-hand side of the node,
+        // through the name that would sit under it and the one that would run off to the right.
+        let keep = [
+            CGRect(x: 150, y: 275, width: 100, height: 14),
+            CGRect(x: 211, y: 293, width: 100, height: 14),
+            CGRect(x: 89, y: 293, width: 100, height: 14),
+        ]
+        let down = ForceLabelPlacer.Segment(from: CGPoint(x: 235, y: 280), to: CGPoint(x: 235, y: 400))
+        let placed = ForceLabelPlacer.place([request("a", at: center)], nodes: [disc("a", at: center)], links: [down], options: options(keepOut: keep))
+        let one = try XCTUnwrap(placed.first)
+        XCTAssertEqual(one.side, .belowLeading)
+        XCTAssertTrue(one.frame.minX...one.frame.maxX ~= center.x, "the node is still over the name")
+        XCTAssertFalse(ForceLabelPlacer.intersects(down, one.frame.insetBy(dx: -4, dy: -2)))
+    }
+
     func testKeepOutAreasAreRespected() throws {
         let center = CGPoint(x: 200, y: 300)
         let legend = CGRect(x: 0, y: 312, width: 400, height: 30)

@@ -257,6 +257,7 @@ enum MemoryReceiptText {
         if !receipt.message.isEmpty { parts.append(receipt.message) }
         let when = MemoryDates.relative(receipt.committedAt)
         if !when.isEmpty { parts.append(when) }
-        return parts.joined(separator: " \u{00B7} ")
+        // The dot stays with the part before it, so a long line never starts with one.
+        return parts.joined(separator: "\u{00A0}\u{00B7} ")
     }
 }

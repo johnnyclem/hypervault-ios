@@ -82,8 +82,11 @@ public enum ForceLabelPlacer {
         }
     }
 
+    /// Where a name sits against its node, in the order they are tried. The last four hang the name off
+    /// the node's corner: it runs along one side of the node, with the node over its near end.
     public enum Side: Sendable, CaseIterable {
         case below, above, trailing, leading
+        case belowTrailing, belowLeading, aboveTrailing, aboveLeading
     }
 
     public struct Placement: Sendable {
@@ -144,20 +147,28 @@ public enum ForceLabelPlacer {
         let height = request.size.height
         let reach = request.radius + options.gap
         let center = request.center
+        // The node has to stay over the name, not past the end of it.
+        let hold = min(width / 4, 14)
+        let slack: CGFloat = 0.001
+        let below = center.y + reach
+        let above = center.y - reach - height
         switch side {
-        case .below, .above:
-            var x = center.x - width / 2
+        case .below, .above, .belowTrailing, .belowLeading, .aboveTrailing, .aboveLeading:
+            var x: CGFloat
+            switch side {
+            case .belowTrailing, .aboveTrailing: x = center.x - hold
+            case .belowLeading, .aboveLeading: x = center.x + hold - width
+            default: x = center.x - width / 2
+            }
             if clampX {
                 let low = options.bounds.minX + options.padding.width
                 let high = options.bounds.maxX - options.padding.width - width
                 guard low <= high else { return nil }
                 x = min(max(x, low), high)
-                // The node has to stay over the name, not past the end of it.
-                let hold = min(width / 4, 14)
-                guard center.x >= x + hold, center.x <= x + width - hold else { return nil }
+                guard center.x >= x + hold - slack, center.x <= x + width - hold + slack else { return nil }
             }
-            let y = side == .below ? center.y + reach : center.y - reach - height
-            return CGRect(x: x, y: y, width: width, height: height)
+            let isBelow = side == .below || side == .belowTrailing || side == .belowLeading
+            return CGRect(x: x, y: isBelow ? below : above, width: width, height: height)
         case .trailing:
             return CGRect(x: center.x + reach, y: center.y - height / 2, width: width, height: height)
         case .leading:

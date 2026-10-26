@@ -356,8 +356,8 @@ private struct DreamConnectionCard: View {
         } label: {
             HStack(spacing: HV.Space.s) {
                 HVIconBadge(
-                    symbol: end.kind == .memory ? "brain.head.profile" : "doc.richtext",
-                    tint: end.kind == .memory ? Palette.blue : Palette.rose,
+                    symbol: end.kind == .memory ? KeptKind.memory.symbol : KeptKind.page.symbol,
+                    tint: end.kind == .memory ? KeptKind.memory.tint : KeptKind.page.tint,
                     size: 36
                 )
                 Text(end.label)

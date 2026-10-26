@@ -63,11 +63,16 @@ struct MindCommitRow: View {
                     .foregroundStyle(Palette.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
+                // The short id sits at the end of the author's line, so the message keeps the whole width.
                 HStack(spacing: 6) {
                     Image(systemName: commit.authorKind.symbol)
                         .font(.system(size: 10))
                         .accessibilityHidden(true)
                     Text("\(commit.author) \u{00B7} \(MemoryDates.quiet(commit.createdAt))")
+                    Spacer(minLength: HV.Space.xs)
+                    Text(commit.shortId)
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(Palette.textTertiary)
                 }
                 .font(.hvCaption)
                 .foregroundStyle(Palette.textSecondary)
@@ -78,10 +83,6 @@ struct MindCommitRow: View {
                         .foregroundStyle(Palette.textTertiary)
                 }
             }
-            Spacer(minLength: HV.Space.xs)
-            Text(commit.shortId)
-                .font(.system(.caption2, design: .monospaced))
-                .foregroundStyle(Palette.textTertiary)
         }
         .padding(HV.Space.s + 2)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -159,7 +160,7 @@ struct MindCommitDetailView: View {
                 .font(.hvCallout)
                 .foregroundStyle(Palette.textSecondary)
             ForEach(state.memories) { memory in
-                HVRow(symbol: "brain.head.profile", tint: Palette.blue, title: memory.title, subtitle: memory.summary)
+                HVRow(symbol: KeptKind.memory.symbol, tint: KeptKind.memory.tint, title: memory.title, subtitle: memory.summary)
                     .padding(.vertical, 4)
             }
         }

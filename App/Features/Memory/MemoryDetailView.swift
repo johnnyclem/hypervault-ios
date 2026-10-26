@@ -186,14 +186,12 @@ private struct MemoryDetailContent: View {
     private func related(_ memories: [MemoryRelated]) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             HVSectionHeader(title: "Linked memories", detail: "\(memories.count)")
-            ForEach(memories) { memory in
+            MemoryRowStack(items: memories) { memory in
                 NavigationLink(value: Route.memory(id: memory.id)) {
-                    HVRow(symbol: "brain.head.profile", tint: Palette.blue, title: memory.title, subtitle: memory.summary) {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Palette.textTertiary)
+                    HVRow(symbol: KeptKind.memory.symbol, tint: KeptKind.memory.tint, title: memory.title, subtitle: memory.summary) {
+                        MemoryChevron()
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, HV.Space.xs)
                 }
                 .buttonStyle(.plain)
                 .frame(minHeight: 44)
@@ -204,14 +202,12 @@ private struct MemoryDetailContent: View {
     private func artifacts(_ pages: [MemoryArtifactRef]) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             HVSectionHeader(title: "Linked pages", detail: "\(pages.count)")
-            ForEach(pages) { artifact in
+            MemoryRowStack(items: pages) { artifact in
                 NavigationLink(value: Route.artifact(slug: artifact.slug)) {
-                    HVRow(symbol: "doc.richtext", tint: Palette.rose, title: artifact.title, subtitle: artifact.type) {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Palette.textTertiary)
+                    HVRow(symbol: KeptKind.page.symbol, tint: KeptKind.page.tint, title: artifact.title, subtitle: artifact.type) {
+                        MemoryChevron()
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, HV.Space.xs)
                 }
                 .buttonStyle(.plain)
                 .frame(minHeight: 44)
@@ -230,29 +226,25 @@ private struct MemoryDetailContent: View {
                     symbol: "clock.arrow.circlepath", tint: Palette.violet, title: "History",
                     subtitle: page.revisionCount > 0 ? "\(page.revisionCount) \(page.revisionCount == 1 ? "revision" : "revisions")" : "Every change is a commit"
                 ) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Palette.textTertiary)
+                    MemoryChevron()
                 }
                 .padding(.vertical, HV.Space.xs)
             }
             .buttonStyle(.plain)
             .frame(minHeight: 44)
-            Divider()
+            MemoryRowDivider()
             if page.branch == MindBranchName.defaultName {
                 Button {
                     showConnect = true
                 } label: {
                     HVRow(symbol: "link", tint: Palette.blue, title: "Link to\u{2026}", subtitle: "Join it to another memory or a page") {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Palette.textTertiary)
+                        MemoryChevron()
                     }
                     .padding(.vertical, HV.Space.xs)
                 }
                 .buttonStyle(.plain)
                 .frame(minHeight: 44)
-                Divider()
+                MemoryRowDivider()
             }
             Button {
                 digest()
@@ -266,9 +258,7 @@ private struct MemoryDetailContent: View {
             .disabled(model.isWorking)
             .frame(minHeight: 44)
         }
-        .padding(.horizontal, HV.Space.m)
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+        .memoryRowCard()
     }
 
     // MARK: Menu and actions

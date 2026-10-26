@@ -193,6 +193,52 @@ struct MemorySourceChip: View {
     }
 }
 
+/// A hairline between rows that share a card.
+struct MemoryRowDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(Palette.hairline)
+            .frame(height: 1)
+            .accessibilityHidden(true)
+    }
+}
+
+/// The small arrow at the end of a row that opens something.
+struct MemoryChevron: View {
+    var body: some View {
+        Image(systemName: "chevron.right")
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(Palette.textTertiary)
+            .accessibilityHidden(true)
+    }
+}
+
+extension View {
+    /// Rows that belong together, on one sheet of paper with a hairline border: the card a list of rows sits in.
+    func memoryRowCard() -> some View {
+        self
+            .padding(.horizontal, HV.Space.m)
+            .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+    }
+}
+
+/// A list of rows in one card, a hairline between them.
+struct MemoryRowStack<Item: Identifiable, Row: View>: View {
+    let items: [Item]
+    @ViewBuilder let row: (Item) -> Row
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                if index > 0 { MemoryRowDivider() }
+                row(item)
+            }
+        }
+        .memoryRowCard()
+    }
+}
+
 /// The label above a field that is more than one text field (the tags, with their chips). It matches
 /// the label HVLabeledField puts above a plain one, so a form reads the same all the way down.
 struct MemoryFieldLabel: View {

@@ -152,10 +152,15 @@ server change if you want the app to do more:
 - The app builds for the simulator in CI with 459 tests (screen state machines, link
   parsing, sign-in and access phases) and renders every screen in light and dark, and the
   main ones at the largest text sizes, to PNGs the workflow publishes.
+- A live contract check (`HV_LIVE_SERVER=https://hypervault.store swift test --filter LiveServerTests`, read-only,
+  no credentials) passes against production: the real `/api/capabilities` answer decodes and names a Supabase
+  project, the project offers Google and email sign-in (Apple was off when checked), an anonymous call gets a
+  readable 401, and the pages the app links to exist.
 - **Not yet done:** a run on a physical device, against the production Supabase project, with
   a real Google or Apple sign-in. On-device chat (Foundation Models), Face ID, dictation,
   the scanner, widgets and the share extension compile and are exercised only as far as the
-  simulator allows. Expect rough edges there, and please report them.
+  simulator allows. Expect rough edges there, and please report them. [docs/DEVICE_TEST_PLAN.md](docs/DEVICE_TEST_PLAN.md)
+  is the checklist for trying them on a phone.
 
 ## License
 

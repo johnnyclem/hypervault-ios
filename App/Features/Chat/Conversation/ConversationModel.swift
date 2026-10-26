@@ -5,6 +5,8 @@ import SwiftUI
 enum ChatModelChoice: Hashable {
     case server(String)
     case onDevice
+    /// A model on the person's own network, called by this phone.
+    case local(String)
 }
 
 /// What "Keep" made of a reply, shown under it.
@@ -56,6 +58,7 @@ final class ChatConversationModel {
     private(set) var isStale = false
     private(set) var backends: [ChatBackend] = []
     private(set) var backendsLoaded = false
+    private(set) var localModels: [ChatLocalModel] = []
     var choice: ChatModelChoice?
     private(set) var settings = ChatSettings()
     private(set) var hasToolkit = false
@@ -125,8 +128,31 @@ final class ChatConversationModel {
 
     var isOnDevice: Bool { choice == .onDevice }
 
+    /// The phone writes this reply (itself, or from a model on its network): no
+    /// server-side tools, and the reply streams.
+    var runsLocally: Bool {
+        switch choice {
+        case .onDevice, .local: return true
+        default: return false
+        }
+    }
+
+    /// The one calm line under the thread while a local model is chosen.
+    var toolFreeLine: String? {
+        switch choice {
+        case .onDevice: return ChatOnDeviceModels.toolFreeLine
+        case .local: return "Answering from your model on your network. Tools need a connected model."
+        default: return nil
+        }
+    }
+
     var selectedBackend: ChatBackend? {
         if case .server(let id) = choice { return backends.first { $0.id == id } }
+        return nil
+    }
+
+    var selectedLocal: ChatLocalModel? {
+        if case .local(let id) = choice { return localModels.first { $0.id == id } }
         return nil
     }
 
@@ -135,6 +161,7 @@ final class ChatConversationModel {
         switch choice {
         case .onDevice: return ChatOnDeviceModels.title
         case .server: return selectedBackend?.name ?? "Model"
+        case .local: return selectedLocal?.displayName ?? "Model"
         case nil: return backendsLoaded ? "Connect a model" : "Model"
         }
     }
@@ -209,6 +236,7 @@ final class ChatConversationModel {
     }
 
     private func loadSidecars() async {
+        localModels = onDevice.localModels()
         let client = self.client
         async let fetchedSettings = try? await client.send(.chatSettings)
         async let fetchedToolkit = try? await client.send(.toolkitStatus)
@@ -257,6 +285,7 @@ final class ChatConversationModel {
 
     private enum DefaultsKey {
         static func lastBackend(_ namespace: String) -> String { "pref.chat.backend.\(namespace)" }
+        static let lastLocal = "pref.chat.local"
     }
 
     private func chooseDefaultIfNeeded() {
@@ -266,18 +295,25 @@ final class ChatConversationModel {
                 if onDeviceUsable { return }
             case .server(let id):
                 if backends.contains(where: { $0.id == id }) { return }
+            case .local(let id):
+                if localModels.contains(where: { $0.id == id }) { return }
             }
             choice = nil
         }
         let remembered = defaults.string(forKey: DefaultsKey.lastBackend(namespace))
+        let rememberedLocal = defaults.string(forKey: DefaultsKey.lastLocal)
         if defaults.bool(forKey: PrefKey.onDeviceChat), onDeviceUsable {
             choice = .onDevice
+        } else if let rememberedLocal, localModels.contains(where: { $0.id == rememberedLocal }) {
+            choice = .local(rememberedLocal)
         } else if let remembered, backends.contains(where: { $0.id == remembered }) {
             choice = .server(remembered)
         } else if let recent = backends.max(by: { ($0.lastUsedAt ?? .distantPast) < ($1.lastUsedAt ?? .distantPast) }) {
             choice = .server(recent.id)
         } else if onDeviceUsable {
             choice = .onDevice
+        } else if let first = localModels.first {
+            choice = .local(first.id)
         }
     }
 
@@ -286,10 +322,21 @@ final class ChatConversationModel {
         switch newChoice {
         case .onDevice:
             defaults.set(true, forKey: PrefKey.onDeviceChat)
+            defaults.removeObject(forKey: DefaultsKey.lastLocal)
         case .server(let id):
             defaults.set(false, forKey: PrefKey.onDeviceChat)
             defaults.set(id, forKey: DefaultsKey.lastBackend(namespace))
+            defaults.removeObject(forKey: DefaultsKey.lastLocal)
+        case .local(let id):
+            defaults.set(false, forKey: PrefKey.onDeviceChat)
+            defaults.set(id, forKey: DefaultsKey.lastLocal)
         }
+    }
+
+    /// Called when the Models screen changed the models on the person's network.
+    func localModelsChanged(_ list: [ChatLocalModel]) {
+        localModels = list
+        chooseDefaultIfNeeded()
     }
 
     /// Called when the Models screen changed the list.
@@ -402,7 +449,13 @@ final class ChatConversationModel {
             case .server(let backendID):
                 await self.runServerTurn(text: text, userRowID: user.id, backendID: backendID, toolChoice: toolChoice)
             case .onDevice:
-                await self.runOnDeviceTurn(text: text, userRowID: user.id)
+                await self.runLocalTurn(text: text, userRowID: user.id, provider: self.onDevice.makeProvider(), unavailable: self.onDevice.status().explanation)
+            case .local(let id):
+                let local = self.localModels.first { $0.id == id }
+                await self.runLocalTurn(
+                    text: text, userRowID: user.id, provider: local.flatMap { self.onDevice.makeLocalProvider($0) },
+                    unavailable: "That model is no longer in your list. Choose another."
+                )
             }
             self.isWorking = false
             self.workStarted = nil
@@ -466,9 +519,11 @@ final class ChatConversationModel {
         markFailed(userRowID, error.userMessage)
     }
 
-    private func runOnDeviceTurn(text: String, userRowID: String) async {
-        guard let provider = onDevice.makeProvider() else {
-            markFailed(userRowID, onDevice.status().explanation)
+    /// A turn written by a model on this phone or on its network: context from
+    /// the server, the reply streamed here, then saved.
+    private func runLocalTurn(text: String, userRowID: String, provider: ChatModelProvider?, unavailable: String) async {
+        guard let provider else {
+            markFailed(userRowID, unavailable)
             return
         }
         let assistant = ChatThreadRow(kind: .assistant, model: provider.modelName, state: .streaming, onDevice: true)

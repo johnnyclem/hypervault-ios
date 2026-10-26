@@ -144,6 +144,29 @@ final class ChatModelTests: XCTestCase {
         XCTAssertEqual(model.conversationID, "c5")
     }
 
+    func testAModelOnTheNetworkAnswersAndIsSaved() async {
+        let local = ChatLocalModel(id: "l1", name: "Studio", baseURL: "192.168.1.20:11434", model: "llama3.3")
+        let model = makeModel(
+            routes: [
+                .json(.post, "/api/chat/context", #"{"conversation_id":null,"system":"S","messages":[{"role":"user","content":"hi"}],"next_position":0}"#),
+                .json(.post, "/api/chat/turns", #"{"conversation_id":"c6","reply":{"id":"m4","role":"assistant","content":"x","model":"fake-on-device"}}"#),
+            ],
+            onDevice: .fixed(.unavailable("no"), localModels: [local], localProvider: FakeOnDeviceModel())
+        )
+        model.localModelsChanged([local])
+        model.select(.local("l1"))
+        XCTAssertTrue(model.runsLocally)
+        XCTAssertEqual(model.modelName, "Studio")
+        XCTAssertNotNil(model.toolFreeLine)
+        model.draft = "hi"
+        model.sendDraft()
+        await settle(model)
+        XCTAssertEqual(model.rows.map(\.kind), [.user, .assistant])
+        XCTAssertEqual(model.rows[1].text, "Hello from the phone.")
+        XCTAssertEqual(model.rows[1].state, .saved)
+        XCTAssertEqual(model.conversationID, "c6")
+    }
+
     func testAnOnDeviceTurnWaitsInTheOutboxWhenTheNetworkIsGone() async {
         let env = AppEnvironment.preview(routes: [])
         let outbox = ChatTurnOutbox(cache: env.cache, namespace: "offline")

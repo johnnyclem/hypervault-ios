@@ -28,7 +28,7 @@ struct ChatOptionsSheet: View {
             .navigationDestination(for: ChatDestination.self) { destination in
                 switch destination {
                 case .models, .newConversation:
-                    ChatModelsScreen { model.backendsChanged($0) }
+                    ChatModelsScreen(onChange: { model.backendsChanged($0) }, onLocalChange: { model.localModelsChanged($0) })
                 }
             }
         }
@@ -46,6 +46,14 @@ struct ChatOptionsSheet: View {
                     selected: model.choice == .server(backend.id), enabled: true
                 ) {
                     model.select(.server(backend.id))
+                }
+            }
+            ForEach(model.localModels) { local in
+                choiceRow(
+                    title: local.displayName, subtitle: "On your network \u{00B7} \(local.model)", symbol: "desktopcomputer",
+                    selected: model.choice == .local(local.id), enabled: true
+                ) {
+                    model.select(.local(local.id))
                 }
             }
             if model.onDeviceUsable || !model.onDeviceStatus.isAvailable {
@@ -124,7 +132,7 @@ struct ChatOptionsSheet: View {
                     "Use my tools", detail: "Let the model act through the services you have connected.",
                     isOn: $model.useTools
                 )
-                .disabled(model.isOnDevice)
+                .disabled(model.runsLocally)
             } else {
                 Button {
                     dismiss()
@@ -148,8 +156,8 @@ struct ChatOptionsSheet: View {
         } header: {
             HVSectionHeader(title: "Tools")
         } footer: {
-            if model.isOnDevice {
-                Text("A model on this iPhone can't use tools. Choose a connected model for that.")
+            if model.runsLocally {
+                Text("A model that answers on this iPhone or your network can't use tools. Choose a connected model for that.")
             }
         }
     }

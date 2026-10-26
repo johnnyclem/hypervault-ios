@@ -23,14 +23,25 @@ struct ChatOnDeviceStatus: Equatable {
 struct ChatOnDeviceSupport {
     var status: () -> ChatOnDeviceStatus
     var makeProvider: () -> ChatModelProvider?
+    /// Models on the person's own network, which the phone calls directly.
+    var localModels: () -> [ChatLocalModel] = { [] }
+    var makeLocalProvider: (ChatLocalModel) -> ChatModelProvider? = { _ in nil }
 
     static let system = ChatOnDeviceSupport(
         status: { ChatOnDeviceModels.status() },
-        makeProvider: { ChatOnDeviceModels.provider() }
+        makeProvider: { ChatOnDeviceModels.provider() },
+        localModels: { ChatLocalModelStore.load() },
+        makeLocalProvider: { OpenAICompatibleProvider(local: $0, lines: { ChatURLSessionLines.lines(for: $0) }) }
     )
 
-    static func fixed(_ status: ChatOnDeviceStatus, provider: ChatModelProvider? = nil) -> ChatOnDeviceSupport {
-        ChatOnDeviceSupport(status: { status }, makeProvider: { provider })
+    static func fixed(
+        _ status: ChatOnDeviceStatus, provider: ChatModelProvider? = nil,
+        localModels: [ChatLocalModel] = [], localProvider: ChatModelProvider? = nil
+    ) -> ChatOnDeviceSupport {
+        ChatOnDeviceSupport(
+            status: { status }, makeProvider: { provider },
+            localModels: { localModels }, makeLocalProvider: { _ in localProvider }
+        )
     }
 }
 

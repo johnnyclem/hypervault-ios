@@ -13,8 +13,8 @@ struct ChatComposerView: View {
             if let notice = model.notice {
                 noticeLine(notice)
             }
-            if model.isOnDevice {
-                Label(ChatOnDeviceModels.toolFreeLine, systemImage: "iphone")
+            if let line = model.toolFreeLine {
+                Label(line, systemImage: model.isOnDevice ? "iphone" : "desktopcomputer")
                     .font(.hvCaption)
                     .foregroundStyle(Palette.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -49,7 +49,7 @@ struct ChatComposerView: View {
             HStack(spacing: HV.Space.xs) {
                 Button(action: onOptions) {
                     HStack(spacing: 6) {
-                        Image(systemName: model.isOnDevice ? "iphone" : "cpu").font(.system(size: 13, weight: .semibold))
+                        Image(systemName: model.isOnDevice ? "iphone" : (model.runsLocally ? "desktopcomputer" : "cpu")).font(.system(size: 13, weight: .semibold))
                         Text(model.modelName).lineLimit(1)
                         Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .bold))
                     }

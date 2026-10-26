@@ -6,11 +6,13 @@ import SwiftUI
 /// server stores the key encrypted and makes the calls.
 struct ChatModelsScreen: View {
     var onChange: (([ChatBackend]) -> Void)?
+    var onLocalChange: (([ChatLocalModel]) -> Void)?
+    var onDevice: ChatOnDeviceSupport = .system
 
     @Environment(AppEnvironment.self) private var env
 
     var body: some View {
-        ChatModelsContent(env: env, onChange: onChange)
+        ChatModelsContent(env: env, onChange: onChange, onLocalChange: onLocalChange, onDevice: onDevice)
     }
 }
 
@@ -20,7 +22,11 @@ struct ChatModelsContent: View {
     @State private var model: ChatBackendsModel
     @State private var form: FormTarget?
     @State private var pendingDisconnect: ChatBackend?
+    @State private var locals: [ChatLocalModel] = []
+    @State private var localForm: LocalTarget?
+    @State private var pendingLocalRemoval: ChatLocalModel?
     private let onDevice: ChatOnDeviceSupport
+    private let onLocalChange: (([ChatLocalModel]) -> Void)?
 
     private enum FormTarget: Identifiable {
         case connect
@@ -34,9 +40,25 @@ struct ChatModelsContent: View {
         }
     }
 
-    init(env: AppEnvironment, onChange: (([ChatBackend]) -> Void)?, onDevice: ChatOnDeviceSupport = .system) {
+    private enum LocalTarget: Identifiable {
+        case add
+        case edit(ChatLocalModel)
+
+        var id: String {
+            switch self {
+            case .add: return "add"
+            case .edit(let model): return model.id
+            }
+        }
+    }
+
+    init(
+        env: AppEnvironment, onChange: (([ChatBackend]) -> Void)?, onLocalChange: (([ChatLocalModel]) -> Void)? = nil,
+        onDevice: ChatOnDeviceSupport = .system
+    ) {
         self.env = env
         self.onDevice = onDevice
+        self.onLocalChange = onLocalChange
         let backends = ChatBackendsModel(client: env.client, cache: env.cache, namespace: env.user.id)
         backends.onChange = onChange
         _model = State(initialValue: backends)
@@ -83,7 +105,23 @@ struct ChatModelsContent: View {
             } message: { _ in
                 Text("Its key is deleted from HyperVault, and it leaves any room it is in. Your chats stay.")
             }
-            .task { await model.load() }
+            .sheet(item: $localForm) { target in
+                ChatLocalModelSheet(existing: localModel(for: target)) { saved in saveLocal(saved) }
+            }
+            .confirmationDialog(
+                "Remove this model?",
+                isPresented: Binding(get: { pendingLocalRemoval != nil }, set: { if !$0 { pendingLocalRemoval = nil } }),
+                titleVisibility: .visible, presenting: pendingLocalRemoval
+            ) { local in
+                Button("Remove \(local.displayName)", role: .destructive) { removeLocal(local) }
+                Button("Cancel", role: .cancel) {}
+            } message: { _ in
+                Text("Only this iPhone forgets it. The model itself is untouched, and your chats stay.")
+            }
+            .task {
+                locals = onDevice.localModels()
+                await model.load()
+            }
     }
 
     @ViewBuilder private var content: some View {
@@ -113,6 +151,7 @@ struct ChatModelsContent: View {
                     HVSectionHeader(title: "On this iPhone")
                 }
             }
+            networkSection
             Section {
                 if model.backends.isEmpty {
                     emptyModels
@@ -137,6 +176,44 @@ struct ChatModelsContent: View {
         }
         .scrollContentBackground(.hidden)
         .refreshable { await model.load() }
+    }
+
+    /// Models on the person's own network, called by this iPhone directly.
+    private var networkSection: some View {
+        Section {
+            ForEach(locals) { local in
+                Button { localForm = .edit(local) } label: {
+                    HStack(spacing: HV.Space.s + 2) {
+                        HVIconBadge(symbol: "desktopcomputer", tint: Palette.violet)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(local.displayName).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(1)
+                            Text("\(local.model) \u{00B7} \(URL(string: ChatLocalModel.normalizedBase(local.baseURL))?.host ?? local.baseURL)")
+                                .font(.hvFootnote)
+                                .foregroundStyle(Palette.textSecondary)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: HV.Space.xs)
+                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.textTertiary)
+                    }
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) { pendingLocalRemoval = local } label: {
+                        Label("Remove", systemImage: "trash")
+                    }
+                }
+            }
+            Button { localForm = .add } label: {
+                Label("Add a model on your network", systemImage: "plus.circle").frame(minHeight: 44, alignment: .leading)
+            }
+        } header: {
+            HVSectionHeader(title: "On your network")
+        } footer: {
+            Text("Ollama or LM Studio at home: this iPhone talks to it directly, so a 192.168 address works. Replies are saved to your vault afterwards. No tools, and no key.")
+                .font(.hvCaption)
+        }
     }
 
     private var emptyModels: some View {
@@ -185,6 +262,26 @@ struct ChatModelsContent: View {
             let supports = ChatProviders.spec(for: backend.provider, in: registry)?.supportsEmbeddings ?? false
             return try await model.update(backend, draft: draft, supportsEmbeddings: supports, serverCanStoreKeys: canStoreKeys)
         }
+    }
+
+    private func localModel(for target: LocalTarget) -> ChatLocalModel? {
+        switch target {
+        case .add: return nil
+        case .edit(let model): return model
+        }
+    }
+
+    private func saveLocal(_ saved: ChatLocalModel) {
+        if let index = locals.firstIndex(where: { $0.id == saved.id }) { locals[index] = saved } else { locals.append(saved) }
+        ChatLocalModelStore.save(locals)
+        onLocalChange?(locals)
+    }
+
+    private func removeLocal(_ local: ChatLocalModel) {
+        locals.removeAll { $0.id == local.id }
+        ChatLocalModelStore.save(locals)
+        onLocalChange?(locals)
+        Haptics.success()
     }
 
     private func disconnect(_ backend: ChatBackend) {

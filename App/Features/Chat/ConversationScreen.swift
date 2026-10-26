@@ -112,7 +112,7 @@ struct ChatConversationContent: View {
                     ForEach(visibleItems) { item in
                         itemView(item)
                     }
-                    if let started = model.workStarted, model.isWorking, !model.isStreaming, !model.isOnDevice {
+                    if let started = model.workStarted, model.isWorking, !model.isStreaming, !model.runsLocally {
                         ChatThinkingBubble(startedAt: started, usesRecall: model.useRecall) { model.stop() }
                             .transition(.opacity)
                     }

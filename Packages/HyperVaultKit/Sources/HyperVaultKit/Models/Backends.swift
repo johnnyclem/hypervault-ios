@@ -238,6 +238,6 @@ public enum ChatBackendHints {
         let address = baseURL.trimmingCharacters(in: .whitespaces)
         let isLocal = address.isEmpty ? provider.isLocalRuntime : isLocalAddress(address)
         guard isLocal else { return nil }
-        return "HyperVault's server makes the call to your model, not your phone. An address like localhost or 192.168.x.x only means something on your own network, so the server can't reach it. Use a tunnel address (ngrok or Tailscale Funnel) or a cloud endpoint."
+        return "HyperVault's server makes the call to your model, not your phone. An address like localhost or 192.168.x.x only means something on your own network, so the server can't reach it. Use a tunnel address (ngrok or Tailscale Funnel) or a cloud endpoint, or add it under On your network, where this iPhone calls it directly."
     }
 }

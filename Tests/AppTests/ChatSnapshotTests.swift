@@ -50,6 +50,13 @@ final class ChatSnapshotTests: XCTestCase {
         )
     }
 
+    func testConversationWithAModelOnYourNetwork() throws {
+        try snapshot(
+            PreviewHost(routes: ChatPreviewData.routes) { ChatConversationContent(model: ChatPreviewData.conversationModel(local: true)) },
+            named: "chat-local-model"
+        )
+    }
+
     func testNewConversation() throws {
         try snapshot(
             PreviewHost(routes: ChatPreviewData.routes) { ChatConversationContent(model: ChatPreviewData.conversationModel(empty: true)) },
@@ -79,7 +86,17 @@ final class ChatSnapshotTests: XCTestCase {
     }
 
     func testModels() throws {
-        try snapshot(PreviewHost(routes: ChatPreviewData.routes) { ChatModelsScreen() }, named: "chat-models")
+        try snapshot(
+            PreviewHost(routes: ChatPreviewData.routes) { ChatModelsScreen(onDevice: ChatPreviewData.support(onDevice: true)) },
+            named: "chat-models"
+        )
+    }
+
+    func testAddAModelOnYourNetwork() throws {
+        try snapshot(
+            PreviewHost(embedInNavigation: false) { ChatLocalModelSheet(existing: ChatPreviewData.sampleLocal) { _ in } },
+            named: "chat-local-form"
+        )
     }
 
     func testConnectForm() throws {

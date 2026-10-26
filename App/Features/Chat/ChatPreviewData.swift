@@ -150,6 +150,14 @@ enum ChatPreviewData {
 
     // MARK: Models
 
+    static let sampleLocal = ChatLocalModel(
+        id: "l1", name: "Studio Llama", baseURL: "http://192.168.1.20:11434/v1", model: "llama3.3"
+    )
+
+    static func support(onDevice: Bool = false) -> ChatOnDeviceSupport {
+        .fixed(onDevice ? .ready : .unavailable("This iPhone can't run Apple Intelligence, so it can't write replies itself."), localModels: [sampleLocal])
+    }
+
     @MainActor
     static func client() -> HVClient {
         HVClient(
@@ -161,11 +169,11 @@ enum ChatPreviewData {
 
     /// A conversation with a live turn in it: sources, a tool step, a reply with code.
     @MainActor
-    static func conversationModel(working: Bool = false, onDevice: Bool = false, empty: Bool = false, firstTurnOnly: Bool = false) -> ChatConversationModel {
+    static func conversationModel(working: Bool = false, onDevice: Bool = false, empty: Bool = false, firstTurnOnly: Bool = false, local: Bool = false) -> ChatConversationModel {
         let env = AppEnvironment.preview(routes: routes)
         let model = ChatConversationModel(
             conversationID: nil, client: env.client, cache: env.cache, namespace: "preview",
-            limits: env.limits, features: env.features, onDevice: .fixed(onDevice ? .ready : .unavailable("Preview")),
+            limits: env.limits, features: env.features, onDevice: support(onDevice: onDevice),
             outbox: ChatTurnOutbox(cache: env.cache, namespace: "preview")
         )
         let grounding = ChatGrounding(
@@ -194,7 +202,7 @@ enum ChatPreviewData {
         model.seed(
             rows: rows, backends: backends,
             conversation: ChatConversation(id: "c1", title: "Three days in Lisbon", visibility: .shared, shareSlug: "three-days-in-lisbon-a1b2"),
-            choice: onDevice ? .onDevice : .server("b1"),
+            choice: local ? .local(sampleLocal.id) : (onDevice ? .onDevice : .server("b1")),
             working: working ? Date().addingTimeInterval(-14) : nil,
             keptNotes: rows.lastIndex(where: { $0.kind == .assistant }).map { [rows[$0].id: ChatKeptNote(slug: "tram-script-x1", url: nil, duplicate: false, isPrivate: true)] } ?? [:]
         )

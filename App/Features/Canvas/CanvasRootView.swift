@@ -103,7 +103,6 @@ struct CanvasScreen: View {
                 showYours = true
             }
         }
-        .sensoryFeedback(.success, trigger: keptKey)
         .overlay {
             if celebrating { ConfettiBurst().transition(.opacity) }
         }
@@ -119,7 +118,7 @@ struct CanvasScreen: View {
         }
     }
 
-    /// Changes when a keep lands, which is when the screen taps back.
+    /// The newest kept card. It changes when a keep lands, which is what the first-keep celebration waits for.
     private var keptKey: String? {
         model.cards.last(where: { $0.kept != nil })?.key
     }

@@ -94,11 +94,22 @@ final class MailModel {
         started = true
         await loadMailboxes(quiet: false)
         await loadList(quiet: false)
+        await provisionedBoxIfNeeded()
     }
 
     func refresh() async {
         await loadMailboxes(quiet: true)
         await loadList(quiet: true)
+        await provisionedBoxIfNeeded()
+    }
+
+    /// An account that has never had mail (and has no claimed address) has no mailbox until its messages
+    /// are first read: `GET /api/mail/owner/mailboxes` never creates the account's own box, while
+    /// `GET /api/mail/messages` does. So the first visit lists no mailbox and then reads the messages, and
+    /// the list would stay empty (Compose off) until the next refresh. Ask for the mailboxes once more.
+    private func provisionedBoxIfNeeded() async {
+        guard mailboxes.isEmpty, case .loaded = mailboxState, case .loaded = listState else { return }
+        await loadMailboxes(quiet: true)
     }
 
     /// The screen came back (from a thread, say): counts and rows may have moved.

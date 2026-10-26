@@ -21,6 +21,9 @@ that finds problems fastest. Each line says what should happen.
 5. **Contract checks** (no phone needed), in `Packages/HyperVaultKit`:
    - `HV_LIVE_SERVER=https://hypervault.store swift test --filter LiveServerTests` reads the real launch path
      with no credentials (it has been run and passes).
+   - `scripts/e2e/start.sh` then `swift test --filter 'LocalServerE2ETests|LocalE2E'` runs 89 signed-in tests
+     against a local copy of the web app with throwaway people (see [LOCAL_E2E.md](LOCAL_E2E.md)); it has been
+     run and passes, and covers the session-only routes, mail, vault secrets, truth, task boards, tools and import.
    - `HV_E2E_SERVER=https://hypervault.store HV_E2E_KEY=<an API key from your vault> swift test --filter LiveAuthenticatedTests`
      reads about twenty authenticated endpoints with your own key (GET only, counts printed, never content) and
      checks that the Kit keeps every row the server sent. It has not been run yet; start here.

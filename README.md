@@ -160,8 +160,17 @@ server change if you want the app to do more:
   no credentials) passes against production: the real `/api/capabilities` answer decodes and names a Supabase
   project, the project offers Google and email sign-in (Apple was off when checked), an anonymous call gets a
   readable 401, and the pages the app links to exist.
+- The signed-in routes have been run for real, on a Linux box, against the web app itself: `scripts/e2e` brings up
+  PostgreSQL with the web repo's migrations, a Supabase stand-in (fake sign-in, a PostgREST-compatible layer with
+  real row-level security) and the unmodified web app, and `LocalServerE2ETests` / `LocalE2E*Tests` drive the Kit's
+  endpoints through every feature area with throwaway people (89 tests, skipped unless `HV_E2E_LOCAL_SERVER` and
+  `HV_E2E_LOCAL_TOKEN` are set). It reaches 401, 403, 404, 409, 412, 413, 428 and 429 from real routes. It does
+  not cover a real model or mail provider, pgvector, or Supabase itself. How to run it and what it leaves out:
+  [docs/LOCAL_E2E.md](docs/LOCAL_E2E.md).
 - **Not yet done:** a run on a physical device, against the production Supabase project, with
-  a real Google or Apple sign-in. On-device chat (Foundation Models), Face ID, dictation,
+  a real Google or Apple sign-in. The local stand-ins for sign-in and for PostgREST are written from their
+  documented behaviour, so the Kit's direct Supabase reads (the keys list, claimed addresses, pins, shared pages,
+  invite redeem) are the calls most exposed to a difference from the real services. On-device chat (Foundation Models), Face ID, dictation,
   the scanner, widgets and the share extension compile and are exercised only as far as the
   simulator allows. Expect rough edges there, and please report them. [docs/DEVICE_TEST_PLAN.md](docs/DEVICE_TEST_PLAN.md)
   is the checklist for trying them on a phone.

@@ -250,12 +250,17 @@ struct LibraryScreen: View {
             let visible = Array(model.items.prefix(model.shown))
             listSection {
                 ForEach(visible) { item in
-                    NavigationLink(value: route(for: item)) {
-                        LibraryItemRow(item: item)
+                    // A button that pushes, like the rows of Yours: a link with a tap gesture beside it to stamp the
+                    // open did not open anything on iOS 26 (the UI tests tapped the row and nothing came of it).
+                    Button {
+                        model.stampOpen(item)
+                        app.router.push(route(for: item))
+                    } label: {
+                        LibraryItemRow(item: item, showsChevron: true)
                     }
+                    .buttonStyle(.plain)
                     .accessibilityIdentifier("library.row.\(item.id)")
                     .libraryRow()
-                    .simultaneousGesture(TapGesture().onEnded { model.stampOpen(item) })
                     .contextMenu { itemMenu(item) }
                 }
             } footer: {

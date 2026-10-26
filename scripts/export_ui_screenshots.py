@@ -21,6 +21,7 @@ import tempfile
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".heic"}
 # The sweep also attaches what it noted about each screen's layout as text; it is written out beside the screenshot.
 TEXT_EXTENSIONS = {".txt"}
+KEPT_TEXT = ("Layout notes", "Tree", "App UI hierarchy")
 
 
 def safe(text: str) -> str:
@@ -66,9 +67,13 @@ def main() -> int:
                 extension = os.path.splitext(source)[1].lower()
                 if not os.path.isfile(source) or extension not in IMAGE_EXTENSIONS | TEXT_EXTENSIONS:
                     continue
-                number += 1
                 name = attachment.get("suggestedHumanReadableName") or os.path.basename(source)
                 name = os.path.splitext(name)[0]
+                # Of the text, keep the sweep's notes and the app's tree when a test failed; XCTest also attaches a
+                # description of every query a wait made, which is noise.
+                if extension in TEXT_EXTENSIONS and not name.startswith(KEPT_TEXT):
+                    continue
+                number += 1
                 # Xcode appends an index and a UUID to the name the test gave; keep what the test said.
                 name = re.sub(r"_\d+_[0-9A-Fa-f-]{36}$", "", name)
                 os.makedirs(folder, exist_ok=True)

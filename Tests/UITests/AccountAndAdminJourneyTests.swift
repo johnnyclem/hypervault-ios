@@ -76,13 +76,13 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
         }
 
         step("A code is minted with a number of uses and a note") {
-            let uses = textField("How many people can use the code")
+            let uses = textField("admin.uses")
             let usesValue = uses.value as? String
             XCTAssertEqual(usesValue, "1", "One use is the default.")
             tap(uses, "the uses field")
             clear(uses)
             uses.typeText("5")
-            enter("Launch batch", into: textField("Note"), "the note field")
+            enter("Launch batch", into: textField("admin.note"), "the note field")
             tap(button("Create code"), "Create code")
             require(shows("Just minted"), "the card of the code just minted")
             require(shows("Invite code H V"), "the code, spelt out for VoiceOver")

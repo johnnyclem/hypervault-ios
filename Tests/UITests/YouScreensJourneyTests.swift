@@ -60,7 +60,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
             require(shows("Done. Friday it is, and I updated the page."), "the newest message")
             require(shows("Looks good. Move the demo to Friday?"), "the owner's own message")
             require(shows("I drafted the plan for next week"), "the first message")
-            require(textField("Write a reply"), "the reply field")
+            require(textField("mail.reply"), "the reply field")
         }
 
         step("Back returns to the inbox") {
@@ -87,7 +87,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
             waitUntil("the entry's title") { isShowingTitle("Signed truth") }
             require(shows("johnnyclem"), "who signed it")
             require(shows("The retry budget is 100."), "the premise beneath it")
-            require(shows("The per-tenant cap is 5 too."), "the entry that rests on it")
+            reveal(shows("The per-tenant cap is 5 too."), "the entry that rests on it")
         }
 
         step("The review docket lists what waits on a decision") {
@@ -176,7 +176,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
         step("Dreams lists the connections found, each with its reason") {
             require(shows("Dream every night"), "the nightly switch")
             require(shows("Passport checklist"), "a memory on a connection")
-            require(shows("shared tag: passports"), "the reason for the connection")
+            require(shows("Shared tag: passports"), "the reason for the connection")
         }
 
         step("Digest lists the memory it would split") {
@@ -210,8 +210,9 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
         step("A task opens to its notes") {
             tap(element("taskboard.task.t-panels"), "the front panels task")
-            require(shows("Two quotes in, one to go."), "the agent's note on the task")
-            require(shows("Keep it under $80"), "the person's note on the task")
+            require(shows("Comparing three quotes"), "what the agent says it is doing")
+            reveal(shows("Two quotes in, one to go."), "the agent's note on the task")
+            reveal(shows("Keep it under $80"), "the person's note on the task")
         }
     }
 }

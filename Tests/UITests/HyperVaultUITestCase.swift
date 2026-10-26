@@ -82,7 +82,8 @@ class HyperVaultUITestCase: XCTestCase {
     /// A text field, by identifier or label. (SwiftUI's fields that grow with their text, like the canvas's, are text
     /// fields to XCUITest too.)
     func textField(_ name: String) -> XCUIElement {
-        named(name, in: app.textFields)
+        // A field that grows with its text has no label of its own: it is known by its identifier or its placeholder.
+        app.textFields.matching(NSPredicate(format: "label == %@ OR identifier == %@ OR placeholderValue == %@", name, name, name)).firstMatch
     }
 
     /// A search field, by its placeholder.
@@ -113,7 +114,8 @@ class HyperVaultUITestCase: XCTestCase {
     /// Anything on screen whose label contains `fragment`: a text, or a row or button that reads its texts as one. (Rows
     /// that combine their words have no static texts of their own, so a journey that checks what a screen says asks this.)
     func shows(_ fragment: String) -> XCUIElement {
-        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", fragment)).firstMatch
+        // A picker or a field keeps its words in its value, and a row that combines its words in its label.
+        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@ OR value CONTAINS %@", fragment, fragment)).firstMatch
     }
 
     /// How many static texts carry exactly this label.
@@ -183,6 +185,20 @@ class HyperVaultUITestCase: XCTestCase {
         element.tap()
     }
 
+    /// Taps an element and waits for what it should lead to, tapping again (up to three times) if nothing came of it:
+    /// a tap that lands while a list is still settling is lost, and a person would just tap again.
+    func tap(_ element: XCUIElement, _ what: String, until reached: () -> Bool, file: StaticString = #filePath, line: UInt = #line) {
+        for attempt in 1...3 {
+            tap(element, what, file: file, line: line)
+            let deadline = Date().addingTimeInterval(6)
+            while Date() < deadline {
+                if reached() { return }
+                RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+            }
+            print("[journey] tapping \(what) did not get anywhere (attempt \(attempt))")
+        }
+    }
+
     /// Taps a field and types into it.
     func enter(_ text: String, into field: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
         tap(field, what, file: file, line: line)
@@ -203,12 +219,25 @@ class HyperVaultUITestCase: XCTestCase {
         field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count))
     }
 
-    /// Scrolls the screen up until `element` is on it, for rows below the fold of a long list.
+    /// Scrolls until `element` is on screen and can be tapped: down the page first, then back up it. A drag stops where
+    /// the finger stops (a swipe flings, and at a large text size a fling carries a row past the screen without ever
+    /// letting it be seen), and moves the page by about a third of its height.
     func reveal(_ element: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
-        for _ in 0..<6 where !(element.exists && element.isHittable) {
-            app.swipeUp(velocity: .fast)
+        func ready() -> Bool { element.exists && element.isHittable }
+        if !ready() {
+            for _ in 0..<10 where !ready() { drag(towardsEnd: true) }
+        }
+        if !ready() {
+            for _ in 0..<16 where !ready() { drag(towardsEnd: false) }
         }
         require(element, what, timeout: 5, file: file, line: line)
+    }
+
+    /// Moves the page: towards its end (the content goes up) or back towards its start.
+    private func drag(towardsEnd: Bool) {
+        let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: towardsEnd ? 0.72 : 0.28))
+        let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: towardsEnd ? 0.36 : 0.64))
+        from.press(forDuration: 0.05, thenDragTo: to, withVelocity: .slow, thenHoldForDuration: 0.2)
     }
 
     /// Scrolls to an element if it is not yet on screen, then taps it: for rows that a larger text size has pushed below the fold.

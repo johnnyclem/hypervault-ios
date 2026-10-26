@@ -131,7 +131,7 @@ final class LayoutSweepTests: HyperVaultUITestCase {
         goBack()
         choose("Rooms", from: "chat.section")
         open(element("chat.room.r1"), "the Features X and Y room")
-        look(mode, "a room", key: textField("Message"), "the message field")
+        look(mode, "a room", key: textField("room.field"), "the message field")
 
         openFromYou("library", title: "Library")
         open(element("library.row.a1"), "the Bakery landing page row")

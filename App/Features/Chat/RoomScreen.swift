@@ -210,6 +210,7 @@ struct ChatRoomContent: View {
             VStack(alignment: .leading, spacing: 0) {
                 mentionChips
                 TextField("Message", text: $model.draft, prompt: Text(model.composerPrompt).foregroundStyle(Palette.textSecondary), axis: .vertical)
+                    .accessibilityIdentifier("room.field")
                     .font(.hvBody)
                     .lineLimit(1...6)
                     .focused($focused)

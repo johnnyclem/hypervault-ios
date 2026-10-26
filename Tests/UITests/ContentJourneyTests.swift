@@ -26,7 +26,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
         }
 
         step("The answer is written from the memories it drew on") {
-            enter("What did I plan for the ferry?", into: textField("Ask your memory"), "the question field")
+            enter("What did I plan for the ferry?", into: textField("ask.field"), "the question field")
             tap(button("Ask"), "Ask")
             require(text("What did I plan for the ferry?"), "the question, kept above its answer")
             require(shows("Your Lisbon notes say to book the Friday ferry"), "the answer", timeout: 40)
@@ -66,7 +66,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
         }
 
         step("What is said to the room is answered by a member") {
-            enter("claude, summarise the plan", into: textField("Message"), "the message field")
+            enter("claude, summarise the plan", into: textField("room.field"), "the message field")
             require(shows("Goes to @claude."), "the line that says who the message goes to")
             tap(button("Send"), "Send")
             require(shows("Noted: claude, summarise the plan"), "claude's answer", timeout: 40)
@@ -78,7 +78,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
         openFromYou("library", title: "Library")
 
         step("The page opens from the Library") {
-            tap(element("library.row.a1"), "the Bakery landing page row")
+            tap(element("library.row.a1"), "the Bakery landing page row", until: { isShowingTitle("Bakery landing page") })
             waitUntil("the page's title") { isShowingTitle("Bakery landing page") }
             require(named("Fresh bread daily", in: app.webViews.staticTexts), "the page's heading in its web view", timeout: 40)
         }

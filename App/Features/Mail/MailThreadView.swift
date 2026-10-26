@@ -112,6 +112,7 @@ struct MailThreadScreen: View {
             }
             HStack(alignment: .bottom, spacing: HV.Space.s) {
                 TextField("Write a reply", text: $draft, axis: .vertical)
+                    .accessibilityIdentifier("mail.reply")
                     .lineLimit(1...5)
                     .focused($composerFocused)
                     .hvFieldChrome(isFocused: composerFocused)

@@ -24,11 +24,15 @@ final class ChatRoomModel {
 
     let roomID: String
     private let client: HVClient
+    @ObservationIgnored private let announcer: FeatureAnnouncer
     @ObservationIgnored private var driveTask: Task<Void, Never>?
+    /// The Continue card is on screen and VoiceOver has been told about it.
+    @ObservationIgnored private var continueAnnounced = false
 
-    init(roomID: String, client: HVClient) {
+    init(roomID: String, client: HVClient, announcer: FeatureAnnouncer = VoiceOverFeatureAnnouncer.shared) {
         self.roomID = roomID
         self.client = client
+        self.announcer = announcer
     }
 
     // MARK: Derived
@@ -69,6 +73,7 @@ final class ChatRoomModel {
             members = detail.members
             messages = detail.messages.sorted { $0.position < $1.position }
             phase = .ready
+            announceContinueCard()
         } catch let error as HVError {
             if messages.isEmpty { phase = .failed(error.userMessage) }
         } catch {
@@ -84,6 +89,7 @@ final class ChatRoomModel {
         header = detail.room
         members = detail.members.isEmpty ? members : detail.members
         merge(detail.messages)
+        announceContinueCard()
     }
 
     // MARK: Talking
@@ -103,11 +109,11 @@ final class ChatRoomModel {
                     delivered.value = true
                     self.apply(run)
                 }
-                if outcome == .stalled { self.notice = "The room stopped answering. Continue to try again." }
+                if outcome == .stalled { self.tell("The room stopped answering. Continue to try again.") }
             } catch let error as HVError {
                 self.failed(error, restoring: delivered.value ? nil : text)
             } catch {
-                self.notice = error.localizedDescription
+                self.tell(error.localizedDescription)
             }
             self.finishDriving()
         }
@@ -123,11 +129,11 @@ final class ChatRoomModel {
             guard let self else { return }
             do {
                 let outcome = try await driver.resume { run in self.apply(run) }
-                if outcome == .stalled { self.notice = "The room stopped answering. Continue to try again." }
+                if outcome == .stalled { self.tell("The room stopped answering. Continue to try again.") }
             } catch let error as HVError {
                 self.failed(error, restoring: nil)
             } catch {
-                self.notice = error.localizedDescription
+                self.tell(error.localizedDescription)
             }
             self.finishDriving()
         }
@@ -140,17 +146,36 @@ final class ChatRoomModel {
     private func finishDriving() {
         isDriving = false
         driveTask = nil
+        // Whatever stopped the round has just told the person so, and what to do about it.
+        continueAnnounced = canContinue
         Task { await refresh() }
     }
 
     private func failed(_ error: HVError, restoring text: String?) {
         if case .cancelled = error {
-            notice = "Stopped. Turns still waiting will stay queued."
+            tell("Stopped. Turns still waiting will stay queued.")
             if let text, draft.isEmpty { draft = text }
             return
         }
         if let text, draft.isEmpty { draft = text }
-        notice = error.sentence(offline: "Network hiccup. Your message may not have been sent. Check the room, then try again.")
+        tell(error.sentence(offline: "Network hiccup. Your message may not have been sent. Check the room, then try again."))
+    }
+
+    /// A line under the thread, said as well as shown: it appears where VoiceOver is not looking.
+    private func tell(_ text: String) {
+        notice = text
+        announcer.announce(text)
+    }
+
+    /// Turns left waiting with nobody running them put a Continue card at the end of the thread.
+    private func announceContinueCard() {
+        guard canContinue else {
+            continueAnnounced = false
+            return
+        }
+        guard !continueAnnounced else { return }
+        continueAnnounced = true
+        announcer.announce("\(pending.count) turn\(pending.count == 1 ? "" : "s") still waiting. Nobody is running this round. Continue is under the messages.")
     }
 
     private func apply(_ run: ChatRoomRun) {
@@ -168,6 +193,29 @@ final class ChatRoomModel {
         let fresh = incoming.filter { !seen.contains($0.id) }
         guard !fresh.isEmpty else { return }
         messages = (messages + fresh).sorted { $0.position < $1.position }
+        if let spoken = Self.spokenAnswers(in: fresh) { announcer.announce(spoken) }
+    }
+
+    /// Who answered, in one sentence, for what a request brought: a round hands back several at once, and the
+    /// person's own message and the room's notes are not answers.
+    static func spokenAnswers(in messages: [ChatRoomMessage]) -> String? {
+        func names(_ list: [ChatRoomMessage]) -> String {
+            var handles: [String] = []
+            for message in list {
+                let name = message.senderHandle.map { "@\($0)" } ?? "A member"
+                if !handles.contains(name) { handles.append(name) }
+            }
+            if handles.count > 3 { return "\(handles.count) members" }
+            if handles.count == 1 { return handles[0] }
+            return handles.dropLast().joined(separator: ", ") + " and " + handles[handles.count - 1]
+        }
+        let agents = messages.filter { $0.senderKind == .agent }
+        let answered = agents.filter { !$0.failed }
+        let failed = agents.filter(\.failed)
+        var sentences: [String] = []
+        if !answered.isEmpty { sentences.append("\(names(answered)) replied.") }
+        if !failed.isEmpty { sentences.append("\(names(failed)) could not answer.") }
+        return sentences.isEmpty ? nil : sentences.joined(separator: " ")
     }
 
     /// Adds a mention of `handle` at the end of the draft.

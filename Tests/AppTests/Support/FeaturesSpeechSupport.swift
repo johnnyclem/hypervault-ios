@@ -8,4 +8,9 @@ final class FeaturesRecordingAnnouncer: FeatureAnnouncer {
     func announce(_ text: String) {
         spoken.append(text)
     }
+
+    /// Forgets what was said so far, to look only at what a step adds.
+    func clear() {
+        spoken = []
+    }
 }

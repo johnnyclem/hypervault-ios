@@ -33,6 +33,14 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
             require(text("https://uitest.hypervault.invalid/a/lisbon-trip-checklist-k1"), "the card's link")
             require(button("Hide Lisbon trip checklist"), "the card's Hide button")
             require(button("Copy link"), "the card's Copy link button")
+            // At the default text size the four actions share one row, and Share is not broken over two lines
+            // ("Shar" over "e" was what a first run of this screen showed).
+            let share = button("Share")
+            require(share, "the card's Share button")
+            XCTAssertLessThan(share.frame.height, 60, "Share is \(share.frame.height) points tall, so its label has wrapped.")
+            for name in ["Open Lisbon trip checklist", "Copy link", "Hide Lisbon trip checklist"] {
+                XCTAssertEqual(button(name).frame.midY, share.frame.midY, accuracy: 4, "\"\(name)\" should sit on Share's row.")
+            }
             requireGone(element("canvas.pasted"), "the chip, now that it is kept")
         }
 

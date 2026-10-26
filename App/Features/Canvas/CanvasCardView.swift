@@ -113,34 +113,57 @@ struct CanvasCardView: View {
         }
     }
 
+    /// One row when it fits. At a larger text size Hide drops to a row of its own, and at the largest
+    /// each action has one, so no label is ever broken across two lines.
     private var actions: some View {
-        HStack(spacing: HV.Space.xs) {
-            Button(HVCopy.cardOpenLabel, action: onOpen)
-                .buttonStyle(.hvGhost)
-                .accessibilityLabel("Open \(card.title)")
-            if let kept = card.kept, let url = URL(string: kept.link) {
-                Button(copied ? "Copied" : "Copy link") {
-                    UIPasteboard.general.string = kept.link
-                    Haptics.tap()
-                    copied = true
-                    Task {
-                        try? await Task.sleep(nanoseconds: 1_600_000_000)
-                        copied = false
-                    }
-                }
-                .buttonStyle(.hvGhost)
-                ShareLink(item: url) {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                }
-                .padding(.horizontal, HV.Space.s)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 0) {
+                leadingActions
+                Spacer(minLength: HV.Space.xs)
+                hideButton
             }
-            Spacer()
-            Button(HVCopy.cardHideLabel, action: onHide)
-                .buttonStyle(.hvGhost)
-                .foregroundStyle(Palette.textSecondary)
-                .accessibilityLabel("Hide \(card.title)")
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 0) { leadingActions }
+                hideButton
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                leadingActions
+                hideButton
+            }
         }
+        .lineLimit(1)
         .padding(.leading, -HV.Space.s)
+    }
+
+    /// Open, and for a thing that was just kept, its link. Every one is a ghost button, which already
+    /// carries its own padding and a 44-point target, so the row adds no spacing of its own.
+    @ViewBuilder
+    private var leadingActions: some View {
+        Button(HVCopy.cardOpenLabel, action: onOpen)
+            .buttonStyle(.hvGhost)
+            .accessibilityLabel("Open \(card.title)")
+        if let kept = card.kept, let url = URL(string: kept.link) {
+            Button(copied ? "Copied" : "Copy link") {
+                UIPasteboard.general.string = kept.link
+                Haptics.tap()
+                copied = true
+                Task {
+                    try? await Task.sleep(nanoseconds: 1_600_000_000)
+                    copied = false
+                }
+            }
+            .buttonStyle(.hvGhost)
+            ShareLink(item: url) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            .buttonStyle(.hvGhost)
+        }
+    }
+
+    private var hideButton: some View {
+        Button(HVCopy.cardHideLabel, action: onHide)
+            .buttonStyle(.hvGhost)
+            .foregroundStyle(Palette.textSecondary)
+            .accessibilityLabel("Hide \(card.title)")
     }
 }

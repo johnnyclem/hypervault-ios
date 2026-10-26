@@ -158,7 +158,7 @@ struct SettingsRootView: View {
             ZStack {
                 Circle().fill(choice.color).frame(width: 34, height: 34)
                 if accent == choice {
-                    Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
+                    Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)).foregroundStyle(Palette.background)
                 }
             }
             .overlay(Circle().strokeBorder(Palette.textTertiary.opacity(0.4), lineWidth: accent == choice ? 0 : 1))

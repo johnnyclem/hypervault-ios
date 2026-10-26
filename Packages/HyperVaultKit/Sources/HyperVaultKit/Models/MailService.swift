@@ -33,6 +33,12 @@ public enum MailMoveResult: Sendable, Equatable {
     case moved(Int)
     case nothing
     case tooMany(cap: Int)
+
+    /// The sentence for a thread too long to move, nil for the other outcomes.
+    public var tooManySentence: String? {
+        if case .tooMany(let cap) = self { return MailMovePlan.tooMany(cap: cap).tooManySentence }
+        return nil
+    }
 }
 
 /// The actions on mail that take more than one request: marking a thread read
@@ -65,17 +71,23 @@ public struct MailService: Sendable {
 
     /// Moves every message of a thread that is elsewhere into `folder`. Pages
     /// not yet loaded are read first (a thread over the cap is refused before
-    /// anything changes, so it is never half moved). Throws the first failure
-    /// after trying the rest.
+    /// anything changes, so it is never half moved). Pass `loaded` nil to read
+    /// the thread from its newest page, as a swipe in the list does. Throws the
+    /// first failure after trying the rest.
     public func moveThread(
         id: String,
         mailbox: String?,
-        loaded: [MailMessage],
+        loaded: [MailMessage]?,
         olderCursor: String?,
         to folder: MailFolder
     ) async throws -> MailMoveResult {
-        var all = loaded
+        var all = loaded ?? []
         var cursor = olderCursor
+        if loaded == nil {
+            let first = try await client.send(.mailThread(threadId: id, mailbox: mailbox))
+            all = first.messages
+            cursor = first.nextCursor
+        }
         while let next = cursor, all.count <= MailMovePlan.cap {
             let page = try await client.send(.mailThread(threadId: id, mailbox: mailbox, cursor: next))
             all = MailThreads.appendUnique(page.messages, all)

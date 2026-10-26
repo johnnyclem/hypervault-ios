@@ -406,6 +406,14 @@ public struct OwnerMailbox: Sendable, Codable, Hashable, Identifiable {
     /// The address, or the words for a box that has none.
     public var displayAddress: String { address ?? "No address yet" }
 
+    /// A copy with the "agents can see my replies" switch changed.
+    public func withAgentsSeeOwnerMail(_ value: Bool) -> OwnerMailbox {
+        OwnerMailbox(
+            id: id, claimId: claimId, address: address, isPrimary: isPrimary,
+            unreadCount: unreadCount, heldCount: heldCount, agentsSeeOwnerMail: value
+        )
+    }
+
     /// The mailbox to show: the one asked for, else the first with an address,
     /// else the first there is (an account with no claimed name has one box
     /// with no address).
@@ -617,5 +625,30 @@ public enum MailMovePlan: Sendable, Equatable {
             return "This thread has more than \(cap) messages, which is too many to move from here. Nothing was moved."
         }
         return nil
+    }
+}
+
+// MARK: Time on a row
+
+/// How a row in a list says when: the time today, "Yesterday", the weekday this
+/// week, else the date. The bucket is decided here (and tested); the view
+/// formats the date in the person's locale.
+public enum MailTimeBucket: Sendable, Equatable {
+    case today(Date)
+    case yesterday
+    case thisWeek(Date)
+    case earlier(Date, sameYear: Bool)
+    case unknown
+
+    public static func bucket(for date: Date?, now: Date = Date(), calendar: Calendar = .current) -> MailTimeBucket {
+        guard let date else { return .unknown }
+        if calendar.isDate(date, inSameDayAs: now) { return .today(date) }
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: now), calendar.isDate(date, inSameDayAs: yesterday) {
+            return .yesterday
+        }
+        if let weekAgo = calendar.date(byAdding: .day, value: -6, to: calendar.startOfDay(for: now)), date >= weekAgo, date <= now {
+            return .thisWeek(date)
+        }
+        return .earlier(date, sameYear: calendar.component(.year, from: date) == calendar.component(.year, from: now))
     }
 }

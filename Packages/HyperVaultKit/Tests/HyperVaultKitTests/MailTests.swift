@@ -224,6 +224,21 @@ final class MailTests: XCTestCase {
         XCTAssertEqual(MailFilter.allCases.map(\.title), ["Inbox", "Unread", "Sent", "Archive", "Trash"])
     }
 
+    func testTimeBuckets() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let now = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 10, day: 26, hour: 15)))
+        func at(_ day: Int, hour: Int = 9, month: Int = 10, year: Int = 2026) throws -> Date {
+            try XCTUnwrap(calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour)))
+        }
+        XCTAssertEqual(MailTimeBucket.bucket(for: try at(26), now: now, calendar: calendar), .today(try at(26)))
+        XCTAssertEqual(MailTimeBucket.bucket(for: try at(25, hour: 23), now: now, calendar: calendar), .yesterday)
+        XCTAssertEqual(MailTimeBucket.bucket(for: try at(22), now: now, calendar: calendar), .thisWeek(try at(22)))
+        XCTAssertEqual(MailTimeBucket.bucket(for: try at(9), now: now, calendar: calendar), .earlier(try at(9), sameYear: true))
+        XCTAssertEqual(MailTimeBucket.bucket(for: try at(9, month: 3, year: 2025), now: now, calendar: calendar), .earlier(try at(9, month: 3, year: 2025), sameYear: false))
+        XCTAssertEqual(MailTimeBucket.bucket(for: nil, now: now, calendar: calendar), .unknown)
+    }
+
     // MARK: Moving a thread
 
     func testMovePlan() {
@@ -377,6 +392,16 @@ final class MailTests: XCTestCase {
         XCTAssertEqual(result, .moved(2))
         let patched = await transport.requests.filter { $0.httpMethod == "PATCH" }.compactMap { $0.url?.path }
         XCTAssertEqual(Set(patched), ["/api/mail/messages/b", "/api/mail/messages/c"])
+    }
+
+    func testMovingFromTheListReadsTheWholeThreadFirst() async throws {
+        let page = #"{"messages":[\#(message("a", folder: "inbox")),\#(message("b", folder: "inbox"))],"next_cursor":null}"#
+        let transport = MockTransport(routes: [
+            .json(.get, "/api/mail/messages", page),
+            .json(.patch, "/api/mail/messages/*", #"{"message":\#(message("x", folder: "trash"))}"#),
+        ])
+        let result = try await MailService(client: client(transport)).moveThread(id: thread, mailbox: nil, loaded: nil, olderCursor: nil, to: .trash)
+        XCTAssertEqual(result, .moved(2))
     }
 
     func testMovingAThreadThatIsAlreadyThereDoesNothing() async throws {

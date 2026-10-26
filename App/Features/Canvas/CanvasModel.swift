@@ -68,6 +68,8 @@ final class CanvasModel: CanvasCommandHost {
     @ObservationIgnored private var keepInFlight = false
     /// Why the last read of the models failed, until one succeeds.
     @ObservationIgnored private var backendsFailure: Error?
+    /// The last text the page wrote into the field itself, so the change it makes is not taken for a paste.
+    @ObservationIgnored private var written: String?
 
     init(client: HVClient, origin: URL?) {
         self.client = client
@@ -82,6 +84,8 @@ final class CanvasModel: CanvasCommandHost {
     /// turn that failed and the word that nothing is connected are all things to show, so they end it.
     var isQuiet: Bool { cards.isEmpty && messages.isEmpty && !isBusy && chatError == nil && !needsModel }
     var canSend: Bool { !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isBusy }
+    /// Whether a paste can be asked about instead of kept: not once the list of models has been read and is empty.
+    var canAsk: Bool { hasModel || !backendsLoaded }
 
     private func localKey() -> String {
         localKeys += 1
@@ -126,6 +130,16 @@ final class CanvasModel: CanvasCommandHost {
             return
         }
         await chat(text)
+    }
+
+    /// The Return key, as the web's field takes it: with a paste waiting and nothing typed it keeps
+    /// the paste, otherwise it sends.
+    func submit() async {
+        if staged != nil, draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            keepStaged()
+        } else {
+            await send()
+        }
     }
 
     private func chat(_ text: String) async {
@@ -181,7 +195,7 @@ final class CanvasModel: CanvasCommandHost {
     private func fail(_ error: Error, text: String, userKey: String) {
         if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             messages.removeAll { $0.id == userKey }
-            draft = text
+            setDraft(text)
         }
         chatError = Self.chatLine(for: error)
         if chatError != nil { Haptics.failure() }
@@ -342,6 +356,31 @@ final class CanvasModel: CanvasCommandHost {
         Task { _ = try? await client.send(.markOpened(kind: ref.kind, id: ref.id)) }
     }
 
+    // MARK: The field
+
+    /// Every write to the field that is not the person typing or pasting: a restored question, the
+    /// paste taken back out of its chip, words from dictation. The change it makes is the page's own,
+    /// so it is never taken for a paste.
+    func setDraft(_ text: String) {
+        // No change means no `draftChanged`, which would be the only thing to clear the mark.
+        guard text != draft else { return }
+        written = text
+        draft = text
+    }
+
+    /// The field changed. A block of text arriving in one step is a paste: it is held above the
+    /// field instead, to be kept or asked about. The field gives no paste event, so this is read from
+    /// the change itself.
+    func draftChanged(from old: String, to new: String) {
+        if let mine = written {
+            written = nil
+            if mine == new { return }
+        }
+        guard let inserted = PasteDiff.insertion(old: old, new: new), PasteStaging.shouldStage(inserted) else { return }
+        draft = old
+        stagePaste(inserted)
+    }
+
     // MARK: Keeping
 
     /// A paste the person made, held above the field. A second one joins the first.
@@ -356,7 +395,7 @@ final class CanvasModel: CanvasCommandHost {
         if PasteStaging.shouldStage(text) {
             stagePaste(text)
         } else {
-            draft += text
+            setDraft(draft + text)
         }
     }
 
@@ -372,7 +411,7 @@ final class CanvasModel: CanvasCommandHost {
         guard let text = staged else { return }
         staged = nil
         endAsking()
-        draft = draft.isEmpty ? text : "\(draft)\n\n\(text)"
+        setDraft(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? text : "\(draft)\n\n\(text)")
     }
 
     private func restage(_ content: String) {
@@ -399,7 +438,7 @@ final class CanvasModel: CanvasCommandHost {
         run(text, sourcePrompt: nil) { [weak self] failed in
             guard let self else { return }
             if question == asked { isAsking = true }
-            if draft.trimmingCharacters(in: .whitespaces).isEmpty { draft = failed }
+            if draft.trimmingCharacters(in: .whitespaces).isEmpty { setDraft(failed) }
         }
     }
 

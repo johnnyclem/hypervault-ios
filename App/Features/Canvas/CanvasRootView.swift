@@ -68,7 +68,7 @@ struct CanvasScreen: View {
         .onChange(of: dictation.transcript) { _, transcript in
             guard dictation.isListening || !transcript.isEmpty else { return }
             let separator = dictationBase.isEmpty || dictationBase.hasSuffix(" ") ? "" : " "
-            model.draft = dictationBase + separator + transcript
+            model.setDraft(dictationBase + separator + transcript)
         }
         .toolbar { toolbarContent }
         .toolbarBackground(.hidden, for: .navigationBar)

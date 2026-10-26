@@ -47,7 +47,7 @@ struct CanvasHints: View {
                     Text(HVCopy.hintTryLabel).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                     ForEach(HVCopy.hintExamples, id: \.self) { example in
                         Button {
-                            model.draft = example
+                            model.setDraft(example)
                             Task { await model.send() }
                         } label: {
                             HVChip(title: example)

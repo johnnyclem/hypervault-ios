@@ -18,6 +18,7 @@ struct CanvasScreen: View {
     let origin: URL
 
     @Environment(AppModel.self) private var app
+    @Environment(\.scenePhase) private var scenePhase
     @State private var model: CanvasModel
     @State private var showYours = false
     @State private var starterCopied = false
@@ -70,6 +71,12 @@ struct CanvasScreen: View {
             let separator = dictationBase.isEmpty || dictationBase.hasSuffix(" ") ? "" : " "
             model.setDraft(dictationBase + separator + transcript)
         }
+        // The tabs stay alive under each other, so leaving the canvas does not end the view. Dictation would go on
+        // listening, with the indicator lit and other audio lowered, and rewrite the draft from wherever the person is.
+        .onChange(of: dictationMustStop) { _, mustStop in
+            if mustStop { dictation.stop() }
+        }
+        .onDisappear { dictation.stop() }
         .toolbar { toolbarContent }
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
@@ -120,6 +127,14 @@ struct CanvasScreen: View {
                 withAnimation { celebrating = false }
             }
         }
+    }
+
+    private var dictationMustStop: Bool {
+        DictationPolicy.mustStop(
+            tab: app.router.tab,
+            isCovered: showYours || showScanner || app.router.sheet != nil,
+            phase: scenePhase
+        )
     }
 
     /// The newest kept card. It changes when a keep lands, which is what the first-keep celebration waits for.

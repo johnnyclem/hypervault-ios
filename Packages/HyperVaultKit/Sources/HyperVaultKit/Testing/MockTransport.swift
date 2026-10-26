@@ -70,3 +70,15 @@ public actor MockTransport: HTTPTransport {
         requests.filter { $0.url?.path == path }
     }
 }
+
+/// A token provider that always hands out one token, for previews and tests.
+public struct StaticTokenProvider: TokenProvider {
+    private let token: String?
+
+    public init(_ token: String? = "preview-token") {
+        self.token = token
+    }
+
+    public func accessToken() async throws -> String? { token }
+    public func refreshAfterUnauthorized(rejected: String?) async throws -> String? { nil }
+}

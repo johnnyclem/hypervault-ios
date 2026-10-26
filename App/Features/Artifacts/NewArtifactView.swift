@@ -294,11 +294,10 @@ struct NewArtifactView: View {
     private var visibilityField: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             HVSectionHeader(title: "Who can open it").artifactCardCaption()
-            Picker("Who can open it", selection: Bindable(model).visibility) {
+            TruthChoicePicker(title: "Who can open it", selection: Bindable(model).visibility) {
                 Text("Only me").tag(ArtifactVisibility.private)
                 Text("Anyone with the link").tag(ArtifactVisibility.public)
             }
-            .pickerStyle(.segmented)
             Text(model.visibility == .private
                 ? "Only you and people you add can open the link. You can change this any time."
                 : "Anyone who has the link can open it. You can change this any time.")

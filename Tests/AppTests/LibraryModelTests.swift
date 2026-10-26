@@ -38,6 +38,11 @@ final class LibraryModelTests: XCTestCase {
         LibraryModel(env: AppEnvironment.preview(routes: routes))
     }
 
+    /// A model whose requests are answered after the pause `pause` names for each, so a slow refusal can land after a quick success.
+    private func staggered(_ routes: [MockRoute], pause: @escaping @Sendable (URLRequest) -> TimeInterval) -> LibraryModel {
+        LibraryModel(env: LibraryStaggeredTransport.environment(routes: routes, pause: pause))
+    }
+
     // MARK: Files
 
     func testTheFileManagerJoinsTheListTheIdsAndTheConnections() async {
@@ -129,6 +134,55 @@ final class LibraryModelTests: XCTestCase {
         XCTAssertTrue(model.failureIsOffline)
     }
 
+    func testAFilterThatFailsOnItsFirstReadDoesNotBorrowAnotherViewsRows() async {
+        // The file manager has rows. Keys has never been read on this device and the server refuses it:
+        // that is a failure with a button, not a skeleton for as long as the Files rows stay in memory.
+        let body = yours
+        let refusingKeys = MockRoute(.get, "/api/yours") { request in
+            let kind = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "kind" }?.value
+            if kind == "key" { return HTTPResponse(status: 400, data: Data(#"{"error":"Could not list what you have kept."}"#.utf8)) }
+            return HTTPResponse(status: 200, data: Data(body.utf8))
+        }
+        let model = model([refusingKeys, .json(.get, "/api/artifacts", artifacts), .json(.get, "/api/connections", edges)])
+        await model.load(filter: .file, query: "")
+        XCTAssertEqual(model.phase, .loaded)
+        XCTAssertFalse(model.rows(matching: "").isEmpty)
+
+        await model.load(filter: .key, query: "")
+        XCTAssertEqual(model.phase, .failed(LibraryCopy.failed))
+    }
+
+    func testASearchThatFailsDoesNotLeaveTheListItWasMeantToNarrow() async {
+        let body = yours
+        let refusingSearch = MockRoute(.get, "/api/yours") { request in
+            let search = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "q" }?.value
+            if search != nil { return HTTPResponse(status: 400, data: Data(#"{"error":"Search is down."}"#.utf8)) }
+            return HTTPResponse(status: 200, data: Data(body.utf8))
+        }
+        let model = model([refusingSearch])
+        await model.load(filter: .memory, query: "")
+        XCTAssertEqual(model.phase, .loaded)
+        XCTAssertEqual(model.items.count, 2)
+
+        await model.load(filter: .memory, query: "ferry")
+        XCTAssertEqual(model.phase, .failed(LibraryCopy.failed), "the screen says the search failed, and does not show the unfiltered list as its result")
+
+        // Clearing the search reads the list again.
+        await model.load(filter: .memory, query: "")
+        XCTAssertEqual(model.phase, .loaded)
+        XCTAssertEqual(model.items.count, 2)
+    }
+
+    func testRetryingAFailureShowsThatItIsReadingAgain() async {
+        let slow = LibraryModel(env: AppEnvironment.preview(routes: [.failure(.get, "/api/yours", status: 400, message: "No.")], delay: 0.3))
+        await slow.load(filter: .all, query: "")
+        XCTAssertEqual(slow.phase, .failed(LibraryCopy.failed))
+        let retrying = Task { await slow.load(filter: .all, query: "") }
+        try? await Task.sleep(nanoseconds: 60_000_000)
+        XCTAssertEqual(slow.phase, .loading)
+        await retrying.value
+    }
+
     func testASearchCutsTheNameAtOneHundredCharacters() async throws {
         let seen = LibraryTestBox<String?>(nil)
         let capture = MockRoute(.get, "/api/yours") { request in
@@ -200,6 +254,56 @@ final class LibraryModelTests: XCTestCase {
         XCTAssertTrue(toasts.current?.message.contains("No artifact matching") == true)
     }
 
+    func testARefusedChangeDoesNotUndoAnotherRowsChangeThatWentThrough() async {
+        // The page's change is refused after a pause; the group's goes through at once, in between.
+        let model = staggered(
+            routes(extra: [
+                MockRoute(.patch, "/api/artifacts") { request in
+                    let text = String(decoding: request.httpBody ?? Data(), as: UTF8.self)
+                    if text.contains("pomo-1") { return HTTPResponse(status: 503, data: Data(#"{"error":"The database is missing artifact privacy."}"#.utf8)) }
+                    return HTTPResponse(status: 200, data: Data(#"{"artifact":{"id":"G1","slug":"trip-1","title":"Trip planner","visibility":"private","icon":null},"message":"Now private."}"#.utf8))
+                },
+            ]),
+            pause: { request in String(decoding: request.httpBody ?? Data(), as: UTF8.self).contains("pomo-1") ? 0.3 : 0 }
+        )
+        let toasts = ToastCenter()
+        await model.load(filter: .file, query: "")
+        let page = model.rows(matching: "pomo")[0]
+        let group = model.rows(matching: "trip")[0]
+        XCTAssertEqual(group.summary.visibility, .public)
+
+        let refused = Task { await model.setVisibility(page, to: .public, toasts: toasts) }
+        try? await Task.sleep(nanoseconds: 60_000_000)
+        await model.setVisibility(group, to: .private, toasts: toasts)
+        await refused.value
+
+        XCTAssertEqual(model.rows(matching: "pomo")[0].summary.visibility, .private, "the refused row went back")
+        XCTAssertEqual(model.rows(matching: "trip")[0].summary.visibility, .private, "the row that went through stays as the server has it")
+    }
+
+    func testARefusedDeleteDoesNotBringBackARowDeletedMeanwhile() async {
+        let model = staggered(
+            routes(extra: [
+                MockRoute(.delete, "/api/artifacts") { _ in HTTPResponse(status: 404, data: Data(#"{"error":"No artifact matching \"pomo-1\" in your vault."}"#.utf8)) },
+                MockRoute(.delete, "/api/artifact-groups/trip-1") { _ in HTTPResponse(status: 200, data: Data(#"{"deleted":{"slug":"trip-1"},"message":"Deleted."}"#.utf8)) },
+            ]),
+            pause: { request in request.url?.path == "/api/artifacts" && request.httpMethod == "DELETE" ? 0.3 : 0 }
+        )
+        let toasts = ToastCenter()
+        await model.load(filter: .file, query: "")
+        let page = model.rows(matching: "pomo")[0]
+        let group = model.rows(matching: "trip")[0]
+
+        let refused = Task { await model.delete(page, toasts: toasts) }
+        try? await Task.sleep(nanoseconds: 60_000_000)
+        let removed = await model.delete(group, toasts: toasts)
+        let kept = await refused.value
+
+        XCTAssertTrue(removed)
+        XCTAssertFalse(kept)
+        XCTAssertEqual(model.rows(matching: "").map(\.summary.slug), ["pomo-1"], "the page is back; the group stays gone")
+    }
+
     func testLeavingAShareIsShownAtOnce() async {
         let toasts = ToastCenter()
         let model = model(routes(extra: [.json(.delete, "/api/shares", #"{"message":"Access removed."}"#)]))
@@ -226,6 +330,41 @@ final class LibraryModelTests: XCTestCase {
 struct LibraryOfflineTransport: HTTPTransport {
     func send(_ request: URLRequest) async throws -> HTTPResponse {
         throw URLError(.notConnectedToInternet)
+    }
+}
+
+/// Answers each request after the pause a test gives for it, through the canned routes.
+actor LibraryStaggeredTransport: HTTPTransport {
+    private let inner: MockTransport
+    private let pause: @Sendable (URLRequest) -> TimeInterval
+
+    init(_ inner: MockTransport, pause: @escaping @Sendable (URLRequest) -> TimeInterval) {
+        self.inner = inner
+        self.pause = pause
+    }
+
+    func send(_ request: URLRequest) async throws -> HTTPResponse {
+        let seconds = pause(request)
+        if seconds > 0 { try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000)) }
+        return try await inner.send(request)
+    }
+
+    /// An environment whose requests all go through this transport, without retries.
+    @MainActor
+    static func environment(routes: [MockRoute], pause: @escaping @Sendable (URLRequest) -> TimeInterval) -> AppEnvironment {
+        let server = ServerConfig(baseURL: URL(string: "https://preview.hypervault.test")!)
+        let transport = LibraryStaggeredTransport(MockTransport(routes: routes), pause: pause)
+        return AppEnvironment(
+            client: HVClient(baseURL: server.baseURL, transport: transport, tokens: StaticTokenProvider(), retry: .none),
+            auth: AuthService(
+                config: SupabaseConfig(url: URL(string: "https://preview.supabase.test")!, anonKey: "preview"),
+                transport: transport, store: InMemorySecureStore()
+            ),
+            capabilities: Capabilities(),
+            user: AuthUser(id: "preview-user", email: "sam@example.com", displayName: "Sam"),
+            server: server,
+            cache: DiskCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-staggered-\(UUID().uuidString)"))
+        )
     }
 }
 

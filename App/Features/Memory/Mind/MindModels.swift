@@ -22,25 +22,35 @@ extension MemoryListModel {
     }
 }
 
-/// Brings a memory back to a version it had: the shared step of "bring back" and "restore".
+/// Brings a memory back to a version it had on a branch: the shared step of "bring back" and "restore". The
+/// version is named by the state it was read from, never by guessing in the memory's history, which holds the
+/// revisions of every branch.
 struct MindRestorer {
     let client: HVClient
     let branch: String
 
-    /// The newest version before it was forgotten.
-    func bringBack(memoryID: String) async throws -> MindReverted {
-        let history = try await client.send(.memoryHistory(id: memoryID, limit: 100))
-        guard let revision = history.lastLive else {
+    /// A forgotten memory as it stood at `commit`, the point a diff says it was still there.
+    func bringBack(memoryID: String, asOf commit: String) async throws -> MindReverted {
+        let state = try await client.send(.mindState(at: .commit(commit)))
+        guard let version = state.memories.first(where: { $0.id == memoryID }) else {
             throw HVError.invalidRequest("There is no earlier version of that memory to bring back.")
         }
-        return try await client.send(.mindRevert(memoryId: memoryID, revisionId: revision.revisionId, branch: branch))
+        return try await restore(memoryID: memoryID, version: version)
     }
 
-    /// The version it had at a moment.
-    func restore(memoryID: String, asOf moment: Date) async throws -> MindReverted {
-        let history = try await client.send(.memoryHistory(id: memoryID, limit: 100))
-        guard let revision = history.revision(asOf: moment) else {
-            throw HVError.invalidRequest("That memory did not exist at that moment.")
+    /// The version a state row stands for, as the Time travel screen shows it.
+    func restore(memoryID: String, version: MindStateMemory) async throws -> MindReverted {
+        if let revisionID = version.revisionId {
+            return try await client.send(.mindRevert(memoryId: memoryID, revisionId: revisionID, branch: branch))
+        }
+        let history = try await client.send(.memoryHistory(id: memoryID, limit: MemoryHistory.maxLimit))
+        guard let revision = history.revision(for: version) else {
+            // A full page of history may simply not reach back that far.
+            throw HVError.invalidRequest(
+                history.revisions.count >= MemoryHistory.maxLimit
+                    ? "That version is too old to restore from here."
+                    : "That version could not be found in the memory's history."
+            )
         }
         return try await client.send(.mindRevert(memoryId: memoryID, revisionId: revision.revisionId, branch: branch))
     }
@@ -145,9 +155,13 @@ final class MindCommitDetailModel {
     }
 
     func bringBack(_ memory: MindDiffMemory) async throws -> String {
+        // What this commit forgot was there in the commit before it.
+        guard let parent = commit.parentCommitId else {
+            throw HVError.invalidRequest("There is no earlier version of that memory to bring back.")
+        }
         restoringID = memory.id
         defer { restoringID = nil }
-        let result = try await MindRestorer(client: env.client, branch: branch).bringBack(memoryID: memory.id)
+        let result = try await MindRestorer(client: env.client, branch: branch).bringBack(memoryID: memory.id, asOf: parent)
         NotificationCenter.default.post(name: .hvMemoryChanged, object: nil)
         return result.message.isEmpty ? "\"\(memory.title)\" is back." : result.message
     }
@@ -206,9 +220,13 @@ final class MindCompareModel {
     }
 
     func bringBack(_ memory: MindDiffMemory) async throws -> String {
+        // What the second point forgot was there at the first.
+        guard case .loaded(let diff) = phase, let first = diff.from.commitId else {
+            throw HVError.invalidRequest("There is no earlier version of that memory to bring back.")
+        }
         restoringID = memory.id
         defer { restoringID = nil }
-        let result = try await MindRestorer(client: env.client, branch: branch).bringBack(memoryID: memory.id)
+        let result = try await MindRestorer(client: env.client, branch: branch).bringBack(memoryID: memory.id, asOf: first)
         NotificationCenter.default.post(name: .hvMemoryChanged, object: nil)
         return result.message.isEmpty ? "\"\(memory.title)\" is back." : result.message
     }
@@ -248,10 +266,10 @@ final class MindTimeTravelModel {
     }
 
     /// Puts a memory back as it was at the moment shown.
-    func restore(_ memory: MindStateMemory, at moment: Date) async throws -> String {
+    func restore(_ memory: MindStateMemory) async throws -> String {
         restoringID = memory.id
         defer { restoringID = nil }
-        let result = try await MindRestorer(client: env.client, branch: branch).restore(memoryID: memory.id, asOf: moment)
+        let result = try await MindRestorer(client: env.client, branch: branch).restore(memoryID: memory.id, version: memory)
         NotificationCenter.default.post(name: .hvMemoryChanged, object: nil)
         return result.message.isEmpty ? "\"\(memory.title)\" restored." : result.message
     }
@@ -263,9 +281,12 @@ final class MindTimeTravelModel {
 @Observable
 final class MindMergeModel {
     enum Phase: Equatable {
-        /// Reading what the merge would bring.
+        /// Comparing the two branches.
         case previewing
-        /// Ready to merge; `MindStateDiff` is what it would change.
+        /// The target already has everything on the source: the server would answer "Already up to date".
+        case upToDate
+        /// Ready to merge; `MindStateDiff` is how the two branches differ now. It is not what the merge will do:
+        /// the merge takes what the source changed since the two split, and leaves what only the target changed.
         case ready(MindStateDiff)
         case merging
         /// Both branches changed the same memories.
@@ -298,10 +319,17 @@ final class MindMergeModel {
     func loadPreview() async {
         if case .resolving = phase { return }  // started at the choosing, for a preview
         phase = .previewing
+        let client = env.client
+        let source = self.source
+        let target = self.target
         do {
-            let diff = try await env.client.send(.mindDiff(from: .branch(target), to: .branch(source)))
+            // The target's log, read beside the comparison, says whether the source is already part of it.
+            async let targetLog: MindCommitLog? = try? client.send(.mindCommits(branch: target, limit: MindCommitLog.maxLimit))
+            let diff = try await client.send(.mindDiff(from: .branch(target), to: .branch(source)))
+            let log = await targetLog
             preview = diff
-            phase = .ready(diff)
+            let alreadyThere = diff.to.commitId.flatMap { head in log?.holds(head) } ?? false
+            phase = diff.isEmpty || alreadyThere ? .upToDate : .ready(diff)
         } catch {
             guard !MemoryErrors.isCancelled(error) else { return }
             phase = .failed(MemoryErrors.message(error))

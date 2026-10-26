@@ -165,6 +165,38 @@ final class MemoryTests: XCTestCase {
         XCTAssertNil(history.previous(of: history.revisions[3]))
     }
 
+    func testAStateRowFindsItsOwnBranchsRevisionNotAnotherBranchsNewerOne() throws {
+        // main edited the memory at T1, ideas at T2 > T1. Time travel on main at T3 shows main's T1 version.
+        let json = #"""
+        {"memory_id":"m1","revisions":[
+          {"revision_id":"r-ideas","op":"update","title":"Trip notes","summary":"Ideas version","tags":["a"],"source":"manual","commit":{"id":"c3","message":"edit","author_kind":"user","branch":"ideas","created_at":"2026-10-22T10:00:00.123456Z"}},
+          {"revision_id":"r-main","op":"update","title":"Trip notes","summary":"Main version","tags":["a"],"source":"manual","commit":{"id":"c2","message":"edit","author_kind":"user","branch":"main","created_at":"2026-10-21T10:00:00.654321Z"}},
+          {"revision_id":"r-first","op":"create","title":"Trip","summary":"First","tags":[],"source":"manual","commit":{"id":"c1","message":"memorize","author_kind":"user","branch":"main","created_at":"2026-10-20T10:00:00Z"}}
+        ]}
+        """#
+        let history = try decode(MemoryHistory.self, json)
+        let main = try decode(MindStateMemory.self, #"{"id":"m1","title":"Trip notes","summary":"Main version","tags":["a"],"source":"manual","committed_at":"2026-10-21T10:00:00.654321Z"}"#)
+        XCTAssertEqual(history.revision(for: main)?.revisionId, "r-main", "not the newest in the list, which is another branch's")
+        XCTAssertEqual(history.revision(asOf: HVDate.parse("2026-10-23T00:00:00Z")!)?.revisionId, "r-ideas", "a moment alone lands on the other branch's edit")
+        let first = try decode(MindStateMemory.self, #"{"id":"m1","title":"Trip","summary":"First","tags":[],"source":"manual","committed_at":"2026-10-20T10:00:00Z"}"#)
+        XCTAssertEqual(history.revision(for: first)?.revisionId, "r-first")
+    }
+
+    func testAStateRowOfAMemoryThatPredatesBranchesIsFoundByWhatItSays() throws {
+        // Its first revision keeps the memory's own time; the commit that adopted it is later, so the times differ.
+        let history = try decode(MemoryHistory.self, #"""
+        {"memory_id":"m1","revisions":[
+          {"revision_id":"r-deleted","op":"delete","title":"Trip","summary":"First","tags":["x","y"],"source":"manual","commit":{"id":"c3","message":"forget","author_kind":"user","branch":"main","created_at":"2026-10-25T10:00:00Z"}},
+          {"revision_id":"r-adopted","op":"create","title":"Trip","summary":"First","tags":["y","x"],"source":"manual","commit":{"id":"c1","message":"genesis","author_kind":"system","branch":"main","created_at":"2026-09-01T00:00:00Z"}}
+        ]}
+        """#)
+        let row = try decode(MindStateMemory.self, #"{"id":"m1","title":"Trip","summary":"First","tags":["x","y"],"source":"manual","committed_at":"2026-03-02T08:00:00Z"}"#)
+        XCTAssertEqual(history.revision(for: row)?.revisionId, "r-adopted", "a forgetting is never a version to restore")
+        let other = try decode(MindStateMemory.self, #"{"id":"m1","title":"Something else","summary":"First","tags":[],"source":"manual","committed_at":"2026-03-02T08:00:00Z"}"#)
+        XCTAssertNil(history.revision(for: other), "nothing that matches is no version, not the nearest one")
+        XCTAssertNil(try decode(MemoryHistory.self, #"{"memory_id":"m1","revisions":[]}"#).revision(for: row))
+    }
+
     // MARK: Writing
 
     func testDraftProblemsUseTheServersSentences() {
@@ -471,6 +503,21 @@ final class MemoryTests: XCTestCase {
         XCTAssertEqual(object?["backend_id"] as? String, "b1")
         XCTAssertEqual(object?["use_recall"] as? Bool, true)
         XCTAssertEqual(object?["conversation_id"] as? String, "conv-0")
+    }
+
+    func testAskIsWrittenFromTheBranchBeingRead() async throws {
+        let reply = #"{"conversation_id":"conv-1","reply":{"id":"m","role":"assistant","content":"Ferries run hourly."},"recalled_memories":["Ferry times"],"recall_branch":"ideas"}"#
+        let (api, transport) = client([.json(.post, "/api/chat", reply)])
+        _ = try await api.send(.memoryAsk(backendId: "b1", message: "When is the ferry?", recallBranch: "ideas"))
+        _ = try await api.send(.memoryAsk(backendId: "b1", message: "And on main?", recallBranch: "main"))
+        _ = try await api.send(.memoryAsk(backendId: "b1", message: "And with none?"))
+        _ = try await api.send(.memoryAsk(backendId: "b1", message: "And with an empty one?", recallBranch: ""))
+        let sent = try await transport.requests.map { try XCTUnwrap($0.httpBody) }
+        let bodies = try sent.map { try XCTUnwrap(JSONSerialization.jsonObject(with: $0) as? [String: Any]) }
+        XCTAssertEqual(bodies[0]["recall_branch"] as? String, "ideas", "the route recalls main unless it is told a branch")
+        XCTAssertNil(bodies[1]["recall_branch"], "main is what the route reads without being asked")
+        XCTAssertNil(bodies[2]["recall_branch"])
+        XCTAssertNil(bodies[3]["recall_branch"])
     }
 
     func testRecallAndListEndpointsCarryTheBranch() async throws {

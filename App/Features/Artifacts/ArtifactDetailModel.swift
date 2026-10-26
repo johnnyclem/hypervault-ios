@@ -202,16 +202,18 @@ final class ArtifactDetailModel {
             toasts.show(result.message, style: .success)
             await persistSummary()
         } catch {
-            replaceSummary(with: current)
+            // Only the visibility goes back. The page may have changed in another way while this was out.
+            if let latest = summary { replaceSummary(with: latest.withVisibility(current.visibility)) }
             toasts.show(error: error)
         }
     }
 
     func setIcon(_ glyph: String?, toasts: ToastCenter) async -> Bool {
-        guard let current = summary else { return false }
+        guard summary != nil else { return false }
         do {
             _ = try await env.client.send(.setArtifactIcon(slug: slug, glyph: glyph))
-            replaceSummary(with: current.withIcon(ArtifactIcon.normalizedGlyph(glyph)))
+            // Set on the page as it is now, not as it was when the request went out.
+            if let latest = summary { replaceSummary(with: latest.withIcon(ArtifactIcon.normalizedGlyph(glyph))) }
             Haptics.success()
             await persistSummary()
             return true

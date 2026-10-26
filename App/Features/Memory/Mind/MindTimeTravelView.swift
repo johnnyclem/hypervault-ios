@@ -153,10 +153,9 @@ struct MindTimeTravelView: View {
 
     private func restore(_ memory: MindStateMemory) {
         confirming = nil
-        let at = moment
         Task {
             do {
-                let message = try await model.restore(memory, at: at)
+                let message = try await model.restore(memory)
                 Haptics.success()
                 app.toasts.success(message)
                 await list.refresh(app: nil)

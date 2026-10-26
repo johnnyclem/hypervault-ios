@@ -73,7 +73,8 @@ final class GroupEditorModel {
 
     func setContent(_ content: String, of path: String) {
         guard let index = files.firstIndex(where: { $0.path == path }) else { return }
-        files[index].content = content
+        // Made again rather than changed, so its size is the new content's, as the server's will be.
+        files[index] = ArtifactGroupFile(path: path, content: content)
     }
 
     /// Adds an empty file. Returns the sentence that says why not, if it cannot.
@@ -154,33 +155,53 @@ final class GroupEditorModel {
                 _ = try await client.send(.updateArtifactGroup(
                     slug: slug, title: name.isEmpty ? "Untitled group" : name, tags: tagList, visibility: next
                 ))
+                savedTitle = title
+                savedTags = tags
+                savedPrivate = isPrivate
             }
-            let before = Dictionary(uniqueKeysWithValues: savedFiles.map { ($0.path, $0.content) })
-            let now = Set(files.map(\.path))
-            for file in files {
-                guard let old = before[file.path] else {
+            // Each step is saved as it lands, so a save that stops half way is finished by the next one:
+            // an add the server has already taken would answer 409, a remove it has already done 404.
+            for step in ArtifactGroupChanges(saved: savedFiles, now: files).steps {
+                switch step {
+                case .add(let file):
                     do { _ = try await client.send(.addGroupFile(slug: slug, path: file.path, content: file.content)) } catch { throw GroupStepError("add", file.path, error) }
-                    continue
-                }
-                if old != file.content {
+                    savedFiles = ArtifactGroupRules.sorted(savedFiles + [file])
+                case .write(let file):
                     do { _ = try await client.send(.writeGroupFile(slug: slug, path: file.path, content: file.content)) } catch { throw GroupStepError("save", file.path, error) }
+                    savedFiles = ArtifactGroupRules.sorted(savedFiles.filter { $0.path != file.path } + [file])
+                case .remove(let path):
+                    do { _ = try await client.send(.deleteGroupFile(slug: slug, path: path)) } catch { throw GroupStepError("remove", path, error) }
+                    savedFiles.removeAll { $0.path == path }
                 }
-            }
-            for old in savedFiles where !now.contains(old.path) {
-                do { _ = try await client.send(.deleteGroupFile(slug: slug, path: old.path)) } catch { throw GroupStepError("remove", old.path, error) }
             }
             savedFiles = files
-            savedTitle = title
-            savedTags = tags
-            savedPrivate = isPrivate
             return slug
-        } catch let step as GroupStepError {
-            error = step.message
-            return nil
         } catch {
-            self.error = ArtifactErrors.message(error)
+            let message = (error as? GroupStepError)?.message ?? ArtifactErrors.message(error)
+            await reconcile(slug: slug)
+            // A step can go through and only its answer be lost. If the server then holds everything, it is saved.
+            if nothingLeftToSend {
+                savedFiles = files
+                return slug
+            }
+            self.error = message
             return nil
         }
+    }
+
+    private var nothingLeftToSend: Bool {
+        title == savedTitle && tags == savedTags && isPrivate == savedPrivate
+            && ArtifactGroupChanges(saved: savedFiles, now: files).isEmpty
+    }
+
+    /// After a failure the server may hold more than the person was told: a step can go through and its answer
+    /// be lost on the way back. Read the group again and take its word for the files this save was about, so
+    /// the next save sends only what is still missing. The person's edits and any file the save never named
+    /// (one added somewhere else) are left alone.
+    private func reconcile(slug: String) async {
+        guard let group = try? await client.send(.artifactGroup(slug: slug)) else { return }
+        let named = Set(files.map(\.path)).union(savedFiles.map(\.path))
+        savedFiles = ArtifactGroupRules.sorted(savedFiles.filter { !named.contains($0.path) } + group.files.filter { named.contains($0.path) })
     }
 
     /// A step of a save that the server refused, named so the person knows which file.

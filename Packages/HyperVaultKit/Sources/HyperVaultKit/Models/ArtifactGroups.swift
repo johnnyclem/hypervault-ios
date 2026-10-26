@@ -250,6 +250,43 @@ public enum ArtifactGroupRules {
     }
 }
 
+/// The requests that turn the files a group holds into the files the editor shows, one file at a time, in an
+/// order the server accepts. Adding a path that is there answers 409 and removing one that is gone answers 404,
+/// so the editor plans from what is saved and records each step as it lands.
+public struct ArtifactGroupChanges: Sendable, Equatable {
+    public enum Step: Sendable, Equatable {
+        case add(ArtifactGroupFile)
+        case write(ArtifactGroupFile)
+        case remove(String)
+    }
+
+    public let steps: [Step]
+
+    public init(saved: [ArtifactGroupFile], now files: [ArtifactGroupFile]) {
+        let before = Dictionary(saved.map { ($0.path, $0.content) }, uniquingKeysWith: { _, last in last })
+        let paths = Set(files.map(\.path))
+        let added = files.filter { before[$0.path] == nil }
+        let written = files.filter { file in before[file.path].map { $0 != file.content } ?? false }
+        let removed = saved.map(\.path).filter { !paths.contains($0) }
+
+        // A path whose only difference from an added one is case still stands on the server, and the server
+        // refuses the new spelling beside it. The group may also be too full to hold the old files and the new.
+        let addedLowercased = Set(added.map { $0.path.lowercased() })
+        let respelled = Set(removed.filter { addedLowercased.contains($0.lowercased()) })
+        let grows = added.reduce(0) { $0 + $1.content.utf8.count }
+            + written.reduce(0) { $0 + $1.content.utf8.count - (before[$1.path]?.utf8.count ?? 0) }
+        let tooFull = saved.count + added.count > ArtifactGroupRules.maxFiles
+            || saved.reduce(0) { $0 + $1.content.utf8.count } + grows > ArtifactGroupRules.maxGroupBytes
+
+        // Otherwise files go last: until the new ones are in, the live group is never missing one.
+        let early = removed.filter { tooFull || respelled.contains($0) }
+        let late = removed.filter { !early.contains($0) }
+        steps = early.map(Step.remove) + written.map(Step.write) + added.map(Step.add) + late.map(Step.remove)
+    }
+
+    public var isEmpty: Bool { steps.isEmpty }
+}
+
 public struct ArtifactGroupRuleError: Error, Sendable, Equatable {
     public let message: String
 

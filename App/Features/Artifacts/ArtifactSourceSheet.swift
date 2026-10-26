@@ -189,10 +189,9 @@ struct ArtifactSourceSheet: View {
     // MARK: Panes
 
     private var panePicker: some View {
-        Picker("Show", selection: Bindable(model).pane) {
+        TruthChoicePicker(title: "Show", selection: Bindable(model).pane) {
             ForEach(model.panes) { pane in Text(pane.rawValue).tag(pane) }
         }
-        .pickerStyle(.segmented)
         .padding(.horizontal, HV.Space.m)
         .padding(.vertical, HV.Space.xs)
         .onChange(of: model.pane) { _, pane in

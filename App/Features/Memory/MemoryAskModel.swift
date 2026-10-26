@@ -93,7 +93,8 @@ final class MemoryAskModel {
         }
         update(id) { $0.phase = .answering }
         do {
-            let answer = try await client.send(.memoryAsk(backendId: backend.id, message: text, conversationId: conversationID))
+            // The answer is written from the branch the sources came from.
+            let answer = try await client.send(.memoryAsk(backendId: backend.id, message: text, conversationId: conversationID, recallBranch: branch))
             if !answer.conversationId.isEmpty { conversationID = answer.conversationId }
             update(id) { $0.answer = answer }
         } catch {

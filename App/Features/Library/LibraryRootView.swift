@@ -33,7 +33,6 @@ enum LibrarySheet: Identifiable {
 struct LibraryScreen: View {
     @Environment(AppModel.self) private var app
     @Environment(AppEnvironment.self) private var env
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage("pref.libraryGraph") private var showGraph = false
     @State private var model: LibraryModel
     @State private var filter: YoursFilter
@@ -138,18 +137,9 @@ struct LibraryScreen: View {
     }
 
     /// Four words fit a segmented control until the type gets very large; there a menu takes over.
-    @ViewBuilder
     private var filterPicker: some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            Picker(LibraryCopy.filterGroupLabel, selection: $filter) {
-                ForEach(YoursFilter.allCases) { option in Text(option.title).tag(option) }
-            }
-            .pickerStyle(.menu)
-        } else {
-            Picker(LibraryCopy.filterGroupLabel, selection: $filter) {
-                ForEach(YoursFilter.allCases) { option in Text(option.title).tag(option) }
-            }
-            .pickerStyle(.segmented)
+        TruthChoicePicker(title: LibraryCopy.filterGroupLabel, selection: $filter) {
+            ForEach(YoursFilter.allCases) { option in Text(option.title).tag(option) }
         }
     }
 

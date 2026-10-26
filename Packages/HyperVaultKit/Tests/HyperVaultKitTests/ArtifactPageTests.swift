@@ -116,6 +116,43 @@ final class ArtifactPageTests: XCTestCase {
         XCTAssertFalse(ArtifactPageLoader.isBlank("<h1>No head at all</h1>"))
     }
 
+    func testBlankMeansNothingOutsideTheHeadWhateverTheCaseOrSpacing() {
+        XCTAssertTrue(ArtifactPageLoader.isBlank(""))
+        XCTAssertTrue(ArtifactPageLoader.isBlank(" \n\t "))
+        XCTAssertTrue(ArtifactPageLoader.isBlank("<HEAD lang=\"en\">\n<title>x</title>\n</Head>\n"))
+        XCTAssertTrue(ArtifactPageLoader.isBlank("\n<head></head>\n  <head data-x=\"1\">a > b</head>\n"), "more than one block, and a > inside the second")
+        XCTAssertFalse(ArtifactPageLoader.isBlank("x<head></head>"))
+        XCTAssertFalse(ArtifactPageLoader.isBlank("<head></head>x"))
+        XCTAssertFalse(ArtifactPageLoader.isBlank("<head><title>never closed</title>"))
+        XCTAssertFalse(ArtifactPageLoader.isBlank("<head"))
+        XCTAssertFalse(ArtifactPageLoader.isBlank("<head>"))
+        XCTAssertFalse(ArtifactPageLoader.isBlank("<body>hi</body>"))
+    }
+
+    func testAPageMadeOfUnclosedHeadTagsIsReadInOnePass() async {
+        // Markup is anyone's to publish. Each of these is about 200 KB that a pattern which rescans from every
+        // `<head` takes minutes over.
+        let shapes = [
+            String(repeating: "<head", count: 40_000),
+            "<head>" + String(repeating: "<head", count: 40_000),
+            String(repeating: "<head>", count: 33_000),
+            String(repeating: "<head x=\"", count: 22_000) + ">",
+            String(repeating: "<head></head ", count: 15_000),
+        ]
+        for markup in shapes {
+            XCTAssertGreaterThan(markup.utf8.count, 190_000)
+            let started = Date()
+            XCTAssertFalse(ArtifactPageLoader.isBlank(markup))
+            XCTAssertLessThan(Date().timeIntervalSince(started), 1.0, "read in one pass")
+        }
+
+        let started = Date()
+        let transport = MockTransport(routes: [html(200, shapes[1])])
+        let page = await loader(transport).load(slug: "p-1")
+        XCTAssertEqual(page, .html(shapes[1], base: URL(string: "https://hv.test/a/p-1")!))
+        XCTAssertLessThan(Date().timeIntervalSince(started), 2.0, "the page opens")
+    }
+
     // MARK: Files
 
     func testTheFileViewerGivesUpItsSignedAddress() {
@@ -205,15 +242,74 @@ final class ArtifactLinkRouterTests: XCTestCase {
         XCTAssertEqual(router.action(for: url), .external(url))
     }
 
-    func testHyperVaultLinksStayInTheApp() {
+    func testHyperVaultPagesStayInTheApp() {
         let page = URL(string: "https://hypervault.store/a/other-1")!
         XCTAssertEqual(router.action(for: page), .hyperVault(page))
+        let group = URL(string: "https://hypervault.store/g/trip-1")!
+        XCTAssertEqual(router.action(for: group), .hyperVault(group))
         let realm = URL(string: "https://nova.vault.cool/a/other-1")!
         XCTAssertEqual(router.action(for: realm), .hyperVault(realm))
-        let apex = URL(string: "https://vault.cool/d/x")!
+        let apex = URL(string: "https://vault.cool/a/x")!
         XCTAssertEqual(router.action(for: apex), .hyperVault(apex))
         let scheme = URL(string: "hypervault://artifact/other-1")!
         XCTAssertEqual(router.action(for: scheme), .hyperVault(scheme))
+        for text in ["hypervault://a/other-1", "hypervault://g/trip-1", "HyperVault://ARTIFACT/other-1"] {
+            let url = URL(string: text)!
+            XCTAssertEqual(router.action(for: url), .hyperVault(url), text)
+        }
+        let upper = URL(string: "https://hypervault.store/A/other-1")!
+        XCTAssertEqual(router.action(for: upper), .hyperVault(upper), "the app reads the path without regard to case")
+    }
+
+    func testOtherHyperVaultPagesOnTheWebGoToTheWebNotIntoTheApp() {
+        // The web asks for a sign-in where it must; the app does not act on a page's say-so.
+        for text in ["https://vault.cool/d/x", "https://hypervault.store/pricing", "https://hypervault.store/vault/account", "https://nova.vault.cool/memory/m-1", "https://hypervault.store/"] {
+            let url = URL(string: text)!
+            XCTAssertEqual(router.action(for: url), .external(url), text)
+        }
+    }
+
+    func testAPageCannotReachTheAppsOwnActions() {
+        // Approving an agent and filling the canvas are done from the app's own links, never from a page.
+        let actions = [
+            "hypervault://pair?code=BCDF-2346", "hypervault://pair", "hypervault://keep?text=hello", "hypervault://canvas?text=hi",
+            "hypervault://invite?code=abc", "hypervault://login?invite=abc", "hypervault://tab/you", "hypervault://settings",
+            "hypervault://memory/m-1", "hypervault:///pair?code=BCDF-2346", "HYPERVAULT://PAIR?code=BCDF-2346", "hypervault://pair/a/x",
+            "https://hypervault.store/pair?code=BCDF-2346", "https://hypervault.store/pair", "https://hypervault.store/keep?text=hello",
+            "https://nova.vault.cool/keep?text=x", "https://vault.cool/canvas", "https://hypervault.store/invite?code=abc",
+            "https://hypervault.store/login?invite=abc", "https://hypervault.store/%70air?code=BCDF-2346", "HTTPS://HYPERVAULT.STORE/PAIR?code=BCDF-2346",
+        ]
+        for text in actions {
+            let url = URL(string: text)!
+            let action = router.action(for: url)
+            XCTAssertEqual(action, .blocked, "\(text) must not reach the app or Safari")
+            XCTAssertEqual(router.action(for: url, tapped: false), .blocked, text)
+        }
+    }
+
+    func testAnActionHiddenBehindAPageIsStillOnlyAPage() {
+        // Only the first segment names where a link goes; a slug that reads like an action is just a slug.
+        let page = URL(string: "https://hypervault.store/a/pair")!
+        XCTAssertEqual(router.action(for: page), .hyperVault(page))
+        let scheme = URL(string: "hypervault://a/keep")!
+        XCTAssertEqual(router.action(for: scheme), .hyperVault(scheme))
+    }
+
+    func testLookalikesOfTheActionsAreNotOursEither() {
+        for text in ["https://hypervault.store.evil.example/pair?code=BCDF-2346", "https://evilvault.cool/keep?text=x", "https://hypervault.store@evil.example/pair"] {
+            let url = URL(string: text)!
+            XCTAssertEqual(router.action(for: url), .external(url), text)
+        }
+    }
+
+    func testAPageThatNavigatesByItselfNeverLeavesTheApp() {
+        // A script or a meta refresh arrives as a navigation nobody tapped.
+        for text in ["https://example.com/", "http://example.com", "mailto:sam@example.com", "tel:+15551234567", "sms:+15551234567", "facetime:sam@example.com", "https://hypervault.store/pricing"] {
+            XCTAssertEqual(router.action(for: URL(string: text)!, tapped: false), .blocked, text)
+        }
+        let page = URL(string: "https://hypervault.store/a/other-1")!
+        XCTAssertEqual(router.action(for: page, tapped: false), .hyperVault(page), "moving on to another page is not leaving")
+        XCTAssertEqual(router.action(for: URL(string: "https://hypervault.store/vault?repair=pomo-1")!, tapped: false), .blocked, "the Fix it link is a link to tap")
     }
 
     func testLookalikeHostsAreNotOurs() {

@@ -140,8 +140,24 @@ struct MindStateDiffView: View {
     /// Offered for a memory that was forgotten: bring it back.
     var onRestore: ((MindDiffMemory) -> Void)?
     var restoringID: String?
+    var words = Words.changes
 
     @State private var expanded: Set<String> = []
+
+    /// What the three kinds of memory are called. A change between two points added, edited or forgot them; two
+    /// branches set side by side only have some that the other has not.
+    struct Words {
+        var added: String
+        var changed: String
+        var removed: String
+        var removedLink: String
+
+        static let changes = Words(added: "Added", changed: "Edited", removed: "Forgotten", removedLink: "removed")
+
+        static func branches(source: String, target: String) -> Words {
+            Words(added: "Only on \(source)", changed: "Different on the two", removed: "Only on \(target)", removedLink: "only on \(target)")
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.l) {
@@ -157,7 +173,7 @@ struct MindStateDiffView: View {
 
     private var addedSection: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HVSectionHeader(title: "Added", detail: "\(diff.added.count)")
+            HVSectionHeader(title: words.added, detail: "\(diff.added.count)")
             ForEach(diff.added) { memory in
                 diffRow(symbol: "plus.circle.fill", tint: Palette.success, title: memory.title, trailing: nil)
             }
@@ -166,7 +182,7 @@ struct MindStateDiffView: View {
 
     private var removedSection: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HVSectionHeader(title: "Forgotten", detail: "\(diff.removed.count)")
+            HVSectionHeader(title: words.removed, detail: "\(diff.removed.count)")
             ForEach(diff.removed) { memory in
                 diffRow(symbol: "minus.circle.fill", tint: Palette.rose, title: memory.title, trailing: restoreButton(for: memory))
             }
@@ -175,7 +191,7 @@ struct MindStateDiffView: View {
 
     private var changedSection: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HVSectionHeader(title: "Edited", detail: "\(diff.changed.count)")
+            HVSectionHeader(title: words.changed, detail: "\(diff.changed.count)")
             ForEach(diff.changed) { change in
                 changeCard(change)
             }
@@ -190,7 +206,7 @@ struct MindStateDiffView: View {
                 diffRow(symbol: "link", tint: Palette.success, title: linkTitle(link, titles), trailing: nil)
             }
             ForEach(diff.linksRemoved) { link in
-                diffRow(symbol: "link.badge.plus", tint: Palette.rose, title: linkTitle(link, titles) + " (removed)", trailing: nil)
+                diffRow(symbol: "link.badge.plus", tint: Palette.rose, title: linkTitle(link, titles) + " (\(words.removedLink))", trailing: nil)
             }
         }
     }

@@ -531,6 +531,22 @@ public struct MemoryHistory: Sendable, Codable, Equatable {
         return latest.op == .delete ? nil : latest
     }
 
+    /// The most revisions the route gives for one memory.
+    public static let maxLimit = 200
+
+    /// The revision a branch's state row stands for. History lists the revisions of every branch, so a moment
+    /// alone can land on another branch's edit. A row names its version by when its commit was made, and a commit
+    /// makes its revisions at that moment, so the time is matched first. A memory that predates branches has its
+    /// original time on its first revision and the commit's on the commit, so failing that, what the row says.
+    public func revision(for row: MindStateMemory) -> MemoryRevision? {
+        let live = revisions.filter { $0.op != .delete }
+        if let committed = row.committedAt,
+           let exact = live.first(where: { revision in revision.commit?.createdAt.map { abs($0.timeIntervalSince(committed)) < 0.001 } ?? false }) {
+            return exact
+        }
+        return live.first { $0.title == row.title && $0.summary == row.summary && Set($0.tags) == Set(row.tags) }
+    }
+
     /// The revision a diff of `revision` reads against: the next older one.
     public func previous(of revision: MemoryRevision) -> MemoryRevision? {
         guard let index = revisions.firstIndex(where: { $0.revisionId == revision.revisionId }) else { return nil }
@@ -1110,14 +1126,18 @@ extension Endpoint where Response == MemoryConnected {
 }
 
 extension Endpoint where Response == MemoryAnswer {
-    /// One turn of chat with wiki recall on, as the web's Ask mode sends it.
-    public static func memoryAsk(backendId: String, message: String, conversationId: String? = nil) -> Endpoint<MemoryAnswer> {
+    /// One turn of chat with wiki recall on, as the web's Ask mode sends it. `recallBranch` is the branch the
+    /// answer is written from; the route reads main when it is left out.
+    public static func memoryAsk(
+        backendId: String, message: String, conversationId: String? = nil, recallBranch: String? = nil
+    ) -> Endpoint<MemoryAnswer> {
         var body: [String: JSONValue] = [
             "backend_id": .string(backendId),
             "message": .string(message),
             "use_recall": .bool(true),
         ]
         if let conversationId { body["conversation_id"] = .string(conversationId) }
+        if let recallBranch, !recallBranch.isEmpty, recallBranch != MindBranchName.defaultName { body["recall_branch"] = .string(recallBranch) }
         return Endpoint(.post, "/api/chat", body: .jsonValue(.object(body)), timeout: 120)
     }
 }

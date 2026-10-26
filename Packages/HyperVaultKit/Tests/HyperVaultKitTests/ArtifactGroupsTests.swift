@@ -82,6 +82,37 @@ final class ArtifactGroupsTests: XCTestCase {
         XCTAssertTrue(ArtifactGroupRules.isRemovable("app.js"))
     }
 
+    // MARK: Saving
+
+    private func file(_ path: String, _ content: String = "x") -> ArtifactGroupFile { ArtifactGroupFile(path: path, content: content) }
+
+    func testSavingSendsOnlyWhatDiffersAndRemovesLast() {
+        let saved = [file("index.html", "a"), file("app.js", "old"), file("gone.css")]
+        let now = [file("index.html", "a"), file("app.js", "new"), file("new.css")]
+        let changes = ArtifactGroupChanges(saved: saved, now: now)
+        XCTAssertEqual(changes.steps, [.write(file("app.js", "new")), .add(file("new.css")), .remove("gone.css")])
+        XCTAssertTrue(ArtifactGroupChanges(saved: saved, now: saved).isEmpty)
+    }
+
+    func testAChangedCaseIsRemovedBeforeItIsAddedAgain() {
+        // The server refuses "Readme.css" beside "readme.css", so a rename that only changes case goes old first.
+        let changes = ArtifactGroupChanges(saved: [file("index.html"), file("readme.css")], now: [file("index.html"), file("Readme.css")])
+        XCTAssertEqual(changes.steps, [.remove("readme.css"), .add(file("Readme.css"))])
+    }
+
+    func testAFullGroupMakesRoomBeforeItAdds() {
+        let full = (0..<ArtifactGroupRules.maxFiles).map { file($0 == 0 ? "index.html" : "f\($0).js") }
+        var now = full
+        now.removeAll { $0.path == "f7.js" }
+        now.append(file("swap.js"))
+        XCTAssertEqual(ArtifactGroupChanges(saved: full, now: now).steps, [.remove("f7.js"), .add(file("swap.js"))])
+
+        let big = String(repeating: "x", count: 400_000)
+        let heavy = [file("index.html"), file("a.js", big), file("b.js", big), file("c.js", big), file("d.js", big)]
+        let swapped = [file("index.html"), file("a.js", big), file("b.js", big), file("c.js", big), file("e.js", big)]
+        XCTAssertEqual(ArtifactGroupChanges(saved: heavy, now: swapped).steps, [.remove("d.js"), .add(file("e.js", big))])
+    }
+
     func testFilesSortIndexFirst() {
         let sorted = ArtifactGroupRules.sorted(["styles.css", "app.js", "index.html", "a/b.js", "app10.js", "app2.js"].map { ArtifactGroupFile(path: $0, content: "") })
         XCTAssertEqual(sorted.map(\.path), ["index.html", "a/b.js", "app.js", "app2.js", "app10.js", "styles.css"])

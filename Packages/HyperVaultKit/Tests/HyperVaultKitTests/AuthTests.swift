@@ -182,7 +182,7 @@ final class AuthTests: XCTestCase {
             _ = try await auth.verifyEmailCode(email: "a@b.co", code: "000000")
             XCTFail("expected failure")
         } catch {
-            XCTAssertEqual(error as? AuthError, .failed("That code has expired. Ask for a new one."))
+            XCTAssertEqual(error as? AuthError, .failed("That code did not work, or it has expired. Check it, or ask for a new one."))
         }
     }
 
@@ -654,5 +654,51 @@ final class InviteTests: XCTestCase {
         XCTAssertEqual(InviteCode.extract(from: "https://hypervault.store/login?invite=hv-ab12-cd34&x=1"), "HV-AB12-CD34")
         XCTAssertEqual(InviteCode.extract(from: "Your code: HV-ZZZZ-9999!"), "HV-ZZZZ-9999")
         XCTAssertNil(InviteCode.extract(from: "no code here"))
+    }
+}
+
+/// What a real GoTrue (the production project's, read on 2026-10-26 with bogus credentials) answers when it
+/// refuses something. The classification of a refused refresh token decides between "sign the person out" and
+/// "try again later", so it is pinned to the real bodies and not to what the documentation implies.
+final class RealGoTrueAnswerTests: RefreshTestCase {
+    private func refresh(answering body: String, status: Int = 400) async throws -> (token: String?, kept: Bool) {
+        let transport = MockTransport(routes: [.json(.post, "/auth/v1/token", body, status: status)])
+        let store = InMemorySecureStore()
+        try await seed(store)
+        let auth = service(transport, store: store)
+        await auth.restore()
+        let token = try? await auth.accessToken()
+        return (token ?? nil, await store.get(Self.sessionKey) != nil)
+    }
+
+    func testAnUnknownRefreshTokenEndsTheSession() async throws {
+        let result = try await refresh(answering: #"{"code":400,"error_code":"refresh_token_not_found","msg":"Invalid Refresh Token: Refresh Token Not Found"}"#)
+        XCTAssertNil(result.token)
+        XCTAssertFalse(result.kept)
+    }
+
+    func testAnAlreadyUsedRefreshTokenEndsTheSession() async throws {
+        let result = try await refresh(answering: #"{"code":400,"error_code":"refresh_token_already_used","msg":"Invalid Refresh Token: Already Used"}"#)
+        XCTAssertFalse(result.kept)
+    }
+
+    func testAMalformedOrEmptyRefreshTokenEndsTheSessionToo() async throws {
+        let result = try await refresh(answering: #"{"code":400,"error_code":"validation_failed","msg":"Refresh token is not valid"}"#)
+        XCTAssertNil(result.token)
+        XCTAssertFalse(result.kept, "a token that can never be refreshed must not leave the person stuck")
+    }
+
+    func testAValidationErrorThatIsNotAboutTheTokenKeepsTheSession() async throws {
+        let result = try await refresh(answering: #"{"code":400,"error_code":"validation_failed","msg":"Unsupported grant type"}"#)
+        XCTAssertTrue(result.kept)
+    }
+
+    func testAWrongOrExpiredCodeAndALostSignInStateAreSaidInPlainWords() {
+        let wrongCode = HTTPResponse(status: 403, data: Data(#"{"code":403,"error_code":"otp_expired","msg":"Token has expired or is invalid"}"#.utf8))
+        XCTAssertEqual(AuthService.message(from: wrongCode), "That code did not work, or it has expired. Check it, or ask for a new one.")
+        let lostState = HTTPResponse(status: 404, data: Data(#"{"code":404,"error_code":"flow_state_not_found","msg":"invalid flow state, no valid flow state found"}"#.utf8))
+        XCTAssertEqual(AuthService.message(from: lostState), "That sign-in expired. Start again.")
+        let badToken = HTTPResponse(status: 400, data: Data(#"{"code":400,"error_code":"validation_failed","msg":"Unable to detect issuer in ID token for Apple provider"}"#.utf8))
+        XCTAssertEqual(AuthService.message(from: badToken), "Unable to detect issuer in ID token for Apple provider")
     }
 }

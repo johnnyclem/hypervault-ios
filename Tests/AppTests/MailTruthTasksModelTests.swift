@@ -254,6 +254,24 @@ final class MailModelTests: XCTestCase {
         XCTAssertEqual(model.filter, .sent)
     }
 
+    /// Found by the local end-to-end run: an account with no claimed address and no mail has no mailbox until
+    /// its messages are first read, and the list of mailboxes never makes the box. The first visit asked for
+    /// the mailboxes, got none, read the messages (which made the box) and left Compose off until a refresh.
+    func testAFirstVisitThatFindsNoMailboxAsksAgainOnceTheMessagesHaveMadeOne() async throws {
+        let made = MailReplySent()
+        let mailboxes = MockRoute(.get, "/api/mail/owner/mailboxes") { _ in
+            HTTPResponse(status: 200, data: Data((made.value ? MailPreviewData.mailboxes : #"{"mailboxes":[]}"#).utf8))
+        }
+        let messages = MockRoute(.get, "/api/mail/messages") { _ in
+            made.mark()
+            return HTTPResponse(status: 200, data: Data(MailPreviewData.inbox.utf8))
+        }
+        let model = model([mailboxes, messages])
+        await model.start()
+        XCTAssertEqual(model.mailboxes.count, 2, "the mailboxes were not asked for again after the box was made")
+        XCTAssertNotNil(model.active, "Compose stays off with no active mailbox")
+    }
+
     func testMailThatWorksIsNotMarkedUnavailable() async throws {
         let model = model(MailPreviewData.routes)
         await model.start()

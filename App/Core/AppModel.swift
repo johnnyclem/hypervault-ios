@@ -127,6 +127,19 @@ final class AppModel {
     /// Whether the app is pointed at something other than the server it ships with.
     var isOnDefaultServer: Bool { server == SharedConfig.defaultServer }
 
+    /// The https origin Google must return to. Supabase only redirects to an
+    /// allow-listed https URL; `hypervault://` falls through to the website and
+    /// the sign-in sheet never closes. The callback page on this origin hands
+    /// the code back to the app.
+    var oauthReturnOrigin: URL {
+        if let raw = capabilities?.appUrl, let url = URL(string: raw), url.host != nil,
+           let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http"
+        {
+            return url
+        }
+        return server.baseURL
+    }
+
     /// The candidate's capabilities, once it has answered like a HyperVault server that can sign people in.
     private func verify(_ candidate: ServerConfig) async throws -> Capabilities {
         let host = candidate.baseURL.host() ?? candidate.baseURL.absoluteString

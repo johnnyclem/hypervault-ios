@@ -139,7 +139,10 @@ struct ChatModelsContent: View {
     private var list: some View {
         List {
             if model.isStale {
-                HVStaleBanner().listRowSeparator(.hidden).listRowBackground(Color.clear)
+                HVStaleBanner()
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
             }
             if !canStoreKeys {
                 noEncryptionBanner
@@ -163,10 +166,10 @@ struct ChatModelsContent: View {
                 HVSectionHeader(title: "Your models", detail: model.backends.isEmpty ? nil : "\(model.backends.count) of \(env.limits.maxBackends)")
             } footer: {
                 if canStoreKeys {
-                    Text("Your key is stored encrypted on HyperVault's server, which makes the calls to your model. It is shown once, when you connect, and never again.")
-                        .font(.hvCaption)
+                    ChatFooter("Your key is stored encrypted on HyperVault's server, which makes the calls to your model. It is shown once, when you connect, and never again.")
                 }
             }
+            .hvListRow()
             networkSection
             if env.features.onDeviceInference {
                 Section {
@@ -174,8 +177,10 @@ struct ChatModelsContent: View {
                 } header: {
                     HVSectionHeader(title: "On this iPhone")
                 }
+                .hvListRow()
             }
         }
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .refreshable { await model.load() }
     }
@@ -188,14 +193,14 @@ struct ChatModelsContent: View {
                     HStack(spacing: HV.Space.s + 2) {
                         HVIconBadge(symbol: "desktopcomputer", tint: Palette.violet)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(local.displayName).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(1)
+                            Text(local.displayName).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(2)
                             Text("\(local.model) \u{00B7} \(URL(string: ChatLocalModel.normalizedBase(local.baseURL))?.host ?? local.baseURL)")
                                 .font(.hvFootnote)
                                 .foregroundStyle(Palette.textSecondary)
-                                .lineLimit(1)
+                                .lineLimit(2)
                         }
                         Spacer(minLength: HV.Space.xs)
-                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.textTertiary)
+                        Image(systemName: "chevron.right").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
                     }
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
@@ -213,9 +218,9 @@ struct ChatModelsContent: View {
         } header: {
             HVSectionHeader(title: "On your network")
         } footer: {
-            Text("Ollama or LM Studio at home: this iPhone talks to it directly, so a 192.168 address works. Replies are saved to your vault afterwards. No tools, and no key.")
-                .font(.hvCaption)
+            ChatFooter("Ollama or LM Studio at home: this iPhone talks to it directly, so a 192.168 address works. Replies are saved to your vault afterwards. No tools, and no key.")
         }
+        .hvListRow()
     }
 
     private var emptyModels: some View {
@@ -244,6 +249,7 @@ struct ChatModelsContent: View {
             }
             .padding(.vertical, HV.Space.xxs)
         }
+        .hvListRow()
     }
 
     // MARK: Actions
@@ -328,12 +334,12 @@ struct ChatBackendRow: View {
         HStack(spacing: HV.Space.s + 2) {
             HVIconBadge(symbol: Self.symbol(for: backend.provider), tint: Self.tint(for: backend.provider))
             VStack(alignment: .leading, spacing: 2) {
-                Text(backend.name).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(1)
-                Text(detail).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(1)
-                Text(usage).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(1)
+                Text(backend.name).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(2)
+                Text(detail).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(2)
+                Text(usage).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(2)
             }
             Spacer(minLength: HV.Space.xs)
-            Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.textTertiary)
+            Image(systemName: "chevron.right").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
         }
         .frame(minHeight: 44)
         .contentShape(Rectangle())
@@ -365,16 +371,10 @@ struct ChatBackendRow: View {
         }
     }
 
+    /// The colour of the provider's family, the same one its members wear in a room and its imported
+    /// chats wear in the list.
     static func tint(for provider: String) -> Color {
-        switch provider {
-        case "openai": return Palette.mint
-        case "anthropic", "custom-anthropic": return Palette.coral
-        case "xai": return Palette.textSecondary
-        case "gemini": return Palette.blue
-        case "mistral": return Palette.amber
-        case "ollama", "lmstudio": return Palette.violet
-        default: return Palette.sky
-        }
+        ChatAgentTone(provider: provider).color
     }
 }
 

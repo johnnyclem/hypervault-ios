@@ -1,17 +1,23 @@
 import HyperVaultKit
 import SwiftUI
 
-/// Each member of a room has a colour, by their place in the roster.
-enum ChatRoomPalette {
-    static let colors: [Color] = [Palette.sky, Palette.mint, Palette.amber, Palette.violet, Palette.rose, Palette.cyan]
+/// The colours of one room: each member wears the tone of their model (`ChatAgentTone`), and a second
+/// member of the same model takes a neighbouring tone, so every dot in the room is its own.
+struct ChatRoomPalette {
+    private let tones: [String: ChatAgentTone]
 
-    static func color(at index: Int) -> Color {
-        colors[((index % colors.count) + colors.count) % colors.count]
+    init(members: [ChatRoomMember]) {
+        let tones = ChatAgentTone.tones(forProviders: members.map { $0.backend?.provider ?? "" })
+        self.tones = Dictionary(zip(members.map(\.handle), tones), uniquingKeysWith: { first, _ in first })
     }
 
-    static func color(for handle: String?, in members: [ChatRoomMember]) -> Color {
-        guard let handle, let index = members.firstIndex(where: { $0.handle == handle }) else { return Palette.textSecondary }
-        return color(at: index)
+    func color(for member: ChatRoomMember) -> Color {
+        tones[member.handle]?.color ?? Palette.textSecondary
+    }
+
+    /// The colour of whoever wrote with `handle`; a handle the room no longer has is plain grey.
+    func color(forHandle handle: String?) -> Color {
+        handle.flatMap { tones[$0]?.color } ?? Palette.textSecondary
     }
 }
 
@@ -28,6 +34,11 @@ final class ChatRoomsListModel {
     private(set) var phase: Phase = .loading
     private(set) var rooms: [ChatRoomSummary] = []
     private(set) var isStale = false
+
+    /// The rooms under "Today", "Previous 7 days" and so on, as the chats are.
+    var sections: [(bucket: ChatDates.Bucket, items: [ChatRoomSummary])] {
+        ChatDates.sections(of: rooms, date: \.updatedAt)
+    }
 
     private let client: HVClient
     private let cache: DiskCache

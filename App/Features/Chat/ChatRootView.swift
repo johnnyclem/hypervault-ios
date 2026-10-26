@@ -14,7 +14,17 @@ struct ChatRootView: View {
     @AppStorage("pref.chat.section") private var section = Half.chats
 
     var body: some View {
-        Group {
+        // The switch sits under the title, not in the bar: a control in the bar is drawn inside its own
+        // glass capsule, whose shadow shows as a box on a light page.
+        VStack(spacing: 0) {
+            Picker("Chats or rooms", selection: $section) {
+                ForEach(Half.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, HV.Space.m)
+            .padding(.vertical, HV.Space.xs)
+            .hvReadableWidth()
+
             switch section {
             case .chats:
                 ChatConversationListView(client: env.client, cache: env.cache, namespace: env.user.id)
@@ -26,14 +36,6 @@ struct ChatRootView: View {
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                Picker("Show", selection: $section) {
-                    ForEach(Half.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 220)
-                .accessibilityLabel("Chats or rooms")
-            }
             ToolbarItem(placement: .topBarLeading) {
                 NavigationLink(value: ChatDestination.models) {
                     Image(systemName: "cpu").frame(width: 44, height: 44)

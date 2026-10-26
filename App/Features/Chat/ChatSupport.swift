@@ -56,6 +56,17 @@ enum ChatDates {
         }
     }
 
+    /// Items grouped under "Today", "Yesterday" and so on, newest group first; empty groups are left out.
+    static func sections<Item>(
+        of items: [Item], date: (Item) -> Date?, now: Date = Date(), calendar: Calendar = .current
+    ) -> [(bucket: Bucket, items: [Item])] {
+        let grouped = Dictionary(grouping: items) { bucket(for: date($0), now: now, calendar: calendar) }
+        return Bucket.allCases.compactMap { bucket in
+            guard let items = grouped[bucket], !items.isEmpty else { return nil }
+            return (bucket, items)
+        }
+    }
+
     static func bucket(for date: Date?, now: Date = Date(), calendar: Calendar = .current) -> Bucket {
         guard let date else { return .earlier }
         if calendar.isDate(date, inSameDayAs: now) { return .today }
@@ -71,7 +82,9 @@ enum ChatDates {
 
 // MARK: Layout
 
-/// Chips that wrap onto as many lines as they need.
+/// Chips that wrap onto as many lines as they need. Items of different heights sit on the middle of
+/// their line, so a tag beside a line of text does not hang from the top. An item wider than the whole
+/// is offered the whole width, so its text wraps instead of running off the edge.
 struct ChatFlowLayout: Layout {
     var spacing: CGFloat = HV.Space.xs
 
@@ -81,31 +94,128 @@ struct ChatFlowLayout: Layout {
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         let arranged = arrange(width: bounds.width, subviews: subviews)
-        for (index, origin) in arranged.origins.enumerated() {
-            subviews[index].place(at: CGPoint(x: bounds.minX + origin.x, y: bounds.minY + origin.y), proposal: .unspecified)
+        for index in subviews.indices {
+            subviews[index].place(
+                at: CGPoint(x: bounds.minX + arranged.points[index].x, y: bounds.minY + arranged.points[index].y),
+                anchor: .leading,
+                proposal: ProposedViewSize(arranged.sizes[index])
+            )
         }
     }
 
-    private func arrange(width: CGFloat, subviews: Subviews) -> (size: CGSize, origins: [CGPoint]) {
-        var origins: [CGPoint] = []
+    /// The size of the whole; for each item its size, and the point its leading edge and vertical middle sit at.
+    private func arrange(width: CGFloat, subviews: Subviews) -> (size: CGSize, sizes: [CGSize], points: [CGPoint]) {
+        let offered = ProposedViewSize(width: width.isFinite ? width : nil, height: nil)
+        let sizes = subviews.map { $0.sizeThatFits(offered) }
+        var lines: [[Int]] = [[]]
         var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowHeight: CGFloat = 0
-        var widest: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
+        for (index, size) in sizes.enumerated() {
             if x > 0, x + size.width > width {
+                lines.append([])
                 x = 0
-                y += rowHeight + spacing
-                rowHeight = 0
             }
-            origins.append(CGPoint(x: x, y: y))
+            lines[lines.count - 1].append(index)
             x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-            widest = max(widest, x - spacing)
         }
-        return (CGSize(width: widest, height: y + rowHeight), origins)
+
+        var points = [CGPoint](repeating: .zero, count: sizes.count)
+        var y: CGFloat = 0
+        var widest: CGFloat = 0
+        for line in lines where !line.isEmpty {
+            let height = line.map { sizes[$0].height }.max() ?? 0
+            var lineX: CGFloat = 0
+            for index in line {
+                points[index] = CGPoint(x: lineX, y: y + height / 2)
+                lineX += sizes[index].width + spacing
+            }
+            widest = max(widest, lineX - spacing)
+            y += height + spacing
+        }
+        return (CGSize(width: widest, height: max(0, y - spacing)), sizes, points)
     }
+}
+
+// MARK: Who is speaking
+
+/// The colour a model family wears wherever it appears: its row on the Models screen, the pill on an
+/// imported chat, its dot and its bubble in a room. It follows who the model is, never where it sits in
+/// a list, so Claude is the same orange on every screen. The cases are in the order a clash falls through.
+enum ChatAgentTone: CaseIterable, Hashable {
+    case coral, mint, blue, rose, amber, violet, sky, cyan
+
+    var color: Color {
+        switch self {
+        case .coral: return Palette.coral
+        case .mint: return Palette.mint
+        case .blue: return Palette.blue
+        case .rose: return Palette.rose
+        case .amber: return Palette.amber
+        case .violet: return Palette.violet
+        case .sky: return Palette.sky
+        case .cyan: return Palette.cyan
+        }
+    }
+
+    /// The family a backend's `provider` names; an endpoint nobody has heard of gets the plain one.
+    init(provider: String) {
+        switch provider {
+        case "anthropic", "custom-anthropic": self = .coral
+        case "openai": self = .mint
+        case "gemini": self = .blue
+        case "xai": self = .rose
+        case "mistral": self = .amber
+        case "ollama", "lmstudio": self = .violet
+        default: self = .sky
+        }
+    }
+
+    /// The family an imported chat came from, or nil for a chat that was started here.
+    init?(platform: ChatPlatform) {
+        switch platform {
+        case .chatgpt: self = .init(provider: "openai")
+        case .claude: self = .init(provider: "anthropic")
+        case .gemini: self = .init(provider: "gemini")
+        case .grok: self = .init(provider: "xai")
+        case .hypervault, .other: return nil
+        }
+    }
+
+    /// One tone for each of these providers, in the same order. The first of a family keeps its own
+    /// tone whoever else is in the list; later members of the same family take the next tone nobody
+    /// has, so no two dots in a room match.
+    static func tones(forProviders providers: [String]) -> [ChatAgentTone] {
+        let own = providers.map { ChatAgentTone(provider: $0) }
+        var result = [ChatAgentTone?](repeating: nil, count: own.count)
+        var taken = Set<ChatAgentTone>()
+        for (index, tone) in own.enumerated() where !taken.contains(tone) {
+            result[index] = tone
+            taken.insert(tone)
+        }
+        let all = ChatAgentTone.allCases
+        for (index, tone) in own.enumerated() where result[index] == nil {
+            let start = all.firstIndex(of: tone) ?? 0
+            let free = (1..<all.count).map { all[(start + $0) % all.count] }.first { !taken.contains($0) }
+            result[index] = free ?? tone
+            taken.insert(free ?? tone)
+        }
+        return result.compactMap { $0 }
+    }
+}
+
+/// The note under a section of a form, in the app's own size and grey rather than the system's.
+struct ChatFooter: View {
+    let text: String
+
+    init(_ text: String) { self.text = text }
+
+    var body: some View {
+        Text(text).font(.hvCaption).foregroundStyle(Palette.textSecondary)
+    }
+}
+
+/// The example inside a field that has its own label above it, in a grey that still reads.
+func chatPrompt(_ text: String) -> Text {
+    Text(text).foregroundStyle(Palette.textTertiary)
 }
 
 // MARK: Model names

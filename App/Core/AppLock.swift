@@ -108,6 +108,7 @@ final class AppLock {
 /// the app underneath.
 struct LockScreen: View {
     let lock: AppLock
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         ZStack {
@@ -129,7 +130,8 @@ struct LockScreen: View {
                             Label("Unlock with \(lock.methodName)", systemImage: "faceid")
                         }
                         .buttonStyle(.hvPrimary)
-                        .frame(maxWidth: 300)
+                        // At the largest text the words need the whole width, or they wrap one to a line.
+                        .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : 300)
                     }
                     .padding(HV.Space.xl)
                     .frame(maxWidth: .infinity, minHeight: proxy.size.height)

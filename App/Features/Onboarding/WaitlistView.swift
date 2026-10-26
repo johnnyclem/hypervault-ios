@@ -9,7 +9,9 @@ struct WaitlistView: View {
 
     @State private var code = ""
     @State private var isWorking = false
+    @State private var isChecking = false
     @State private var message: String?
+    @State private var status: String?
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -46,7 +48,7 @@ struct WaitlistView: View {
                             if isWorking { ProgressView().tint(.white) } else { Text("Use this code") }
                         }
                         .buttonStyle(.hvPrimary)
-                        .disabled(code.trimmingCharacters(in: .whitespaces).isEmpty || isWorking)
+                        .disabled(code.trimmingCharacters(in: .whitespaces).isEmpty || isWorking || isChecking)
 
                         PasteButton(payloadType: String.self) { strings in
                             guard let text = strings.first else { return }
@@ -64,17 +66,29 @@ struct WaitlistView: View {
                     }
                     .frame(maxWidth: 420)
 
-                    HStack(spacing: HV.Space.l) {
-                        Button("Check again") {
-                            Task {
-                                isWorking = true
-                                await model.recheckAccess()
-                                isWorking = false
+                    VStack(spacing: HV.Space.s) {
+                        HStack(spacing: HV.Space.l) {
+                            Button {
+                                checkAgain()
+                            } label: {
+                                // The words stay so the buttons do not shift while the spinner shows.
+                                Text("Check again")
+                                    .opacity(isChecking ? 0 : 1)
+                                    .overlay { if isChecking { ProgressView() } }
                             }
+                            .disabled(isChecking || isWorking)
+                            .accessibilityLabel(isChecking ? "Checking" : "Check again")
+                            Button("Sign out") { Task { await model.signOut() } }
                         }
-                        Button("Sign out") { Task { await model.signOut() } }
+                        .buttonStyle(.hvGhost)
+
+                        if let status {
+                            Text(status)
+                                .font(.hvFootnote)
+                                .foregroundStyle(Palette.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
                     }
-                    .buttonStyle(.hvGhost)
                     .padding(.top, HV.Space.s)
                 }
                 .padding(HV.Space.l)
@@ -87,11 +101,28 @@ struct WaitlistView: View {
         }
     }
 
+    /// Asks again whether the person has been let in. If they have, the window moves on and this view goes with it; if
+    /// this view is still here afterwards, they are still on the list, and that is said calmly.
+    private func checkAgain() {
+        guard !isChecking, !isWorking else { return }
+        isChecking = true
+        message = nil
+        status = nil
+        Task {
+            await model.recheckAccess()
+            isChecking = false
+            let text = "Still waiting. We'll let you in as soon as you're approved."
+            status = text
+            AccessibilityNotification.Announcement(text).post()
+        }
+    }
+
     private func redeem() {
         let trimmed = code.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty, !isWorking else { return }
+        guard !trimmed.isEmpty, !isWorking, !isChecking else { return }
         isWorking = true
         message = nil
+        status = nil
         Task {
             defer { isWorking = false }
             do {

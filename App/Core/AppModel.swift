@@ -13,6 +13,8 @@ enum PrefKey {
     /// Whose traces are on this phone: set when someone signs in, removed once everything they left is gone. It
     /// outlives the process, so a session that ended while the app was closed is still cleaned up at the next launch.
     static let sessionUser = "hv.sessionUser"
+    /// The person last put on the waitlist from this phone, so it happens once per sign-in and not on every launch.
+    static let waitlistedUser = "hv.waitlistedUser"
 }
 
 /// Why the app would not switch to a server, in words for Settings.
@@ -64,6 +66,8 @@ final class AppModel {
     @ObservationIgnored private var observer: Task<Void, Never>?
     @ObservationIgnored private var started = false
     @ObservationIgnored private var pendingLink: DeepLink?
+    /// Bumped whenever the session or the server changes, so an answer that was in flight for the old one can tell.
+    @ObservationIgnored private var accessTicket = 0
 
     /// The defaults are the real app's; tests pass a mock transport, an in-memory store and a scratch folder.
     init(
@@ -134,6 +138,7 @@ final class AppModel {
 
     /// Ends the session on the old server, takes what it left off the phone, and starts over on the new one.
     private func leave(for newServer: ServerConfig, seeding verified: Capabilities?) async {
+        accessTicket += 1
         observer?.cancel()
         observer = nil
         let namespace = sessionUserID
@@ -156,6 +161,7 @@ final class AppModel {
     }
 
     private func bootstrap() async {
+        accessTicket += 1
         phase = .launching
         observer?.cancel()
 
@@ -204,7 +210,8 @@ final class AppModel {
             // The session ended, by the person or by itself (a refresh the server refused). Whatever the account left
             // goes either way, but only if someone really was signed in: a launch with no session has nothing to wipe,
             // and what waits in the outbox then belongs to no one yet.
-                if let namespace = sessionUserID { await wipeLocalState(namespace: namespace) }
+            accessTicket += 1
+            if let namespace = sessionUserID { await wipeLocalState(namespace: namespace) }
             env = nil
             phase = .signedOut
         case .signedIn(let user):
@@ -216,32 +223,72 @@ final class AppModel {
         }
     }
 
-    /// Asks the server whether this person is let in. The capabilities answer
-    /// carries a `user` block only for an identity that passed the invite gate.
+    /// What the server said about a person who is signed in.
+    private enum Access {
+        case letIn(Capabilities)
+        case waitlisted(Capabilities)
+    }
+
+    /// Asks the server whether this person is let in. The capabilities answer carries a `user` block for an identity
+    /// that passed the invite gate, but the route leaves the block out whenever the identity check fails for any reason
+    /// (a rate limit, a hiccup in the auth service), so a missing block is not a verdict. Without one the gate is asked
+    /// directly, with a call that goes through it, and only its own refusal means the waitlist.
+    private func askAccess(with client: HVClient) async throws -> Access {
+        let fresh = try await client.send(.capabilities)
+        if fresh.user != nil { return .letIn(fresh) }
+        do {
+            _ = try await client.send(.yours(filter: .all, limit: 1))
+            return .letIn(fresh)
+        } catch let error as HVError where error.isWaitlisted {
+            return .waitlisted(fresh)
+        }
+    }
+
+    /// Moves the window on to the app, the waitlist or the unreachable screen, whichever the server's answer calls for.
     func resolveAccess(for user: AuthUser) async {
         guard let auth else { return }
+        let ticket = accessTicket
         let client = HVClient(baseURL: server.baseURL, transport: transport, tokens: auth)
+        let answer: Result<Access, Error>
         do {
-            let fresh = try await client.send(.capabilities)
+            answer = .success(try await askAccess(with: client))
+        } catch {
+            answer = .failure(error)
+        }
+        // The person may have signed out, or the app moved to another server, while the answer was on its way.
+        guard ticket == accessTicket else { return }
+
+        switch answer {
+        case .success(.letIn(let fresh)):
             capabilities = fresh
-            if fresh.user != nil {
-                SharedConfig.defaults.set(user.id, forKey: PrefKey.approvedUser)
-                activate(user: user, client: client, auth: auth, capabilities: fresh)
-            } else {
-                env = nil
-                phase = .waitlisted(user)
-            }
-        } catch let error as HVError {
-            if error.isUnauthorized { return }  // the auth service is signing out
+            SharedConfig.defaults.set(user.id, forKey: PrefKey.approvedUser)
+            activate(user: user, client: client, auth: auth, capabilities: fresh)
+        case .success(.waitlisted(let fresh)):
+            capabilities = fresh
+            env = nil
+            phase = .waitlisted(user)
+            await enrollInWaitlist(user, auth: auth, ticket: ticket)
+        case .failure(let error):
+            // A refresh the server refused ends the session, and the auth service is already saying so.
+            if let failure = error as? HVError, failure.isUnauthorized, await auth.currentUser == nil { return }
+            guard ticket == accessTicket else { return }
             if SharedConfig.defaults.string(forKey: PrefKey.approvedUser) == user.id, let capabilities {
-                // Offline, but this person was let in before: open from the cache.
+                // Offline, or the server could not say, but this person was let in before: open from the cache.
                 activate(user: user, client: client, auth: auth, capabilities: capabilities)
             } else {
-                phase = .unreachable(error.userMessage)
+                phase = .unreachable((error as? HVError)?.userMessage ?? error.localizedDescription)
             }
-        } catch {
-            phase = .unreachable(error.localizedDescription)
         }
+    }
+
+    /// Adds the person to the waitlist table once per sign-in, the way the web's sign-in callback does. It never blocks
+    /// the waitlist screen: a failure only means the admin's queue misses them until the next sign-in.
+    private func enrollInWaitlist(_ user: AuthUser, auth: AuthService, ticket: Int) async {
+        guard SharedConfig.defaults.string(forKey: PrefKey.waitlistedUser) != user.id,
+              let supabase = capabilities?.supabase
+        else { return }
+        let joined = await WaitlistEnroller(config: supabase, transport: transport, tokens: auth).enroll(user)
+        if joined, ticket == accessTicket { SharedConfig.defaults.set(user.id, forKey: PrefKey.waitlistedUser) }
     }
 
     private func activate(user: AuthUser, client: HVClient, auth: AuthService, capabilities: Capabilities) {
@@ -258,6 +305,7 @@ final class AppModel {
     // MARK: Account
 
     func signOut() async {
+        accessTicket += 1
         let namespace = sessionUserID
         await auth?.signOut()
         await wipeLocalState(namespace: namespace)
@@ -277,7 +325,7 @@ final class AppModel {
         SpotlightIndexer.clear()
         SharedConfig.forgetWidgetCache()
         WidgetRefresh.reload()
-        for key in [PrefKey.approvedUser, PrefKey.sessionUser] {
+        for key in [PrefKey.approvedUser, PrefKey.sessionUser, PrefKey.waitlistedUser] {
             SharedConfig.defaults.removeObject(forKey: key)
         }
         router.reset()

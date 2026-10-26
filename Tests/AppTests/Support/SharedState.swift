@@ -23,7 +23,7 @@ enum SharedState {
 
     private static func clear() {
         let defaults = SharedConfig.defaults
-        for key in [PrefKey.approvedUser, PrefKey.sessionUser, SharedConfig.widgetRecentKey] {
+        for key in [PrefKey.approvedUser, PrefKey.sessionUser, PrefKey.waitlistedUser, SharedConfig.widgetRecentKey] {
             defaults.removeObject(forKey: key)
         }
         SharedConfig.isLockOn = false

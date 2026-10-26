@@ -158,7 +158,7 @@ public enum MindBranchName {
 
     /// The server's sentence for a name it would refuse, or nil when it is fine.
     public static func validationMessage(for name: String, existing: [String] = []) -> String? {
-        if name == defaultName { return "main already exists — it's the default branch." }
+        if name == defaultName { return "main already exists. It is the default branch." }
         if !isValid(name) {
             return "Branch names are lowercase letters, digits, and /_- (max 63 chars, must start alphanumeric)."
         }
@@ -195,13 +195,30 @@ public struct MindChangeCounts: Sendable, Codable, Hashable {
     public var total: Int { created + updated + deleted + links }
 
     /// "2 added · 1 edited · 1 forgotten · 3 links"; empty for a commit that changed nothing.
+    /// Each count is held to its noun and each dot to the item before it, so a long line breaks
+    /// between items and never leaves a lone number at the end of a line.
     public var summary: String {
         var parts: [String] = []
-        if created > 0 { parts.append("\(created) added") }
-        if updated > 0 { parts.append("\(updated) edited") }
-        if deleted > 0 { parts.append("\(deleted) forgotten") }
-        if links > 0 { parts.append("\(links) link\(links == 1 ? "" : "s")") }
-        return parts.joined(separator: " · ")
+        if created > 0 { parts.append(MindSummaryText.count(created, "added")) }
+        if updated > 0 { parts.append(MindSummaryText.count(updated, "edited")) }
+        if deleted > 0 { parts.append(MindSummaryText.count(deleted, "forgotten")) }
+        if links > 0 { parts.append(MindSummaryText.count(links, links == 1 ? "link" : "links")) }
+        return MindSummaryText.join(parts)
+    }
+}
+
+/// How the one-line tallies ("2 added · 1 edited") are put together, so they wrap well.
+enum MindSummaryText {
+    private static let tie = "\u{00A0}"
+
+    /// A count and its words, joined so they cannot be split across two lines.
+    static func count(_ number: Int, _ words: String) -> String {
+        "\(number)" + tie + words.replacingOccurrences(of: " ", with: tie)
+    }
+
+    /// Items with a dot between them. The dot stays with the item before it; the break falls after it.
+    static func join(_ parts: [String]) -> String {
+        parts.joined(separator: tie + "\u{00B7} ")
     }
 }
 
@@ -619,12 +636,12 @@ public struct MindStateDiff: Sendable, Codable, Hashable {
 
     public var summary: String {
         var parts: [String] = []
-        if !added.isEmpty { parts.append("\(added.count) added") }
-        if !changed.isEmpty { parts.append("\(changed.count) edited") }
-        if !removed.isEmpty { parts.append("\(removed.count) forgotten") }
+        if !added.isEmpty { parts.append(MindSummaryText.count(added.count, "added")) }
+        if !changed.isEmpty { parts.append(MindSummaryText.count(changed.count, "edited")) }
+        if !removed.isEmpty { parts.append(MindSummaryText.count(removed.count, "forgotten")) }
         let links = linksAdded.count + linksRemoved.count
-        if links > 0 { parts.append("\(links) link change\(links == 1 ? "" : "s")") }
-        return parts.joined(separator: " · ")
+        if links > 0 { parts.append(MindSummaryText.count(links, links == 1 ? "link change" : "link changes")) }
+        return MindSummaryText.join(parts)
     }
 
     /// Titles for the ids a diff mentions, so a link can be read as two names.
@@ -694,6 +711,21 @@ public enum MindRef: Sendable, Hashable {
         case .branch(let name): return name
         case .commit(let id): return String(id.prefix(8))
         case .moment(let date): return date.formatted(date: .abbreviated, time: .shortened)
+        }
+    }
+
+    /// What a Compare field shows for this point: the branch, the commit's message, or, for a moment,
+    /// its kind. The date and time of a moment sit in the pickers under the field, so the field does
+    /// not say them a second time.
+    public func fieldText(commits: [MindCommit] = []) -> String {
+        switch self {
+        case .branch(let name):
+            return name
+        case .commit(let id):
+            if let commit = commits.first(where: { $0.id == id }) { return "\(commit.message) (\(commit.shortId))" }
+            return "Commit \(id.prefix(8))"
+        case .moment:
+            return "A moment in time"
         }
     }
 }

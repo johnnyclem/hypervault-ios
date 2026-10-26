@@ -38,7 +38,7 @@ final class MindTests: XCTestCase {
         for bad in ["", "Ideas", "-x", "/x", "has space", "dots.here", String(repeating: "a", count: 64), "é"] { XCTAssertFalse(MindBranchName.isValid(bad), bad) }
         XCTAssertTrue(MindBranchName.isValid(String(repeating: "a", count: 63)))
         XCTAssertEqual(MindBranchName.normalized("  My New Idea "), "my-new-idea")
-        XCTAssertEqual(MindBranchName.validationMessage(for: "main"), "main already exists — it's the default branch.")
+        XCTAssertEqual(MindBranchName.validationMessage(for: "main"), "main already exists. It is the default branch.")
         XCTAssertEqual(MindBranchName.validationMessage(for: "Bad Name"), "Branch names are lowercase letters, digits, and /_- (max 63 chars, must start alphanumeric).")
         XCTAssertEqual(MindBranchName.validationMessage(for: "ideas", existing: ["main", "ideas"]), "A branch named \"ideas\" already exists.")
         XCTAssertNil(MindBranchName.validationMessage(for: "fresh", existing: ["main"]))
@@ -97,11 +97,11 @@ final class MindTests: XCTestCase {
         XCTAssertEqual(first.shortId, "3f2a9c1e")
         XCTAssertTrue(first.isMerge)
         XCTAssertEqual(first.kind, .merge)
-        XCTAssertEqual(first.changeCounts.summary, "2 added · 1 edited · 3 links")
+        XCTAssertEqual(first.changeCounts.summary, "2\u{00A0}added\u{00A0}\u{00B7} 1\u{00A0}edited\u{00A0}\u{00B7} 3\u{00A0}links")
         XCTAssertEqual(first.changeCounts.total, 6)
         XCTAssertEqual(log.commits[1].author, "Agent hv_ab12cdef")
         XCTAssertEqual(log.commits.map(\.kind), [.merge, .memorize, .forget, .revert, .importing, .link, .memorize, .other])
-        XCTAssertEqual(log.commits[2].changeCounts.summary, "1 forgotten")
+        XCTAssertEqual(log.commits[2].changeCounts.summary, "1\u{00A0}forgotten")
         XCTAssertEqual(log.commits[6].author, "HyperVault")
         XCTAssertEqual(log.commits[7].changeCounts.summary, "")
     }
@@ -173,7 +173,9 @@ final class MindTests: XCTestCase {
         XCTAssertEqual(change.diff.summary, "+2 \u{2212}1")
         XCTAssertEqual(diff.linksAdded.first?.id, "m1:m3")
         XCTAssertEqual(diff.linksRemoved.first?.kind, "manual")
-        XCTAssertEqual(diff.summary, "1 added · 1 edited · 1 forgotten · 2 link changes")
+        XCTAssertEqual(diff.summary, "1\u{00A0}added\u{00A0}\u{00B7} 1\u{00A0}edited\u{00A0}\u{00B7} 1\u{00A0}forgotten\u{00A0}\u{00B7} 2\u{00A0}link\u{00A0}changes")
+        // A line can only break after a dot, never inside an item or before a dot.
+        XCTAssertEqual(diff.summary.split(separator: " ").count, 4)
         XCTAssertFalse(diff.isEmpty)
         XCTAssertEqual(diff.titles["m1"], "Trip notes")
         XCTAssertEqual(diff.titles["m4"], "Old idea")
@@ -205,6 +207,14 @@ final class MindTests: XCTestCase {
         XCTAssertEqual(second.first { $0.name == "branch" }?.value, "ideas")
         XCTAssertEqual(MindRef.commit("3f2a9c1e-0000-4000").label, "3f2a9c1e")
         XCTAssertEqual(MindRef.branch("main").label, "main")
+    }
+
+    func testACompareFieldNamesTheKindOfAMomentAndNotItsDate() throws {
+        let commits = try decode(MindCommitLog.self, #"{"branch":"main","commits":[{"id":"8b41d07a-2c93-4f55-a6e0-1d7c93b4e802","message":"memorize: Passport checklist","author_kind":"user","created_at":"2026-10-24T10:00:00Z"}]}"#).commits
+        XCTAssertEqual(MindRef.branch("ideas").fieldText(commits: commits), "ideas")
+        XCTAssertEqual(MindRef.commit("8b41d07a-2c93-4f55-a6e0-1d7c93b4e802").fieldText(commits: commits), "memorize: Passport checklist (8b41d07a)")
+        XCTAssertEqual(MindRef.commit("c92e5f13-aa6d-4b08").fieldText(commits: commits), "Commit c92e5f13", "a commit that is not in the list yet")
+        XCTAssertEqual(MindRef.moment(Date(timeIntervalSince1970: 1_792_054_800)).fieldText(), "A moment in time")
     }
 
     // MARK: Time travel and revert

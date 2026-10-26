@@ -260,7 +260,8 @@ final class MailModel {
 
     /// Sends a note from the person to their agents, then shows Sent.
     func send(subject: String, text: String) async throws {
-        _ = try await client.send(.mailSend(subject: subject, text: text, mailbox: mailboxParam))
+        // Any 2xx means it is sent; the answer is not read, so it cannot turn a sent note into a failed one.
+        _ = try await client.sendRaw(.mailSend(subject: subject, text: text, mailbox: mailboxParam))
         filter = .sent
         resetList()
         await loadList(quiet: false)

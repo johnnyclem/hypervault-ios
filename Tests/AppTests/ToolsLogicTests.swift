@@ -96,6 +96,50 @@ final class ToolsLogicTests: XCTestCase {
         XCTAssertEqual(model.server(id: "s1")?.enabled, true)
     }
 
+    // MARK: Signing in again
+
+    private func authFlow(for serverID: String?, routes: [MockRoute] = []) async -> ToolsAuthFlow {
+        let api = client(MockTransport(routes: routes + ToolsFixtures.routes))
+        let model = ToolsModel(client: api, cache: temporaryCache(), namespace: "u1", maxServers: 20)
+        await model.load()
+        let existing = serverID.flatMap { model.server(id: $0) }
+        let target = ToolsAuthTarget(url: existing?.url ?? "https://new.example.com/mcp", name: existing?.name, existing: existing)
+        return ToolsAuthFlow(target: target, client: api, model: model)
+    }
+
+    func testAServerSignedInThroughALoginDoesNotOfferATokenInPlaceOfIt() async {
+        // The server keeps the login and sends its bearer over any Authorization header, so a token would be saved and unused.
+        let flow = await authFlow(for: "s1")
+        XCTAssertEqual(flow.target.existing?.authType, .oauth)
+        XCTAssertFalse(flow.offersToken)
+        flow.useToken()
+        XCTAssertEqual(flow.mode, .choose)
+    }
+
+    func testAServerWithAPastedTokenOrNoneStillTakesOne() async {
+        let withToken = await authFlow(for: "s2")
+        XCTAssertTrue(withToken.offersToken)
+        withToken.useToken()
+        XCTAssertEqual(withToken.mode, .token)
+        let fresh = await authFlow(for: nil)
+        XCTAssertTrue(fresh.offersToken)
+    }
+
+    func testALoginThatIsGoneSaysToAddTheServerAgainAndDoesNotSwitchToATokenForASignedInServer() async {
+        let gone = MockRoute.json(.post, "/api/mcp-servers/oauth/start", #"{"error":"This server doesn't advertise an OAuth login. Add an API token instead.","oauth_available":false}"#, status: 409)
+        let signedIn = await authFlow(for: "s1", routes: [gone])
+        let server = await signedIn.signIn()
+        XCTAssertNil(server)
+        XCTAssertEqual(signedIn.mode, .choose)
+        XCTAssertEqual(signedIn.note, ToolsAuthFlow.loginGoneNote)
+
+        // A server being added has no login to lose, so the token form is the way in, as before.
+        let adding = await authFlow(for: nil, routes: [gone])
+        _ = await adding.signIn()
+        XCTAssertEqual(adding.mode, .token)
+        XCTAssertEqual(adding.note, "This server doesn't advertise an OAuth login. Add an API token instead.")
+    }
+
     func testRemovingAServerForgetsItAndRemembersToCompile() async {
         let removed = MockRoute.json(.delete, "/api/mcp-servers/s3", #"{"ok":true,"message":"Removed. Compiled toolkits keep working until you compile again."}"#)
         let model = await loadedModel(extra: [removed])

@@ -82,7 +82,15 @@ final class ToolsAuthFlow {
 
     var canSubmitToken: Bool { !token.trimmingCharacters(in: .whitespaces).isEmpty && !isWorking }
 
+    /// Whether a pasted token is a way in. A server connected through a login keeps its login grant, and the
+    /// grant's bearer is sent in place of any Authorization header, so a token pasted for it would be saved and
+    /// never used. Signing in again, or removing the server and adding it with a token, are the ways in.
+    var offersToken: Bool { target.existing?.authType != .oauth }
+
+    static let loginGoneNote = "This service no longer offers sign-in on its page. Remove this server and add it again with a token."
+
     func useToken() {
+        guard offersToken else { return }
         mode = .token
         error = nil
     }
@@ -122,8 +130,12 @@ final class ToolsAuthFlow {
             }
             return nil
         } catch let failure as HVError where failure.isMcpOAuthUnavailable {
-            mode = .token
-            note = failure.userMessage
+            if offersToken {
+                mode = .token
+                note = failure.userMessage
+            } else {
+                note = Self.loginGoneNote
+            }
             return nil
         } catch {
             self.error = (error as? HVError)?.userMessage ?? error.localizedDescription
@@ -222,10 +234,12 @@ struct ToolsAuthChallengeView: View {
             // A ghost button carries its own side padding for the tap target; pulling the outer
             // ones back lets their words line up with the edges of the card's content.
             HStack {
-                Button("Use a token instead") { flow.useToken() }
-                    .buttonStyle(.hvGhost)
-                    .padding(.leading, -HV.Space.s)
-                    .disabled(flow.isWorking)
+                if flow.offersToken {
+                    Button("Use a token instead") { flow.useToken() }
+                        .buttonStyle(.hvGhost)
+                        .padding(.leading, -HV.Space.s)
+                        .disabled(flow.isWorking)
+                }
                 if let onCancel {
                     Spacer()
                     Button("Cancel", action: onCancel)

@@ -135,10 +135,50 @@ public struct ArtifactPageLoader: Sendable {
         return .html(source.content, base: base)
     }
 
-    /// Nothing outside the head: no page to show.
+    /// Nothing outside the head: no page to show. One pass over the markup, however it is made: the markup is
+    /// anyone's to publish, and a pattern that looks for `<head ...>...</head>` backtracks for minutes on a
+    /// megabyte of `<head` with no end.
     static func isBlank(_ html: String) -> Bool {
-        let body = html.replacingOccurrences(of: #"<head[^>]*>[\s\S]*?</head>"#, with: "", options: [.regularExpression, .caseInsensitive])
-        return body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let text = Array(html.unicodeScalars)
+        let space = CharacterSet.whitespacesAndNewlines
+        var index = 0
+        while index < text.count {
+            if space.contains(text[index]) {
+                index += 1
+            } else if let end = endOfHead(in: text, from: index) {
+                index = end
+            } else {
+                return false
+            }
+        }
+        return true
+    }
+
+    /// Where a `<head ...>...</head>` that starts at `start` ends, or nil when one does not start there or is never closed.
+    private static func endOfHead(in text: [Unicode.Scalar], from start: Int) -> Int? {
+        guard hasTag("<head", in: text, at: start) else { return nil }
+        var index = start + 5
+        while index < text.count, text[index] != ">" { index += 1 }
+        index += 1
+        while index < text.count {
+            if hasTag("</head>", in: text, at: index) { return index + 7 }
+            index += 1
+        }
+        return nil
+    }
+
+    private static func hasTag(_ tag: StaticString, in text: [Unicode.Scalar], at index: Int) -> Bool {
+        let length = tag.utf8CodeUnitCount
+        guard index + length <= text.count else { return false }
+        return tag.withUTF8Buffer { expected in
+            for offset in 0..<length {
+                let found = text[index + offset].value
+                // ASCII letters match in either case.
+                let folded = found >= 0x41 && found <= 0x5A ? found + 0x20 : found
+                if folded != UInt32(expected[offset]) { return false }
+            }
+            return true
+        }
     }
 
     static func looksLikeStoragePath(_ content: String) -> Bool {

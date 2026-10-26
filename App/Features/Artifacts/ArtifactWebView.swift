@@ -154,8 +154,18 @@ struct ArtifactWebView: UIViewRepresentable {
                 if isThePage(url) { return decisionHandler(.allow) }
             }
 
-            route(url)
+            // A link or a form takes the person out of the page. What the page does by itself (a script setting
+            // the address, a meta refresh, a redirect) arrives as `.other`, and may only carry them on to another
+            // HyperVault page. WebKit has no public flag for a gesture, so the navigation type is the line drawn.
+            route(url, tapped: Self.isTap(navigationAction.navigationType))
             decisionHandler(.cancel)
+        }
+
+        private static func isTap(_ type: WKNavigationType) -> Bool {
+            switch type {
+            case .linkActivated, .formSubmitted, .formResubmitted: return true
+            default: return false
+            }
         }
 
         func webView(
@@ -165,7 +175,8 @@ struct ArtifactWebView: UIViewRepresentable {
         ) {
             // A download or a type the web view cannot show goes to Safari, which can.
             if navigationResponse.isForMainFrame, !navigationResponse.canShowMIMEType, let url = navigationResponse.response.url {
-                route(url)
+                // Only a navigation that was allowed gets this far: the page itself, or a tap already routed.
+                route(url, tapped: true)
                 return decisionHandler(.cancel)
             }
             decisionHandler(.allow)
@@ -183,8 +194,8 @@ struct ArtifactWebView: UIViewRepresentable {
             return components?.string ?? url.absoluteString
         }
 
-        private func route(_ url: URL) {
-            switch parent.router.action(for: url) {
+        private func route(_ url: URL, tapped: Bool) {
+            switch parent.router.action(for: url, tapped: tapped) {
             case .repair(_, let error):
                 parent.onRepair(error)
             case .hyperVault(let url):
@@ -232,8 +243,9 @@ struct ArtifactWebView: UIViewRepresentable {
             for navigationAction: WKNavigationAction,
             windowFeatures: WKWindowFeatures
         ) -> WKWebView? {
-            // target="_blank" and window.open: a link, not a window.
-            if let url = navigationAction.request.url { route(url) }
+            // target="_blank" and window.open: a link, not a window. With scripts unable to open windows on their
+            // own (see `configuration()`), WebKit only asks for one when the person tapped.
+            if let url = navigationAction.request.url { route(url, tapped: true) }
             return nil
         }
 

@@ -90,7 +90,7 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
 
         let row = element("admin.invite.3f1c1a2e-0000-4000-8000-000000000001")
         step("The code is listed with how many have used it") {
-            require(row, "the code in the list")
+            reveal(row, "the code in the list")
             XCTAssertTrue(row.label.contains("HV-UIT1-K7QM"), "The row says \"\(row.label)\".")
             XCTAssertTrue(row.label.contains("0 of 5 used"), "The row says \"\(row.label)\".")
             XCTAssertTrue(row.label.contains("Launch batch"), "The row says \"\(row.label)\".")
@@ -113,7 +113,9 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
         }
 
         step("Accounts & waitlist opens to act on an account by its ID") {
-            tap(shows("Accounts & waitlist"), "Accounts & waitlist")
+            let accounts = shows("Accounts & waitlist")
+            reveal(accounts, "the Accounts & waitlist row")
+            tap(accounts, "Accounts & waitlist")
             waitUntil("the Accounts title") { isShowingTitle("Accounts") }
             require(shows("Open the web dashboard, copy the account's ID"), "the line that says where the IDs are")
             require(textField("3f1c1a2e-…"), "the field for an account ID")

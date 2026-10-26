@@ -19,6 +19,8 @@ import sys
 import tempfile
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".heic"}
+# The sweep also attaches what it noted about each screen's layout as text; it is written out beside the screenshot.
+TEXT_EXTENSIONS = {".txt"}
 
 
 def safe(text: str) -> str:
@@ -62,7 +64,7 @@ def main() -> int:
             for attachment in attachments:
                 source = os.path.join(scratch, attachment.get("exportedFileName", ""))
                 extension = os.path.splitext(source)[1].lower()
-                if not os.path.isfile(source) or extension not in IMAGE_EXTENSIONS:
+                if not os.path.isfile(source) or extension not in IMAGE_EXTENSIONS | TEXT_EXTENSIONS:
                     continue
                 number += 1
                 name = attachment.get("suggestedHumanReadableName") or os.path.basename(source)
@@ -72,7 +74,7 @@ def main() -> int:
                 os.makedirs(folder, exist_ok=True)
                 shutil.copyfile(source, os.path.join(folder, f"{number:02d}-{safe(name)}{extension}"))
                 copied += 1
-        print(f"Exported {copied} screenshots to {output}.")
+        print(f"Exported {copied} screenshots and notes to {output}.")
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     return 0

@@ -216,6 +216,17 @@ class HyperVaultUITestCase: XCTestCase {
         tap(tab(title), "the \(title) tab", file: file, line: line)
     }
 
+    /// Picks an option of a choice the app draws as segments, or as a menu at accessibility text sizes.
+    func choose(_ option: String, from identifier: String, file: StaticString = #filePath, line: UInt = #line) {
+        let asSegment = segment(option)
+        if asSegment.exists {
+            tap(asSegment, "the \(option) segment", file: file, line: line)
+            return
+        }
+        tap(element(identifier), "the menu that holds \(option)", file: file, line: line)
+        tap(button(option), "the \(option) choice", file: file, line: line)
+    }
+
     /// Opens a row of the You tab, scrolling to it first, and waits for the screen to name itself.
     func openFromYou(_ id: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
         openTab("You", file: file, line: line)

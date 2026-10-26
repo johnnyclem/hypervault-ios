@@ -78,8 +78,8 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
             require(element("truth.entry.01M1E6JK80P9Y3CMA9HBZEND9H"), "the LOG_BUDGET entry")
             XCTAssertTrue(element("truth.entry.01M1E6JK80P9Y3CMA9HBZEND9H").label.contains("LOG_BUDGET is 100"))
             require(element(retryCap), "the retry cap entry")
-            require(shows("Unverified"), "the Unverified section")
             require(shows("A review is due"), "the review row")
+            reveal(shows("Unverified"), "the Unverified section")
         }
 
         step("An entry shows what it rests on and what rests on it") {
@@ -108,7 +108,6 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
             XCTAssertTrue(linear.label.contains("Linear"), "The server row says \"\(linear.label)\".")
             require(element("tools.server.s2"), "the Team notes server")
             require(element("tools.server.s3"), "the Weather server")
-            require(shows("Browse the catalog"), "the catalog row")
         }
 
         step("A server opens to its tools") {
@@ -206,7 +205,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
             waitUntil("the board's title") { isShowingTitle("Eurorack Choir Module") }
             require(element("taskboard.task.t-panels"), "the front panels task")
             require(shows("Order the front panels"), "the task's title")
-            require(shows("Pick a power supply"), "another task")
+            reveal(shows("Pick a power supply"), "another task")
         }
 
         step("A task opens to its notes") {

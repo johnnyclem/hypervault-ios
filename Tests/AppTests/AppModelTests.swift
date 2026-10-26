@@ -240,6 +240,107 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(app.router.tab, .memory)
     }
 
+    // MARK: Switching server
+
+    /// What each host answers to capabilities. `{CAPS}` stands for a real answer, with the signed-in person's `user` block
+    /// when the request carries a token.
+    private func hostAnswers(_ answers: [String: String]) -> MockRoute {
+        let anonymous = String(format: capabilitiesJSON, "")
+        let signedIn = String(format: capabilitiesJSON, #","user":{"id":"u1","email":"sam@example.com","via":"bearer"}"#)
+        return MockRoute(.get, "/api/capabilities") { request in
+            guard let body = answers[request.url?.host ?? ""] else { return HTTPResponse(status: 404, data: Data(#"{"error":"Not found."}"#.utf8)) }
+            let real = request.value(forHTTPHeaderField: "Authorization") != nil ? signedIn : anonymous
+            return HTTPResponse(status: 200, data: Data(body.replacingOccurrences(of: "{CAPS}", with: real).utf8))
+        }
+    }
+
+    private func signedInOnOneServer(transport: HTTPTransport) async throws -> AppModel {
+        let app = model(transport: transport, store: try await storedSession())
+        await app.start()
+        await settle(app, to: .ready)
+        return app
+    }
+
+    func testAnAddressThatCannotBeReachedChangesNothing() async throws {
+        let mock = MockTransport(routes: [hostAnswers(["hv.test": "{CAPS}"])] + authRoutes)
+        let app = try await signedInOnOneServer(transport: DeadHosts(base: mock, dead: ["typo.test"]))
+        OutboxStore.add(OutboxItem(content: "still waiting"))
+        let before = SharedConfig.server
+
+        do {
+            try await app.changeServer(to: ServerConfig(baseURL: URL(string: "https://typo.test")!))
+            XCTFail("the switch should have been refused")
+        } catch {
+            XCTAssertEqual(error as? ServerSwitchError, .unreachable(host: "typo.test"))
+        }
+        XCTAssertEqual(app.phase, .ready)
+        XCTAssertEqual(app.env?.user.id, "u1")
+        XCTAssertEqual(app.server.baseURL.host, "hv.test")
+        XCTAssertEqual(SharedConfig.server, before)
+        XCTAssertEqual(OutboxStore.count, 1)
+        let logouts = await mock.requests(matching: "/auth/v1/logout")
+        XCTAssertTrue(logouts.isEmpty, "the person must stay signed in")
+    }
+
+    func testAnAddressThatIsNotHyperVaultChangesNothing() async throws {
+        let mock = MockTransport(routes: [
+            hostAnswers(["hv.test": "{CAPS}", "bare.test": "{}", "blog.test": "<html>hello</html>"]),
+        ] + authRoutes)
+        let app = try await signedInOnOneServer(transport: mock)
+
+        do {
+            try await app.changeServer(to: ServerConfig(baseURL: URL(string: "https://bare.test")!))
+            XCTFail("a server that names no sign-in project should be refused")
+        } catch {
+            XCTAssertEqual(error as? ServerSwitchError, .notSetUp(host: "bare.test"))
+        }
+        do {
+            try await app.changeServer(to: ServerConfig(baseURL: URL(string: "https://blog.test")!))
+            XCTFail("a site that is not HyperVault should be refused")
+        } catch {
+            XCTAssertEqual(error as? ServerSwitchError, .notHyperVault(host: "blog.test"))
+        }
+        XCTAssertEqual(app.phase, .ready)
+        XCTAssertEqual(app.server.baseURL.host, "hv.test")
+        let logouts = await mock.requests(matching: "/auth/v1/logout")
+        XCTAssertTrue(logouts.isEmpty)
+    }
+
+    func testSwitchingToAHyperVaultServerSignsOutAndStartsOverThere() async throws {
+        let mock = MockTransport(routes: [hostAnswers(["hv.test": "{CAPS}", "other.test": "{CAPS}"])] + authRoutes)
+        let app = try await signedInOnOneServer(transport: mock)
+        let cache = try await leaveTraces(of: app)
+        let other = ServerConfig(baseURL: URL(string: "https://other.test")!)
+
+        try await app.changeServer(to: other)
+        await settle(app, to: .signedOut)
+
+        XCTAssertEqual(app.server, other)
+        XCTAssertEqual(SharedConfig.server, other)
+        XCTAssertNil(app.env)
+        await assertTracesGone(of: app, in: cache)
+        let logouts = await mock.requests(matching: "/auth/v1/logout")
+        XCTAssertEqual(logouts.count, 1)
+    }
+
+    func testAServerThatStoppedAnsweringCanBeLeftForTheDefault() async {
+        let fallback = SharedConfig.defaultServer
+        let fallbackHost = fallback.baseURL.host ?? ""
+        let mock = MockTransport(routes: [hostAnswers([fallbackHost: "{CAPS}"])] + authRoutes)
+        let gone = ServerConfig(baseURL: URL(string: "https://gone.test")!)
+        let app = model(transport: DeadHosts(base: mock, dead: ["gone.test"]), server: gone)
+
+        await app.start()
+        guard case .unreachable = app.phase else { return XCTFail("expected unreachable, got \(app.phase)") }
+        XCTAssertFalse(app.isOnDefaultServer)
+
+        await app.resetServer()
+        await settle(app, to: .signedOut)
+        XCTAssertEqual(app.server, fallback)
+        XCTAssertEqual(SharedConfig.server, fallback)
+        XCTAssertTrue(app.isOnDefaultServer)
+    }
+
 }
 
 /// A flag the mock routes can flip from any thread.
@@ -248,4 +349,15 @@ private final class Flag: @unchecked Sendable {
     private var value = false
     var isSet: Bool { lock.lock(); defer { lock.unlock() }; return value }
     func set() { lock.lock(); value = true; lock.unlock() }
+}
+
+/// A network where some hosts do not answer at all.
+private struct DeadHosts: HTTPTransport {
+    let base: MockTransport
+    let dead: Set<String>
+
+    func send(_ request: URLRequest) async throws -> HTTPResponse {
+        if let host = request.url?.host, dead.contains(host) { throw URLError(.badServerResponse) }
+        return try await base.send(request)
+    }
 }

@@ -15,6 +15,21 @@ enum PrefKey {
     static let sessionUser = "hv.sessionUser"
 }
 
+/// Why the app would not switch to a server, in words for Settings.
+enum ServerSwitchError: LocalizedError, Equatable {
+    case unreachable(host: String)
+    case notHyperVault(host: String)
+    case notSetUp(host: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .unreachable(let host): return "Could not reach \(host). Check the address and your connection."
+        case .notHyperVault(let host): return "\(host) is not a HyperVault server."
+        case .notSetUp(let host): return "\(host) is a HyperVault server that is not set up for sign-in yet."
+        }
+    }
+}
+
 /// The app's root state: where launch has got to, and the signed-in
 /// environment once there is one. Nothing past `.ready` is built until the
 /// server has said who this is and that they are let in.
@@ -82,13 +97,56 @@ final class AppModel {
         await bootstrap()
     }
 
-    /// Points the app at a different deployment and starts over.
-    func changeServer(to newServer: ServerConfig) async {
+    /// Points the app at a different deployment and starts over, once that deployment has answered like a HyperVault
+    /// server that can sign people in. Until it has, nothing changes: the person stays signed in, the cache and the saved
+    /// address stay as they were, and the error says why.
+    func changeServer(to newServer: ServerConfig) async throws {
+        guard newServer != server else { return }
+        let verified = try await verify(newServer)
+        await leave(for: newServer, seeding: verified)
+    }
+
+    /// The way back from a saved address that no longer answers: the server the app ships with.
+    func resetServer() async {
+        let fallback = SharedConfig.defaultServer
+        guard server != fallback else { return }
+        await leave(for: fallback, seeding: nil)
+    }
+
+    /// Whether the app is pointed at something other than the server it ships with.
+    var isOnDefaultServer: Bool { server == SharedConfig.defaultServer }
+
+    /// The candidate's capabilities, once it has answered like a HyperVault server that can sign people in.
+    private func verify(_ candidate: ServerConfig) async throws -> Capabilities {
+        let host = candidate.baseURL.host() ?? candidate.baseURL.absoluteString
+        do {
+            let capabilities = try await HVClient(baseURL: candidate.baseURL, transport: transport).send(.capabilities)
+            guard capabilities.supabase != nil else { throw ServerSwitchError.notSetUp(host: host) }
+            return capabilities
+        } catch let error as HVError {
+            switch error {
+            case .transport: throw ServerSwitchError.unreachable(host: host)
+            case .cancelled: throw error
+            default: throw ServerSwitchError.notHyperVault(host: host)
+            }
+        }
+    }
+
+    /// Ends the session on the old server, takes what it left off the phone, and starts over on the new one.
+    private func leave(for newServer: ServerConfig, seeding verified: Capabilities?) async {
+        observer?.cancel()
+        observer = nil
         let namespace = sessionUserID
-        await auth?.signOut()
+        // Out of the app first, so the clean-up below does not play out on screen.
+        env = nil
+        phase = .launching
+        // A launch that never got as far as a service still has the session in the Keychain: end it where it began.
+        let ending = auth ?? SharedConfig.supabase.map { AuthService(config: $0, transport: transport, store: secureStore) }
+        await ending?.signOut()
         await wipeLocalState(namespace: namespace)
         await cache.clearAll()
-        env = nil
+        // The address has just answered; let launch use that answer rather than depend on a second one.
+        if let verified { await cache.store(verified, key: "capabilities", namespace: "app") }
         auth = nil
         capabilities = nil
         SharedConfig.supabase = nil

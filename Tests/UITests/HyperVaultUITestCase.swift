@@ -208,8 +208,8 @@ class HyperVaultUITestCase: XCTestCase {
     /// a tap that lands while a list is still settling is lost, and a person would just tap again.
     func tap(_ element: XCUIElement, _ what: String, until reached: () -> Bool, file: StaticString = #filePath, line: UInt = #line) {
         for attempt in 1...3 {
-            // A tap that was slow to take is not repeated on a screen that has already moved on.
-            if attempt > 1, reached() { return }
+            // A tap that was slow to take is not repeated on a screen that has already moved on (what it was aimed at is gone).
+            if attempt > 1, reached() || !element.exists { return }
             tap(element, what, file: file, line: line)
             let deadline = Date().addingTimeInterval(6)
             while Date() < deadline {

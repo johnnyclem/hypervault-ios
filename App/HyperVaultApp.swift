@@ -3,7 +3,7 @@ import SwiftUI
 
 @main
 struct HyperVaultApp: App {
-    @State private var model = AppModel()
+    @State private var model = HyperVaultApp.makeModel()
     @AppStorage(PrefKey.appearance) private var appearance = AppearanceChoice.system
     @AppStorage(PrefKey.accent) private var accent = AccentChoice.blue
 
@@ -21,11 +21,28 @@ struct HyperVaultApp: App {
                     }
                 }
                 .task {
-                    // Unit tests host the app; they must not go to the network.
-                    if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+                    if HyperVaultApp.startsModel {
                         await model.start()
                     }
                 }
         }
+    }
+
+    /// The real app's model. A debug build launched by the UI tests (`-HV_UITEST`) gets one wired to canned answers
+    /// instead; see `UITestHarness`.
+    private static func makeModel() -> AppModel {
+        #if DEBUG
+        if let canned = UITestHarness.makeModel() { return canned }
+        #endif
+        return AppModel()
+    }
+
+    /// Whether launch should run. Unit tests host the app and must not go to the network; a UI-test launch is the exception,
+    /// because its model only ever talks to the canned server.
+    private static var startsModel: Bool {
+        #if DEBUG
+        if UITestHarness.isActive { return true }
+        #endif
+        return ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
     }
 }

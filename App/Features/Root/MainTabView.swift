@@ -5,6 +5,8 @@ import SwiftUI
 /// tab shows, and every stack resolves the same `Route`s.
 struct MainTabView: View {
     @Environment(AppModel.self) private var model
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         @Bindable var router = model.router
@@ -29,12 +31,19 @@ struct MainTabView: View {
                 .tabItem { Label(AppTab.you.title, systemImage: AppTab.you.symbol) }
                 .tag(AppTab.you)
         }
+        .adaptiveTabStyle()
+        .task { await env.flushOutbox(toasts: model.toasts) }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await env.flushOutbox(toasts: model.toasts) } }
+        }
         .sheet(item: $router.sheet) { sheet in
             switch sheet {
             case .pair(let code):
                 PairApprovalView(code: code)
             case .invite:
                 InviteLinkSheet()
+            case .connectAgent:
+                ConnectAgentSheet()
             }
         }
     }
@@ -103,5 +112,17 @@ struct InviteLinkSheet: View {
         }
         .padding(HV.Space.xl)
         .presentationDetents([.medium])
+    }
+}
+
+extension View {
+    /// Tabs along the bottom on a phone and a sidebar on iPad, where the system offers it.
+    @ViewBuilder
+    func adaptiveTabStyle() -> some View {
+        if #available(iOS 18.0, *) {
+            tabViewStyle(.sidebarAdaptable)
+        } else {
+            self
+        }
     }
 }

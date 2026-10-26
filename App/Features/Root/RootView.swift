@@ -5,13 +5,21 @@ import SwiftUI
 /// the waitlist, or the app.
 struct RootView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ZStack {
             content
             ToastHost(center: model.toasts)
+            if model.lock.isLocked {
+                LockScreen(lock: model.lock).transition(.opacity)
+            } else if model.lock.isShielded {
+                PrivacyShield().transition(.opacity)
+            }
         }
         .animation(.easeInOut(duration: 0.35), value: model.phase)
+        .animation(.easeInOut(duration: 0.2), value: model.lock.isLocked)
+        .onChange(of: scenePhase) { _, phase in model.lock.scenePhaseChanged(phase) }
     }
 
     @ViewBuilder

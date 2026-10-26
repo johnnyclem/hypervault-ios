@@ -176,6 +176,17 @@ public struct KeptThing: Sendable, Codable, Equatable {
     public let message: String
 
     public var isPrivate: Bool { visibility == "private" }
+
+    public init(slug: String, url: String, kind: KeptKind = .page, form: String = "note", title: String, visibility: String = "private", duplicate: Bool = false, message: String = "") {
+        self.slug = slug
+        self.url = url
+        self.kind = kind
+        self.form = form
+        self.title = title
+        self.visibility = visibility
+        self.duplicate = duplicate
+        self.message = message
+    }
 }
 
 public struct KeepRequest: Sendable, Encodable {

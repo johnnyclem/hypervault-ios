@@ -1,14 +1,17 @@
+import HyperVaultKit
 import SwiftUI
 
 /// A sheet the whole app can present from the root.
 enum AppSheet: Identifiable, Hashable {
     case pair(code: String?)
     case invite(code: String?)
+    case connectAgent
 
     var id: String {
         switch self {
         case .pair(let code): return "pair-\(code ?? "")"
         case .invite(let code): return "invite-\(code ?? "")"
+        case .connectAgent: return "connect-agent"
         }
     }
 }
@@ -24,6 +27,12 @@ final class AppRouter {
     /// Text a link or a Shortcut wants in the canvas field. The canvas takes it
     /// (and clears it) when it appears.
     var canvasDraft: String?
+
+    /// A thing from Yours that should be put on the canvas page. The canvas takes it when it appears.
+    var canvasPull: KeptItem?
+
+    /// "New" in Yours asks the canvas what to keep.
+    var canvasAsk = false
 
     private var paths: [AppTab: NavigationPath] = [:]
 

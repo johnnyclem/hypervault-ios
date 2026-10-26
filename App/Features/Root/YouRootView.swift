@@ -17,7 +17,7 @@ struct YouRootView: View {
 
             Section(header: HVSectionHeader(title: "Keep")) {
                 link(.library, symbol: "folder", tint: Palette.blue, title: "Library", subtitle: "Everything kept, with its graph")
-                link(.vaultItems, symbol: "lock.rectangle.stack", tint: Palette.violet, title: "Logins, cards & keys", subtitle: "Save once. Your agents use what you allow.")
+                link(.vaultItems, symbol: "lock.rectangle.stack", tint: Palette.violet, title: "Logins, cards & keys", subtitle: "Saved once, used by your agents")
                 link(.taskBoards, symbol: "checklist", tint: Palette.mint, title: "Task boards", subtitle: "Lists you share with your agents")
             }
 

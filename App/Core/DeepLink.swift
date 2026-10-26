@@ -104,7 +104,8 @@ enum DeepLink: Hashable {
         case "a":
             guard let slug = second else { return nil }
             self = .route(.artifact(slug: slug))
-        case "artifact":
+        case "artifact", "g":
+            // /g/<slug> is a group of files; a group opens in the same screen as a page.
             guard let slug = second else { return nil }
             self = .route(.artifact(slug: slug))
         case "memory":
@@ -126,9 +127,11 @@ enum DeepLink: Hashable {
         case "tab":
             if let name = second, let tab = AppTab(rawValue: name.lowercased()) { self = .tab(tab) } else { return nil }
         case "mail":
-            self = .route(.mail)
+            if let id = second { self = .route(.mailThread(id: id)) } else { self = .route(.mail) }
         case "truth":
-            self = .route(.truth)
+            self = second?.lowercased() == "review" ? .route(.truthReview) : .route(.truth)
+        case "taskboards", "task-boards", "tasks":
+            self = .route(.taskBoards)
         case "tools":
             self = .route(.tools)
         case "settings":

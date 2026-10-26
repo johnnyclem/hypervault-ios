@@ -1,0 +1,428 @@
+import HyperVaultKit
+import SwiftUI
+
+/// One line in the canvas thread.
+struct ThreadMessage: Identifiable, Equatable {
+    enum Role { case user, assistant }
+
+    let id: String
+    let role: Role
+    var content: String
+    /// Only ever set on a reply the model cut off.
+    var truncated = false
+    /// The names of the pulled things the model was given for this reply.
+    var using: [String] = []
+    /// A line the page wrote itself, as the other side. It is not a reply: nothing was asked of a model.
+    var isLocal = false
+    /// Under a local question: the things to choose between.
+    var choices: ThreadChoices?
+}
+
+struct ThreadChoices: Equatable {
+    var items: [KeptItem]
+    var more: Bool
+}
+
+/// One line under the cards: why a keep did not happen, or why there was nothing to keep.
+struct KeepNotice: Equatable {
+    enum Kind { case error, note }
+    let kind: Kind
+    let text: String
+}
+
+/// The canvas: a field, a short stack of cards and a thread. It follows the web
+/// app's canvas closely (components/canvas/*) so the same words do the same
+/// things on either: commands run without a model, pulling never guesses,
+/// a long paste waits above the field to be kept or asked about.
+@MainActor
+@Observable
+final class CanvasModel: CanvasCommandHost {
+    // What the screen shows.
+    private(set) var cards: [CanvasCard] = []
+    private(set) var messages: [ThreadMessage] = []
+    var draft = ""
+    private(set) var staged: String?
+    private(set) var isBusy = false
+    private(set) var isKeeping = false
+    private(set) var notice: KeepNotice?
+    private(set) var chatError: String?
+    private(set) var backends: [CanvasBackend] = []
+    private(set) var backendsLoaded = false
+    private(set) var triedWithoutModel = false
+    private(set) var isAsking = false
+
+    /// Set when a command wants the Yours panel; the view presents it and clears this.
+    var wantsYours = false
+
+    // Wiring.
+    @ObservationIgnored private let client: HVClient
+    @ObservationIgnored let origin: URL?
+
+    // Turn bookkeeping, as the web's use-canvas-chat keeps it.
+    @ObservationIgnored private var conversationId: String?
+    @ObservationIgnored private var thread = 0
+    @ObservationIgnored private var sending = false
+    @ObservationIgnored private var localKeys = 0
+    @ObservationIgnored private var question = 0
+    @ObservationIgnored private var keepInFlight = false
+
+    init(client: HVClient, origin: URL?) {
+        self.client = client
+        self.origin = origin
+    }
+
+    // MARK: Derived
+
+    var hasModel: Bool { !backends.isEmpty }
+    var needsModel: Bool { triedWithoutModel && backendsLoaded && backends.isEmpty }
+    var isEmpty: Bool { cards.isEmpty && messages.isEmpty }
+    var canSend: Bool { !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isBusy }
+
+    private func localKey() -> String {
+        localKeys += 1
+        return "local-\(localKeys)"
+    }
+
+    // MARK: Models
+
+    func loadBackends() async {
+        do {
+            backends = try await client.send(.canvasBackends)
+        } catch {
+            // Without a list the canvas still keeps and shows; asking will say so.
+            backends = []
+        }
+        backendsLoaded = true
+        if hasModel { triedWithoutModel = false }
+    }
+
+    // MARK: Sending
+
+    /// The field's one verb: a command runs locally, an answer to "What do you want to keep?" is
+    /// kept as it stands, and anything else goes to the model.
+    func send() async {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, !sending, !keepInFlight else { return }
+
+        if CanvasCommandRunner.run(text, host: self) {
+            endAsking()
+            draft = ""
+            return
+        }
+        if isAsking {
+            keepAsked(text)
+            return
+        }
+        await chat(text)
+    }
+
+    private func chat(_ text: String) async {
+        guard let backend = backends.first else {
+            triedWithoutModel = true
+            return
+        }
+        let sentFrom = thread
+        let userKey = localKey()
+        sending = true
+        isBusy = true
+        chatError = nil
+        messages.append(ThreadMessage(id: userKey, role: .user, content: text))
+        draft = ""
+        defer {
+            if thread == sentFrom {
+                sending = false
+                isBusy = false
+            }
+        }
+        do {
+            let turn = try await client.send(.canvasChat(
+                backendId: backend.id,
+                message: text,
+                conversationId: conversationId,
+                pulled: CanvasState.pulledRefs(cards)
+            ))
+            guard thread == sentFrom else { return }
+            conversationId = turn.conversationId
+            messages.append(ThreadMessage(
+                id: turn.replyId ?? localKey(),
+                role: .assistant,
+                content: turn.content,
+                truncated: turn.truncated,
+                using: turn.pulledTitles
+            ))
+        } catch {
+            guard thread == sentFrom else { return }
+            fail(error, text: text, userKey: userKey)
+        }
+    }
+
+    /// The turn did not get an answer: the text goes back to the field and its bubble comes off the
+    /// page, unless the person has started on something else meanwhile.
+    private func fail(_ error: Error, text: String, userKey: String) {
+        if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            messages.removeAll { $0.id == userKey }
+            draft = text
+        }
+        if let hv = error as? HVError {
+            if hv.isOffline {
+                chatError = HVCopy.chatOfflineLine
+            } else if case .cancelled = hv {
+                chatError = nil
+            } else {
+                chatError = hv.userMessage
+            }
+        } else {
+            chatError = HVCopy.chatFailedLine
+        }
+        Haptics.failure()
+    }
+
+    // MARK: Thread
+
+    /// Writes a line into the thread as the other side without asking a model.
+    @discardableResult
+    func say(_ content: String, choices: ThreadChoices? = nil) -> String {
+        let key = localKey()
+        messages.append(ThreadMessage(id: key, role: .assistant, content: content, isLocal: true, choices: choices))
+        return key
+    }
+
+    func dropLine(_ key: String) {
+        messages.removeAll { $0.id == key }
+    }
+
+    /// Starts over with an empty thread. A turn still in flight is abandoned.
+    func startNewThread() {
+        thread += 1
+        conversationId = nil
+        sending = false
+        messages = []
+        isBusy = false
+        chatError = nil
+        triedWithoutModel = false
+        endAsking()
+    }
+
+    func dismissChatError() { chatError = nil }
+
+    // MARK: CanvasCommandHost
+
+    func dispatch(_ action: CanvasAction) {
+        cards = CanvasState.reduce(cards, action)
+    }
+
+    func clearThread() {
+        startNewThread()
+    }
+
+    func help() {
+        say(HVCopy.helpLine)
+        if backendsLoaded, backends.isEmpty { triedWithoutModel = true }
+    }
+
+    func keepThis() {
+        guard !keepInFlight else { return }
+        if staged != nil {
+            keepStaged()
+            return
+        }
+        if let index = messages.lastIndex(where: { $0.role == .assistant && !$0.isLocal }) {
+            keepReply(at: index)
+            return
+        }
+        notice = KeepNotice(kind: .note, text: HVCopy.nothingToKeepLine)
+    }
+
+    func show(_ target: ShowTarget) {
+        if target == .stuff {
+            wantsYours = true
+            return
+        }
+        let filter: YoursFilter = target == .memories ? .memory : target == .files ? .file : .key
+        Task {
+            do {
+                let list = try await client.send(.yours(filter: filter, limit: canvasMaxCards))
+                guard !list.results.isEmpty else {
+                    say(HVCopy.showNoneLine(target))
+                    return
+                }
+                for item in list.results.prefix(canvasMaxCards).reversed() { addCard(for: item) }
+            } catch {
+                say((error as? HVError)?.userMessage ?? HVCopy.yoursFailedLine)
+            }
+        }
+    }
+
+    func showAgentKeys() {
+        show(.keys)
+    }
+
+    func pull(_ query: String) {
+        Task {
+            do {
+                let list = try await client.send(.yours(filter: .all, query: query, limit: PullResolver.searchLimit))
+                switch PullResolver.resolve(query: query, results: list.results) {
+                case .one(let item):
+                    addCard(for: item)
+                case .choose(let items, let more):
+                    say(HVCopy.pullWhichLine, choices: ThreadChoices(items: items, more: more))
+                case .none:
+                    say(HVCopy.pullNoneLine)
+                }
+            } catch {
+                say((error as? HVError)?.userMessage ?? HVCopy.yoursFailedLine)
+            }
+        }
+    }
+
+    func pullLink(_ link: VaultLink) {
+        Task {
+            do {
+                let detail: KeptCard
+                switch link {
+                case .artifact(let slug): detail = try await client.send(.card(slug: slug))
+                case .memory(let id): detail = try await client.send(.card(kind: .memory, id: id))
+                }
+                dispatch(.add(CanvasState.payloadCard(detail)))
+            } catch let error as HVError where error.isNotFound {
+                say(HVCopy.pullNoneLine)
+            } catch {
+                say((error as? HVError)?.userMessage ?? HVCopy.yoursFailedLine)
+            }
+        }
+    }
+
+    /// A choice from "Which one?": pulls it and takes the question off the page.
+    func choose(_ item: KeptItem, answering key: String) {
+        dropLine(key)
+        addCard(for: item)
+    }
+
+    /// Puts something from Yours on the page, then asks the server what to say about it.
+    func addCard(for item: KeptItem) {
+        let card = CanvasState.itemCard(item)
+        dispatch(.add(card))
+        Haptics.tap()
+        Task { await fill(card) }
+    }
+
+    private func fill(_ card: CanvasCard) async {
+        guard let ref = card.ref else { return }
+        do {
+            let detail = try await client.send(.card(kind: ref.kind, id: ref.id))
+            dispatch(.fill(key: card.key, detail: detail, subtitle: CanvasState.detailLine(detail), title: detail.name))
+        } catch {
+            // The card is already useful without its detail line.
+        }
+    }
+
+    /// Records that a card was opened, so Recent follows what was gone back to. Best effort.
+    func markOpened(_ card: CanvasCard) {
+        guard let ref = card.ref else { return }
+        Task { _ = try? await client.send(.markOpened(kind: ref.kind, id: ref.id)) }
+    }
+
+    // MARK: Keeping
+
+    /// A paste the person made, held above the field. A second one joins the first.
+    func stagePaste(_ text: String) {
+        notice = nil
+        endAsking()
+        staged = staged.map { "\($0)\n\n\(text)" } ?? text
+    }
+
+    /// Handles a paste into the field: long things wait above it, a sentence goes in.
+    func handlePaste(_ text: String) {
+        if PasteStaging.shouldStage(text) {
+            stagePaste(text)
+        } else {
+            draft += text
+        }
+    }
+
+    func keepStaged() {
+        guard let text = staged, !keepInFlight else { return }
+        staged = nil
+        endAsking()
+        run(text, sourcePrompt: nil) { [weak self] failed in self?.restage(failed) }
+    }
+
+    /// Takes the waiting paste back out of the chip, to ask about it instead.
+    func askInstead() {
+        guard let text = staged else { return }
+        staged = nil
+        endAsking()
+        draft = draft.isEmpty ? text : "\(draft)\n\n\(text)"
+    }
+
+    private func restage(_ content: String) {
+        staged = staged.map { "\(content)\n\n\($0)" } ?? content
+    }
+
+    /// "New" has asked what to keep; the next thing sent is it.
+    func ask() {
+        notice = nil
+        question += 1
+        isAsking = true
+        say(HVCopy.newAskLine)
+    }
+
+    private func endAsking() {
+        question += 1
+        isAsking = false
+    }
+
+    private func keepAsked(_ text: String) {
+        let asked = question
+        isAsking = false
+        draft = ""
+        run(text, sourcePrompt: nil) { [weak self] failed in
+            guard let self else { return }
+            if question == asked { isAsking = true }
+            if draft.trimmingCharacters(in: .whitespaces).isEmpty { draft = failed }
+        }
+    }
+
+    /// Keeps the reply at this place in the thread.
+    func keepReply(at index: Int) {
+        guard messages.indices.contains(index), messages[index].role == .assistant, !keepInFlight,
+              let content = KeepReply.content(of: messages[index].content)
+        else { return }
+        let asked = index > 0 && messages[index - 1].role == .user ? messages[index - 1].content : nil
+        run(content, sourcePrompt: asked, onFailed: nil)
+    }
+
+    /// Keeps text that arrived from outside (the share sheet, a Shortcut, a link).
+    func keepExternal(_ text: String) {
+        run(text, sourcePrompt: nil) { [weak self] failed in self?.restage(failed) }
+    }
+
+    private func run(_ content: String, sourcePrompt: String?, onFailed: ((String) -> Void)?) {
+        keepInFlight = true
+        isKeeping = true
+        notice = nil
+        Task {
+            defer {
+                keepInFlight = false
+                isKeeping = false
+            }
+            do {
+                let kept = try await client.send(.keep(content: content, sourcePrompt: sourcePrompt.map { String($0.prefix(10_000)) }))
+                dispatch(.add(CanvasState.keptCard(kept, origin: origin ?? client.baseURL)))
+                Haptics.success()
+            } catch {
+                let message: String
+                if let hv = error as? HVError {
+                    message = hv.isOffline ? HVCopy.keepOfflineLine : hv.userMessage
+                } else {
+                    message = HVCopy.keepFailedLine
+                }
+                notice = KeepNotice(kind: .error, text: message)
+                Haptics.failure()
+                onFailed?(content)
+            }
+        }
+    }
+
+    func dismissNotice() { notice = nil }
+}

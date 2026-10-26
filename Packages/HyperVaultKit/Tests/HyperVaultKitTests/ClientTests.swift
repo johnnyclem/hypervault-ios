@@ -215,3 +215,22 @@ final class Counter: @unchecked Sendable {
     var value: Int { lock.lock(); defer { lock.unlock() }; return count }
     func bump() { lock.lock(); count += 1; lock.unlock() }
 }
+
+final class PlainMessageTests: XCTestCase {
+    func testDropsTheMachineCodeThatLeadsTheSentence() {
+        let failure = APIFailure(status: 403, message: "missing_scope: This key cannot send mail.", code: "missing_scope")
+        XCTAssertEqual(HVError.api(failure).userMessage, "This key cannot send mail.")
+    }
+
+    func testKeepsAPrefixThatIsNotTheFailuresOwnCode() {
+        let note = APIFailure(status: 400, message: "Note: that name is taken.", code: "name_taken")
+        XCTAssertEqual(HVError.api(note).userMessage, "Note: that name is taken.")
+        let noCode = APIFailure(status: 400, message: "missing_scope: This key cannot send mail.")
+        XCTAssertEqual(HVError.api(noCode).userMessage, "missing_scope: This key cannot send mail.")
+    }
+
+    func testNeverReturnsAnEmptySentence() {
+        let failure = APIFailure(status: 500, message: "boom: ", code: "boom")
+        XCTAssertFalse(HVError.api(failure).userMessage.isEmpty)
+    }
+}

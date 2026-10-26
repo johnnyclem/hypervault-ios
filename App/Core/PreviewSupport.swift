@@ -44,11 +44,12 @@ struct PreviewHost<Content: View>: View {
 
     init(
         routes: [MockRoute] = [],
+        capabilities: Capabilities = Capabilities(),
         delay: TimeInterval = 0.2,
         embedInNavigation: Bool = true,
         @ViewBuilder content: () -> Content
     ) {
-        _env = State(initialValue: AppEnvironment.preview(routes: routes, delay: delay))
+        _env = State(initialValue: AppEnvironment.preview(routes: routes, delay: delay, capabilities: capabilities))
         self.content = content()
         self.embedInNavigation = embedInNavigation
     }

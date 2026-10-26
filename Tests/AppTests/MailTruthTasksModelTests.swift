@@ -226,7 +226,7 @@ final class MailModelTests: XCTestCase {
 
     func testALostConnectionIsNotTakenForMailThatIsNotSetUp() async throws {
         let transport = OfflineTransport()
-        let client = HVClient(baseURL: URL(string: "https://offline.hypervault.test")!, transport: transport, retry: .none)
+        let client = HVClient(baseURL: URL(string: "https://offline.hypervault.test")!, transport: transport, tokens: StaticTokenProvider(), retry: .none)
         let cache = DiskCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-offline-\(UUID().uuidString)"))
         let model = MailModel(client: client, cache: cache, namespace: "tests")
         await model.start()

@@ -184,6 +184,7 @@ struct FloatingCard: View {
 /// "You talk to your AI like usual."
 struct WelcomePageTalk: View {
     @State private var kept = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         WelcomePage(
@@ -209,7 +210,12 @@ struct WelcomePageTalk: View {
                 .frame(maxWidth: .infinity, alignment: .center)
             }
             .padding(.horizontal, HV.Space.xl)
-            .task {
+            .task(id: reduceMotion) {
+                // The demo loops for as long as the page shows; with Reduce Motion on it shows its finished state and stays.
+                if reduceMotion {
+                    kept = true
+                    return
+                }
                 while !Task.isCancelled {
                     kept = false
                     try? await Task.sleep(nanoseconds: 1_100_000_000)

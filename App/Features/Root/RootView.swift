@@ -59,13 +59,14 @@ struct RootView: View {
 /// The moment between tapping the icon and the app: the mark on quiet colour.
 struct LaunchView: View {
     @State private var breathe = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
             AuroraBackground()
             BrandMark(size: 92)
-                .scaleEffect(breathe ? 1.04 : 0.98)
-                .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: breathe)
+                .scaleEffect(reduceMotion ? 1 : (breathe ? 1.04 : 0.98))
+                .animation(reduceMotion ? nil : .easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: breathe)
         }
         .onAppear { breathe = true }
         .accessibilityLabel("HyperVault is opening")

@@ -131,6 +131,7 @@ private struct MessageRow: View {
 
 private struct ThinkingRow: View {
     @State private var phase = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 6) {
@@ -139,7 +140,8 @@ private struct ThinkingRow: View {
                     .fill(Palette.textTertiary)
                     .frame(width: 7, height: 7)
                     .scaleEffect(phase ? 1 : 0.55)
-                    .animation(.easeInOut(duration: 0.6).repeatForever().delay(Double(index) * 0.15), value: phase)
+                    // A reply can take minutes; with Reduce Motion on the dots hold still at full size.
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.6).repeatForever().delay(Double(index) * 0.15), value: phase)
             }
             Text(HVCopy.thinkingLine)
                 .font(.hvFootnote)

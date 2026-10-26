@@ -104,7 +104,8 @@ enum DeepLink: Hashable {
         case "a":
             guard let slug = second else { return nil }
             self = .route(.artifact(slug: slug))
-        case "artifact":
+        case "artifact", "g":
+            // /g/<slug> is a group of files; a group opens in the same screen as a page.
             guard let slug = second else { return nil }
             self = .route(.artifact(slug: slug))
         case "memory":

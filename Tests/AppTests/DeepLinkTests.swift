@@ -17,6 +17,7 @@ final class DeepLinkTests: XCTestCase {
         XCTAssertEqual(link("https://sam.vault.cool/a/page-1"), .route(.artifact(slug: "page-1")))
         XCTAssertEqual(link("https://hypervault.store/vault/memory"), .tab(.memory))
         XCTAssertEqual(link("https://hypervault.store/vault/mail"), .route(.mail))
+        XCTAssertEqual(link("https://hypervault.store/g/portfolio-site-x1"), .route(.artifact(slug: "portfolio-site-x1")))
         XCTAssertEqual(link("hypervault://mail/msg-42"), .route(.mailThread(id: "msg-42")))
         XCTAssertEqual(link("hypervault://truth/review"), .route(.truthReview))
         XCTAssertEqual(link("hypervault://taskboards"), .route(.taskBoards))

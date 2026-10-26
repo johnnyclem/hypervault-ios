@@ -32,6 +32,8 @@ struct RecentWidgetView: View {
             switch entry.state {
             case .signedOut:
                 message("Open HyperVault to sign in.")
+            case .locked:
+                message("Locked. Open HyperVault to see what you kept.")
             case .empty:
                 message("Nothing kept yet.")
             case .items(let things):
@@ -80,6 +82,8 @@ struct RecentWidgetView: View {
                 .font(.system(family == .accessoryRectangular ? .caption : .subheadline, design: .rounded, weight: .medium))
                 .foregroundStyle(Palette.textPrimary)
                 .lineLimit(1)
+                // Names are redacted while the phone is locked, on the Lock Screen and in StandBy, whether or not the app lock is on.
+                .privacySensitive()
             Spacer(minLength: 0)
         }
     }

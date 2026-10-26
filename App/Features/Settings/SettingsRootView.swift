@@ -44,11 +44,13 @@ struct SettingsRootView: View {
             }
 
             Section(header: Text("Search"), footer: Text("Find your pages and memories from your Home Screen. Names and short summaries are kept on this phone for search; keys are never included.")) {
-                Toggle("Show in Spotlight", isOn: $spotlight)
+                // Search is switched off while the lock is on; the choice comes back with it.
+                Toggle("Show in Spotlight", isOn: Binding(get: { spotlight && !biometricLock }, set: { spotlight = $0 }))
+                    .disabled(biometricLock)
                     .onChange(of: spotlight) { _, on in if !on { SpotlightIndexer.clear() } }
             }
 
-            Section(header: Text("Security"), footer: Text("Ask for \(model.lock.methodName) when you open HyperVault, and blank the app switcher. Your saved logins, cards and keys never leave the server, so there is nothing on this phone to unlock them.")) {
+            Section(header: Text("Security"), footer: Text("Ask for \(model.lock.methodName) when you open HyperVault, and blank the app switcher. Your saved logins, cards and keys never leave the server, so there is nothing on this phone to unlock them. While the lock is on, widgets and Spotlight show nothing from your vault, and what you ask Siri to keep waits until you unlock the app.")) {
                 Toggle("Lock with \(model.lock.methodName)", isOn: Binding(
                     get: { biometricLock },
                     set: { wanted in
@@ -57,6 +59,7 @@ struct SettingsRootView: View {
                         }
                     }
                 ))
+                .onChange(of: biometricLock) { _, on in model.lock.preferenceChanged(to: on) }
             }
 
             if waiting > 0 {

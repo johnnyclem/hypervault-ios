@@ -21,6 +21,20 @@ final class AppLock {
 
     init() {
         isLocked = UserDefaults.standard.bool(forKey: PrefKey.biometricLock)
+        // The widgets and the Keep intent read the shared copy; refresh it so an update never leaves it behind.
+        SharedConfig.isLockOn = isLocked
+    }
+
+    /// The lock was turned on or off in Settings. Widgets, Spotlight and Siri cannot be put behind a prompt, so
+    /// while the lock is on they hold nothing from the vault: what they showed is taken away now, and the
+    /// widgets read the shared copy of the preference the next time they draw.
+    func preferenceChanged(to on: Bool) {
+        SharedConfig.isLockOn = on
+        if on {
+            SpotlightIndexer.clear()
+            SharedConfig.forgetWidgetCache()
+        }
+        WidgetRefresh.reload()
     }
 
     /// "Face ID", "Touch ID" or "your passcode", for the words on screen.

@@ -32,9 +32,17 @@ struct MainTabView: View {
                 .tag(AppTab.you)
         }
         .adaptiveTabStyle()
-        .task { await env.flushOutbox(toasts: model.toasts) }
+        // Whatever Siri or the share sheet left waiting is kept once the person is in, not while the lock is up.
+        .task(id: model.lock.isLocked) {
+            guard !model.lock.isLocked else { return }
+            await env.flushOutbox(toasts: model.toasts)
+        }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await env.flushOutbox(toasts: model.toasts) } }
+            guard phase == .active else { return }
+            Task {
+                guard !model.lock.isLocked else { return }
+                await env.flushOutbox(toasts: model.toasts)
+            }
         }
         .sheet(item: $router.sheet) { sheet in
             switch sheet {

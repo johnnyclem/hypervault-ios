@@ -9,14 +9,20 @@ struct HVPrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(.headline, design: .rounded, weight: .semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(isEnabled ? Color.white : Palette.textSecondary)
             .frame(maxWidth: .infinity, minHeight: 52)
             .padding(.horizontal, HV.Space.l)
-            .background(Palette.softGradient, in: Capsule())
-            .overlay(Capsule().strokeBorder(.white.opacity(0.18), lineWidth: 1))
-            .shadow(color: Palette.blue.opacity(configuration.isPressed ? 0.15 : 0.32), radius: 16, x: 0, y: 8)
+            .background {
+                // Off is a plain raised capsule with its label still readable, not the gradient faded out.
+                if isEnabled {
+                    Capsule().fill(Palette.softGradient)
+                } else {
+                    Capsule().fill(Palette.surfaceRaised)
+                }
+            }
+            .overlay(Capsule().strokeBorder(isEnabled ? Color.white.opacity(0.18) : Palette.border, lineWidth: 1))
+            .shadow(color: isEnabled ? Palette.blue.opacity(configuration.isPressed ? 0.15 : 0.32) : .clear, radius: 16, x: 0, y: 8)
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .opacity(isEnabled ? 1 : 0.45)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
     }
 }
@@ -28,13 +34,12 @@ struct HVSecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(.headline, design: .rounded, weight: .semibold))
-            .foregroundStyle(Palette.textPrimary)
+            .foregroundStyle(isEnabled ? Palette.textPrimary : Palette.textTertiary)
             .frame(maxWidth: .infinity, minHeight: 52)
             .padding(.horizontal, HV.Space.l)
             .background(Palette.surfaceRaised, in: Capsule())
             .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .opacity(isEnabled ? 1 : 0.45)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
     }
 }
@@ -46,11 +51,16 @@ struct HVGhostButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(.subheadline, design: .rounded, weight: .semibold))
-            .foregroundStyle(.tint)
-            .padding(.vertical, HV.Space.xs)
+            .foregroundStyle(ink(for: configuration.role))
             .padding(.horizontal, HV.Space.s)
+            .frame(minWidth: 44, minHeight: 44)
             .contentShape(Rectangle())
-            .opacity(configuration.isPressed ? 0.55 : (isEnabled ? 1 : 0.4))
+            .opacity(configuration.isPressed ? 0.55 : 1)
+    }
+
+    private func ink(for role: ButtonRole?) -> AnyShapeStyle {
+        if !isEnabled { return AnyShapeStyle(Palette.textTertiary) }
+        return role == .destructive ? AnyShapeStyle(Palette.danger) : AnyShapeStyle(TintShapeStyle())
     }
 }
 
@@ -132,7 +142,7 @@ struct HVIconBadge: View {
     var body: some View {
         Image(systemName: symbol)
             .font(.system(size: size * 0.46, weight: .semibold))
-            .foregroundStyle(tint)
+            .foregroundStyle(tint.hvInk())
             .frame(width: size, height: size)
             .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: size * 0.3, style: .continuous))
             .accessibilityHidden(true)
@@ -152,11 +162,11 @@ struct HVChip: View {
             }
             Text(title).font(.system(.subheadline, design: .rounded, weight: .medium))
         }
-        .foregroundStyle(isSelected ? Color.white : Palette.textPrimary)
+        .foregroundStyle(isSelected ? Palette.background : Palette.textPrimary)
         .padding(.horizontal, HV.Space.m - 2)
         .padding(.vertical, 8)
         .background(
-            Capsule().fill(isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(Palette.surfaceRaised))
+            Capsule().fill(isSelected ? AnyShapeStyle(Palette.textPrimary) : AnyShapeStyle(Palette.surfaceRaised))
         )
         .overlay(Capsule().strokeBorder(isSelected ? Color.clear : Palette.border, lineWidth: 1))
         .animation(.easeOut(duration: 0.15), value: isSelected)
@@ -171,7 +181,7 @@ struct HVTag: View {
     var body: some View {
         Text(text)
             .font(.system(.caption2, design: .rounded, weight: .semibold))
-            .foregroundStyle(tint)
+            .foregroundStyle(tint.hvInk())
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(tint.opacity(0.14), in: Capsule())
@@ -206,7 +216,7 @@ struct HVAvatar: View {
 
     var body: some View {
         ZStack {
-            Circle().fill(Palette.brandGradient)
+            Circle().fill(Palette.avatarGradient)
             Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
                 .font(.system(size: size * 0.42, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
@@ -231,6 +241,7 @@ struct HVRow<Trailing: View>: View {
     let title: String
     var subtitle: String?
     @ViewBuilder var trailing: () -> Trailing
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(
         symbol: String,
@@ -253,12 +264,12 @@ struct HVRow<Trailing: View>: View {
                 Text(title)
                     .font(.hvBody)
                     .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(1)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 }
             }
             Spacer(minLength: HV.Space.xs)
@@ -296,9 +307,41 @@ struct HVSheetHeader: View {
                         .foregroundStyle(Palette.textSecondary)
                         .frame(width: 30, height: 30)
                         .background(Palette.surfaceRaised, in: Circle())
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("Close")
             }
         }
+    }
+}
+
+/// A field with its label above it. A placeholder alone is not a label: it is faint and it goes the
+/// moment someone types, so a form of several fields uses this.
+struct HVLabeledField<Field: View>: View {
+    let title: String
+    var footnote: String?
+    @ViewBuilder var field: () -> Field
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(.footnote, design: .rounded, weight: .medium))
+                .foregroundStyle(Palette.textSecondary)
+            field().hvFieldChrome()
+            if let footnote {
+                Text(footnote).font(.hvCaption).foregroundStyle(Palette.textSecondary)
+            }
+        }
+    }
+}
+
+extension View {
+    /// A list row on paper with a hairline between rows: the look every grouped or plain list shares.
+    /// Without it a dark list takes the system's neutral grey, which sits wrong on the blue-black page.
+    func hvListRow() -> some View {
+        self
+            .listRowBackground(Palette.surface)
+            .listRowSeparatorTint(Palette.hairline)
     }
 }

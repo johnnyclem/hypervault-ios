@@ -40,15 +40,20 @@ struct HVEmptyState: View {
 /// A load that failed, in the server's own words, with a way to try again.
 struct HVErrorState: View {
     let message: String
+    /// The glyph: a plain notice by default; pass `wifi.exclamationmark` for a connection that failed.
+    var symbol = "exclamationmark.circle"
     var retryTitle = "Try again"
     var retry: (() -> Void)?
 
     var body: some View {
         VStack(spacing: HV.Space.m) {
-            Image(systemName: "wifi.exclamationmark")
-                .font(.system(size: 30, weight: .medium))
-                .foregroundStyle(Palette.textSecondary)
-                .accessibilityHidden(true)
+            ZStack {
+                Circle().fill(Palette.surfaceRaised).frame(width: 84, height: 84)
+                Image(systemName: symbol)
+                    .font(.system(size: 32, weight: .medium))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .accessibilityHidden(true)
             Text(message)
                 .font(.hvCallout)
                 .foregroundStyle(Palette.textSecondary)
@@ -88,9 +93,9 @@ struct HVSkeleton: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: height / 2.5, style: .continuous)
-            .fill(Palette.surfaceRaised)
+            .fill(Palette.skeleton)
             .frame(width: width, height: height)
-            .opacity(dim ? 0.45 : 1)
+            .opacity(dim ? 0.55 : 1)
             .onAppear {
                 withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { dim = true }
             }

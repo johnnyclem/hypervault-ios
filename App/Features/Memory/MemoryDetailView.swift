@@ -18,6 +18,7 @@ private struct MemoryDetailContent: View {
     @State private var model: MemoryDetailModel
     @State private var showEdit = false
     @State private var confirmForget = false
+    @State private var showConnect = false
 
     init(id: String, env: AppEnvironment) {
         _model = State(initialValue: MemoryDetailModel(id: id, env: env))
@@ -49,6 +50,14 @@ private struct MemoryDetailContent: View {
         .sheet(isPresented: $showEdit) {
             if let page = model.page {
                 MemoryEditSheet(model: model, memory: page.memory)
+            }
+        }
+        .sheet(isPresented: $showConnect) {
+            if let page = model.page {
+                MemoryConnectSheet(
+                    model: model, memory: page.memory,
+                    linked: Set(page.related.map(\.id) + page.artifacts.map(\.id))
+                )
             }
         }
         .confirmationDialog("Forget this memory?", isPresented: $confirmForget, titleVisibility: .visible) {
@@ -169,6 +178,7 @@ private struct MemoryDetailContent: View {
                     .font(.hvSubheadline.weight(.semibold))
             }
             .buttonStyle(.hvGhost)
+            .padding(.leading, -HV.Space.s)
         }
         .hvCard()
     }
@@ -229,6 +239,21 @@ private struct MemoryDetailContent: View {
             .buttonStyle(.plain)
             .frame(minHeight: 44)
             Divider()
+            if page.branch == MindBranchName.defaultName {
+                Button {
+                    showConnect = true
+                } label: {
+                    HVRow(symbol: "link", tint: Palette.blue, title: "Link to\u{2026}", subtitle: "Join it to another memory or a page") {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Palette.textTertiary)
+                    }
+                    .padding(.vertical, HV.Space.xs)
+                }
+                .buttonStyle(.plain)
+                .frame(minHeight: 44)
+                Divider()
+            }
             Button {
                 digest()
             } label: {
@@ -258,6 +283,9 @@ private struct MemoryDetailContent: View {
             } label: { Label("Copy text", systemImage: "doc.on.doc") }
             ShareLink(item: shareText(page.memory), subject: Text(page.memory.title)) {
                 Label("Share", systemImage: "square.and.arrow.up")
+            }
+            if page.branch == MindBranchName.defaultName {
+                Button { showConnect = true } label: { Label("Link to\u{2026}", systemImage: "link") }
             }
             Button { digest() } label: { Label("Digest this", systemImage: "scissors") }
             Divider()

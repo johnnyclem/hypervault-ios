@@ -59,7 +59,7 @@ struct ForceGraphView: View {
                     if let node = selectedNode { callout(for: node) }
                 }
                 .padding(HV.Space.s)
-                controls
+                controlsIfIdle
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
             .onAppear {
@@ -135,6 +135,11 @@ struct ForceGraphView: View {
         .accessibilityHidden(true)
     }
 
+    @ViewBuilder
+    private var controlsIfIdle: some View {
+        if selection == nil { controls }
+    }
+
     private var controls: some View {
         VStack(spacing: 0) {
             controlButton("plus", label: "Zoom in") { zoom(by: 1.4) }
@@ -148,7 +153,7 @@ struct ForceGraphView: View {
         }
         .hvGlass(radius: 22)
         .fixedSize()
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         .padding(HV.Space.s)
     }
 
@@ -214,16 +219,22 @@ struct ForceGraphView: View {
 
     private func fit(animated: Bool) {
         guard viewSize.width > 0, viewSize.height > 0, let bounds = model.bounds else { return }
-        let padding: CGFloat = 44
+        // Room for the legend above, the buttons at the right and a label under the lowest node.
+        let top: CGFloat = legend.isEmpty ? 32 : 84
+        let bottom: CGFloat = 56
+        let leading: CGFloat = 36
+        let trailing: CGFloat = 68
         let width = max(CGFloat(bounds.width), 1)
         let height = max(CGFloat(bounds.height), 1)
-        let scale = min((viewSize.width - padding * 2) / width, (viewSize.height - padding * 2 - 60) / height, 2.2)
+        let availableWidth = max(viewSize.width - leading - trailing, 60)
+        let availableHeight = max(viewSize.height - top - bottom, 60)
+        let scale = max(min(availableWidth / width, availableHeight / height, 2.2), 0.05)
         let center = bounds.center
         let fitted = ForceGraphCamera(
-            scale: max(scale, 0.05),
+            scale: scale,
             translation: CGSize(
-                width: viewSize.width / 2 - CGFloat(center.x) * max(scale, 0.05),
-                height: viewSize.height / 2 - CGFloat(center.y) * max(scale, 0.05) - 10
+                width: leading + availableWidth / 2 - CGFloat(center.x) * scale,
+                height: top + availableHeight / 2 - CGFloat(center.y) * scale
             ),
             userMoved: false
         )
@@ -410,18 +421,38 @@ enum ForceGraphRenderer {
             }
         }
 
+        // Labels: the selected node and its neighbours first, then the best connected,
+        // then (zoomed in) everything. A label that would land on one already drawn is skipped.
         let showAll = camera.scale > 1.7
+        var candidates: [(index: Int, priority: Int)] = []
         for (i, node) in nodes.enumerated() {
-            let isFocus = node.id == selection || (dimmed && focus.contains(node.id))
-            guard isFocus || hubs.contains(node.id) || showAll else { continue }
-            if dimmed, !focus.contains(node.id) { continue }
-            let center = camera.screen(points[i])
+            if node.id == selection {
+                candidates.append((i, 3))
+            } else if dimmed {
+                if focus.contains(node.id) { candidates.append((i, 2)) }
+            } else if hubs.contains(node.id) {
+                candidates.append((i, 1))
+            } else if showAll {
+                candidates.append((i, 0))
+            }
+        }
+        candidates.sort { $0.priority != $1.priority ? $0.priority > $1.priority : $0.index < $1.index }
+        var occupied: [CGRect] = []
+        for candidate in candidates {
+            let node = nodes[candidate.index]
+            let center = camera.screen(points[candidate.index])
             if center.x < 0 || center.y < 0 || center.x > size.width || center.y > size.height { continue }
             let r = radius(for: node, scale: camera.scale)
             let text = Text(truncated(node.label))
-                .font(.system(size: 11, weight: isFocus ? .semibold : .medium, design: .rounded))
+                .font(.system(size: 11, weight: candidate.priority >= 2 ? .semibold : .medium, design: .rounded))
                 .foregroundStyle(Palette.textPrimary)
-            context.draw(text, at: CGPoint(x: center.x, y: center.y + r + 3), anchor: .top)
+            let resolved = context.resolve(text)
+            let measured = resolved.measure(in: CGSize(width: 220, height: 40))
+            let frame = CGRect(x: center.x - measured.width / 2, y: center.y + r + 3, width: measured.width, height: measured.height)
+            let padded = frame.insetBy(dx: -3, dy: -1)
+            if candidate.priority < 3, occupied.contains(where: { $0.intersects(padded) }) { continue }
+            occupied.append(padded)
+            context.draw(resolved, at: CGPoint(x: center.x, y: frame.minY), anchor: .top)
         }
     }
 

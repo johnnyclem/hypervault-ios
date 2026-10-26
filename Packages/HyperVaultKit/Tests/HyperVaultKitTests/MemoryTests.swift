@@ -426,6 +426,27 @@ final class MemoryTests: XCTestCase {
         XCTAssertEqual(connections.bridges.first?.artifactId, "a1")
     }
 
+    func testConnectingTwoThings() async throws {
+        let (api, transport) = client([.json(.post, "/api/connections", #"{"connected":["m1","m2"],"message":"Connected — check the graph view!"}"#)])
+        let result = try await api.send(.memoryConnect(source: "m1", target: "m2"))
+        XCTAssertEqual(result.connected, ["m1", "m2"])
+        XCTAssertEqual(result.message, "Connected — check the graph view!")
+        let allSent = await transport.requests
+        XCTAssertEqual(String(decoding: allSent.first?.httpBody ?? Data(), as: UTF8.self), #"{"source":"m1","target":"m2"}"#)
+    }
+
+    func testConnectingToItselfIsRefusedWithTheServersSentence() async {
+        let (api, _) = client([.failure(.post, "/api/connections", status: 400, message: "An item cannot connect to itself.")])
+        do {
+            _ = try await api.send(.memoryConnect(source: "m1", target: "m1"))
+            XCTFail("expected a refusal")
+        } catch let error as HVError {
+            XCTAssertEqual(error.userMessage, "An item cannot connect to itself.")
+        } catch {
+            XCTFail("wrong error \(error)")
+        }
+    }
+
     // MARK: Ask
 
     func testAskIsOneChatTurnWithRecallOn() async throws {

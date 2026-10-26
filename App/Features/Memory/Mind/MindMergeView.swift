@@ -119,12 +119,14 @@ struct MindMergeView: View {
             }
 
             if session.conflicts.count > 1 {
-                HStack(spacing: HV.Space.xs) {
-                    Button("Keep \(model.target) for the rest") { model.resolveRemaining(.ours) }
-                    Button("Take \(model.source) for the rest") { model.resolveRemaining(.theirs) }
+                Menu {
+                    Button("Keep the version on \(model.target)") { model.resolveRemaining(.ours) }
+                    Button("Take the version from \(model.source)") { model.resolveRemaining(.theirs) }
+                } label: {
+                    Label("Settle the rest in one go", systemImage: "wand.and.stars")
+                        .font(.hvSubheadline.weight(.semibold))
                 }
-                .buttonStyle(.hvGhost)
-                .font(.hvFootnote)
+                .disabled(session.unresolved.isEmpty)
             }
 
             ForEach(session.conflicts) { conflict in
@@ -251,6 +253,7 @@ private struct MindConflictCard: View {
                     withAnimation(.easeInOut(duration: 0.2)) { showDiffs.toggle() }
                 }
                 .buttonStyle(.hvGhost)
+                .padding(.leading, -HV.Space.s)
                 if showDiffs {
                     VStack(alignment: .leading, spacing: HV.Space.xs) {
                         Text("\(session.target), against where they split")
@@ -317,7 +320,7 @@ private struct MindConflictCard: View {
                         .lineLimit(5)
                         .multilineTextAlignment(.leading)
                 } else {
-                    Text("Forgotten here")
+                    Text("Forgotten on \(label)")
                         .font(.hvSubheadline.italic())
                         .foregroundStyle(Palette.textSecondary)
                 }

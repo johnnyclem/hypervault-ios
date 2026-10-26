@@ -98,7 +98,8 @@ struct MemoryAskView: View {
                 .accessibilityLabel("Ask")
             }
             .padding(.leading, HV.Space.xxs)
-            .padding(.trailing, HV.Space.xxs)
+            .padding(.trailing, HV.Space.xs)
+            .padding(.vertical, HV.Space.xxs)
             .hvGlass(radius: 28)
         }
         .padding(.horizontal, HV.Space.m)

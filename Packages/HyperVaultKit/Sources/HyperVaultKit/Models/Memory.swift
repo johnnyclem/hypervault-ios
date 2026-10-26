@@ -955,6 +955,20 @@ public struct MemoryConnections: Sendable, Codable, Equatable {
     enum Keys: String, CodingKey { case memoryLinks, memoryArtifactLinks }
 }
 
+/// `POST /api/connections`: two things joined by hand.
+public struct MemoryConnected: Sendable, Codable, Equatable {
+    public let connected: [String]
+    public let message: String
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: Keys.self)
+        connected = try c.decodeIfPresent([String].self, forKey: .connected) ?? []
+        message = try c.decodeIfPresent(String.self, forKey: .message) ?? ""
+    }
+
+    enum Keys: String, CodingKey { case connected, message }
+}
+
 // MARK: Ask
 
 /// A connected model that can answer a question (`GET /api/backends`). Only
@@ -1085,6 +1099,13 @@ extension Endpoint where Response == MemoryForgotten {
 extension Endpoint where Response == MemoryConnections {
     public static var memoryConnections: Endpoint<MemoryConnections> {
         Endpoint(.get, "/api/connections")
+    }
+}
+
+extension Endpoint where Response == MemoryConnected {
+    /// Links a memory to another memory or to a page. Memory links are commits on main.
+    public static func memoryConnect(source: String, target: String) -> Endpoint<MemoryConnected> {
+        Endpoint(.post, "/api/connections", body: .jsonValue(["source": .string(source), "target": .string(target)]))
     }
 }
 

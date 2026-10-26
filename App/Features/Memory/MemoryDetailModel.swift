@@ -101,6 +101,17 @@ final class MemoryDetailModel {
         return result.message.isEmpty ? "Forgotten." : result.message
     }
 
+    /// Links this memory to another memory or to a page. Memory links are commits on main.
+    func connect(to target: String) async throws -> String {
+        isWorking = true
+        defer { isWorking = false }
+        let result = try await env.client.send(.memoryConnect(source: id, target: target))
+        await reload()
+        await env.cache.remove(key: "memory.connections", namespace: env.user.id)
+        NotificationCenter.default.post(name: .hvMemoryChanged, object: nil)
+        return result.message.isEmpty ? "Connected." : result.message
+    }
+
     func digest() async throws -> DigestProposal {
         isWorking = true
         defer { isWorking = false }

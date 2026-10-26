@@ -146,10 +146,16 @@ private struct DreamsContent: View {
         }
     }
 
+    private static func title(for run: DreamRun) -> String {
+        guard let date = run.createdAt else { return "A dream" }
+        let when = MemoryDates.quiet(date)
+        return when == "Today" || when == "Yesterday" ? "Last night\u{2019}s dream" : "Dream from \(when)"
+    }
+
     private func runHeader(_ run: DreamRun) -> some View {
         let busy = run.connections.contains { model.woven.contains($0.id) }
         return VStack(alignment: .leading, spacing: HV.Space.xs) {
-            Text(run.createdAt.map { "Dream from \(MemoryDates.quiet($0))" } ?? "A dream")
+            Text(Self.title(for: run))
                 .font(.hvTitle3)
                 .foregroundStyle(Palette.textPrimary)
                 .accessibilityAddTraits(.isHeader)

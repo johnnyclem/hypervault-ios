@@ -120,6 +120,7 @@ struct MemoryHistoryView: View {
                     Spacer(minLength: 0)
                     if model.restoringID == revision.revisionId { ProgressView() }
                 }
+                .padding(.leading, -HV.Space.s)
             }
             if isOpen { diffView(for: revision) }
         }

@@ -53,6 +53,7 @@ struct MemorySearchView: View {
                             MemoryCard(item: item)
                         }
                         .buttonStyle(.plain)
+                        .id("list-\(item.id)")
                     }
                 }
             }
@@ -62,7 +63,8 @@ struct MemorySearchView: View {
     private var countLine: String {
         let noun = list.items.count == 1 ? "memory" : "memories"
         let branch = list.branch == MindBranchName.defaultName ? "" : " \u{00B7} on \(list.branch)"
-        return "\(list.items.count) \(noun)\(branch)"
+        let capped = list.items.count >= 200 ? " \u{00B7} newest 200, search finds the rest" : ""
+        return "\(list.items.count) \(noun)\(branch)\(capped)"
     }
 
     @ViewBuilder
@@ -83,6 +85,7 @@ struct MemorySearchView: View {
                         MemoryHitCard(hit: hit, topScore: top)
                     }
                     .buttonStyle(.plain)
+                    .id("hit-\(hit.id)")
                 }
             }
         } else {
@@ -113,6 +116,7 @@ struct MemorySearchView: View {
                         MemoryCard(item: item)
                     }
                     .buttonStyle(.plain)
+                    .id("local-\(item.id)")
                 }
             }
         }

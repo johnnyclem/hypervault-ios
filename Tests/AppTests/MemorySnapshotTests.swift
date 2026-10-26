@@ -18,7 +18,7 @@ final class MemorySnapshotTests: XCTestCase {
     }
 
     func testGraph() throws {
-        try snapshot(PreviewHost(routes: routes) { MemoryTabPreview(mode: .graph) }, named: "memory-graph", settle: 2.5)
+        try snapshot(PreviewHost(routes: routes) { MemoryTabPreview(mode: .graph) }, named: "memory-graph", settle: 5)
     }
 
     func testAsk() throws {
@@ -117,7 +117,7 @@ final class MemorySnapshotTests: XCTestCase {
         }
         let legend = [ForceGraphLegendItem(title: "Memory", color: Palette.blue)]
         let graph = ForceGraphView(nodes: nodes, edges: edges, legend: legend, onOpen: { _ in })
-        try snapshot(graph.hvScreenBackground(), named: "force-graph", settle: 2.5)
+        try snapshot(graph.hvScreenBackground(), named: "force-graph", settle: 5)
     }
 
     private func conflictFixtures() throws -> [MindMergeConflict] {

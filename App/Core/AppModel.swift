@@ -40,19 +40,27 @@ final class AppModel {
     var pendingInviteCode: String?
 
     @ObservationIgnored private let secureStore: SecureStore
+    @ObservationIgnored private let transport: HTTPTransport
     @ObservationIgnored private let cache: DiskCache
     @ObservationIgnored private var capabilities: Capabilities?
     @ObservationIgnored private var observer: Task<Void, Never>?
     @ObservationIgnored private var started = false
     @ObservationIgnored private var pendingLink: DeepLink?
 
-    init(secureStore: SecureStore = KeychainSecureStore(), server: ServerConfig = SharedConfig.server) {
+    /// The defaults are the real app's; tests pass a mock transport, an in-memory store and a scratch folder.
+    init(
+        secureStore: SecureStore = KeychainSecureStore(),
+        server: ServerConfig = SharedConfig.server,
+        transport: HTTPTransport = URLSessionTransport(),
+        cacheDirectory: URL = AppModel.cacheDirectory()
+    ) {
         self.secureStore = secureStore
         self.server = server
-        self.cache = DiskCache(directory: Self.cacheDirectory())
+        self.transport = transport
+        self.cache = DiskCache(directory: cacheDirectory)
     }
 
-    private static func cacheDirectory() -> URL {
+    static func cacheDirectory() -> URL {
         let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
         return base.appendingPathComponent("HyperVault", isDirectory: true)
@@ -88,7 +96,7 @@ final class AppModel {
         phase = .launching
         observer?.cancel()
 
-        let publicClient = HVClient(baseURL: server.baseURL)
+        let publicClient = HVClient(baseURL: server.baseURL, transport: transport)
         var caps: Capabilities?
         var failure: HVError?
         do {
@@ -111,7 +119,7 @@ final class AppModel {
         capabilities = caps
         SharedConfig.supabase = supabase
 
-        let service = AuthService(config: supabase, store: secureStore)
+        let service = AuthService(config: supabase, transport: transport, store: secureStore)
         auth = service
         providers = await service.providers()
         await service.restore()
@@ -143,7 +151,7 @@ final class AppModel {
     /// carries a `user` block only for an identity that passed the invite gate.
     func resolveAccess(for user: AuthUser) async {
         guard let auth else { return }
-        let client = HVClient(baseURL: server.baseURL, tokens: auth)
+        let client = HVClient(baseURL: server.baseURL, transport: transport, tokens: auth)
         do {
             let fresh = try await client.send(.capabilities)
             capabilities = fresh
@@ -192,7 +200,7 @@ final class AppModel {
     /// Redeems an invite code for the signed-in, waitlisted person.
     func redeemInvite(_ code: String) async throws -> InviteResult {
         guard let auth, let supabase = capabilities?.supabase else { throw HVError.unauthorized }
-        let redeemer = InviteRedeemer(config: supabase, tokens: auth)
+        let redeemer = InviteRedeemer(config: supabase, transport: transport, tokens: auth)
         let result = try await redeemer.redeem(code)
         if result.isAccepted, let user = await auth.currentUser {
             pendingInviteCode = nil

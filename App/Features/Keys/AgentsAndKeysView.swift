@@ -14,6 +14,7 @@ private enum KeysDestination: Hashable {
 struct AgentsAndKeysView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(AppModel.self) private var app
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var model: AgentsAndKeysModel?
     @State private var showConnect = false
@@ -29,7 +30,7 @@ struct AgentsAndKeysView: View {
         }
         .hvScreenBackground()
         .navigationTitle("Account & keys")
-        .navigationBarTitleDisplayMode(.large)
+        .keysLargeTitle()
         .navigationDestination(for: KeysDestination.self) { destination in
             switch destination {
             case .key(let key):
@@ -89,6 +90,7 @@ struct AgentsAndKeysView: View {
                     }
                 }
             }
+            .hvListRow()
 
             if model.pairingOn == true {
                 Section(
@@ -99,6 +101,7 @@ struct AgentsAndKeysView: View {
                         HVRow(symbol: "link.badge.plus", tint: Palette.violet, title: "Approve an AI tool", subtitle: "Enter the code it is showing")
                     }
                 }
+                .hvListRow()
             }
 
             Section(header: HVSectionHeader(title: "Advanced")) {
@@ -106,6 +109,7 @@ struct AgentsAndKeysView: View {
                     HVRow(symbol: "dot.radiowaves.left.and.right", tint: Palette.coral, title: "Webhooks", subtitle: "Be told when a truth is challenged")
                 }
             }
+            .hvListRow()
         }
         .scrollContentBackground(.hidden)
         .refreshable { await model.load() }
@@ -136,9 +140,15 @@ struct AgentsAndKeysView: View {
             Button {
                 showConnect = true
             } label: {
-                Label("Connect an agent", systemImage: "plus")
+                // At accessibility sizes the plus would sit beside a wrapped label and pull it off centre.
+                if dynamicTypeSize.isAccessibilitySize {
+                    Text("Connect an agent")
+                } else {
+                    Label("Connect an agent", systemImage: "plus")
+                }
             }
             .buttonStyle(.hvPrimary)
+            .multilineTextAlignment(.center)
         }
         .padding(.vertical, HV.Space.xs)
     }
@@ -180,18 +190,25 @@ struct KeyRow: View {
     let key: AgentKey
     let status: AgentSetupStatus?
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
+
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
+
     var body: some View {
         HStack(alignment: .top, spacing: HV.Space.s + 2) {
-            HVIconBadge(symbol: key.isPaired ? "link" : "key.horizontal", tint: status?.complete == true ? Palette.mint : Palette.amber)
+            HVIconBadge(
+                symbol: key.isPaired ? "link" : "key.horizontal",
+                tint: status?.complete == true ? Palette.mint : Palette.amber,
+                size: min(tile, 56)
+            )
             VStack(alignment: .leading, spacing: 2) {
                 Text(key.displayName ?? "Untitled key")
                     .font(.hvBody)
                     .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(2)
-                Text("\(key.prefixLabel) · \(AccountWords.lastUsedLine(key.lastUsedAt))")
-                    .font(.hvFootnote)
-                    .foregroundStyle(Palette.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(isLarge ? nil : 2)
+                    .fixedSize(horizontal: false, vertical: true)
+                detail
                 if let status {
                     HVTag(text: status.complete ? "Agent connected" : "Setup pending", tint: status.complete ? Palette.success : Palette.warning)
                         .padding(.top, 2)
@@ -201,6 +218,27 @@ struct KeyRow: View {
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+    }
+
+    /// The prefix and the last use share a line while they fit. At accessibility sizes each gets its own, so
+    /// neither is cut short ("Last used 19...").
+    @ViewBuilder
+    private var detail: some View {
+        let lastUsed = AccountWords.lastUsedLine(key.lastUsedAt)
+        if isLarge {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(key.prefixLabel)
+                Text(lastUsed)
+            }
+            .font(.hvFootnote)
+            .foregroundStyle(Palette.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+        } else {
+            Text("\(key.prefixLabel) \u{00B7} \(lastUsed)")
+                .font(.hvFootnote)
+                .foregroundStyle(Palette.textSecondary)
+                .lineLimit(2)
+        }
     }
 }
 

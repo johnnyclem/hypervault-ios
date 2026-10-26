@@ -202,6 +202,31 @@ struct KeysInlineMessage: View {
     }
 }
 
+/// A large title at ordinary sizes and an inline one at accessibility sizes, where a large title is cut
+/// off mid-phrase ("Account & ke...") and takes a third of the first screen.
+private struct KeysTitleDisplay: ViewModifier {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    func body(content: Content) -> some View {
+        content.navigationBarTitleDisplayMode(dynamicTypeSize.isAccessibilitySize ? .inline : .large)
+    }
+}
+
+extension View {
+    func keysLargeTitle() -> some View { modifier(KeysTitleDisplay()) }
+}
+
+/// The disclosure mark for a row that opens something without being a NavigationLink (a sheet, another
+/// tab), drawn the way the system draws its own so the two kinds of row read alike.
+struct KeysChevron: View {
+    var body: some View {
+        Image(systemName: "chevron.right")
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(Palette.textTertiary)
+            .accessibilityHidden(true)
+    }
+}
+
 extension Date {
     /// "Oct 24, 2026".
     var keysDay: String { formatted(date: .abbreviated, time: .omitted) }

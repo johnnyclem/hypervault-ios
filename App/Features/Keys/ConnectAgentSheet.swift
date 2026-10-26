@@ -91,12 +91,14 @@ private struct ConnectPickerScreen: View {
                     FreshKeyBanner(model: model, fresh: fresh)
                         .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.s, trailing: HV.Space.m))
                 }
+                .hvListRow()
             } else if let existing = model.existingKey {
                 Section {
                     Text("Steps for \(existing.displayName ?? existing.prefixLabel). Its key was shown once, so the steps show where it goes.")
                         .font(.hvCallout)
                         .foregroundStyle(Palette.textSecondary)
                 }
+                .hvListRow()
             } else {
                 Section {
                     Text(ConnectCopy.line)
@@ -113,6 +115,7 @@ private struct ConnectPickerScreen: View {
                         HVRow(symbol: "key.horizontal", tint: Palette.amber, title: "Just make a key", subtitle: "For anything not listed. You choose where it goes.")
                     }
                 }
+                .hvListRow()
             }
 
             let sections = pickerSections
@@ -128,6 +131,7 @@ private struct ConnectPickerScreen: View {
                 } footer: {
                     if model.query.isEmpty { Text(section.group.blurb).font(.hvCaption) }
                 }
+                .hvListRow()
             }
 
             if sections.isEmpty {
@@ -161,21 +165,28 @@ private struct ConnectPickerScreen: View {
 private struct ClientRow: View {
     let info: AgentClientInfo
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
+
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
+
     var body: some View {
         HStack(spacing: HV.Space.s + 2) {
-            HVIconBadge(symbol: info.group.symbol, tint: tint)
+            HVIconBadge(symbol: info.group.symbol, tint: tint, size: min(tile, 56))
             VStack(alignment: .leading, spacing: 2) {
                 Text(info.name)
                     .font(.hvBody)
                     .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(2)
+                    .lineLimit(isLarge ? nil : 2)
                 Text(info.detailLine)
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.textSecondary)
-                    .lineLimit(1)
+                    .lineLimit(isLarge ? nil : 2)
+                // Under the words at accessibility sizes, where beside them it would take their width.
+                if isLarge, !info.verified { HVTag(text: "Untested", tint: Palette.warning).padding(.top, 2) }
             }
             Spacer(minLength: HV.Space.xs)
-            if !info.verified { HVTag(text: "Untested", tint: Palette.warning) }
+            if !isLarge, !info.verified { HVTag(text: "Untested", tint: Palette.warning) }
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
@@ -256,12 +267,10 @@ private struct ConnectClientScreen: View {
                     .foregroundStyle(Palette.textSecondary)
             }
 
-            VStack(alignment: .leading, spacing: HV.Space.xs) {
-                Text("Name").font(.hvFootnote.weight(.semibold)).foregroundStyle(Palette.textSecondary)
+            HVLabeledField(title: "Name") {
                 TextField("What do you call it?", text: $model.keyName)
                     .textInputAutocapitalization(.words)
                     .submitLabel(.done)
-                    .hvFieldChrome()
                     .onChange(of: model.keyName) { _, value in
                         if value.count > AgentKeyRules.nameMaxLength { model.keyName = String(value.prefix(AgentKeyRules.nameMaxLength)) }
                     }
@@ -363,14 +372,31 @@ private struct ConnectClientScreen: View {
                 .font(.hvHeadline)
                 .foregroundStyle(Palette.success)
         } else if model.canWatch {
-            HStack(spacing: HV.Space.xs) {
-                ProgressView()
-                Text("Waiting for the agent to write back").font(.hvFootnote).foregroundStyle(Palette.textSecondary)
-                Spacer(minLength: 0)
-                Button("Check again") { Task { await model.checkConnected() } }.buttonStyle(.hvGhost)
+            // Side by side while they fit; the button drops under the words when the words need the width.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: HV.Space.xs) {
+                    ProgressView()
+                    waitingText
+                    Spacer(minLength: 0)
+                    Button("Check again") { Task { await model.checkConnected() } }.buttonStyle(.hvGhost)
+                }
+                VStack(alignment: .leading, spacing: HV.Space.xs) {
+                    HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
+                        ProgressView()
+                        waitingText
+                    }
+                    Button("Check again") { Task { await model.checkConnected() } }.buttonStyle(.hvGhost)
+                }
             }
-            Text(ConnectCopy.doneLine).font(.hvCaption).foregroundStyle(Palette.textTertiary)
+            Text(ConnectCopy.doneLine).font(.hvCaption).foregroundStyle(Palette.textSecondary)
         }
+    }
+
+    private var waitingText: some View {
+        Text("Waiting for the agent to write back")
+            .font(.hvFootnote)
+            .foregroundStyle(Palette.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: The steps

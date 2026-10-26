@@ -254,10 +254,16 @@ public enum ConnectKey {
     /// What the web's docs put where the key goes.
     public static let placeholder = "hv_YOUR_KEY_HERE"
 
-    /// Puts a key in place of every placeholder. Done here, on the device: the key is never sent anywhere to fill a string in.
-    public static func fill(_ text: String, key: String?) -> String {
-        guard let key, !key.isEmpty else { return text }
-        return text.replacingOccurrences(of: placeholder, with: key)
+    /// What the plain-requests page puts where the key's challenge slug goes.
+    public static let slugPlaceholder = "YOUR_ARTIFACT_SLUG"
+
+    /// Puts a key in place of every placeholder, and the key's challenge slug where the page asks for one.
+    /// Done here, on the device: the key is never sent anywhere to fill a string in.
+    public static func fill(_ text: String, key: String?, challengeSlug: String? = nil) -> String {
+        var filled = text
+        if let key, !key.isEmpty { filled = filled.replacingOccurrences(of: placeholder, with: key) }
+        if let challengeSlug, !challengeSlug.isEmpty { filled = filled.replacingOccurrences(of: slugPlaceholder, with: challengeSlug) }
+        return filled
     }
 }
 
@@ -318,10 +324,11 @@ public struct ConnectGuide: Sendable, Equatable {
     /// Nothing usable was found in the document.
     public var isEmpty: Bool { steps.isEmpty && pastes.isEmpty }
 
-    /// The same guide with a key in place of the placeholder in every string.
-    public func filled(with key: String?) -> ConnectGuide {
+    /// The same guide with a key in place of the placeholder in every string (and the key's challenge slug
+    /// where a string asks for one).
+    public func filled(with key: String?, challengeSlug: String? = nil) -> ConnectGuide {
         var copy = self
-        func fill(_ text: String) -> String { ConnectKey.fill(text, key: key) }
+        func fill(_ text: String) -> String { ConnectKey.fill(text, key: key, challengeSlug: challengeSlug) }
         copy.steps = steps.map(fill)
         copy.pastes = pastes.map { Paste(label: fill($0.label), language: $0.language, text: fill($0.text)) }
         copy.warning = warning.map(fill)
@@ -434,8 +441,8 @@ public struct ConnectGuide: Sendable, Equatable {
 /// The text a person pastes into the AI they use: the client's page of /connect.md, with the key filled in
 /// and a first line that says what to do with it. Built on the device; the key is not sent anywhere.
 public enum ConnectPrompt {
-    public static func make(clientName: String, document: String, key: String) -> String {
-        let filled = ConnectKey.fill(document, key: key).trimmingCharacters(in: .whitespacesAndNewlines)
+    public static func make(clientName: String, document: String, key: String, challengeSlug: String? = nil) -> String {
+        let filled = ConnectKey.fill(document, key: key, challengeSlug: challengeSlug).trimmingCharacters(in: .whitespacesAndNewlines)
         return """
         Connect yourself to my HyperVault. I use \(clientName). The instructions for it are below, and my key is already filled in where it goes. \
         The key is private: do not repeat it in this chat or write it anywhere it could be read by others. \

@@ -30,7 +30,7 @@ private func client(_ transport: HTTPTransport) -> HVClient {
     HVClient(baseURL: URL(string: "https://t.test")!, transport: transport, tokens: StaticTokenProvider(), retry: .none, sleep: { _ in })
 }
 
-private func wait(_ seconds: Double) async {
+private func pause(_ seconds: Double) async {
     try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
 }
 
@@ -64,7 +64,7 @@ final class ToolsLogicTests: XCTestCase {
         model.setTool("create_issue", on: true, serverID: "s1")
         model.setTool("create_issue", on: false, serverID: "s1")
         XCTAssertEqual(model.server(id: "s1")?.disabledTools, ["create_issue", "delete_issue"], "shown at once")
-        await wait(1.2)
+        await pause(1.2)
         XCTAssertEqual(tally.value, 1)
         let body = try JSONDecoder().decode(JSONValue.self, from: try XCTUnwrap(tally.sent.first))
         XCTAssertEqual(body["disabled_tools"]?.array?.compactMap(\.string), ["create_issue", "delete_issue"])
@@ -77,7 +77,7 @@ final class ToolsLogicTests: XCTestCase {
         model.reportError = { reported.append(($0 as? HVError)?.userMessage ?? "other") }
         model.setTool("list_issues", on: false, serverID: "s1")
         XCTAssertEqual(model.server(id: "s1")?.disabledTools, ["delete_issue", "list_issues"])
-        await wait(1.2)
+        await pause(1.2)
         XCTAssertEqual(model.server(id: "s1")?.disabledTools, ["delete_issue"], "back to what the server has")
         XCTAssertEqual(reported, ["The server had a problem. Try again in a moment."])
     }
@@ -168,7 +168,7 @@ final class ToolsLogicTests: XCTestCase {
         XCTAssertTrue(model.needsCompile)
         model.startCompile()
         XCTAssertTrue(model.compile.isRunning)
-        for _ in 0..<40 where model.compile.isRunning { await wait(0.1) }
+        for _ in 0..<40 where model.compile.isRunning { await pause(0.1) }
         guard case .finished(let result) = model.compile else { return XCTFail("expected finished, got \(model.compile)") }
         XCTAssertEqual(result.stats.uniqueSelectorCount, 5)
         XCTAssertFalse(model.needsCompile)
@@ -179,7 +179,7 @@ final class ToolsLogicTests: XCTestCase {
         let refused = MockRoute.json(.post, "/api/toolkits/compile", #"{"error":"no_enabled_tools","message":"Every tool is toggled off — enable at least one."}"#, status: 422)
         let model = await loadedModel(extra: [refused])
         model.startCompile()
-        for _ in 0..<40 where model.compile.isRunning { await wait(0.1) }
+        for _ in 0..<40 where model.compile.isRunning { await pause(0.1) }
         XCTAssertEqual(model.compile, .failed("Every tool is toggled off — enable at least one."))
     }
 
@@ -189,7 +189,7 @@ final class ToolsLogicTests: XCTestCase {
         model.recoveryPoll = 50_000_000
         await model.load()
         model.startCompile()
-        for _ in 0..<60 where model.compile.isRunning { await wait(0.1) }
+        for _ in 0..<60 where model.compile.isRunning { await pause(0.1) }
         guard case .recovered(let toolkit) = model.compile else { return XCTFail("expected recovered, got \(model.compile)") }
         XCTAssertEqual(toolkit.id, "k9")
     }
@@ -199,9 +199,9 @@ final class ToolsLogicTests: XCTestCase {
         model.didAdd(McpServer(id: "x", name: "X", url: "https://x.example.com", tools: [McpToolInfo(name: "t")]), message: nil)
         model.startCompile()
         XCTAssertTrue(model.compile.isRunning)
-        await wait(0.2)
+        await pause(0.2)
         model.stopWaiting()
-        for _ in 0..<40 where model.compile.isRunning { await wait(0.1) }
+        for _ in 0..<40 where model.compile.isRunning { await pause(0.1) }
         XCTAssertEqual(model.compile, .stopped)
         UserDefaults.standard.removeObject(forKey: "tools.uncompiled.u3")
     }

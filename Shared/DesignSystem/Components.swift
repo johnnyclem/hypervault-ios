@@ -201,20 +201,41 @@ struct HVTag: View {
 struct HVSectionHeader: View {
     let title: String
     var detail: String?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(title)
-                .font(.system(.footnote, design: .rounded, weight: .semibold))
-                .foregroundStyle(Palette.textSecondary)
-                .textCase(.uppercase)
-                .tracking(0.6)
-            Spacer(minLength: 0)
-            if let detail {
-                Text(detail).font(.hvCaption).foregroundStyle(Palette.textTertiary)
+        // At an accessibility size the title has the whole line and the detail sits under it: side by side the detail
+        // and whatever else shares the row leave the title a sliver, and a word is broken in two ("PROGR / ESS").
+        Group {
+            if dynamicTypeSize.isAccessibilitySize, detail != nil {
+                VStack(alignment: .leading, spacing: 2) {
+                    titleText
+                    detailText
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline) {
+                    titleText
+                    Spacer(minLength: 0)
+                    detailText
+                }
             }
         }
         .accessibilityAddTraits(.isHeader)
+    }
+
+    private var titleText: some View {
+        Text(title)
+            .font(.system(.footnote, design: .rounded, weight: .semibold))
+            .foregroundStyle(Palette.textSecondary)
+            .textCase(.uppercase)
+            .tracking(0.6)
+    }
+
+    @ViewBuilder
+    private var detailText: some View {
+        if let detail {
+            Text(detail).font(.hvCaption).foregroundStyle(Palette.textTertiary)
+        }
     }
 }
 

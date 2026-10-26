@@ -104,9 +104,9 @@ Tests/AppTests/          App tests and snapshot renders.
 `.github/workflows/ios.yml` runs the Kit's tests on Linux and builds and tests the app
 on a macOS simulator. The app's snapshot tests render screens in light and dark and the
 workflow publishes the PNGs to a `snapshots-<branch>` branch, so a screen can be looked
-at without opening Xcode. Three more jobs run the UI tests beside them (the journeys, the
-screens behind the You tab, and a layout sweep) and publish what the app looked like at each
-step to `ui-snapshots-<branch>`.
+at without opening Xcode. Six more jobs run the UI tests beside them (the journeys, the
+screens behind the You tab in two, and a layout sweep in the dark and at a large text size, in three
+jobs) and publish what the app looked like at each step to `ui-snapshots-<branch>`.
 
 ### How it is tested
 

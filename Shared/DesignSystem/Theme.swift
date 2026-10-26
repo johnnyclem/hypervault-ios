@@ -74,19 +74,21 @@ enum Palette {
     static let skeleton = Color(light: Color(hex: 0xD9DFE8), dark: Color(hex: 0x273244))
 
     // The accents. Each is the shade that reads as text and glyph on the page in its look: a deep one in
-    // light mode, a bright one in dark. Anything that carries white text uses `softGradient` instead.
+    // light mode, a bright one in dark. Every one is 4.5:1 or better on the page, on paper and on raised paper (amber and
+    // danger were a shade under on raised paper in light mode, and are a little deeper for it). Anything that carries
+    // white text uses `softGradient` instead.
     static let violet = Color(light: Color(hex: 0x6D28D9), dark: Color(hex: 0xA78BFA))
     static let blue = Color(light: Color(hex: 0x2563EB), dark: Color(hex: 0x60A5FA))
     static let sky = Color(light: Color(hex: 0x0369A1), dark: Color(hex: 0x38BDF8))
     static let cyan = Color(light: Color(hex: 0x0E7490), dark: Color(hex: 0x22D3EE))
     static let mint = Color(light: Color(hex: 0x047857), dark: Color(hex: 0x10B981))
-    static let amber = Color(light: Color(hex: 0xB45309), dark: Color(hex: 0xF59E0B))
+    static let amber = Color(light: Color(hex: 0xAE4D07), dark: Color(hex: 0xF59E0B))
     static let coral = Color(light: Color(hex: 0xC2410C), dark: Color(hex: 0xF97316))
     static let rose = Color(light: Color(hex: 0xBE123C), dark: Color(hex: 0xFB7185))
 
     static let success = mint
     static let warning = amber
-    static let danger = Color(light: Color(hex: 0xDC2626), dark: Color(hex: 0xF87171))
+    static let danger = Color(light: Color(hex: 0xC81E1E), dark: Color(hex: 0xF87171))
 
     /// The mark's gradient, violet through blue to cyan. Bright in both looks; it is for the mark and for
     /// decoration, never behind text.

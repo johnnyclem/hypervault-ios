@@ -214,9 +214,11 @@ asserts only that the screen's key control can be tapped. The point is to look: 
 run and read the screenshots. A new screen belongs in the sweep when it has a layout of its own.
 
 **Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
-any iPhone simulator; `make test-unit` runs the rest. CI runs three UI jobs beside the unit tests (the journeys, the
-screens behind the You tab, the sweep; each builds and runs on its own, and a test class that is not named in the
-workflow runs with the journeys), so a push waits for the slowest of them, which should stay under 20 minutes. A job
+any iPhone simulator; `make test-unit` runs the rest. CI runs six UI jobs beside the unit tests (the journeys; the
+screens behind the You tab, in two; the sweep in the dark; the sweep at the large text size, in two; each builds and runs on
+its own, and a test class that is not named in the workflow runs with the journeys), so a push waits for the slowest of
+them, which should stay under 20 minutes. (GitHub runs five macOS jobs at a time, so with the unit-test job the last two
+start when others have finished.) A job
 after them publishes all the step screenshots and layout notes to the `ui-snapshots-<branch>` branch (and each job
 uploads them as an artifact), and a job uploads its `.xcresult` when a test fails.
 

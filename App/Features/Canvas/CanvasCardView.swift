@@ -157,6 +157,10 @@ struct CanvasCardView: View {
         }
         .lineLimit(1)
         .padding(.leading, -HV.Space.s)
+        // The buttons are 44 points tall with their words in the middle, which is already a dozen points of air under
+        // the words; the card's own padding is not added on top of it, or the card has twice as much room under its last
+        // line as over its first. (The buttons' tap areas still end inside the card.)
+        .padding(.bottom, -HV.Space.s)
     }
 
     /// Open, and for a thing that was just kept, its link. Every one is a ghost button, which already

@@ -268,6 +268,7 @@ struct TaskBoardScreen: View {
             HStack(spacing: HV.Space.xs) {
                 Image(systemName: group.status.symbol).foregroundStyle(group.status.tint)
                 HVSectionHeader(title: group.status.title, detail: "\(group.rows.count)")
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "chevron.down")
                     .font(.system(.caption2, weight: .bold))
                     .rotationEffect(.degrees(isCollapsed ? -90 : 0))

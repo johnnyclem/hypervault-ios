@@ -49,7 +49,9 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
             open(element("connect.client.cursor"), "the Cursor row")
             open(button("Make the key"), "Make the key")
             look(mode, "a key, just made", key: button("Copy key"), "the Copy key button")
-            // The sheet is closed the way a person closes it, so that the next screen is the list again.
+            // A key that was never copied is not let go of without asking, so it is copied first, as a person would; then
+            // the sheet is closed the way a person closes it, so that the next screen is the list again.
+            open(button("Copy key"), "Copy key")
             let back = app.navigationBars.buttons.matching(NSPredicate(format: "label == %@", "Connect your AI")).firstMatch
             if back.exists { tap(back, "the back button to Connect your AI") }
             tap(button("Done"), "Done")

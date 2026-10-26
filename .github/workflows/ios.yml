@@ -121,7 +121,7 @@ jobs:
   # The journeys: the real app launched on a simulator and driven with taps and typing, through the welcome story,
   # sign-in, the canvas, each tab, every screen the You tab opens, and the waitlist; and a sweep of the main screens in
   # the dark appearance and at an accessibility text size. The app is a debug build whose network is canned inside it
-  # (App/Core/UITestHarness.swift); nothing here reaches a real server. Five jobs run side by side (each builds the
+  # (App/Core/UITestHarness.swift); nothing here reaches a real server. Six jobs run side by side (each builds the
   # app for itself), so a push waits for the slowest of them and none of them for the others.
   ui:
     name: UI tests (macOS, ${{ matrix.suite }})
@@ -131,7 +131,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Everything a class does not list below. A new test class runs here until it is given a job of its own.
+          # The layout sweep (see Tests/UITests/LayoutSweepTests.swift): every screen of it at the largest accessibility
+          # text size in two jobs, because scrolling at that size is slow, and in the dark appearance in one. The slowest
+          # are listed first, so that they start first when GitHub has fewer macOS machines free than there are jobs.
+          - suite: sweep-large-screens
+            tests: -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheYouScreensAtAnAccessibilityTextSize
+          - suite: sweep-dark
+            tests: >-
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testTheTabsInTheDark
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testWhatTheTabsOpenInTheDark
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testTheWelcomeAndTheWaitlistInTheDark
+              -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheYouScreensInTheDark
+          # Everything a class does not list in another job. A new test class runs here until it is given a job of its own.
           - suite: journeys
             tests: >-
               -only-testing:HyperVaultUITests
@@ -140,26 +151,17 @@ jobs:
               -skip-testing:HyperVaultUITests/ContentJourneyTests
               -skip-testing:HyperVaultUITests/LayoutSweepTests
               -skip-testing:HyperVaultUITests/LayoutSweepScreensTests
-          - suite: screens
-            tests: >-
-              -only-testing:HyperVaultUITests/YouScreensJourneyTests
-              -only-testing:HyperVaultUITests/AccountAndAdminJourneyTests
-              -only-testing:HyperVaultUITests/ContentJourneyTests
-          # The layout sweep (see Tests/UITests/LayoutSweepTests.swift): every screen of it in the dark appearance, and
-          # at the largest accessibility text size in two jobs, because scrolling a large text size is slow.
-          - suite: sweep-dark
-            tests: >-
-              -only-testing:HyperVaultUITests/LayoutSweepTests/testTheTabsInTheDark
-              -only-testing:HyperVaultUITests/LayoutSweepTests/testWhatTheTabsOpenInTheDark
-              -only-testing:HyperVaultUITests/LayoutSweepTests/testTheWelcomeAndTheWaitlistInTheDark
-              -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheYouScreensInTheDark
+          - suite: screens-you
+            tests: -only-testing:HyperVaultUITests/YouScreensJourneyTests
           - suite: sweep-large
             tests: >-
               -only-testing:HyperVaultUITests/LayoutSweepTests/testTheTabsAtAnAccessibilityTextSize
               -only-testing:HyperVaultUITests/LayoutSweepTests/testWhatTheTabsOpenAtAnAccessibilityTextSize
               -only-testing:HyperVaultUITests/LayoutSweepTests/testTheWelcomeAndTheWaitlistAtAnAccessibilityTextSize
-          - suite: sweep-large-screens
-            tests: -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheYouScreensAtAnAccessibilityTextSize
+          - suite: screens-more
+            tests: >-
+              -only-testing:HyperVaultUITests/AccountAndAdminJourneyTests
+              -only-testing:HyperVaultUITests/ContentJourneyTests
     steps:
       - uses: actions/checkout@v4
 
@@ -185,6 +187,9 @@ jobs:
           id=$(xcrun simctl list devices available iPhone -j | python3 scripts/pick_simulator.py)
           echo "Using simulator $id"
           echo "id=$id" >> "$GITHUB_OUTPUT"
+          # Boots while the app builds: starting the first test has waited several minutes for a simulator that was
+          # cold, and the build leaves the machine's time for it.
+          xcrun simctl boot "$id" || true
 
       - name: Build
         run: |
@@ -200,6 +205,7 @@ jobs:
         id: uitests
         run: |
           set -o pipefail
+          xcrun simctl bootstatus "${{ steps.sim.outputs.id }}" -b || true
           xcodebuild test-without-building \
             -project HyperVault.xcodeproj -scheme HyperVault \
             -destination "id=${{ steps.sim.outputs.id }}" \

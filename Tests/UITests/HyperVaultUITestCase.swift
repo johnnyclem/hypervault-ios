@@ -238,30 +238,53 @@ class HyperVaultUITestCase: XCTestCase {
         field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count))
     }
 
-    /// Scrolls until `element` is on screen and can be tapped: down the page first, then back up it. A drag stops where
-    /// the finger stops (a swipe flings, and at a large text size a fling carries a row past the screen without ever
-    /// letting it be seen), and moves the page by about three fifths of its height.
+    /// Scrolls until `element` is on screen, can be tapped, and is clear of the bars that float over a list: down the
+    /// page first, then back up it. A drag stops where the finger stops (a swipe flings, and at a large text size a fling
+    /// carries a row past the screen without ever letting it be seen), and moves the page by about three fifths of its
+    /// height. A row that is only just in view sits under the tab bar, and a tap on it would land on the tab bar.
     func reveal(_ element: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
-        func ready() -> Bool { element.exists && element.isHittable }
-        if !ready() {
-            for _ in 0..<14 where !ready() { drag(towardsEnd: true) }
+        func hittable() -> Bool { element.exists && element.isHittable }
+        if !hittable() {
+            for _ in 0..<14 where !hittable() { drag(towardsEnd: true) }
         }
-        if !ready() {
-            for _ in 0..<20 where !ready() { drag(towardsEnd: false) }
+        if !hittable() {
+            for _ in 0..<20 where !hittable() { drag(towardsEnd: false) }
         }
         require(element, what, timeout: 5, file: file, line: line)
+        moveClearOfTheBars(element)
     }
 
-    /// Moves the page: towards its end (the content goes up) or back towards its start.
+    /// Moves the page until the middle of `element` is between the navigation bar and the tab bar, if the page can
+    /// be moved that far: a tap lands in the middle of an element. (A page that does not move, a sheet's fixed button
+    /// for one, is left as it is.)
+    private func moveClearOfTheBars(_ element: XCUIElement) {
+        let window = app.windows.firstMatch.frame
+        // The status and navigation bars take about 110 points of an iPhone's top, the floating tab bar and the home
+        // indicator about 90 of its bottom.
+        let top = window.minY + 112
+        let bottom = window.maxY - 92
+        var previous: CGFloat?
+        for _ in 0..<4 {
+            guard element.exists else { return }
+            let middle = element.frame.midY
+            if middle >= top && middle <= bottom { return }
+            if let previous, abs(previous - middle) < 2 { return }
+            previous = middle
+            drag(towardsEnd: middle > bottom)
+        }
+    }
+
+    /// Moves the page: towards its end (the content goes up) or back towards its start. The finger goes down in the gutter
+    /// at the right of the page, where no row is, so that a row's own long-press menu or swipe is never started.
     private func drag(towardsEnd: Bool) {
-        let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: towardsEnd ? 0.82 : 0.22))
-        let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: towardsEnd ? 0.22 : 0.82))
+        let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: towardsEnd ? 0.82 : 0.22))
+        let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: towardsEnd ? 0.22 : 0.82))
         from.press(forDuration: 0.05, thenDragTo: to, withVelocity: .slow, thenHoldForDuration: 0.2)
     }
 
-    /// Scrolls to an element if it is not yet on screen, then taps it: for rows that a larger text size has pushed below the fold.
+    /// Scrolls to an element, clear of the bars, then taps it: for rows that a larger text size has pushed below the fold.
     func open(_ element: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
-        if !(element.exists && element.isHittable) { reveal(element, what, file: file, line: line) }
+        reveal(element, what, file: file, line: line)
         tap(element, what, file: file, line: line)
     }
 
@@ -316,10 +339,14 @@ class HyperVaultUITestCase: XCTestCase {
         print(String(format: "[journey] %6.1f s  %@ / %@", Date().timeIntervalSince(started), String(describing: type(of: self)), name))
     }
 
-    func attachScreenshot(_ name: String) {
-        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+    /// Keeps a screenshot with the result, and hands it back.
+    @discardableResult
+    func attachScreenshot(_ name: String) -> XCUIScreenshot {
+        let screenshot = XCUIScreen.main.screenshot()
+        let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
+        return screenshot
     }
 }

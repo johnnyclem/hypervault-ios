@@ -441,3 +441,27 @@ final class CopyTests: XCTestCase {
         XCTAssertFalse(prompt.contains("hv_"))
     }
 }
+
+final class PasteDiffTests: XCTestCase {
+    func testPasteAtTheEnd() {
+        XCTAssertEqual(PasteDiff.insertion(old: "Hello ", new: "Hello a long pasted page"), "a long pasted page")
+    }
+
+    func testPasteInTheMiddle() {
+        XCTAssertEqual(PasteDiff.insertion(old: "ab", new: "a<PASTE>b"), "<PASTE>")
+    }
+
+    func testIntoAnEmptyField() {
+        XCTAssertEqual(PasteDiff.insertion(old: "", new: "everything"), "everything")
+    }
+
+    func testReplacingOrDeletingIsNotAPaste() {
+        XCTAssertNil(PasteDiff.insertion(old: "abc", new: "xyz and more"))
+        XCTAssertNil(PasteDiff.insertion(old: "hello", new: "hell"))
+        XCTAssertNil(PasteDiff.insertion(old: "same", new: "same"))
+    }
+
+    func testRepeatedCharactersStillFindTheInsertion() {
+        XCTAssertEqual(PasteDiff.insertion(old: "aa", new: "aaaa")?.count, 2)
+    }
+}

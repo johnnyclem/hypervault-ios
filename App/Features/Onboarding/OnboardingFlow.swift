@@ -103,7 +103,7 @@ struct WelcomePage<Art: View>: View {
         VStack(spacing: HV.Space.xl) {
             Spacer(minLength: 0)
             art()
-                .frame(height: 260)
+                .frame(height: 300)
                 .frame(maxWidth: .infinity)
             VStack(spacing: HV.Space.s) {
                 Text(title)
@@ -131,9 +131,9 @@ struct WelcomePageKeep: View {
             message: "Only you can open it."
         ) {
             ZStack {
-                FloatingCard(symbol: "doc.richtext", label: "Pricing page", tint: Palette.blue, x: -96, y: -64, phase: 0)
-                FloatingCard(symbol: "note.text", label: "Trip notes", tint: Palette.violet, x: 100, y: -30, phase: 1.3)
-                FloatingCard(symbol: "key.horizontal", label: "Deploy key", tint: Palette.mint, x: -70, y: 78, phase: 2.1)
+                FloatingCard(symbol: "doc.richtext", label: "Pricing page", tint: Palette.blue, x: -74, y: -112, phase: 0)
+                FloatingCard(symbol: "note.text", label: "Trip notes", tint: Palette.violet, x: 96, y: 90, phase: 1.3)
+                FloatingCard(symbol: "key.horizontal", label: "Deploy key", tint: Palette.mint, x: -84, y: 128, phase: 2.1)
                 BrandMark(size: 104)
             }
         }
@@ -251,7 +251,7 @@ struct WelcomePageSecrets: View {
             message: "The secret parts are never shown again. Your agents use only the ones you allow."
         ) {
             VStack(spacing: HV.Space.s) {
-                secretRow(symbol: "person.crop.circle", tint: Palette.blue, title: "Bakery admin", detail: "sam@bakery.co · ••••••••", allowed: "Claude Code")
+                secretRow(symbol: "person.crop.circle", tint: Palette.blue, title: "Bakery admin", detail: "sam@bakery.co", allowed: "Claude Code")
                 secretRow(symbol: "creditcard", tint: Palette.violet, title: "Work card", detail: "Visa •••• 4242", allowed: "Cursor")
                 secretRow(symbol: "key.horizontal", tint: Palette.mint, title: "Deploy key", detail: "hv_••••••••••••", allowed: "n8n")
             }

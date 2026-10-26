@@ -318,3 +318,23 @@ public enum CanvasCommandRunner {
         }
     }
 }
+
+// MARK: Spotting a paste
+
+public enum PasteDiff {
+    /// The text that was inserted when `old` became `new` in one change, or nil when the change
+    /// was not one insertion (typing a letter, deleting, replacing a range). A text field gives no
+    /// paste event, but a paste is the one edit that adds a whole page in a single step.
+    public static func insertion(old: String, new: String) -> String? {
+        guard new.count > old.count else { return nil }
+        let oldChars = Array(old)
+        let newChars = Array(new)
+        var prefix = 0
+        while prefix < oldChars.count, oldChars[prefix] == newChars[prefix] { prefix += 1 }
+        var suffix = 0
+        while suffix < oldChars.count - prefix, oldChars[oldChars.count - 1 - suffix] == newChars[newChars.count - 1 - suffix] { suffix += 1 }
+        // Everything of the old text must be accounted for by the shared head and tail.
+        guard prefix + suffix == oldChars.count else { return nil }
+        return String(newChars[prefix..<(newChars.count - suffix)])
+    }
+}

@@ -112,22 +112,30 @@ struct LockScreen: View {
     var body: some View {
         ZStack {
             AuroraBackground()
-            VStack(spacing: HV.Space.l) {
-                BrandMark(size: 76)
-                Text("HyperVault is locked").font(.hvTitle).accessibilityAddTraits(.isHeader)
-                Text("Only you can open it.").font(.hvCallout).foregroundStyle(Palette.textSecondary)
-                if let message = lock.failureMessage {
-                    Text(message).font(.hvFootnote).foregroundStyle(Palette.danger)
+            // Centred when it fits, and scrolls when the text is large enough that it does not: the way back in must
+            // never be pushed off the screen.
+            GeometryReader { proxy in
+                ScrollView {
+                    VStack(spacing: HV.Space.l) {
+                        BrandMark(size: 76)
+                        Text("HyperVault is locked").font(.hvTitle).multilineTextAlignment(.center).accessibilityAddTraits(.isHeader)
+                        Text("Only you can open it.").font(.hvCallout).foregroundStyle(Palette.textSecondary).multilineTextAlignment(.center)
+                        if let message = lock.failureMessage {
+                            Text(message).font(.hvFootnote).foregroundStyle(Palette.danger).multilineTextAlignment(.center)
+                        }
+                        Button {
+                            Task { await lock.unlock() }
+                        } label: {
+                            Label("Unlock with \(lock.methodName)", systemImage: "faceid")
+                        }
+                        .buttonStyle(.hvPrimary)
+                        .frame(maxWidth: 300)
+                    }
+                    .padding(HV.Space.xl)
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height)
                 }
-                Button {
-                    Task { await lock.unlock() }
-                } label: {
-                    Label("Unlock with \(lock.methodName)", systemImage: "faceid")
-                }
-                .buttonStyle(.hvPrimary)
-                .frame(maxWidth: 300)
+                .scrollBounceBehavior(.basedOnSize)
             }
-            .padding(HV.Space.xl)
         }
         .accessibilityAddTraits(.isModal)
         .task { await lock.unlock() }

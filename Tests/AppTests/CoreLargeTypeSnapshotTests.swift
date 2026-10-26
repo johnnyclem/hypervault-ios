@@ -24,6 +24,10 @@ final class CoreLargeTypeSnapshotTests: XCTestCase {
         )
     }
 
+    func testLockScreenAtTheLargestType() throws {
+        try snapshot(LockScreen(lock: AppLock()).environment(\.dynamicTypeSize, .accessibility5), named: "lock-large", schemes: [.light])
+    }
+
     func testSettingsAtTheLargestType() throws {
         try snapshot(
             PreviewHost { SettingsRootView().environment(\.dynamicTypeSize, .accessibility3) },

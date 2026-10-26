@@ -11,7 +11,7 @@ struct WidgetThing: Codable, Identifiable, Hashable {
 }
 
 struct RecentEntry: TimelineEntry {
-    enum State { case signedOut, empty, items([WidgetThing]) }
+    enum State { case signedOut, locked, empty, items([WidgetThing]) }
 
     let date: Date
     let state: State
@@ -36,9 +36,9 @@ struct RecentEntry: TimelineEntry {
 /// Reads what was kept most recently, with the session the app left in the shared Keychain, and
 /// remembers the last good answer so a widget still has something to say offline.
 enum WidgetData {
-    private static let cacheKey = "hv.widget.recent"
-
     static func load() async -> RecentEntry.State {
+        // A widget cannot ask for Face ID, so with the lock on it shows nothing from the vault, and does not even fetch it.
+        if SharedConfig.isLockOn { return .locked }
         guard let (client, _) = SharedConfig.makeClient() else { return .signedOut }
         do {
             let list = try await client.send(.yours(filter: .all, limit: 12))
@@ -58,11 +58,11 @@ enum WidgetData {
     }
 
     private static func remember(_ things: [WidgetThing]) {
-        SharedConfig.defaults.set(try? JSONEncoder().encode(things), forKey: cacheKey)
+        SharedConfig.defaults.set(try? JSONEncoder().encode(things), forKey: SharedConfig.widgetRecentKey)
     }
 
     private static func remembered() -> [WidgetThing] {
-        guard let data = SharedConfig.defaults.data(forKey: cacheKey) else { return [] }
+        guard let data = SharedConfig.defaults.data(forKey: SharedConfig.widgetRecentKey) else { return [] }
         return (try? JSONDecoder().decode([WidgetThing].self, from: data)) ?? []
     }
 }

@@ -21,6 +21,20 @@ final class AppLock {
 
     init() {
         isLocked = UserDefaults.standard.bool(forKey: PrefKey.biometricLock)
+        // The widgets and the Keep intent read the shared copy; refresh it so an update never leaves it behind.
+        SharedConfig.isLockOn = isLocked
+    }
+
+    /// The lock was turned on or off in Settings. Widgets, Spotlight and Siri cannot be put behind a prompt, so
+    /// while the lock is on they hold nothing from the vault: what they showed is taken away now, and the
+    /// widgets read the shared copy of the preference the next time they draw.
+    func preferenceChanged(to on: Bool) {
+        SharedConfig.isLockOn = on
+        if on {
+            SpotlightIndexer.clear()
+            SharedConfig.forgetWidgetCache()
+        }
+        WidgetRefresh.reload()
     }
 
     /// "Face ID", "Touch ID" or "your passcode", for the words on screen.
@@ -65,7 +79,9 @@ final class AppLock {
             isLocked = false
             failureMessage = nil
         } else {
-            failureMessage = "That did not unlock. Try again."
+            let message = "That did not unlock. Try again."
+            failureMessage = message
+            AccessibilityNotification.Announcement(message).post()
         }
     }
 
@@ -86,7 +102,8 @@ final class AppLock {
     }
 }
 
-/// What covers the app while it is locked.
+/// What covers the app while it is locked. It is also the only thing VoiceOver, Switch Control and a keyboard can
+/// reach then: `RootView` hides and disables the app underneath.
 struct LockScreen: View {
     let lock: AppLock
 
@@ -95,7 +112,7 @@ struct LockScreen: View {
             AuroraBackground()
             VStack(spacing: HV.Space.l) {
                 BrandMark(size: 76)
-                Text("HyperVault is locked").font(.hvTitle)
+                Text("HyperVault is locked").font(.hvTitle).accessibilityAddTraits(.isHeader)
                 Text("Only you can open it.").font(.hvCallout).foregroundStyle(Palette.textSecondary)
                 if let message = lock.failureMessage {
                     Text(message).font(.hvFootnote).foregroundStyle(Palette.danger)
@@ -110,7 +127,9 @@ struct LockScreen: View {
             }
             .padding(HV.Space.xl)
         }
+        .accessibilityAddTraits(.isModal)
         .task { await lock.unlock() }
+        .onAppear { UIAccessibility.post(notification: .screenChanged, argument: nil) }
     }
 }
 

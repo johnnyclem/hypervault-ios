@@ -16,6 +16,7 @@ struct SettingsRootView: View {
     @State private var waiting = OutboxStore.count
     @State private var serverText = ""
     @State private var isChangingServer = false
+    @State private var serverError: String?
     @State private var showServerConfirm = false
 
     var body: some View {
@@ -44,11 +45,13 @@ struct SettingsRootView: View {
             }
 
             Section(header: Text("Search"), footer: Text("Find your pages and memories from your Home Screen. Names and short summaries are kept on this phone for search; keys are never included.")) {
-                Toggle("Show in Spotlight", isOn: $spotlight)
+                // Search is switched off while the lock is on; the choice comes back with it.
+                Toggle("Show in Spotlight", isOn: Binding(get: { spotlight && !biometricLock }, set: { spotlight = $0 }))
+                    .disabled(biometricLock)
                     .onChange(of: spotlight) { _, on in if !on { SpotlightIndexer.clear() } }
             }
 
-            Section(header: Text("Security"), footer: Text("Ask for \(model.lock.methodName) when you open HyperVault, and blank the app switcher. Your saved logins, cards and keys never leave the server, so there is nothing on this phone to unlock them.")) {
+            Section(header: Text("Security"), footer: Text("Ask for \(model.lock.methodName) when you open HyperVault, and blank the app switcher. Your saved logins, cards and keys never leave the server, so there is nothing on this phone to unlock them. While the lock is on, widgets and Spotlight show nothing from your vault, and what you ask Siri to keep waits until you unlock the app.")) {
                 Toggle("Lock with \(model.lock.methodName)", isOn: Binding(
                     get: { biometricLock },
                     set: { wanted in
@@ -57,6 +60,7 @@ struct SettingsRootView: View {
                         }
                     }
                 ))
+                .onChange(of: biometricLock) { _, on in model.lock.preferenceChanged(to: on) }
             }
 
             if waiting > 0 {
@@ -79,13 +83,25 @@ struct SettingsRootView: View {
                     }
             }
 
-            Section(header: Text("Advanced"), footer: Text("Only change this to use your own HyperVault deployment. Changing it signs you out.")) {
+            Section(header: Text("Advanced"), footer: advancedFooter) {
                 TextField("hypervault.store", text: $serverText)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
-                Button("Use this server") { showServerConfirm = true }
-                    .disabled(ServerConfig(userInput: serverText) == nil || isChangingServer)
+                    .onChange(of: serverText) { serverError = nil }
+                Button {
+                    showServerConfirm = true
+                } label: {
+                    if isChangingServer {
+                        HStack(spacing: HV.Space.s) {
+                            ProgressView()
+                            Text("Checking the address")
+                        }
+                    } else {
+                        Text("Use this server")
+                    }
+                }
+                .disabled(!canSwitchServer || isChangingServer)
             }
 
             Section(header: Text("About")) {
@@ -102,13 +118,35 @@ struct SettingsRootView: View {
             Button("Switch and sign out", role: .destructive) {
                 guard let config = ServerConfig(userInput: serverText) else { return }
                 isChangingServer = true
+                serverError = nil
                 Task {
-                    await model.changeServer(to: config)
-                    isChangingServer = false
+                    defer { isChangingServer = false }
+                    do {
+                        try await model.changeServer(to: config)
+                    } catch {
+                        let message = error.localizedDescription
+                        serverError = message
+                        AccessibilityNotification.Announcement(message).post()
+                    }
                 }
             }
         } message: {
             Text("You will be signed out and the app will start over against \(ServerConfig(userInput: serverText)?.baseURL.host() ?? "the new server").")
+        }
+    }
+
+    /// A new address that is well formed and is not the one already in use.
+    private var canSwitchServer: Bool {
+        guard let candidate = ServerConfig(userInput: serverText) else { return false }
+        return candidate != env.server
+    }
+
+    private var advancedFooter: some View {
+        VStack(alignment: .leading, spacing: HV.Space.xs) {
+            Text("Only change this to use your own HyperVault deployment. The address is checked first, then you are signed out.")
+            if let serverError {
+                Text(serverError).foregroundStyle(Palette.danger)
+            }
         }
     }
 

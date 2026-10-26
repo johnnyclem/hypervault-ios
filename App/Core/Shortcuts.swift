@@ -3,6 +3,8 @@ import HyperVaultKit
 
 /// "Keep this in HyperVault" for Siri, Shortcuts and the Action button. It keeps with the app's own
 /// session, and when there is no network it saves the text to the outbox like the share sheet does.
+/// With the Face ID lock on it cannot ask for Face ID, so it keeps nothing and says nothing about the
+/// vault: the text waits in the outbox until the app has been opened and unlocked.
 struct KeepTextIntent: AppIntent {
     static let title: LocalizedStringResource = "Keep in HyperVault"
     static let description = IntentDescription("Keeps some text and gives you its private link.")
@@ -17,19 +19,36 @@ struct KeepTextIntent: AppIntent {
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
         let content = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty else { throw ShortcutError.nothingToKeep }
-        guard let (client, _) = SharedConfig.makeClient() else {
+        let outcome = try await Self.keep(content, using: SharedConfig.makeClient()?.client)
+        return .result(value: outcome.link, dialog: IntentDialog(stringLiteral: outcome.line))
+    }
+
+    /// What the person is told, and the link to hand on, when there is one.
+    struct Outcome: Equatable {
+        let link: String
+        let line: String
+    }
+
+    /// The keeping itself, apart from Siri, so it can be tried with a client of its own. `client` is nil when the app has
+    /// never signed in on this phone.
+    static func keep(_ content: String, using client: HVClient?) async throws -> Outcome {
+        if SharedConfig.isLockOn {
             OutboxStore.add(OutboxItem(content: content))
-            return .result(value: "", dialog: "Open HyperVault and sign in. This will be kept as soon as you do.")
+            return Outcome(link: "", line: "HyperVault is locked. This will be kept once you open it and unlock it.")
+        }
+        guard let client else {
+            OutboxStore.add(OutboxItem(content: content))
+            return Outcome(link: "", line: "Open HyperVault and sign in. This will be kept as soon as you do.")
         }
         do {
             let kept = try await client.send(.keep(content: content))
             let base = SharedConfig.server.baseURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            return .result(value: "\(base)/a/\(kept.slug)", dialog: IntentDialog(stringLiteral: kept.duplicate ? HVCopy.alreadyKeptLine : HVCopy.keptLine))
+            return Outcome(link: "\(base)/a/\(kept.slug)", line: kept.duplicate ? HVCopy.alreadyKeptLine : HVCopy.keptLine)
         } catch {
             let failure = (error as? HVError) ?? .transport(error.localizedDescription)
             if Outbox.shouldRetain(after: failure) {
                 OutboxStore.add(OutboxItem(content: content))
-                return .result(value: "", dialog: "Saved. HyperVault will keep it the next time it can.")
+                return Outcome(link: "", line: "Saved. HyperVault will keep it the next time it can.")
             }
             throw ShortcutError.refused(failure.userMessage)
         }

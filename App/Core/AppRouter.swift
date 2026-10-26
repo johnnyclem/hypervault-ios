@@ -74,4 +74,14 @@ final class AppRouter {
     func popToRoot(_ tab: AppTab) {
         paths[tab] = NavigationPath()
     }
+
+    /// Back to a fresh canvas with nothing pushed, presented or waiting, for when the person who was here is gone.
+    func reset() {
+        paths = [:]
+        sheet = nil
+        canvasDraft = nil
+        canvasPull = nil
+        canvasAsk = false
+        tab = .canvas
+    }
 }

@@ -9,8 +9,16 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            content
-            ToastHost(center: model.toasts)
+            // A cover hides the app from the eye only. While locked, the app is also hidden from VoiceOver and switched
+            // off, so Switch Control, Full Keyboard Access and a keyboard that is still up cannot reach what is behind it.
+            // The shield is not treated so: it is up for a moment whenever the app is not frontmost, and switching the app
+            // off then would drop the focus of the field the person is typing in.
+            ZStack {
+                content
+                ToastHost(center: model.toasts)
+            }
+            .accessibilityHidden(model.lock.isLocked)
+            .disabled(model.lock.isLocked)
             if model.lock.isLocked {
                 LockScreen(lock: model.lock).transition(.opacity)
             } else if model.lock.isShielded {
@@ -64,10 +72,13 @@ struct LaunchView: View {
     }
 }
 
-/// The server could not be reached and nothing is cached to open from.
+/// The server could not be reached and nothing is cached to open from. When the app is pointed at an address of
+/// the person's own choosing, this is also the way back to the server the app ships with.
 struct UnreachableView: View {
     @Environment(AppModel.self) private var model
     let message: String
+
+    @State private var isSwitching = false
 
     var body: some View {
         ZStack {
@@ -81,14 +92,41 @@ struct UnreachableView: View {
                         .font(.hvCallout)
                         .foregroundStyle(Palette.textSecondary)
                         .multilineTextAlignment(.center)
+                    if !model.isOnDefaultServer {
+                        Text("This phone is set to \(Self.name(of: model.server)).")
+                            .font(.hvFootnote)
+                            .foregroundStyle(Palette.textTertiary)
+                            .multilineTextAlignment(.center)
+                    }
                 }
-                Button("Try again") {
-                    Task { await model.retry() }
+                VStack(spacing: HV.Space.s) {
+                    Button("Try again") {
+                        Task { await model.retry() }
+                    }
+                    .buttonStyle(.hvPrimary)
+                    .frame(maxWidth: 280)
+                    .disabled(isSwitching)
+
+                    if !model.isOnDefaultServer {
+                        Button {
+                            Task {
+                                isSwitching = true
+                                await model.resetServer()
+                                isSwitching = false
+                            }
+                        } label: {
+                            if isSwitching { ProgressView() } else { Text("Use \(Self.name(of: SharedConfig.defaultServer)) instead") }
+                        }
+                        .buttonStyle(.hvGhost)
+                        .disabled(isSwitching)
+                    }
                 }
-                .buttonStyle(.hvPrimary)
-                .frame(maxWidth: 280)
             }
             .padding(HV.Space.xl)
         }
+    }
+
+    private static func name(of server: ServerConfig) -> String {
+        server.baseURL.host() ?? server.baseURL.absoluteString
     }
 }

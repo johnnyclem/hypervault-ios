@@ -58,6 +58,26 @@ enum SharedConfig {
         }
     }
 
+    // MARK: What the widgets and Siri must not show while the lock is on
+
+    private static let lockKey = "hv.lock"
+
+    /// Whether the Face ID lock is on. The preference itself is the app's (`PrefKey.biometricLock`); this is
+    /// its copy for the widgets and the Keep intent, which run outside the app and cannot ask for Face ID, so
+    /// while it is on they must not show what is kept or write to it.
+    static var isLockOn: Bool {
+        get { defaults.bool(forKey: lockKey) }
+        set { defaults.set(newValue, forKey: lockKey) }
+    }
+
+    /// Where the widget remembers the last names it showed, so it has something to say offline.
+    static let widgetRecentKey = "hv.widget.recent"
+
+    /// Drops the widget's remembered names: on sign-out, and when the lock is turned on.
+    static func forgetWidgetCache() {
+        defaults.removeObject(forKey: widgetRecentKey)
+    }
+
     /// A client for the signed-in person, as an extension would build one.
     /// Nil until the app has signed in at least once.
     static func makeClient() -> (client: HVClient, auth: AuthService)? {

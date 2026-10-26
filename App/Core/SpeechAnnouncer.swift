@@ -11,7 +11,10 @@ protocol SpeechAnnouncer: AnyObject {
 /// control that was just activated, and a plain announcement made in that moment is cut off.
 @MainActor
 final class VoiceOverAnnouncer: SpeechAnnouncer {
-    static let shared = VoiceOverAnnouncer()
+    /// Reachable from a default argument, which is not on the main actor; the announcer has no state to protect.
+    nonisolated static let shared = VoiceOverAnnouncer()
+
+    nonisolated private init() {}
 
     func announce(_ text: String) {
         var spoken = AttributedString(text)

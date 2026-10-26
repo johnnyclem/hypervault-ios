@@ -18,7 +18,7 @@ public enum AppHandoff {
         case ready
         /// The page answered, and not with a redirect to the app: this site cannot hand a sign-in back.
         case missing
-        /// No answer worth acting on (offline, a server error). Go ahead; the sheet will show what is wrong.
+        /// No answer worth acting on (offline, busy, a server error). Go ahead; the sheet will show what is wrong.
         case unknown
     }
 
@@ -46,8 +46,8 @@ public enum AppHandoff {
         var request = URLRequest(url: url)
         request.timeoutInterval = 10
         guard let response = try? await transport.sendWithoutRedirect(request) else { return .unknown }
-        // A server that is down says nothing about whether the page is there.
-        if response.status >= 500 { return .unknown }
+        // A server that is down, timing out or rate limiting says nothing about whether the page is there.
+        if response.status == 408 || response.status == 429 || response.status >= 500 { return .unknown }
         if (300..<400).contains(response.status), let location = response.header("location"), isApp(location) {
             return .ready
         }

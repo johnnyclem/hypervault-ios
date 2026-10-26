@@ -117,8 +117,8 @@ final class AppHandoffTests: XCTestCase {
 
     // MARK: No answer worth acting on
 
-    func testAServerErrorSaysNothingAboutThePage() async {
-        for status in [500, 502, 503, 504] {
+    func testABusyOrBrokenServerSaysNothingAboutThePage() async {
+        for status in [408, 429, 500, 502, 503, 504] {
             let result = await verdict(page(status))
             XCTAssertEqual(result, .unknown, "status \(status)")
         }

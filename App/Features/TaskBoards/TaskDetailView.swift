@@ -4,6 +4,7 @@ import SwiftUI
 /// One task: its state, who has it, its subtasks and its notes.
 struct TaskDetailView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let model: TaskBoardModel
     let taskID: String
 
@@ -232,11 +233,16 @@ struct TaskDetailView: View {
     }
 
     private func noteRow(_ note: BoardNote) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: HV.Space.xs) {
+        // Side by side while there is room. At an accessibility size three things on one line leave each a sliver ("Clau/de
+        // Cod/e", "age/nt"), so the author, the tag and the time each take a line.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2))
+            : AnyLayout(HStackLayout(spacing: HV.Space.xs))
+        return VStack(alignment: .leading, spacing: 3) {
+            layout {
                 Text(note.author ?? "Someone").font(.hvFootnote.weight(.semibold))
                 if note.isFromAgent { HVTag(text: "agent", tint: Palette.violet) }
-                Spacer()
+                if !dynamicTypeSize.isAccessibilitySize { Spacer() }
                 if let when = note.createdAt {
                     Text(when.formatted(date: .abbreviated, time: .shortened))
                         .font(.hvCaption)

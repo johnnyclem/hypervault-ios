@@ -41,11 +41,18 @@ struct MailAgentTag: View {
 
 /// On a note of the person's that agents cannot read.
 struct MailNotSharedTag: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        // Always on a line of its own, so it never has a reason to wrap into a tall two-line capsule.
-        HVTag(text: "Not shared with agents", tint: Palette.amber)
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
+        // On a line of its own, so it never has a reason to wrap into a tall two-line capsule; at an accessibility size
+        // it is wider than the screen and wraps, as every tag does there.
+        if dynamicTypeSize.isAccessibilitySize {
+            HVTag(text: "Not shared with agents", tint: Palette.amber)
+        } else {
+            HVTag(text: "Not shared with agents", tint: Palette.amber)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+        }
     }
 }
 
@@ -71,12 +78,18 @@ private struct MailRowHeader: View {
         }
     }
 
+    /// The name and the agent tag side by side. At an accessibility size the tag under the name: beside it, the name is
+    /// left a sliver of the row ("Clau/de...").
     private var sender: some View {
-        HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
+        let stacked = dynamicTypeSize.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: HV.Space.xs))
+        return layout {
             Text(author.label)
                 .font(.system(.body, weight: weight))
                 .foregroundStyle(Palette.textPrimary)
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                .lineLimit(stacked ? 3 : 1)
             if author.isAgent { MailAgentTag() }
         }
     }
@@ -85,7 +98,7 @@ private struct MailRowHeader: View {
         Text(MailTimeFormat.string(for: date))
             .font(.hvCaption)
             .foregroundStyle(Palette.textSecondary)
-            .lineLimit(1)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
     }
 }
 
@@ -171,6 +184,7 @@ struct MailMessageCard: View {
     let message: MailMessage
     var style: Style = .thread
     var onOpenAttachment: (String) -> Void = { _ in }
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var isMine: Bool { message.author.type == .owner }
 
@@ -233,7 +247,9 @@ struct MailMessageCard: View {
         Text(MailTimeFormat.full(message.createdAt))
             .font(.hvCaption)
             .foregroundStyle(Palette.textSecondary)
-            .lineLimit(1)
+            // One line, except at an accessibility size, where "Oct 26, 2026 at 9:36 PM" is wider than the card and is
+            // cut short ("Oct 26, 2026 at...") rather than wrapped.
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
     }
 
     /// The subject first, then who sent it. For held mail the sender's address is what tells the person

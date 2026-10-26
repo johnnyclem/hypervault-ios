@@ -14,6 +14,7 @@ struct DigestRootView: View {
 
 private struct DigestContent: View {
     @Environment(AppModel.self) private var app
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var model: DigestModel
     @State private var applying: DigestRun?
 
@@ -68,23 +69,43 @@ private struct DigestContent: View {
         }
     }
 
+    private var settingsWords: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Auto-digest on import")
+                .font(.hvHeadline)
+                .foregroundStyle(Palette.textPrimary)
+            Text("A big import or a pasted chat can land as one memory when it is really many. Digest proposes how to split it, and nothing changes until you say so.")
+                .font(.hvFootnote)
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var digestSwitch: some View {
+        Toggle("Auto-digest on import", isOn: Binding(get: { model.enabled }, set: { toggle($0) }))
+            .labelsHidden()
+            .disabled(model.isChangingSetting)
+    }
+
     private var settings: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            HStack(alignment: .top, spacing: HV.Space.s) {
-                HVIconBadge(symbol: "scissors", tint: Palette.cyan, size: 40)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Auto-digest on import")
-                        .font(.hvHeadline)
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("A big import or a pasted chat can land as one memory when it is really many. Digest proposes how to split it, and nothing changes until you say so.")
-                        .font(.hvFootnote)
-                        .foregroundStyle(Palette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+            // Badge, words and switch in a row while the words have the room. At an accessibility size they would get a
+            // narrow column between the badge and the switch ("Auto-/digest"), so the switch goes up beside the badge
+            // and the words have the whole width below.
+            if dynamicTypeSize.isAccessibilitySize {
+                HStack(spacing: HV.Space.s) {
+                    HVIconBadge(symbol: "scissors", tint: Palette.cyan, size: 40)
+                    Spacer(minLength: HV.Space.xs)
+                    digestSwitch
                 }
-                Spacer(minLength: HV.Space.xs)
-                Toggle("Auto-digest on import", isOn: Binding(get: { model.enabled }, set: { toggle($0) }))
-                    .labelsHidden()
-                    .disabled(model.isChangingSetting)
+                settingsWords
+            } else {
+                HStack(alignment: .top, spacing: HV.Space.s) {
+                    HVIconBadge(symbol: "scissors", tint: Palette.cyan, size: 40)
+                    settingsWords
+                    Spacer(minLength: HV.Space.xs)
+                    digestSwitch
+                }
             }
             Text("You can always digest a memory yourself: open it and choose Digest this. The switch only controls the automatic proposals.")
                 .font(.hvCaption)

@@ -36,6 +36,7 @@ enum ToolsSheet: Identifiable {
 struct ToolsScreen: View {
     @Environment(AppModel.self) private var app
     @Environment(AppEnvironment.self) private var env
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var model: ToolsModel
     @State private var sheet: ToolsSheet?
 
@@ -51,7 +52,11 @@ struct ToolsScreen: View {
                 ToolbarItem(placement: .primaryAction) { addMenu }
             }
             .safeAreaInset(edge: .bottom) {
-                if model.phase == .loaded, !model.servers.isEmpty { ToolsCompileBar(model: model) { startCompile() } }
+                // Pinned under the list while the words fit. At an accessibility size the bar would take nearly half the
+                // screen and hide the list it is about, so there it is the last thing in the list instead.
+                if !dynamicTypeSize.isAccessibilitySize, model.phase == .loaded, !model.servers.isEmpty {
+                    ToolsCompileBar(model: model) { startCompile() }
+                }
             }
             .navigationDestination(for: ToolsRoute.self) { route in
                 switch route {
@@ -131,6 +136,15 @@ struct ToolsScreen: View {
                 Button { sheet = .add(nil) } label: { Label("Add by address", systemImage: "link") }
             }
             .hvListRow()
+
+            if dynamicTypeSize.isAccessibilitySize {
+                Section {
+                    ToolsCompileBar(model: model) { startCompile() }
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.hidden)
+                }
+            }
         }
         .scrollContentBackground(.hidden)
     }

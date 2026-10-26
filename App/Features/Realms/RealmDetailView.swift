@@ -45,7 +45,12 @@ struct RealmDetailView: View {
                 Button {
                     webPage = KeysWebPage(claim.url)
                 } label: {
+                    // On one line, a little smaller if it must be, like the address above it: wrapped at a large text size
+                    // the address was broken with a hyphen ("nova.vault.-/cool").
                     Label("Visit \(claim.host)", systemImage: "safari")
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .truncationMode(.middle)
                 }
             }
             .hvListRow()

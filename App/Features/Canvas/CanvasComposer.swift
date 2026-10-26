@@ -55,6 +55,7 @@ struct CanvasComposer: View {
                     .frame(width: 44, height: 44)
             }
             .accessibilityLabel("More")
+            .accessibilityIdentifier("canvas.more")
 
             TextField(HVCopy.chatPlaceholder, text: $model.draft, axis: .vertical)
                 .font(.hvBody)
@@ -63,6 +64,7 @@ struct CanvasComposer: View {
                 .submitLabel(.send)
                 .onSubmit(sendFromKeyboard)
                 .padding(.vertical, 9)
+                .accessibilityIdentifier("canvas.field")
                 .onChange(of: model.draft) { old, new in
                     // A field that grows with its text takes Return as a line break and never calls onSubmit.
                     if model.draftChanged(from: old, to: new) == .returned { sendFromKeyboard() }
@@ -99,6 +101,7 @@ struct CanvasComposer: View {
                     .background(Palette.softGradient, in: Circle())
             }
             .accessibilityLabel("Send")
+            .accessibilityIdentifier("canvas.send")
             .transition(.scale.combined(with: .opacity))
         } else if model.isBusy {
             ProgressView().frame(width: 44, height: 44)
@@ -135,14 +138,17 @@ private struct StagedChip: View {
             Text(HVCopy.pastedLine(characters: characters))
                 .font(.system(.subheadline, design: .rounded, weight: .medium))
                 .lineLimit(1)
+                .accessibilityIdentifier("canvas.pasted")
             Spacer(minLength: 0)
             Button(isKeeping ? HVCopy.keepingLine : HVCopy.keepItLabel, action: keep)
                 .buttonStyle(.hvGhost)
                 .disabled(isKeeping)
+                .accessibilityIdentifier("canvas.keep")
             if canAsk {
                 Button(HVCopy.askInsteadLabel, action: ask)
                     .buttonStyle(.hvGhost)
                     .foregroundStyle(Palette.textSecondary)
+                    .accessibilityIdentifier("canvas.askInstead")
             }
         }
         .padding(.horizontal, HV.Space.m)
@@ -162,6 +168,7 @@ private struct NoticeLine: View {
         HStack(spacing: HV.Space.xs) {
             Image(systemName: notice.kind == .error ? "exclamationmark.circle" : "info.circle")
             Text(notice.text).font(.hvFootnote)
+                .accessibilityIdentifier("canvas.notice")
             Spacer(minLength: 0)
             if notice.opensSettings, let settings = URL(string: UIApplication.openSettingsURLString) {
                 Button("Settings") { openURL(settings) }

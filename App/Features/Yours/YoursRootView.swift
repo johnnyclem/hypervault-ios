@@ -32,11 +32,13 @@ private struct YoursTab: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel("New")
+                    .accessibilityIdentifier("yours.new")
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink(value: Route.library) {
                         Text("Library").font(.system(.subheadline, design: .rounded, weight: .semibold))
                     }
+                    .accessibilityIdentifier("yours.library")
                 }
             }
     }
@@ -122,6 +124,7 @@ struct YoursListView: View {
                         Text(filter.title).tag(filter)
                     }
                 }
+                .accessibilityIdentifier("yours.filter")
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
             }
@@ -206,6 +209,7 @@ struct YoursListView: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("yours.row.\(item.id)")
     }
 
     private func subtitle(for item: KeptItem) -> String {

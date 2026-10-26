@@ -25,6 +25,7 @@ struct WaitlistView: View {
                         Text(user.firstName.map { "You're on the list, \($0)." } ?? "You're on the list.")
                             .font(.hvHero)
                             .multilineTextAlignment(.center)
+                            .accessibilityIdentifier("waitlist.title")
                         Text("HyperVault is letting people in a few at a time. Got an invite code? Enter it to come straight in.")
                             .font(.hvBody)
                             .foregroundStyle(Palette.textSecondary)
@@ -41,6 +42,7 @@ struct WaitlistView: View {
                             .submitLabel(.go)
                             .onSubmit { redeem() }
                             .accessibilityHint(message ?? "")
+                            .accessibilityIdentifier("waitlist.code")
                             .hvFieldChrome(isFocused: focused)
 
                         Button {
@@ -50,6 +52,7 @@ struct WaitlistView: View {
                         }
                         .buttonStyle(.hvPrimary)
                         .disabled(code.trimmingCharacters(in: .whitespaces).isEmpty || isWorking || isChecking)
+                        .accessibilityIdentifier("waitlist.redeem")
 
                         PasteButton(payloadType: String.self) { strings in
                             guard let text = strings.first else { return }
@@ -63,6 +66,7 @@ struct WaitlistView: View {
                                 .font(.hvFootnote)
                                 .foregroundStyle(Palette.danger)
                                 .multilineTextAlignment(.center)
+                                .accessibilityIdentifier("waitlist.message")
                         }
                     }
                     .frame(maxWidth: 420)
@@ -79,7 +83,9 @@ struct WaitlistView: View {
                             }
                             .disabled(isChecking || isWorking)
                             .accessibilityLabel(isChecking ? "Checking" : "Check again")
+                            .accessibilityIdentifier("waitlist.check")
                             Button("Sign out") { Task { await model.signOut() } }
+                                .accessibilityIdentifier("waitlist.signout")
                         }
                         .buttonStyle(.hvGhost)
 
@@ -88,6 +94,7 @@ struct WaitlistView: View {
                                 .font(.hvFootnote)
                                 .foregroundStyle(Palette.textSecondary)
                                 .multilineTextAlignment(.center)
+                                .accessibilityIdentifier("waitlist.status")
                         }
                     }
                     .padding(.top, HV.Space.s)

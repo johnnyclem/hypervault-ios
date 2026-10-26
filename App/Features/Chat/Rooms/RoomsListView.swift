@@ -88,6 +88,7 @@ struct ChatRoomsListView: View {
                         NavigationLink(value: Route.room(id: room.id)) {
                             ChatRoomRow(room: room)
                         }
+                        .accessibilityIdentifier("chat.room.\(room.id)")
                         .hvListRow()
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) { pendingDelete = room } label: {

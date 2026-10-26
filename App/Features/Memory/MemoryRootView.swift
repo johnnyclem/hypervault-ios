@@ -56,6 +56,7 @@ struct MemoryTabScreen: View {
                     Text(mode.title).tag(mode)
                 }
             }
+            .accessibilityIdentifier("memory.mode")
             .padding(.horizontal, HV.Space.m)
             .padding(.vertical, HV.Space.xs)
             .hvReadableWidth()
@@ -81,6 +82,7 @@ struct MemoryTabScreen: View {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel("Memorize something")
+                .accessibilityIdentifier("memory.memorize")
                 moreMenu
             }
         }

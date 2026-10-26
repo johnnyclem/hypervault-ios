@@ -141,6 +141,7 @@ struct LibraryScreen: View {
         HVChoicePicker(title: LibraryCopy.filterGroupLabel, selection: $filter) {
             ForEach(YoursFilter.allCases) { option in Text(option.title).tag(option) }
         }
+        .accessibilityIdentifier("library.filter")
     }
 
     @ToolbarContentBuilder
@@ -166,6 +167,7 @@ struct LibraryScreen: View {
                 Image(systemName: showGraph ? "list.bullet" : "point.3.connected.trianglepath.dotted")
             }
             .accessibilityLabel(showGraph ? "Show as a list" : "Show as a graph")
+            .accessibilityIdentifier("library.view")
         }
         ToolbarItem(placement: .primaryAction) {
             Menu {
@@ -251,6 +253,7 @@ struct LibraryScreen: View {
                     NavigationLink(value: route(for: item)) {
                         LibraryItemRow(item: item)
                     }
+                    .accessibilityIdentifier("library.row.\(item.id)")
                     .libraryRow()
                     .simultaneousGesture(TapGesture().onEnded { model.stampOpen(item) })
                     .contextMenu { itemMenu(item) }

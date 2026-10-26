@@ -84,6 +84,7 @@ struct AgentsAndKeysView: View {
                         NavigationLink(value: KeysDestination.key(key)) {
                             KeyRow(key: key, status: model.status(of: key))
                         }
+                        .accessibilityIdentifier("keys.row.\(key.id)")
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) { keyToRevoke = key } label: { Label("Revoke", systemImage: "xmark.circle") }
                         }
@@ -149,6 +150,7 @@ struct AgentsAndKeysView: View {
             }
             .buttonStyle(.hvPrimary)
             .multilineTextAlignment(.center)
+            .accessibilityIdentifier("keys.connect")
         }
         .padding(.vertical, HV.Space.xs)
     }

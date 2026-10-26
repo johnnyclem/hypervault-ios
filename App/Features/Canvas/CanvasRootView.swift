@@ -189,6 +189,7 @@ struct CanvasScreen: View {
                 HVAvatar(name: avatarName, imageURL: avatarURL, size: 32)
             }
             .accessibilityLabel("Account")
+            .accessibilityIdentifier("canvas.account")
         }
         ToolbarItem(placement: .topBarTrailing) {
             Button {
@@ -197,6 +198,7 @@ struct CanvasScreen: View {
                 Image(systemName: "square.stack.3d.up")
             }
             .accessibilityLabel("Open Yours")
+            .accessibilityIdentifier("canvas.yours")
         }
     }
 

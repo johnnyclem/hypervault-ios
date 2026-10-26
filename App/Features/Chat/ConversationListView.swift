@@ -101,6 +101,7 @@ struct ChatConversationListView: View {
                         NavigationLink(value: Route.conversation(id: conversation.id)) {
                             ChatConversationRow(conversation: conversation)
                         }
+                        .accessibilityIdentifier("chat.row.\(conversation.id)")
                         .hvListRow()
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {

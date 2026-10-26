@@ -121,12 +121,12 @@ jobs:
   # The journeys: the real app launched on a simulator and driven with taps and typing, through the welcome story,
   # sign-in, the canvas, each tab, every screen the You tab opens, and the waitlist; and a sweep of the main screens in
   # the dark appearance and at an accessibility text size. The app is a debug build whose network is canned inside it
-  # (App/Core/UITestHarness.swift); nothing here reaches a real server. Four jobs run side by side (each builds the
+  # (App/Core/UITestHarness.swift); nothing here reaches a real server. Five jobs run side by side (each builds the
   # app for itself), so a push waits for the slowest of them and none of them for the others.
   ui:
     name: UI tests (macOS, ${{ matrix.suite }})
     runs-on: macos-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -145,10 +145,21 @@ jobs:
               -only-testing:HyperVaultUITests/YouScreensJourneyTests
               -only-testing:HyperVaultUITests/AccountAndAdminJourneyTests
               -only-testing:HyperVaultUITests/ContentJourneyTests
-          - suite: sweep
-            tests: -only-testing:HyperVaultUITests/LayoutSweepTests
-          - suite: sweep-screens
-            tests: -only-testing:HyperVaultUITests/LayoutSweepScreensTests
+          # The layout sweep (see Tests/UITests/LayoutSweepTests.swift): every screen of it in the dark appearance, and
+          # at the largest accessibility text size in two jobs, because scrolling a large text size is slow.
+          - suite: sweep-dark
+            tests: >-
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testTheTabsInTheDark
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testWhatTheTabsOpenInTheDark
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testTheWelcomeAndTheWaitlistInTheDark
+              -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheYouScreensInTheDark
+          - suite: sweep-large
+            tests: >-
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testTheTabsAtAnAccessibilityTextSize
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testWhatTheTabsOpenAtAnAccessibilityTextSize
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testTheWelcomeAndTheWaitlistAtAnAccessibilityTextSize
+          - suite: sweep-large-screens
+            tests: -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheYouScreensAtAnAccessibilityTextSize
     steps:
       - uses: actions/checkout@v4
 

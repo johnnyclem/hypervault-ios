@@ -59,11 +59,30 @@ class HyperVaultUITestCase: XCTestCase {
             "-HV_UITEST", "-HV_UITEST_SCENARIO", scenario.rawValue,
             "-AppleLanguages", "(en)", "-AppleLocale", "en_US",
         ] + extra
-        application.launch()
+        start(application)
         app = application
         let first = scenario.firstScreen
         require(element(first.identifier), "\(first.description) (\(first.identifier)) after launching \(scenario.rawValue)", file: file, line: line)
         return application
+    }
+
+    /// Starts the app, and starts it once more if the first start did not take: a simulator that has only just booted
+    /// now and then loses the very first launch of a job ("does not have a process ID"), which is the simulator's
+    /// trouble and not the app's. The first try's failure is recorded as an expected one (so it does not fail the
+    /// test), and a second try that fails too is a failure like any other.
+    private func start(_ application: XCUIApplication) {
+        let continuedBefore = continueAfterFailure
+        continueAfterFailure = true
+        let options = XCTExpectedFailure.Options()
+        options.isStrict = false
+        XCTExpectFailure("The simulator can lose the first launch of a run.", options: options) {
+            application.launch()
+        }
+        continueAfterFailure = continuedBefore
+        if application.state == .runningForeground || application.state == .runningBackground { return }
+        print("[journey] the app did not start; starting it again")
+        application.terminate()
+        application.launch()
     }
 
     // MARK: Finding

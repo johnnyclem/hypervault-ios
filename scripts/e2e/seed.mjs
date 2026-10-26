@@ -24,6 +24,12 @@ export const PEOPLE = [
   { key: "bob", email: "bob@e2e.test", name: "Bob Example", access: true },
   { key: "admin", email: "admin@e2e.test", name: "Ada Admin", access: true },
   { key: "carol", email: "carol@e2e.test", name: "Carol Waitlisted", access: false },
+  // A pool of further members. The server meters each person at 120 calls a minute, so a long
+  // suite spreads its areas over these rather than waiting on one person's budget.
+  ...Array.from({ length: Number(process.env.HV_E2E_POOL_USERS ?? 12) }, (_, i) => {
+    const n = String(i + 1).padStart(2, "0");
+    return { key: `pool${n}`, email: `pool${n}@e2e.test`, name: `Pool ${n}`, access: true };
+  }),
 ];
 
 const conn = await new PgConn({ socketPath: `${args.socket}/.s.PGSQL.${args.pgport ?? 54329}`, user: "postgres", database: args.db ?? "hv" }).connect();
@@ -64,6 +70,7 @@ for (const person of PEOPLE) {
   out[person.key] = { id, token: sign(claims(now + 24 * 3600), secret), expired: sign(claims(now - 60), secret) };
 }
 
+const pool = PEOPLE.filter((p) => p.key.startsWith("pool")).map((p) => out[p.key].token);
 const anon = sign({ iss: "supabase-e2e", role: "anon", iat: now, exp: now + 10 * 365 * 24 * 3600 }, secret);
 const service = sign({ iss: "supabase-e2e", role: "service_role", iat: now, exp: now + 10 * 365 * 24 * 3600 }, secret);
 
@@ -77,6 +84,7 @@ const lines = [
   `HV_E2E_LOCAL_ADMIN_TOKEN=${out.admin.token}`,
   `HV_E2E_LOCAL_WAITLIST_TOKEN=${out.carol.token}`,
   `HV_E2E_LOCAL_EXPIRED_TOKEN=${out.alice.expired}`,
+  `HV_E2E_LOCAL_POOL_TOKENS=${pool.join(",")}`,
   `HV_E2E_USER_ID=${out.alice.id}`,
   `HV_E2E_USER_ID_2=${out.bob.id}`,
   `HV_E2E_ADMIN_ID=${out.admin.id}`,

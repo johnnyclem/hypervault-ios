@@ -170,7 +170,7 @@ struct ArtifactVersionScreen: View {
                     Text(headerLine).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                 }
 
-                HVSectionHeader(title: version.parentVersionId == nil ? "First version" : "What changed")
+                HVSectionHeader(title: version.parentVersionId == nil ? "First version" : "What changed").artifactCardCaption()
                 changesView
 
                 NavigationLink {
@@ -229,7 +229,7 @@ struct ArtifactVersionScreen: View {
         case .loaded(let lines):
             ArtifactDiffView(lines: lines)
                 .frame(maxHeight: 480)
-                .hvCard(padding: 0, radius: HV.Radius.m)
+                .hvCard(padding: 0)
         }
     }
 

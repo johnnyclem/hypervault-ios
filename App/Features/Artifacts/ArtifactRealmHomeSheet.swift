@@ -25,8 +25,10 @@ struct ArtifactRealmHomeSheet: View {
                 } footer: {
                     Text("The address opens straight on this page, with no list of your pages. Its link to this page still works.")
                 }
+                .hvListRow()
                 if let warning {
                     Section { Label(warning, systemImage: "exclamationmark.triangle.fill").font(.hvFootnote).foregroundStyle(Palette.warning) }
+                        .hvListRow()
                 }
                 if let error {
                     Section { ArtifactErrorLine(message: error).listRowBackground(Color.clear) }

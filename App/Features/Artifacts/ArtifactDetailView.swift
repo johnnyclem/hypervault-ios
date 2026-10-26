@@ -49,6 +49,12 @@ struct ArtifactDetailScreen: View {
         _model = State(initialValue: ArtifactDetailModel(slug: slug, env: env, loader: loader))
     }
 
+    /// A screen for a model that has already read its page (a snapshot test draws it that way, so what
+    /// is checked is the page state and not how long the canned answers took).
+    init(model: ArtifactDetailModel) {
+        _model = State(initialValue: model)
+    }
+
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)

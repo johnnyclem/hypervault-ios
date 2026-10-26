@@ -104,7 +104,10 @@ struct ArtifactPasswordsScreen: View {
             case .loading:
                 Section { HVLoadingState().listRowBackground(Color.clear) }
             case .failed(let message):
-                Section { HVErrorState(message: message) { Task { await model.load() } }.listRowBackground(Color.clear) }
+                Section {
+                    HVErrorState(message: message) { Task { await model.load() } }
+                        .listRowBackground(Color.clear)
+                }
             case .loaded(let list):
                 passwordsSection(list)
                 if !list.recentVisits.isEmpty { visitsSection(list) }
@@ -153,18 +156,28 @@ struct ArtifactPasswordsScreen: View {
             }
             .padding(.vertical, HV.Space.xs)
         }
-        .listRowBackground(Palette.mint.opacity(0.12))
+        // Paper first, then the tint: the tint alone would take the page's colour in dark mode.
+        .listRowBackground(ZStack { Palette.surface; Palette.mint.opacity(0.14) })
+        .listRowSeparatorTint(Palette.hairline)
     }
 
     private var newSection: some View {
         Section {
-            TextField("Password (blank makes one)", text: $password)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .privacySensitive()
-            TextField("Label (optional)", text: $label)
-            TextField("Most visits (optional)", text: $maxUses)
-                .keyboardType(.numberPad)
+            HVLabeledField(title: "Password", footnote: "Leave it blank and one is made for you.") {
+                TextField("Password", text: $password, prompt: artifactPrompt("Optional"))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .privacySensitive()
+            }
+            .listRowSeparator(.hidden)
+            HVLabeledField(title: "Label", footnote: "A name for you, to tell passwords apart.") {
+                TextField("Label", text: $label, prompt: artifactPrompt("Optional"))
+            }
+            .listRowSeparator(.hidden)
+            HVLabeledField(title: "Most visits", footnote: "It stops working after this many.") {
+                TextField("Most visits", text: $maxUses, prompt: artifactPrompt("No limit"))
+                    .keyboardType(.numberPad)
+            }
             if let error = model.error { ArtifactErrorLine(message: error).listRowBackground(Color.clear) }
             Button {
                 create()
@@ -177,6 +190,7 @@ struct ArtifactPasswordsScreen: View {
         } footer: {
             Text("Share it with whoever should be able to open this page. Each use is counted.")
         }
+        .hvListRow()
     }
 
     private func passwordsSection(_ list: ArtifactPasswordList) -> some View {
@@ -189,7 +203,7 @@ struct ArtifactPasswordsScreen: View {
             ForEach(list.passwords) { item in
                 HStack(spacing: HV.Space.s) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(item.displayLabel).font(.hvBody).lineLimit(1)
+                        Text(item.displayLabel).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(1)
                         Text(item.usageLine).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                     }
                     Spacer(minLength: HV.Space.xs)
@@ -221,13 +235,14 @@ struct ArtifactPasswordsScreen: View {
         } header: {
             HVSectionHeader(title: "Passwords", detail: "\(list.passwords.count) of \(ArtifactPasswordRules.maxPasswords)")
         }
+        .hvListRow()
     }
 
     private func visitsSection(_ list: ArtifactPasswordList) -> some View {
         Section {
             ForEach(list.recentVisits.prefix(8)) { visit in
                 HStack {
-                    Text(visit.label ?? "Untitled password").font(.hvFootnote)
+                    Text(visit.label ?? "Untitled password").font(.hvFootnote).foregroundStyle(Palette.textPrimary)
                     Spacer()
                     if let date = visit.createdAt {
                         Text(date.formatted(date: .abbreviated, time: .shortened))
@@ -240,6 +255,7 @@ struct ArtifactPasswordsScreen: View {
         } header: {
             HVSectionHeader(title: "Recent visits")
         }
+        .hvListRow()
     }
 
     // MARK: Actions

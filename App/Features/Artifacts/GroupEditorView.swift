@@ -270,21 +270,28 @@ struct GroupEditorView: View {
     private var list: some View {
         List {
             Section {
-                TextField("Title", text: Bindable(model).title)
-                TextField("Tags, separated by commas", text: Bindable(model).tags)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                HVLabeledField(title: "Title") {
+                    TextField("Title", text: Bindable(model).title, prompt: artifactPrompt("Untitled group"))
+                }
+                .listRowSeparator(.hidden)
+                HVLabeledField(title: "Tags", footnote: "Separated by commas.") {
+                    TextField("Tags", text: Bindable(model).tags, prompt: artifactPrompt("Optional"))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+                .listRowSeparator(.hidden)
                 Toggle("Keep it private", isOn: Bindable(model).isPrivate)
             } footer: {
                 Text(model.isPrivate ? "Only you and people you add can open it." : "Anyone with the link can open it.")
             }
+            .hvListRow()
 
             Section {
                 ForEach(model.files) { file in
                     NavigationLink(value: file.path) {
                         HStack {
                             Image(systemName: icon(for: file.path)).foregroundStyle(Palette.blue).frame(width: 22)
-                            Text(file.path).font(.hvMono).lineLimit(1)
+                            Text(file.path).font(.hvMono).foregroundStyle(Palette.textPrimary).lineLimit(1).truncationMode(.middle)
                             Spacer(minLength: HV.Space.xs)
                             Text(ByteCountFormatter.string(fromByteCount: Int64(file.content.utf8.count), countStyle: .file))
                                 .font(.hvCaption)
@@ -317,11 +324,13 @@ struct GroupEditorView: View {
             } footer: {
                 Text("index.html is where it starts, so it can be changed but not removed.")
             }
+            .hvListRow()
 
             Section {
                 Button { previewing = true } label: { Label("Run the preview", systemImage: "play.fill") }
                 if let error = model.error { ArtifactErrorLine(message: error).listRowBackground(Color.clear) }
             }
+            .hvListRow()
 
             Section {
                 DisclosureGroup("How this works") {
@@ -330,6 +339,7 @@ struct GroupEditorView: View {
                         .foregroundStyle(Palette.textSecondary)
                 }
             }
+            .hvListRow()
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)

@@ -107,11 +107,12 @@ struct ArtifactInfoSheet: View {
             .padding(.vertical, HV.Space.xxs)
             .accessibilityElement(children: .combine)
         }
+        .hvListRow()
     }
 
     private var subtitle: String {
         var parts: [String] = []
-        if let summary { parts.append(summary.typeLabel) }
+        if let summary { parts.append(summary.typeName) }
         if let date = summary?.createdAt { parts.append(date.formatted(date: .abbreviated, time: .omitted)) }
         return parts.joined(separator: " \u{00B7} ")
     }
@@ -150,13 +151,14 @@ struct ArtifactInfoSheet: View {
         } footer: {
             if current == .private { Text("People you add by email can open it too.") }
         }
+        .hvListRow()
     }
 
     private var iconSection: some View {
         Section {
             HStack(spacing: HV.Space.s) {
                 ArtifactGlyph(slug: detail.slug, title: detail.title, icon: glyph, size: 36)
-                TextField(ArtifactIcon.initial(detail.title), text: $glyph)
+                TextField("Icon", text: $glyph, prompt: artifactPrompt(ArtifactIcon.initial(detail.title)))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .onChange(of: glyph) { _, value in
@@ -181,6 +183,7 @@ struct ArtifactInfoSheet: View {
         } footer: {
             Text("A letter or an emoji. It shows when the page is added to a home screen.")
         }
+        .hvListRow()
     }
 
     private func tagsSection(_ tags: [String]) -> some View {
@@ -192,6 +195,7 @@ struct ArtifactInfoSheet: View {
         } header: {
             HVSectionHeader(title: "Tags")
         }
+        .hvListRow()
     }
 
     private func promptSection(_ prompt: String) -> some View {
@@ -210,6 +214,7 @@ struct ArtifactInfoSheet: View {
                 }
             }
         }
+        .hvListRow()
     }
 
     private var pinSection: some View {
@@ -218,6 +223,7 @@ struct ArtifactInfoSheet: View {
                 Label("Pin to Library", systemImage: "pin")
             }
         }
+        .hvListRow()
     }
 
     private var aboutSection: some View {
@@ -230,6 +236,7 @@ struct ArtifactInfoSheet: View {
         } header: {
             HVSectionHeader(title: "About")
         }
+        .hvListRow()
     }
 
     private func aboutRow(_ title: String, _ value: String) -> some View {

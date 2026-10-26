@@ -125,7 +125,7 @@ struct ArtifactShareSheet: View {
 
     private var linkSection: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            HVSectionHeader(title: "Link")
+            HVSectionHeader(title: "Link").artifactCardCaption()
             VStack(alignment: .leading, spacing: HV.Space.xs) {
                 Text(url.absoluteString)
                     .font(.hvMono)
@@ -151,7 +151,7 @@ struct ArtifactShareSheet: View {
                     }
                 }
             }
-            .hvCard(padding: HV.Space.m, radius: HV.Radius.m)
+            .hvCard()
 
             ShareLink(item: url, subject: Text(detail.title), preview: SharePreview(detail.title)) {
                 Label("Share link", systemImage: "square.and.arrow.up")
@@ -183,7 +183,7 @@ struct ArtifactShareSheet: View {
 
     private var peopleSection: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            HVSectionHeader(title: LibraryCopy.sharePeople)
+            HVSectionHeader(title: LibraryCopy.sharePeople).artifactCardCaption()
             switch model.list {
             case .loading:
                 HVLoadingState()
@@ -199,12 +199,13 @@ struct ArtifactShareSheet: View {
                             personRow(person, list: list)
                         }
                     }
-                    .hvCard(padding: 0, radius: HV.Radius.m)
+                    .hvCard(padding: 0)
                 }
             }
             Text(LibraryCopy.shareFooter)
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
+                .artifactCardCaption()
         }
     }
 
@@ -213,20 +214,24 @@ struct ArtifactShareSheet: View {
         let roles = list.offeredRoles
         let role = chosenRole.flatMap { roles.contains($0) ? $0 : nil } ?? roles.first
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            TextField(LibraryCopy.shareEmail, text: $email)
-                .textContentType(.emailAddress)
-                .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.send)
-                .focused($emailFocused)
-                .onSubmit { add(role: role) }
-                .hvFieldChrome(isFocused: emailFocused)
+            HVLabeledField(title: LibraryCopy.shareEmail) {
+                TextField(LibraryCopy.shareEmail, text: $email, prompt: artifactPrompt("name@example.com"))
+                    .textContentType(.emailAddress)
+                    .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.send)
+                    .focused($emailFocused)
+                    .onSubmit { add(role: role) }
+            }
             if roles.count > 1, let role {
-                HStack(spacing: HV.Space.xs) {
+                // Wraps, so three roles stay whole at the largest sizes; each is 44 points to hit.
+                ArtifactFlowLayout(spacing: HV.Space.xs) {
                     ForEach(roles, id: \.self) { option in
                         Button { chosenRole = option; Haptics.select() } label: {
                             HVChip(title: option.title, isSelected: option == role)
+                                .frame(minHeight: 44)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityAddTraits(option == role ? .isSelected : [])
@@ -252,9 +257,9 @@ struct ArtifactShareSheet: View {
                     .foregroundStyle(Palette.textSecondary)
             }
             Spacer(minLength: HV.Space.xs)
-            Button(LibraryCopy.shareRemove) { removing = person }
+            // A removal asks first, and the ghost style draws a destructive role in the danger colour.
+            Button(LibraryCopy.shareRemove, role: .destructive) { removing = person }
                 .buttonStyle(.hvGhost)
-                .foregroundStyle(Palette.textSecondary)
                 .disabled(model.pending)
                 .accessibilityLabel("Remove \(person.name)")
         }

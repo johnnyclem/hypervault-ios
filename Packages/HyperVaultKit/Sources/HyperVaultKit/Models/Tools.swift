@@ -561,6 +561,14 @@ public struct McpRegistryEntry: Sendable, Codable, Hashable, Identifiable {
     }
 
     public var normalizedURL: String { McpServer.normalize(url) }
+
+    /// The registry's short name is often just "mcp" (the last part of
+    /// `app.linear/mcp`); when it says nothing, the full id does.
+    public var displayName: String {
+        let generic: Set<String> = ["mcp", "server", "mcp-server", "mcp_server", "remote", "remote-mcp"]
+        if generic.contains(name.lowercased()), registryId.contains("/") { return registryId }
+        return name
+    }
 }
 
 /// `GET /api/registry/search`: matches, and servers worth suggesting.

@@ -155,6 +155,7 @@ struct ToolsCatalogSheet: View {
             }
         }
         .scrollContentBackground(.hidden)
+        .refreshable { await catalog.search() }
     }
 
     private var footer: some View {
@@ -205,7 +206,7 @@ struct ToolsCatalogRow: View {
                     HVIconBadge(symbol: "globe", tint: entry.dead ? Palette.textTertiary : Palette.sky)
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: HV.Space.xs) {
-                            Text(entry.name)
+                            Text(entry.displayName)
                                 .font(.hvBody)
                                 .foregroundStyle(entry.dead ? Palette.textSecondary : Palette.textPrimary)
                                 .lineLimit(2)
@@ -249,7 +250,7 @@ struct ToolsCatalogRow: View {
                     .foregroundStyle(Palette.blue)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Add \(entry.name)")
+            .accessibilityLabel("Add \(entry.displayName)")
         }
     }
 }

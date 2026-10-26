@@ -225,15 +225,17 @@ struct ToolsServerRow: View {
         switch server.status {
         case .off: return "\(server.host) · off"
         case .noTools: return "\(server.host) · no tools listed"
-        case .allToolsOff, .on:
-            return "\(server.host) · \(server.enabledToolCount) of \(server.tools.count) tools on"
+        case .allToolsOff, .on: return server.host
         }
     }
 
     private var tag: (text: String, tint: Color)? {
         if needsSignIn { return ("Sign in again", Palette.amber) }
-        if server.status == .allToolsOff { return ("All off", Palette.amber) }
-        return nil
+        switch server.status {
+        case .allToolsOff: return ("All off", Palette.amber)
+        case .on: return ("\(server.enabledToolCount) of \(server.tools.count) on", Palette.textSecondary)
+        default: return nil
+        }
     }
 }
 

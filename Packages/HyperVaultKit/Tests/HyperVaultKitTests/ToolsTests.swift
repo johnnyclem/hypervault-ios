@@ -358,6 +358,12 @@ final class ToolsTests: XCTestCase {
         XCTAssertEqual(merged.map(\.dead), [false, false, true, true])
     }
 
+    func testACatalogNameThatSaysNothingFallsBackToTheRegistryId() {
+        XCTAssertEqual(McpRegistryEntry(registryId: "app.linear/mcp", name: "mcp", url: "https://a.example.com").displayName, "app.linear/mcp")
+        XCTAssertEqual(McpRegistryEntry(registryId: "com.github/github", name: "github", url: "https://b.example.com").displayName, "github")
+        XCTAssertEqual(McpRegistryEntry(registryId: "hypervault", name: "mcp", url: "https://c.example.com").displayName, "mcp", "no slash to fall back on")
+    }
+
     func testLivenessCallIsCappedAtTwelveAddresses() async throws {
         let transport = MockTransport(routes: [.json(.post, "/api/registry/liveness", #"{"results":[]}"#)])
         let urls = (0..<20).map { "https://s\($0).example.com" }

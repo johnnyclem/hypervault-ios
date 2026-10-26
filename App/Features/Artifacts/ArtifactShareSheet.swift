@@ -131,7 +131,6 @@ struct ArtifactShareSheet: View {
                     .font(.hvMono)
                     .foregroundStyle(Palette.textPrimary)
                     .textSelection(.enabled)
-                    .lineLimit(3)
                 if let line = linkLine {
                     Text(line).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                 }

@@ -62,6 +62,16 @@ final class LibraryModelTests: XCTestCase {
         XCTAssertEqual(model.rows(matching: "nothing like this"), [])
     }
 
+    func testAPinIsNamedFromTheListOnAnyFilterNotShownAsItsSlug() async {
+        let model = model(routes())
+        model.seed(pins: SidebarPins(pins: [.artifact("pomo-1"), .artifact("gone-9ab3c1")]))
+        await model.load(filter: .all, query: "")
+        await model.loadExtras()
+        XCTAssertEqual(model.pinnedRows.map(\.title), ["Pomodoro Timer", "Gone"], "a page the list no longer holds is named from its slug, without the suffix")
+        XCTAssertNotNil(model.pinnedRows[0].summary)
+        XCTAssertNil(model.pinnedRows[1].summary)
+    }
+
     func testAPageWhoseIdIsNotKnownStillListsWithNoCount() async {
         let model = model(routes(extra: [.json(.get, "/api/yours", #"{"recent":[],"results":[]}"#)]))
         await model.load(filter: .file, query: "")

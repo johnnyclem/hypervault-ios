@@ -590,8 +590,6 @@ private struct LibraryConfirmations: ViewModifier {
 extension View {
     /// A row on paper with its separator in line with the text, as the rows of Yours sit.
     fileprivate func libraryRow() -> some View {
-        self
-            .hvListRow()
-            .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + LibraryRow.markSize + HV.Space.s + 2 }
+        modifier(LibraryRowStyle())
     }
 }

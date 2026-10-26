@@ -107,13 +107,14 @@ struct ArtifactHistorySheet: View {
                 .frame(maxHeight: .infinity)
             } else {
                 List {
-                    ForEach(list.versions) { version in
-                        NavigationLink(value: version) { ArtifactVersionRow(version: version) }
-                            .listRowBackground(Color.clear)
+                    Section {
+                        ForEach(list.versions) { version in
+                            NavigationLink(value: version) { ArtifactVersionRow(version: version) }
+                        }
                     }
+                    .hvListRow()
                 }
-                .listStyle(.plain)
-                .listRowSeparatorTint(Palette.hairline)
+                .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
                 .refreshable { await model.load() }
             }
@@ -126,12 +127,16 @@ struct ArtifactVersionRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: HV.Space.xs) {
-                Text(version.summary)
-                    .font(.hvBody.weight(.medium))
-                    .lineLimit(2)
-                if version.isHead { HVTag(text: "Latest", tint: Palette.mint) }
-                if version.isRebased { HVTag(text: "Rebased", tint: Palette.amber) }
+            Text(version.summary)
+                .font(.hvBody.weight(.medium))
+                .foregroundStyle(Palette.textPrimary)
+                .lineLimit(2)
+            if version.isHead || version.isRebased {
+                // Under the name, and wrapping, so a long message and two tags never crowd each other.
+                ArtifactFlowLayout(spacing: HV.Space.xs) {
+                    if version.isHead { HVTag(text: "Latest", tint: Palette.mint) }
+                    if version.isRebased { HVTag(text: "Rebased", tint: Palette.amber) }
+                }
             }
             HStack(spacing: HV.Space.xs) {
                 Image(systemName: version.authorKind == "agent" ? "cpu" : "person.fill")

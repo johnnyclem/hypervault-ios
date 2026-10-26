@@ -164,9 +164,9 @@ struct ArtifactErrorLine: View {
 }
 
 /// A field's hint in a colour that can be read. The system's own placeholder is the faintest grey
-/// it has, and under 2:1 on paper.
+/// it has, and under 2:1 on paper. The tertiary grey holds 4.5:1 and is still lighter than what is typed.
 func artifactPrompt(_ text: String) -> Text {
-    Text(text).foregroundStyle(Palette.textSecondary)
+    Text(text).foregroundStyle(Palette.textTertiary)
 }
 
 extension View {

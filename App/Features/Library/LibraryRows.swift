@@ -4,30 +4,36 @@ import SwiftUI
 enum LibraryRow {
     /// The mark at the head of every row, as wide as `HVIconBadge` is by default.
     static let markSize: CGFloat = 36
+    /// The room between the mark and the words.
+    static let gap: CGFloat = HV.Space.s + 2
+
+    /// The mark grows with the type, but stops short of taking the row from its words.
+    static func scaled(_ size: CGFloat) -> CGFloat { min(size, 52) }
 }
 
-/// The shape every Library row shares: a mark 36 points square, a title, a line under it and whatever
-/// trails. It sets type and spacing as `HVRow` does in Yours (two lines, any number at the accessibility
-/// sizes), so a row here and a row there line up. The mark is the thing's own (a page's icon, a kind's
-/// badge), which is why this is not `HVRow` itself.
+/// The shape every Library row shares: a mark, a title, a line under it and whatever trails. It sets
+/// type and spacing as `HVRow` does in Yours (two lines, any number at the accessibility sizes), so a row
+/// here and a row there line up. The mark is the thing's own (a page's icon, a kind's badge), which is
+/// why this is not `HVRow` itself; it is given the size to draw at.
 struct LibraryRowFrame<Mark: View, Meta: View, Trailing: View>: View {
     let title: String
     let subtitle: String?
-    let mark: Mark
+    let mark: (CGFloat) -> Mark
     let meta: Meta
     let trailing: Trailing
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var markSize: CGFloat = LibraryRow.markSize
 
     init(
         title: String,
         subtitle: String? = nil,
-        @ViewBuilder mark: () -> Mark,
+        @ViewBuilder mark: @escaping (CGFloat) -> Mark,
         @ViewBuilder meta: () -> Meta,
         @ViewBuilder trailing: () -> Trailing
     ) {
         self.title = title
         self.subtitle = subtitle
-        self.mark = mark()
+        self.mark = mark
         self.meta = meta()
         self.trailing = trailing()
     }
@@ -35,8 +41,8 @@ struct LibraryRowFrame<Mark: View, Meta: View, Trailing: View>: View {
     private var lineLimit: Int? { dynamicTypeSize.isAccessibilitySize ? nil : 2 }
 
     var body: some View {
-        HStack(spacing: HV.Space.s + 2) {
-            mark
+        HStack(spacing: LibraryRow.gap) {
+            mark(LibraryRow.scaled(markSize))
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.hvBody)
@@ -57,6 +63,33 @@ struct LibraryRowFrame<Mark: View, Meta: View, Trailing: View>: View {
     }
 }
 
+/// A Library row on paper, its separator starting where the words do, as in Yours.
+struct LibraryRowStyle: ViewModifier {
+    @ScaledMetric(relativeTo: .body) private var markSize: CGFloat = LibraryRow.markSize
+
+    func body(content: Content) -> some View {
+        content
+            .hvListRow()
+            .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + LibraryRow.scaled(markSize) + LibraryRow.gap }
+    }
+}
+
+/// The time a row was last in use, beside its title; at the accessibility sizes it joins the line under
+/// the title instead, where it does not take the room the name needs.
+private struct LibraryRowTime: View {
+    let text: String?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        if let text, !dynamicTypeSize.isAccessibilitySize {
+            Text(text)
+                .font(.hvCaption)
+                .foregroundStyle(Palette.textTertiary)
+                .lineLimit(1)
+        }
+    }
+}
+
 /// A row of the list behind Yours: what it is called, what kind of thing it is (or what it says),
 /// and when it was last in use.
 struct LibraryItemRow: View {
@@ -64,18 +97,12 @@ struct LibraryItemRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        LibraryRowFrame(title: item.name, subtitle: subtitle) {
-            mark
+        LibraryRowFrame(title: item.name, subtitle: subtitle) { size in
+            mark(size)
         } meta: {
             EmptyView()
         } trailing: {
-            // Beside the title the time would take the room the name needs at the largest sizes.
-            if let ago, !dynamicTypeSize.isAccessibilitySize {
-                Text(ago)
-                    .font(.hvCaption)
-                    .foregroundStyle(Palette.textTertiary)
-                    .lineLimit(1)
-            }
+            LibraryRowTime(text: ago)
         }
     }
 
@@ -89,16 +116,16 @@ struct LibraryItemRow: View {
     }
 
     @ViewBuilder
-    private var mark: some View {
+    private func mark(_ size: CGFloat) -> some View {
         switch item.kind {
         case .page, .file, .group:
             if let slug = item.slug {
-                ArtifactGlyph(slug: slug, title: item.name, size: LibraryRow.markSize)
+                ArtifactGlyph(slug: slug, title: item.name, size: size)
             } else {
-                HVIconBadge(symbol: item.kind.symbol, tint: item.kind.tint)
+                HVIconBadge(symbol: item.kind.symbol, tint: item.kind.tint, size: size)
             }
         case .memory, .key:
-            HVIconBadge(symbol: item.kind.symbol, tint: item.kind.tint)
+            HVIconBadge(symbol: item.kind.symbol, tint: item.kind.tint, size: size)
         }
     }
 }
@@ -110,8 +137,8 @@ struct LibraryFileRow: View {
 
     var body: some View {
         let summary = row.summary
-        LibraryRowFrame(title: summary.title, subtitle: subtitle) {
-            ArtifactGlyph(slug: summary.slug, title: summary.title, icon: summary.icon, size: LibraryRow.markSize)
+        LibraryRowFrame(title: summary.title, subtitle: subtitle) { size in
+            ArtifactGlyph(slug: summary.slug, title: summary.title, icon: summary.icon, size: size)
         } meta: {
             if !summary.tags.isEmpty || row.connections > 0 {
                 ArtifactFlowLayout(spacing: HV.Space.xs) {
@@ -124,10 +151,14 @@ struct LibraryFileRow: View {
                             .foregroundStyle(Palette.textSecondary)
                     }
                     if row.connections > 0 {
-                        Label("\(row.connections)", systemImage: "link")
-                            .font(.hvCaption.weight(.medium))
-                            .foregroundStyle(Palette.blue)
-                            .accessibilityLabel(row.connections == 1 ? "1 connection" : "\(row.connections) connections")
+                        HStack(spacing: 3) {
+                            Image(systemName: "link")
+                            Text("\(row.connections)")
+                        }
+                        .font(.hvCaption.weight(.medium))
+                        .foregroundStyle(Palette.blue)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(row.connections == 1 ? "1 connection" : "\(row.connections) connections")
                     }
                 }
                 .padding(.top, 2)
@@ -151,8 +182,8 @@ struct LibraryPinnedRow: View {
     let icon: String?
 
     var body: some View {
-        LibraryRowFrame(title: title) {
-            ArtifactGlyph(slug: slug, title: title, icon: icon, size: LibraryRow.markSize)
+        LibraryRowFrame(title: title) { size in
+            ArtifactGlyph(slug: slug, title: title, icon: icon, size: size)
         } meta: {
             EmptyView()
         } trailing: {
@@ -167,21 +198,24 @@ struct LibraryPinnedRow: View {
 /// A page another person shared: its name, its kind, whose it is and when.
 struct LibrarySharedRow: View {
     let item: SharedWithYouItem
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        LibraryRowFrame(title: item.title, subtitle: subtitle) {
-            ArtifactGlyph(slug: item.slug, title: item.title, size: LibraryRow.markSize)
+        LibraryRowFrame(title: item.title, subtitle: subtitle) { size in
+            ArtifactGlyph(slug: item.slug, title: item.title, size: size)
         } meta: {
             EmptyView()
         } trailing: {
-            EmptyView()
+            LibraryRowTime(text: ago)
         }
     }
+
+    private var ago: String? { LibraryCopy.ago(since: item.createdAt) }
 
     private var subtitle: String {
         var parts = [item.typeName]
         if let owner = item.owner { parts.append("from \(owner)") }
-        if let date = item.createdAt { parts.append(date.formatted(date: .abbreviated, time: .omitted)) }
+        if dynamicTypeSize.isAccessibilitySize, let ago { parts.append(ago) }
         return parts.joined(separator: " \u{00B7} ")
     }
 }

@@ -264,6 +264,69 @@ public enum TruthID {
         guard enabled, id.count > 10 else { return id }
         return "…" + id.suffix(6)
     }
+
+    /// Whether a word is a ULID: 26 characters of Crockford base32.
+    public static func isULID(_ word: String) -> Bool {
+        let allowed = Set("0123456789ABCDEFGHJKMNPQRSTVWXYZ")
+        return word.count == 26 && word.allSatisfy { allowed.contains($0) }
+    }
+}
+
+/// The server writes its sentences about an entry with the entry's id in them ("TB 01M1E6JK8S... is
+/// unsupported: a premise beneath it was struck."). A person cannot tell which claim that is.
+public enum TruthWords {
+    /// The sentence with each id said as the claim it names (“Retries are capped at 5” is unsupported: ...),
+    /// where `claims` knows it; any other ULID is cut to its last six characters.
+    public static func readable(_ sentence: String, claims: [String: String] = [:], limit: Int = 64) -> String {
+        var out = ""
+        var word = ""
+
+        func flush() {
+            guard !word.isEmpty else { return }
+            defer { word = "" }
+            if let claim = claims[word], !claim.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                // "TB <id>" says the claim itself, so the type word in front of it goes.
+                for tag in ["TB ", "UV "] where out.hasSuffix(tag) {
+                    let before = out.dropLast(tag.count)
+                    if before.isEmpty || before.last == " " { out.removeLast(tag.count) }
+                    break
+                }
+                out += quoted(claim, limit: limit)
+            } else if TruthID.isULID(word) {
+                out += TruthID.short(word)
+            } else {
+                out += word
+            }
+        }
+
+        for character in sentence {
+            if character.isLetter || character.isNumber {
+                word.append(character)
+            } else {
+                flush()
+                out.append(character)
+            }
+        }
+        flush()
+        return out
+    }
+
+    /// A claim set in quotation marks, on one line, cut at a whole word when it is long.
+    public static func quoted(_ claim: String, limit: Int = 64) -> String {
+        var text = claim.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        trimEnd(&text)
+        if text.count > limit {
+            let cut = text.prefix(limit)
+            text = cut.lastIndex(of: " ").map { String(cut[..<$0]) } ?? String(cut)
+            trimEnd(&text)
+            text += "\u{2026}"
+        }
+        return "\u{201C}\(text)\u{201D}"
+    }
+
+    private static func trimEnd(_ text: inout String) {
+        while let last = text.last, last == " " || ".,;:!?-".contains(last) { text.removeLast() }
+    }
 }
 
 // MARK: Lines
@@ -477,6 +540,35 @@ public struct TruthSummary: Sendable, Codable, Hashable {
     }
 
     enum Keys: String, CodingKey { case cited, contested, flags, displaced, total, openProposals }
+}
+
+/// One count under the ledger's name: "2 standing".
+public struct TruthSummaryStat: Sendable, Hashable, Identifiable {
+    public let count: Int
+    public let label: String
+
+    public var id: String { label }
+
+    public init(count: Int, label: String) {
+        self.count = count
+        self.label = label
+    }
+}
+
+extension TruthSummary {
+    /// The counts to show, each with its own label so a screen can lay them out as stats and never
+    /// break between a number and the word it belongs to. "Under appeal" is left out when none are.
+    public var stats: [TruthSummaryStat] {
+        var out = [TruthSummaryStat(count: cited, label: "standing"), TruthSummaryStat(count: flags, label: "unverified")]
+        if contested > 0 { out.append(TruthSummaryStat(count: contested, label: "under appeal")) }
+        out.append(TruthSummaryStat(count: displaced, label: "in history"))
+        return out
+    }
+
+    /// The same counts in a line, for VoiceOver: "2 standing, 1 unverified, 1 under appeal, 1 in history".
+    public var sentence: String {
+        stats.map { "\($0.count) \($0.label)" }.joined(separator: ", ")
+    }
 }
 
 public enum TruthCadence: String, Sendable, Codable, CaseIterable, Hashable, Identifiable {
@@ -705,6 +797,9 @@ public struct TruthSections: Sendable, Hashable {
     public let history: [TruthEntryRow]
 
     public var isEmpty: Bool { standing.isEmpty && unverified.isEmpty && history.isEmpty }
+
+    /// Every row, whichever list it sits in: for finding an entry by id.
+    public var all: [TruthEntryRow] { standing + unverified + history }
 
     public init(standing: [TruthEntryRow] = [], unverified: [TruthEntryRow] = [], history: [TruthEntryRow] = []) {
         self.standing = standing

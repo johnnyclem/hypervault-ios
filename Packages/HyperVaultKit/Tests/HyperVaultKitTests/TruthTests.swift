@@ -311,6 +311,62 @@ final class TruthTests: XCTestCase {
         XCTAssertEqual(back, list)
     }
 
+    // MARK: Words and counts
+
+    func testASentenceNamesTheClaimNotTheId() {
+        let id = "01M1E6JK8SQAJ8K0JBRHTD10YG"
+        let claims = [id: "Retries are capped at 5; the old cap of 3 is dead."]
+        XCTAssertEqual(
+            TruthWords.readable("TB \(id) is unsupported: a premise beneath it was struck.", claims: claims),
+            "\u{201C}Retries are capped at 5; the old cap of 3 is dead\u{201D} is unsupported: a premise beneath it was struck."
+        )
+        XCTAssertEqual(
+            TruthWords.readable("UV \(id) was verified.", claims: claims),
+            "\u{201C}Retries are capped at 5; the old cap of 3 is dead\u{201D} was verified."
+        )
+    }
+
+    func testAnIdNoClaimKnowsIsCutShort() {
+        let sentence = "TB 01M1E6JK8SQAJ8K0JBRHTD10YG was overridden by 01M1E6JK81TR57BA191BG8Y0Q3."
+        XCTAssertEqual(TruthWords.readable(sentence), "TB \u{2026}TD10YG was overridden by \u{2026}G8Y0Q3.")
+        // One known, one not: the known one is said as its claim and loses its type word.
+        let known = ["01M1E6JK81TR57BA191BG8Y0Q3": "Retries are idempotent across regions."]
+        XCTAssertEqual(
+            TruthWords.readable(sentence, claims: known),
+            "TB \u{2026}TD10YG was overridden by \u{201C}Retries are idempotent across regions\u{201D}."
+        )
+    }
+
+    func testShortIdsAreMatchedAsWholeWords() {
+        let claims = ["E1": "Retries are capped at 3.", "E9": "Retries are capped at 5."]
+        XCTAssertEqual(
+            TruthWords.readable("TB E1 was overridden by E9, not E10.", claims: claims),
+            "\u{201C}Retries are capped at 3\u{201D} was overridden by \u{201C}Retries are capped at 5\u{201D}, not E10."
+        )
+    }
+
+    func testALongClaimIsCutAtAWholeWord() {
+        let long = "The retry budget applies per region, per tenant and per hour, and resets at midnight UTC for every one of them."
+        let quoted = TruthWords.quoted(long, limit: 40)
+        XCTAssertEqual(quoted, "\u{201C}The retry budget applies per region\u{2026}\u{201D}")
+        XCTAssertEqual(TruthWords.quoted("A claim\nover two lines."), "\u{201C}A claim over two lines\u{201D}")
+    }
+
+    func testTheSummaryIsCountsEachWithItsOwnLabel() throws {
+        let stats = try overview().summary.stats
+        XCTAssertEqual(stats.map(\.count), [2, 1, 1, 1])
+        XCTAssertEqual(stats.map(\.label), ["standing", "unverified", "under appeal", "in history"])
+        XCTAssertEqual(try overview().summary.sentence, "2 standing, 1 unverified, 1 under appeal, 1 in history")
+        // Nothing is under appeal: that count is left out rather than shown as zero.
+        XCTAssertEqual(TruthSummary(cited: 3, contested: 0, flags: 0, displaced: 2).stats.map(\.label), ["standing", "unverified", "in history"])
+    }
+
+    func testEveryRowCanBeFoundById() throws {
+        let sections = try overview().sections
+        XCTAssertEqual(Set(sections.all.map(\.id)), Set(sections.standing.map(\.id) + sections.unverified.map(\.id) + sections.history.map(\.id)))
+        XCTAssertEqual(sections.all.count, 4)
+    }
+
     // MARK: Drafts, inbox, signers
 
     func testProposalDrafts() throws {

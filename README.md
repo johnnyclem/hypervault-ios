@@ -104,9 +104,11 @@ Tests/AppTests/          App tests and snapshot renders.
 `.github/workflows/ios.yml` runs the Kit's tests on Linux and builds and tests the app
 on a macOS simulator. The app's snapshot tests render screens in light and dark and the
 workflow publishes the PNGs to a `snapshots-<branch>` branch, so a screen can be looked
-at without opening Xcode. Six more jobs run the UI tests beside them (the journeys, the
-screens behind the You tab in two, and a layout sweep in the dark and at a large text size, in three
-jobs) and publish what the app looked like at each step to `ui-snapshots-<branch>`.
+at without opening Xcode. Seven more jobs run the UI tests beside them (the journeys; the
+screens behind the You tab, and the content and account journeys, in two; the layout sweep in the dark in one and at a
+large text size in three) and publish what the app looked like at each step to `ui-snapshots-<branch>`. Each job builds the
+app for itself and takes 13 to 20 minutes; GitHub runs five macOS jobs at a time, so the last ones start when the first
+have finished.
 
 ### How it is tested
 
@@ -144,8 +146,9 @@ the document scanner, the camera, widgets, the share extension, Spotlight, notif
 system's own sheets and pickers (the file importer, the share sheet, Safari); screens that are opened and read but not
 edited (creating a room, a ledger, a board or a vault entry, editing or forgetting a memory, composing or replying to
 mail, deciding a dream, a digest or a truth, claiming an address, deleting anything); landscape, iPad, and text sizes
-other than the default and the largest accessibility one. Layout is judged by looking at the sweep's screenshots; a test
-fails only when a screen's key control cannot be reached. To run them locally:
+other than the default and the largest accessibility one. The sweep does not visit the Memory graph, the Library's graph
+and inbox views, the models screen or Admin. Layout is judged by looking at the sweep's screenshots: a test fails only when a screen's key control
+cannot be reached, or when a screenshot of the dark sweep turns out to be light; nothing compares pictures. To run them locally:
 
 ```sh
 make test-ui

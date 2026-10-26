@@ -218,13 +218,17 @@ tab bar first). The point is to look: fetch `ui-snapshots-<branch>` after a run 
 in the sweep when it has a layout of its own.
 
 **Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
-any iPhone simulator; `make test-unit` runs the rest. CI runs six UI jobs beside the unit tests (the journeys; the
-screens behind the You tab, in two; the sweep in the dark; the sweep at the large text size, in two; each builds and runs on
-its own, and a test class that is not named in the workflow runs with the journeys), so a push waits for the slowest of
-them, which should stay under 20 minutes. (GitHub runs five macOS jobs at a time, so with the unit-test job the last two
-start when others have finished.) A job
-after them publishes all the step screenshots and layout notes to the `ui-snapshots-<branch>` branch (and each job
-uploads them as an artifact), and a job uploads its `.xcresult` when a test fails.
+any iPhone simulator; `make test-unit` runs the rest. CI runs seven UI jobs beside the unit tests, each building and
+running on its own: `journeys` (everything not named below, so a new test class runs there until it is given a job),
+`screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
+`sweep-dark` (every sweep test in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
+large text size) and `sweep-large-keep` and `sweep-large-think` (the You tab's screens at the large text size, in two
+halves). A push waits for the slowest of them, which should stay at about 20 minutes: they took 13 to 21 minutes each
+at the last full run, of which the build and the simulator's start are about eight (the tests of the heaviest, the large
+text sizes, are the scrolling). GitHub runs five macOS jobs at a time, so with the unit-test job the last ones start when
+others have finished. A job after them publishes all the step screenshots and layout notes to the
+`ui-snapshots-<branch>` branch (and each job uploads them as an artifact), and a job uploads its `.xcresult` when a test
+fails.
 
 XCUITest is slow where it looks: every query walks the screen, and `waitForExistence` always takes about a second.
 `HyperVaultUITestCase.require` looks first and waits only when the element is missing; keep to it, and to few

@@ -121,7 +121,7 @@ jobs:
   # The journeys: the real app launched on a simulator and driven with taps and typing, through the welcome story,
   # sign-in, the canvas, each tab, every screen the You tab opens, and the waitlist; and a sweep of the main screens in
   # the dark appearance and at an accessibility text size. The app is a debug build whose network is canned inside it
-  # (App/Core/UITestHarness.swift); nothing here reaches a real server. Six jobs run side by side (each builds the
+  # (App/Core/UITestHarness.swift); nothing here reaches a real server. Seven jobs run side by side (each builds the
   # app for itself), so a push waits for the slowest of them and none of them for the others.
   ui:
     name: UI tests (macOS, ${{ matrix.suite }})
@@ -132,10 +132,13 @@ jobs:
       matrix:
         include:
           # The layout sweep (see Tests/UITests/LayoutSweepTests.swift): every screen of it at the largest accessibility
-          # text size in two jobs, because scrolling at that size is slow, and in the dark appearance in one. The slowest
-          # are listed first, so that they start first when GitHub has fewer macOS machines free than there are jobs.
-          - suite: sweep-large-screens
-            tests: -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheYouScreensAtAnAccessibilityTextSize
+          # text size, the You tab's screens in two halves because scrolling at that size is slow, and in the dark
+          # appearance in one job. The slowest are listed first, so that they start first when GitHub has fewer macOS
+          # machines free than there are jobs.
+          - suite: sweep-large-keep
+            tests: -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheKeepAndAgentScreensAtAnAccessibilityTextSize
+          - suite: sweep-large-think
+            tests: -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheThinkAndAccountScreensAtAnAccessibilityTextSize
           - suite: sweep-dark
             tests: >-
               -only-testing:HyperVaultUITests/LayoutSweepTests/testTheTabsInTheDark

@@ -55,6 +55,7 @@ jobs:
           echo "id=$id" >> "$GITHUB_OUTPUT"
 
       - name: Build
+        id: build
         run: |
           set -o pipefail
           xcodebuild build-for-testing \
@@ -64,7 +65,51 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             2>&1 | tee build.log | xcbeautify --renderer github-actions
 
+      # The journeys: the whole app, launched on a simulator of its own (a clone, quieted by
+      # scripts/prepare_ui_simulator.sh so the keyboard and the animations do not get in the way), driven
+      # with taps and typing. The app is a debug build whose network is canned inside it
+      # (App/Core/UITestHarness.swift); nothing here reaches a real server. They run before the unit tests
+      # because they are the quick gate, and the unit tests below run whether or not they pass.
+      - name: Prepare a simulator for the UI tests
+        id: uisim
+        run: |
+          xcrun simctl shutdown "${{ steps.sim.outputs.id }}" 2>/dev/null || true
+          ui=$(xcrun simctl clone "${{ steps.sim.outputs.id }}" "HyperVault UI tests")
+          echo "Using simulator $ui for the UI tests"
+          scripts/prepare_ui_simulator.sh "$ui"
+          echo "id=$ui" >> "$GITHUB_OUTPUT"
+
+      - name: UI tests
+        id: uitests
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -project HyperVault.xcodeproj -scheme HyperVault \
+            -destination "id=${{ steps.uisim.outputs.id }}" \
+            -derivedDataPath build \
+            -only-testing:HyperVaultUITests \
+            -parallel-testing-enabled NO \
+            -resultBundlePath build/ui-tests.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee ui-test.log | xcbeautify --renderer github-actions
+
+      # Every journey step attached a screenshot to the result; they are written out as PNGs next to the
+      # unit tests' snapshots, so they are uploaded and published with them (the ui/ folder).
+      - name: Export the UI test screenshots
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: python3 scripts/export_ui_screenshots.py build/ui-tests.xcresult build/snapshot-out/snapshots/ui
+
+      - name: Upload the UI test results
+        if: ${{ !cancelled() && steps.uitests.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results
+          path: build/ui-tests.xcresult
+          if-no-files-found: ignore
+
       - name: Test
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           # xcodebuild hands TEST_RUNNER_* to the test process without the prefix.
           TEST_RUNNER_HV_SNAPSHOT_DIR: ${{ github.workspace }}/build/snapshot-out
@@ -75,6 +120,7 @@ jobs:
             -project HyperVault.xcodeproj -scheme HyperVault \
             -destination "id=${{ steps.sim.outputs.id }}" \
             -derivedDataPath build \
+            -skip-testing:HyperVaultUITests \
             -resultBundlePath build/tests.xcresult \
             CODE_SIGNING_ALLOWED=NO \
             2>&1 | tee test.log | xcbeautify --renderer github-actions
@@ -109,4 +155,8 @@ jobs:
         if: failure()
         run: |
           echo "---- errors ----"
-          grep -hE "error:|\*\* (BUILD|TEST) FAILED|Test Case .* failed" build.log test.log 2>/dev/null | sort -u | head -80
+          grep -hE "error:|\*\* (BUILD|TEST) FAILED|Test Case .* failed" build.log ui-test.log test.log 2>/dev/null | sort -u | head -80
+          echo "---- failing tests ----"
+          grep -hoE "Test Case '[^']+' failed" ui-test.log test.log 2>/dev/null | sort -u | head -80
+          echo "---- UI test failures, as the result bundle records them ----"
+          python3 scripts/summarize_xcresult.py build/ui-tests.xcresult || true

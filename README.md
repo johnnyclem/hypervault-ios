@@ -65,10 +65,21 @@ project to sign in against, what the server supports and its limits.
   and a read is possible another way, the app reads the same rows through Supabase with
   the person's own token (the keys list, claimed addresses, pins and pages shared with
   you), exactly as the web's account page does.
-- **Sign-in redirects.** Add `hypervault://auth/callback` to the Supabase project's
-  redirect allow-list. Sign in with Apple needs the Apple provider turned on in
-  Supabase; email codes need the email provider. The sign-in screen offers only what
-  the project allows (`GET /auth/v1/settings`).
+- **Google sign-in's way back.** Supabase will not return a browser to `hypervault://`
+  unless that scheme is on its Redirect URLs list (it is not on the production project's:
+  Supabase sends the code to the Site URL instead, and the sign-in sheet ends on the
+  website's own login page). So the app asks Supabase to return to
+  `https://<server>/auth/callback?client=app`, an address it already accepts, and the web
+  app's callback hands the code on to `hypervault://auth/callback`
+  ([hypervault#181](https://github.com/johnnyclem/hypervault/pull/181)). Nothing to add to
+  Supabase. A deployment without that change cannot finish a Google sign-in; the app asks
+  the page before it opens Google and says so instead of stranding you in the sheet. Check a
+  deployment with
+  `curl -sI 'https://hypervault.store/auth/callback?client=app&code=x'`: it must answer
+  `302` with `location: hypervault://auth/callback?code=x`.
+- **Other ways in.** Sign in with Apple needs the Apple provider turned on in Supabase;
+  email codes need the email provider and a template that includes the six-digit code. The
+  sign-in screen offers only what the project allows (`GET /auth/v1/settings`).
 - **Universal links** (optional): serve `/.well-known/apple-app-site-association`
   for `hypervault.store` so `https://hypervault.store/a/<slug>` opens in the app. The
   `hypervault://` scheme works without it.

@@ -25,6 +25,20 @@ func keysMessage(for error: Error) -> String {
     (error as? HVError)?.userMessage ?? error.localizedDescription
 }
 
+/// First-run state the connect card on the canvas keeps on the profile (PATCH /api/onboarding). Best effort and
+/// silent: a server that cannot record it just shows the card once per device.
+enum ConnectOnboarding {
+    /// "I'll look around first": the connect card was dismissed. Call it from wherever that card lives.
+    static func recordDismissed(client: HVClient) {
+        Task { _ = try? await client.send(.recordOnboarding(connectDismissed: true)) }
+    }
+
+    /// An agent finished its setup challenge.
+    static func recordCompleted(client: HVClient) {
+        Task { _ = try? await client.send(.recordOnboarding(connectCompleted: true)) }
+    }
+}
+
 // MARK: Copying
 
 enum KeysPasteboard {
@@ -131,6 +145,19 @@ struct KeysSafariSheet: UIViewControllerRepresentable {
 }
 
 // MARK: Small pieces
+
+private struct KeysHidesWhenInactive: ViewModifier {
+    @Environment(\.scenePhase) private var phase
+
+    func body(content: Content) -> some View {
+        content.blur(radius: phase == .active ? 0 : 14)
+    }
+}
+
+extension View {
+    /// Blurs a secret while the app is not in the foreground, so the app switcher's snapshot does not show it.
+    func keysHidesWhenInactive() -> some View { modifier(KeysHidesWhenInactive()) }
+}
 
 /// A calm notice with a tint: the amber "untested" and "the URL is the key" warnings, and the like.
 struct KeysNotice: View {

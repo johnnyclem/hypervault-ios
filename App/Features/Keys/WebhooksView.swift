@@ -418,6 +418,7 @@ private struct AddWebhookSheet: View {
                     .padding(HV.Space.s + 2)
                     .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
                     .accessibilityLabel("Signing secret, shown once. Use the copy button.")
+                    .keysHidesWhenInactive()
                 KeysCopyButton(title: "Copy secret", text: secret, isSecret: true, style: .primary) { copiedSecret = true }
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
                     Text("How to check a post").font(.hvHeadline)

@@ -56,7 +56,6 @@ struct ConnectAgentSheet: View {
         } message: {
             Text("It is shown once. If you close now you will need to make another.")
         }
-        .onDisappear { model?.wipe() }
     }
 
     private func close() {
@@ -317,6 +316,7 @@ private struct ConnectClientScreen: View {
                         .padding(HV.Space.s + 2)
                         .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
                         .accessibilityLabel("Your key, shown once. Use the copy button.")
+                        .keysHidesWhenInactive()
                     KeysCopyButton(title: "Copy key", text: fresh.key, isSecret: true) { model.markCopied() }
                 }
 

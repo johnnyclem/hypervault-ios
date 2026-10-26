@@ -66,10 +66,9 @@ struct TruthDraftsScreen: View {
     var body: some View {
         List {
             Section {
-                Picker("Status", selection: Binding(get: { model.status }, set: { next in Task { await model.select(next) } })) {
+                TruthChoicePicker(title: "Status", selection: Binding(get: { model.status }, set: { next in Task { await model.select(next) } })) {
                     ForEach(TruthProposalStatus.allCases) { status in Text(status.title).tag(status) }
                 }
-                .pickerStyle(.segmented)
                 .listRowBackground(Color.clear)
             } footer: {
                 // A footer in a grouped list sits on the page as quiet text; in a plain list it got its own black band.

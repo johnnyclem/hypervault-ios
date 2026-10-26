@@ -56,11 +56,10 @@ struct TruthAssertView: View {
 
     private var form: some View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
-            Picker("Kind", selection: $draft.type) {
+            TruthChoicePicker(title: "Kind", selection: $draft.type) {
                 Text("UV: I believe this").tag(TruthEntryType.uv)
                 Text("TB: I stand behind this").tag(TruthEntryType.tb)
             }
-            .pickerStyle(.segmented)
             Text(draft.type == .tb
                 ? "A TB is signed by you and answerable to you. It needs evidence, and it outranks recalled memory."
                 : "A UV is a belief to be checked. It goes on the docket, and is never shown as proven.")
@@ -209,11 +208,10 @@ struct TruthNewLedgerView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.m) {
                     if !hostedOnly {
-                        Picker("Kind", selection: $kind) {
+                        TruthChoicePicker(title: "Kind", selection: $kind) {
                             Text("Hosted").tag(TruthLedgerKind.hosted)
                             Text("Mirror").tag(TruthLedgerKind.mirror)
                         }
-                        .pickerStyle(.segmented)
                     }
                     Text(kind == .hosted
                         ? "A hosted ledger is written here: you and your agents assert into it, and the review decides it."

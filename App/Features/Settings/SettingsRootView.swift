@@ -13,6 +13,7 @@ struct SettingsRootView: View {
     @AppStorage(PrefKey.biometricLock) private var biometricLock = false
     @AppStorage(SpotlightIndexer.preferenceKey) private var spotlight = true
 
+    @State private var waiting = OutboxStore.count
     @State private var serverText = ""
     @State private var isChangingServer = false
     @State private var showServerConfirm = false
@@ -56,6 +57,18 @@ struct SettingsRootView: View {
                         }
                     }
                 ))
+            }
+
+            if waiting > 0 {
+                Section(header: Text("Waiting"), footer: Text("Things you shared while there was no connection. They are kept the next time HyperVault can reach the server.")) {
+                    LabeledContent("Waiting to keep", value: "\(waiting)")
+                    Button("Try now") {
+                        Task {
+                            await env.flushOutbox(toasts: model.toasts)
+                            waiting = OutboxStore.count
+                        }
+                    }
+                }
             }
 
             Section(header: Text("Account")) {

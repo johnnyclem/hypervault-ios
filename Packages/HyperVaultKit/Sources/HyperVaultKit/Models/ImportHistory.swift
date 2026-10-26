@@ -115,11 +115,13 @@ public struct ImportTotals: Sendable, Equatable {
         lastMessage = outcome.message
     }
 
-    /// The sentence for the finish line, in the server's own shape.
-    public func summary(platform: ImportPlatform) -> String {
-        let noun = imported == 1 ? "conversation" : "conversations"
+    /// The sentence for the finish line, in the server's own shape. Numbers are grouped the way the
+    /// stats card beside it groups them, and a count of one is singular.
+    public func summary(platform: ImportPlatform, locale: Locale = .current) -> String {
+        let conversations = "\(imported.formatted(.number.locale(locale))) \(imported == 1 ? "conversation" : "conversations")"
+        let said = "\(messages.formatted(.number.locale(locale))) \(messages == 1 ? "message" : "messages")"
         let from = platform == .other ? "" : " from \(platform.title)"
-        return "Imported \(imported) \(noun) (\(messages) messages)\(from). Open Chat to continue them on any backend."
+        return "Imported \(conversations) (\(said))\(from). Open Chat to continue them on any backend."
     }
 }
 

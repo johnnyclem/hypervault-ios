@@ -102,8 +102,10 @@ final class AppLock {
     }
 }
 
-/// What covers the app while it is locked. It is also the only thing VoiceOver, Switch Control and a keyboard can
-/// reach then: `RootView` hides and disables the app underneath.
+/// What covers the app while it is locked. It is drawn in a window of its own above every sheet (see
+/// `PrivacyCoverController`), and it is the only thing VoiceOver, Switch Control and a keyboard can reach then: the
+/// window takes the keyboard's focus and hides the app's windows from VoiceOver, and `RootView` also hides and disables
+/// the app underneath.
 struct LockScreen: View {
     let lock: AppLock
 
@@ -133,7 +135,7 @@ struct LockScreen: View {
     }
 }
 
-/// A blank card for the app switcher.
+/// A blank card for the app switcher. It is for the eye only: nothing on it is for VoiceOver.
 struct PrivacyShield: View {
     var body: some View {
         ZStack {
@@ -141,5 +143,6 @@ struct PrivacyShield: View {
             BrandMark(size: 64)
         }
         .ignoresSafeArea()
+        .accessibilityHidden(true)
     }
 }

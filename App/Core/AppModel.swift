@@ -56,6 +56,8 @@ final class AppModel {
     let toasts = ToastCenter()
     let router = AppRouter()
     let lock = AppLock()
+    /// Puts the lock screen and the app-switcher shield in a window above every sheet.
+    let privacy: PrivacyCoverController
 
     /// An invite code that arrived in a link before anyone was signed in.
     var pendingInviteCode: String?
@@ -84,6 +86,7 @@ final class AppModel {
         self.server = server
         self.transport = transport
         self.cache = DiskCache(directory: cacheDirectory)
+        self.privacy = PrivacyCoverController(lock: lock, presenter: SceneCoverPresenter(lock: lock))
     }
 
     nonisolated static func cacheDirectory() -> URL {

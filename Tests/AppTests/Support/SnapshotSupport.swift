@@ -25,7 +25,11 @@ func snapshot<V: View>(
 
     for scheme in schemes {
         let host = UIHostingController(rootView: view)
-        let window = UIWindow(frame: CGRect(origin: .zero, size: size))
+        // The window must belong to the host app's scene, or nothing is drawn.
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow(frame: CGRect(origin: .zero, size: size))
+        window.frame = CGRect(origin: .zero, size: size)
+        window.windowLevel = .alert + 1
         window.overrideUserInterfaceStyle = scheme
         window.rootViewController = host
         window.makeKeyAndVisible()

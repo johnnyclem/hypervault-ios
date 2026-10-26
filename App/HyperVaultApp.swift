@@ -13,7 +13,12 @@ struct HyperVaultApp: App {
                 .tint(accent.color)
                 .preferredColorScheme(appearance.colorScheme)
                 .onOpenURL { url in model.handle(url: url) }
-                .task { await model.start() }
+                .task {
+                    // Unit tests host the app; they must not go to the network.
+                    if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+                        await model.start()
+                    }
+                }
         }
     }
 }

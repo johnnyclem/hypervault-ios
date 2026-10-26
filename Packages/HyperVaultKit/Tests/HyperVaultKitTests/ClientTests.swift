@@ -85,6 +85,21 @@ final class ClientTests: XCTestCase {
         XCTAssertEqual(refreshes, 1)
     }
 
+    func testARouteThatRefusesAGoodTokenShowsItsOwnSentence() async {
+        let transport = MockTransport(routes: [.failure(.post, "/api/keys", status: 401, message: "Sign in to create API keys.")])
+        let api = client(transport, tokens: FakeTokens(token: "stale", next: "fresh"))
+        do {
+            let _: NoContent = try await api.send(Endpoint(.post, "/api/keys"))
+            XCTFail("expected failure")
+        } catch let error as HVError {
+            XCTAssertEqual(error.status, 401)
+            XCTAssertEqual(error.userMessage, "Sign in to create API keys.")
+            XCTAssertNotEqual(error, .unauthorized)
+        } catch {
+            XCTFail("wrong error \(error)")
+        }
+    }
+
     func testStaysUnauthorizedWhenRefreshGivesNothing() async {
         let transport = MockTransport(routes: [.failure(.get, "/api/thing", status: 401, message: "no")])
         let api = client(transport, tokens: FakeTokens(token: "stale", next: nil))

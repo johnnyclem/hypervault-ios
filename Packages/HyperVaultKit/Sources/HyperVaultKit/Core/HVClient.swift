@@ -96,7 +96,9 @@ public final class HVClient: Sendable {
                     await sleep(delay(attempt: attempt, retryAfter: failure.retryAfter))
                     continue
                 }
-                if response.status == 401 { throw HVError.unauthorized }
+                // A 401 after a successful refresh is the route refusing a good
+                // token (a route that only takes a web session, say), not a
+                // signed-out person: show the server's own sentence.
                 throw HVError.api(failure)
             } catch let error as HVError {
                 throw error

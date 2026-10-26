@@ -78,6 +78,9 @@ targets:
         HVAppGroup: $(HV_APP_GROUP)
         HVKeychainGroup: $(AppIdentifierPrefix)$(HV_KEYCHAIN_GROUP)
         HVDefaultServer: $(HV_DEFAULT_SERVER)
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSLocalNetworkUsageDescription: Connect to a model running on your own network, like Ollama or LM Studio.
         NSFaceIDUsageDescription: Lock HyperVault so only you can open it.
         NSMicrophoneUsageDescription: Dictate into the canvas and chat with your voice.
         NSSpeechRecognitionUsageDescription: Turn what you say into text, on your device where possible.

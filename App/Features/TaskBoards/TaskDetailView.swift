@@ -247,6 +247,7 @@ struct TaskDetailView: View {
                     Text(when.formatted(date: .abbreviated, time: .shortened))
                         .font(.hvCaption)
                         .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Text(verbatim: note.body).font(.hvBody)

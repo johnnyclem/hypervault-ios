@@ -64,6 +64,7 @@ private struct DreamsContent: View {
             Text("Dream every night")
                 .font(.hvHeadline)
                 .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
             Text("While you sleep, HyperVault looks for connections you never made by hand, between your memories and your pages, and stages them here for you to review.")
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)

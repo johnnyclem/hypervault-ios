@@ -74,6 +74,7 @@ private struct DigestContent: View {
             Text("Auto-digest on import")
                 .font(.hvHeadline)
                 .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
             Text("A big import or a pasted chat can land as one memory when it is really many. Digest proposes how to split it, and nothing changes until you say so.")
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)

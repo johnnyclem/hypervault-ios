@@ -110,6 +110,8 @@ enum TruthPreviewData {
 
     static var noticeRoutes: [MockRoute] {
         [
+            // The ledger the notices are about, so each one can name its claim and open the entry.
+            .json(.get, "/api/truth", overview),
             .json(.get, "/api/truth/events", #"{"events":[{"id":"e1","entry_id":"01M1E6JK8SQAJ8K0JBRHTD10YG","entry_type":"TB","kind":"undermined","prior_status":"active","new_status":"active","by_entry_id":"01M1E6JK8QHST8RZF45PNRBMXG","by_author":"kim","summary":"TB 01M1E6JK8SQAJ8K0JBRHTD10YG is unsupported: a premise beneath it was struck.","created_at":"2026-10-24T10:00:00.000000+00:00"},{"id":"e2","entry_id":"01M1E6JK81TR57BA191BG8Y0Q3","entry_type":"UV","kind":"verified","prior_status":"open","new_status":"verified","by_entry_id":null,"by_author":null,"summary":"UV 01M1E6JK81TR57BA191BG8Y0Q3 was verified.","created_at":"2026-10-23T09:00:00.000000+00:00"}],"kinds":[]}"#),
         ]
     }

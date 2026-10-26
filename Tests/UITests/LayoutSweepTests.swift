@@ -24,13 +24,6 @@ final class LayoutSweepTests: HyperVaultUITestCase {
 
         look(mode, "canvas with its hints", key: element("canvas.field"), "the canvas field", dumpTree: true)
 
-        step("\(mode): the canvas puts memories on the page") {
-            enter("show my memories", into: textField("canvas.field"), "the canvas field")
-            tap(element("canvas.send"), "Send")
-            require(button("Hide Trip to Lisbon: ferry and passports"), "the Lisbon memory's card")
-        }
-        look(mode, "canvas with cards", key: element("canvas.field"), "the canvas field")
-
         openTab("Yours")
         look(mode, "Yours", key: element("yours.row.a1"), "the Bakery landing page row")
         openTab("Memory")
@@ -41,6 +34,15 @@ final class LayoutSweepTests: HyperVaultUITestCase {
         look(mode, "Chat, rooms", key: element("chat.room.r1"), "the Features X and Y room row")
         openTab("You")
         look(mode, "You", key: element("you.profile"), "the profile card")
+
+        // Last, because typing brings the keyboard up over the tab bar.
+        openTab("Canvas")
+        step("\(mode): the canvas puts memories on the page") {
+            enter("show my memories", into: textField("canvas.field"), "the canvas field")
+            tap(element("canvas.send"), "Send")
+            require(button("Hide Trip to Lisbon: ferry and passports"), "the Lisbon memory's card")
+        }
+        look(mode, "canvas with cards", key: element("canvas.field"), "the canvas field")
     }
 
     // MARK: What the You tab opens
@@ -74,37 +76,37 @@ final class LayoutSweepTests: HyperVaultUITestCase {
 
         // One level further in, where the layouts are different again.
         openFromYou("taskBoards", title: "Task boards")
-        tap(element("taskboards.row.eurorack-choir"), "the Eurorack Choir board")
+        open(element("taskboards.row.eurorack-choir"), "the Eurorack Choir board")
         look(mode, "a task board", key: element("taskboard.task.t-panels"), "the front panels task")
-        tap(element("taskboard.task.t-panels"), "the front panels task")
+        open(element("taskboard.task.t-panels"), "the front panels task")
         look(mode, "a task", key: shows("Two quotes in, one to go."), "the agent's note")
 
         openFromYou("truth", title: "Truth")
-        tap(element("truth.entry.01M1E6JK8SQAJ8K0JBRHTD10YG"), "the retry cap entry")
+        open(element("truth.entry.01M1E6JK8SQAJ8K0JBRHTD10YG"), "the retry cap entry")
         look(mode, "a truth entry", key: shows("The retry budget is 100."), "the premise beneath it")
 
         openFromYou("mail", title: "Mail")
-        tap(element("mail.thread.11111111-1111-4111-8111-111111111111"), "the Weekly plan thread")
+        open(element("mail.thread.11111111-1111-4111-8111-111111111111"), "the Weekly plan thread")
         look(mode, "a mail thread", key: shows("Done. Friday it is, and I updated the page."), "the newest message")
 
         openFromYou("vaultItems", title: "Logins, cards & keys")
-        tap(element("vault.row.github.com"), "the github.com entry")
+        open(element("vault.row.github.com"), "the github.com entry")
         look(mode, "a vault entry", key: shows("How an agent reads it"), "the section that says how an agent reads it")
 
         openFromYou("realms", title: "Your address")
-        tap(element("realms.row.c1"), "the nova.vault.cool address")
+        open(element("realms.row.c1"), "the nova.vault.cool address")
         look(mode, "an address", key: shows("Glassmorphism"), "the look it has")
 
         openFromYou("agentsAndKeys", title: "Account & keys")
-        tap(element("keys.row.k1"), "the Claude Code key")
+        open(element("keys.row.k1"), "the Claude Code key")
         look(mode, "a key", key: shows("Revoke key"), "the Revoke key row")
 
         openFromYou("agentsAndKeys", title: "Account & keys")
-        tap(element("keys.connect"), "Connect an agent")
+        open(element("keys.connect"), "Connect an agent")
         look(mode, "Connect your AI", key: shows("Just make a key"), "the way to make a key for anything not listed")
         enter("Cursor", into: searchField("Search apps, like Cursor or curl"), "the app search")
-        tap(element("connect.client.cursor"), "the Cursor row")
-        tap(button("Make the key"), "Make the key")
+        open(element("connect.client.cursor"), "the Cursor row")
+        open(button("Make the key"), "Make the key")
         look(mode, "a key, just made", key: button("Copy key"), "the Copy key button")
     }
 
@@ -119,22 +121,22 @@ final class LayoutSweepTests: HyperVaultUITestCase {
         continueAfterFailure = true
 
         openTab("Memory")
-        tap(element("memory.row.m1"), "the Lisbon memory")
+        open(element("memory.row.m1"), "the Lisbon memory")
         look(mode, "a memory", key: shows("Lisbon, first weekend"), "the heading inside the memory's text")
         goBack()
 
         openTab("Chat")
-        tap(element("chat.row.c1"), "the Lisbon conversation")
+        open(element("chat.row.c1"), "the Lisbon conversation")
         look(mode, "a conversation", key: textField("Message"), "the message field")
         goBack()
         choose("Rooms", from: "chat.section")
-        tap(element("chat.room.r1"), "the Features X and Y room")
+        open(element("chat.room.r1"), "the Features X and Y room")
         look(mode, "a room", key: textField("Message"), "the message field")
 
         openFromYou("library", title: "Library")
-        tap(element("library.row.a1"), "the Bakery landing page row")
+        open(element("library.row.a1"), "the Bakery landing page row")
         look(mode, "a page", key: element("artifact.share"), "the Share action")
-        tap(element("artifact.share"), "Share")
+        open(element("artifact.share"), "Share")
         look(mode, "the Share sheet", key: button("Done"), "Done")
         tap(button("Done"), "Done")
     }
@@ -165,14 +167,13 @@ final class LayoutSweepTests: HyperVaultUITestCase {
 
     // MARK: Looking
 
-    /// Checks the key control of a screen is there and can be tapped, writes down what its tree says about the layout, and
-    /// keeps a screenshot named for the mode and the screen.
+    /// Keeps a screenshot of the screen as it opens (its top, which is where most layout bugs show), writes down what its
+    /// tree says about the layout, then makes sure the key control is there and can be tapped, scrolling to it if the
+    /// text size has pushed it below the fold (and keeping a second screenshot if it had to).
     private func look(_ mode: String, _ screen: String, key: XCUIElement, _ what: String, dumpTree: Bool = false, file: StaticString = #filePath, line: UInt = #line) {
-        step("\(mode): \(screen)") {
-            require(key, what, file: file, line: line)
-            if key.exists {
-                XCTAssertTrue(key.isHittable, "\(what) is on the \(screen) screen (\(mode)) but cannot be tapped.", file: file, line: line)
-            }
+        let started = Date()
+        XCTContext.runActivity(named: "\(mode): \(screen)") { _ in
+            attachScreenshot("\(mode) - \(screen)")
             let tree = app.debugDescription
             let notes = LayoutReport.notes(from: tree)
             let report = notes.isEmpty ? "Nothing to note: every control is at least 44 points and nothing is off the screen." : notes.joined(separator: "\n")
@@ -187,6 +188,15 @@ final class LayoutSweepTests: HyperVaultUITestCase {
                 raw.lifetime = .keepAlways
                 add(raw)
             }
+
+            if !(key.exists && key.isHittable) {
+                reveal(key, what, file: file, line: line)
+                if key.exists { attachScreenshot("\(mode) - \(screen) - scrolled to \(what)") }
+            }
+            if key.exists {
+                XCTAssertTrue(key.isHittable, "\(what) is on the \(screen) screen (\(mode)) but cannot be tapped.", file: file, line: line)
+            }
         }
+        print(String(format: "[journey] %6.1f s  %@ / %@ - %@", Date().timeIntervalSince(started), String(describing: type(of: self)), mode, screen))
     }
 }

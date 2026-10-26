@@ -178,8 +178,11 @@ nothing can reach. They live in `Tests/UITests` (the `HyperVaultUITests` target,
 **The UI-test mode.** A debug build launched with `-HV_UITEST -HV_UITEST_SCENARIO <name>` builds its `AppModel` on a
 canned server instead of the real one (`App/Core/UITestHarness.swift`, one call in `HyperVaultApp`, compiled out of
 release builds). The scenarios are `signedOut` (the welcome story and the way in), `signedIn` (a few things kept, memories,
-chats, a connected model), `signedInEmpty` (the first run) and `waitlisted`. The network is a `MockTransport` over the routes in
-`App/Core/UITestWorld.swift`, the secure store is in memory, the cache and the shared defaults are scratch, and the
+chats, a connected model), `signedInEmpty` (the first run), `waitlisted` and `signedInAdmin` (`signedIn`, for a person the
+server knows as an admin; for everyone else the admin check gets the 403 the real routes send). The network is a
+`MockTransport` over the routes in `App/Core/UITestWorld.swift` and `UITestWorld+Screens.swift` (the keys, the address,
+a room, Truth, the task boards, the import, sharing, admin: what changes while a journey plays, such as a key being made
+or revoked, lives in a small object that one launch owns), the secure store is in memory, the cache and the shared defaults are scratch, and the
 canned hosts end in `.invalid`; anything that builds its own `URLSession` request is answered or refused by
 `UITestURLProtocol`. Animations are off, so the app settles at once after every tap. Release is never built in CI, so
 `scripts/check_debug_only.py` (a step of the CI job) fails if any of this is not inside `#if DEBUG`. A run never reaches a real server, the Keychain or anything a person left on the phone.
@@ -190,19 +193,30 @@ canned hosts end in `.invalid`; anything that builds its own `URLSession` reques
    `welcome.continue`). A plain-text button or a title is found by its real label instead, which also tests what
    VoiceOver reads. Put the identifier on the control itself (the button, the field, a row that combines its words),
    not on a container.
-2. If the screen reads a route the scenarios do not answer, add it to `UITestWorld` in the shape the real route sends
-   (`UITestWorldTests` decodes the canned answers through the Kit's own endpoints, so a route that drifts fails there
-   in seconds), or reuse the screen's `*PreviewData.routes`.
+2. If the screen reads a route the scenarios do not answer, add it to `UITestWorld` (or `UITestWorld+Screens.swift`) in the
+   shape the real route sends, or reuse the screen's `*PreviewData.routes`. Routes are tried in order and the first
+   match wins, and only the path is matched, so two reads of one path (`/rest/v1/artifacts`) are told apart in the route.
+   An unmatched route is a 404, which a screen shows as an error: add the route rather than accept that screen.
+   `UITestWorldTests` and `UITestScreensTests` decode the canned answers through the Kit's own endpoints, so a route
+   that drifts fails there in seconds.
 3. Write the journey in `Tests/UITests`, subclassing `HyperVaultUITestCase`: `launch(.signedIn)`, then `step("...") { }`
    blocks that `tap`, `enter`, `require` an element or `waitUntil` something holds. Every wait is long because CI
    simulators are slow, every failure says what was missing, and each step keeps a screenshot with the result. Wait
    for the right element rather than sleeping, and fix a flaky journey at its cause (an identifier, a better wait),
    never by skipping it.
 
+**The layout sweep.** `LayoutSweepTests` launches the app with `-AppleInterfaceStyle Dark` and with
+`-UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityXXXL`, visits the main screens, and for each keeps a
+screenshot and a text note (`LayoutReport`: controls under 44 points, anything drawn off the screen) beside it. It
+asserts only that the screen's key control can be tapped. The point is to look: fetch `ui-snapshots-<branch>` after a
+run and read the screenshots. A new screen belongs in the sweep when it has a layout of its own.
+
 **Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
-any iPhone simulator; `make test-unit` runs the rest. CI runs them in a job of their own beside the unit tests, so a push
-waits for the slower of the two; it publishes the step screenshots to the `ui-snapshots-<branch>` branch (and as an
-artifact), and uploads the `.xcresult` when a journey fails.
+any iPhone simulator; `make test-unit` runs the rest. CI runs three UI jobs beside the unit tests (the journeys, the
+screens behind the You tab, the sweep; each builds and runs on its own, and a test class that is not named in the
+workflow runs with the journeys), so a push waits for the slowest of them, which should stay under 20 minutes. A job
+after them publishes all the step screenshots and layout notes to the `ui-snapshots-<branch>` branch (and each job
+uploads them as an artifact), and a job uploads its `.xcresult` when a test fails.
 
 XCUITest is slow where it looks: every query walks the screen, and `waitForExistence` always takes about a second.
 `HyperVaultUITestCase.require` looks first and waits only when the element is missing; keep to it, and to few

@@ -104,8 +104,9 @@ Tests/AppTests/          App tests and snapshot renders.
 `.github/workflows/ios.yml` runs the Kit's tests on Linux and builds and tests the app
 on a macOS simulator. The app's snapshot tests render screens in light and dark and the
 workflow publishes the PNGs to a `snapshots-<branch>` branch, so a screen can be looked
-at without opening Xcode. A second job runs the UI tests beside them and publishes what the
-app looked like at each step of each journey to `ui-snapshots-<branch>`.
+at without opening Xcode. Three more jobs run the UI tests beside them (the journeys, the
+screens behind the You tab, and a layout sweep) and publish what the app looked like at each
+step to `ui-snapshots-<branch>`.
 
 ### How it is tested
 
@@ -119,9 +120,31 @@ Four layers, each catching what the one below cannot see:
   presents or a control nothing can reach fails CI.
 
 The UI tests need no server. A debug build launched with `-HV_UITEST -HV_UITEST_SCENARIO <signedOut | signedIn |
-signedInEmpty | waitlisted>` builds its model on a canned server inside the app (`App/Core/UITestHarness.swift` and
-`UITestWorld.swift`, compiled out of release builds), with an in-memory secure store and scratch defaults, so a run never
-touches the network, the Keychain or the phone's own state. To run them locally:
+signedInEmpty | waitlisted | signedInAdmin>` builds its model on a canned server inside the app
+(`App/Core/UITestHarness.swift`, `UITestWorld.swift` and `UITestWorld+Screens.swift`, compiled out of release builds),
+with an in-memory secure store and scratch defaults, so a run never touches the network, the Keychain or the phone's own
+state. They cover:
+
+- the **journeys**: the welcome story, sign-in and the email code sheet, the canvas (keep, ask, show, hide), the Yours,
+  Memory and Chat tabs, the Library (list and graph), Settings, the first run and the waitlist;
+- every **screen the You tab opens**, against canned answers that give it real content: Logins, cards & keys (and one
+  entry), Mail (the inbox, then a thread), Truth (the ledger, an entry's ancestry, the review docket), Tools (and a
+  server), Your address (and one), Import (a pasted conversation read and sent), Dreams, Digest, Task boards (a board,
+  then a task), Account & keys (Connect your AI through to a key that is shown once and copied, and revoking a key) and,
+  for an admin, Admin (minting an invite code, switching it off, Accounts & waitlist); and a memory in full, Memory's Ask
+  mode, a conversation and a room that take a message and answer it, a page from the Library with its Share, History
+  and Details sheets;
+- a **layout sweep**: the main screens launched in the dark appearance and at the largest accessibility text size, a
+  screenshot of each, and a note of every control under 44 points or drawn off the screen.
+
+They do not cover: a real sign-in (Google, Apple, a real email code), a real server, a real model, mail provider or
+payment (the app opens the web for those); anything that needs a device (Face ID and the biometric lock, dictation,
+the document scanner, the camera, widgets, the share extension, Spotlight, notifications, on-device models); the
+system's own sheets and pickers (the file importer, the share sheet, Safari); screens that are opened and read but not
+edited (creating a room, a ledger, a board or a vault entry, editing or forgetting a memory, composing or replying to
+mail, deciding a dream, a digest or a truth, claiming an address, deleting anything); landscape, iPad, and text sizes
+other than the default and the largest accessibility one. Layout is judged by looking at the sweep's screenshots; a test
+fails only when a screen's key control cannot be reached. To run them locally:
 
 ```sh
 make test-ui
@@ -182,9 +205,10 @@ server change if you want the app to do more:
   parsing, sign-in and access phases) and renders every screen in light and dark, and the
   main ones at the largest text sizes, to PNGs the workflow publishes.
 - CI also launches the whole app and drives it: UI tests walk the welcome story, sign-in, the canvas (keep, ask,
-  show, hide), Yours, Memory, Chat, the Library, Settings, Account & keys, the first run and the waitlist, on a
-  canned server inside the app. They do not cover a real sign-in, a real server, or anything that needs a device
-  (Face ID, dictation, the scanner, widgets, the share extension).
+  show, hide), Yours, Memory, Chat, the Library, Settings, every screen the You tab opens, the first run and the
+  waitlist, on a canned server inside the app, and sweep the main screens in the dark appearance and at the largest
+  accessibility text size. They do not cover a real sign-in, a real server, or anything that needs a device
+  (Face ID, dictation, the scanner, widgets, the share extension); "How it is tested" lists the rest.
 - The Kit's models decode the response shapes a real deployment sent for about twenty authenticated endpoints
   (Yours, artifacts and groups, the connections graph, chat lists and settings, memories, Mind, dreams, digest,
   jobs): field names, types, nulls and nesting were captured from production on 2026-10-26 and are pinned in

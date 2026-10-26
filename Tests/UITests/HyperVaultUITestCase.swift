@@ -211,6 +211,12 @@ class HyperVaultUITestCase: XCTestCase {
         require(element, what, timeout: 5, file: file, line: line)
     }
 
+    /// Scrolls to an element if it is not yet on screen, then taps it: for rows that a larger text size has pushed below the fold.
+    func open(_ element: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
+        if !(element.exists && element.isHittable) { reveal(element, what, file: file, line: line) }
+        tap(element, what, file: file, line: line)
+    }
+
     /// Opens a tab. What it shows is for the journey to wait for.
     func openTab(_ title: String, file: StaticString = #filePath, line: UInt = #line) {
         tap(tab(title), "the \(title) tab", file: file, line: line)
@@ -230,6 +236,12 @@ class HyperVaultUITestCase: XCTestCase {
     /// Opens a row of the You tab, scrolling to it first, and waits for the screen to name itself.
     func openFromYou(_ id: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
         openTab("You", file: file, line: line)
+        // Choosing the tab again takes the person back to its first screen; if it has not, go back until it is.
+        var goneBack = 0
+        while !isShowingTitle("You"), goneBack < 4 {
+            goBack(file: file, line: line)
+            goneBack += 1
+        }
         let row = element("you.\(id)")
         reveal(row, "the \(id) row of the You tab", file: file, line: line)
         tap(row, "the \(id) row", file: file, line: line)

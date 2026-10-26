@@ -200,8 +200,15 @@ struct CanvasScreen: View {
     }
 
     private func toggleDictation() {
-        if !dictation.isListening { dictationBase = model.draft }
-        Task { await dictation.toggle() }
+        if !dictation.isListening {
+            dictationBase = model.draft
+            model.dismissNotice()
+        }
+        Task {
+            await dictation.toggle()
+            // Read once the start has finished, not watched: asking again after a refusal must say so again.
+            if let problem = dictation.problem { model.dictationFailed(problem) }
+        }
     }
 
     private func copyStarter() {

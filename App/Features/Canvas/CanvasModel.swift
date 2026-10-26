@@ -28,6 +28,8 @@ struct KeepNotice: Equatable {
     enum Kind { case error, note }
     let kind: Kind
     let text: String
+    /// The line is about a permission only Settings can change, so it offers the way there.
+    var opensSettings = false
 }
 
 /// The canvas: a field, a short stack of cards and a thread. It follows the web
@@ -498,4 +500,9 @@ final class CanvasModel: CanvasCommandHost {
     }
 
     func dismissNotice() { notice = nil }
+
+    /// Dictation did not start: say why under the cards, and for a permission that is refused, where to change it.
+    func dictationFailed(_ problem: DictationProblem) {
+        notice = KeepNotice(kind: .note, text: problem.line, opensSettings: problem == .denied)
+    }
 }

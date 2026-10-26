@@ -2,7 +2,8 @@ import HyperVaultKit
 import XCTest
 @testable import HyperVault
 
-/// The canvas field: what counts as a paste, where a paste can go, and what Return does.
+/// The canvas field: what counts as a paste, where a paste can go, what Return does, and what the
+/// page says when dictation cannot start.
 @MainActor
 final class CanvasFieldTests: CanvasTestCase {
     func testAskInsteadPutsThePasteInTheFieldAndTheFieldKeepsIt() {
@@ -143,5 +144,18 @@ final class CanvasFieldTests: CanvasTestCase {
         let requests = await transport.requests(matching: "/api/chat")
         XCTAssertTrue(requests.isEmpty)
         XCTAssertTrue(model.messages.isEmpty)
+    }
+
+    func testADeniedMicrophoneIsSaidInOneLineWithAWayToSettings() {
+        let (model, _) = make([])
+        model.dictationFailed(.denied)
+        XCTAssertEqual(model.notice?.text, DictationProblem.denied.line)
+        XCTAssertEqual(model.notice?.opensSettings, true)
+        XCTAssertEqual(model.notice?.kind, .note)
+
+        model.dictationFailed(.unavailable)
+        XCTAssertEqual(model.notice?.opensSettings, false)
+        model.dismissNotice()
+        XCTAssertNil(model.notice)
     }
 }

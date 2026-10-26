@@ -152,11 +152,17 @@ private struct NoticeLine: View {
     let notice: KeepNotice
     let dismiss: () -> Void
 
+    @Environment(\.openURL) private var openURL
+
     var body: some View {
         HStack(spacing: HV.Space.xs) {
             Image(systemName: notice.kind == .error ? "exclamationmark.circle" : "info.circle")
             Text(notice.text).font(.hvFootnote)
             Spacer(minLength: 0)
+            if notice.opensSettings, let settings = URL(string: UIApplication.openSettingsURLString) {
+                Button("Settings") { openURL(settings) }
+                    .font(.system(.footnote, design: .rounded, weight: .semibold))
+            }
             Button(action: dismiss) { Image(systemName: "xmark") }
                 .font(.system(size: 11, weight: .bold))
                 .accessibilityLabel("Dismiss")

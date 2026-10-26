@@ -2,6 +2,24 @@ import AVFoundation
 import Speech
 import SwiftUI
 
+/// Why dictation did not start.
+enum DictationProblem: Equatable {
+    /// The recognizer is off for this language or the service is down.
+    case unavailable
+    /// The microphone or speech recognition was refused; only Settings can change that.
+    case denied
+    /// The audio session or engine would not start.
+    case failed
+
+    var line: String {
+        switch self {
+        case .unavailable: return "Dictation is not available right now."
+        case .denied: return "Allow the microphone and speech recognition in Settings to dictate."
+        case .failed: return "Dictation could not start."
+        }
+    }
+}
+
 /// Talking into the canvas. Recognition happens on the device when the language supports it, so
 /// what is said does not leave the phone unless it has to.
 @MainActor
@@ -9,7 +27,8 @@ import SwiftUI
 final class DictationController {
     private(set) var isListening = false
     private(set) var transcript = ""
-    private(set) var errorMessage: String?
+    /// Set by the last `start` that did not get going, and cleared by the next one.
+    private(set) var problem: DictationProblem?
 
     @ObservationIgnored private let recognizer = SFSpeechRecognizer(locale: Locale.current)
     @ObservationIgnored private let engine = AVAudioEngine()
@@ -27,14 +46,14 @@ final class DictationController {
     }
 
     func start() async {
-        errorMessage = nil
+        problem = nil
         transcript = ""
         guard let recognizer, recognizer.isAvailable else {
-            errorMessage = "Dictation is not available right now."
+            problem = .unavailable
             return
         }
         guard await authorizeSpeech(), await authorizeMicrophone() else {
-            errorMessage = "Allow the microphone and speech recognition in Settings to dictate."
+            problem = .denied
             return
         }
         do {
@@ -66,7 +85,7 @@ final class DictationController {
                 }
             }
         } catch {
-            errorMessage = "Dictation could not start."
+            problem = .failed
             stop()
         }
     }

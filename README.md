@@ -124,6 +124,10 @@ server change if you want the app to do more:
   memories at 200. The screens say so and lean on search.
 - **No streaming for remote chat** (see below), and **imports are synchronous**, so the app
   sends them in batches and resumes.
+- **Mind restore and merge preview are inferred.** `GET /api/mind/state` does not return each memory's
+  `revision_id`, so a restore finds the revision by commit time and content; and `POST /api/mind/merge` has
+  no dry run, so the preview says how the two branches differ rather than what the merge will do. The app
+  already uses `revision_id` when the route sends it.
 
 ## Deliberate limits
 

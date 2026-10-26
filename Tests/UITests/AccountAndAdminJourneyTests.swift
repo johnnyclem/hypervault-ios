@@ -10,7 +10,8 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
 
         step("Account & keys lists the keys the person has") {
             for id in ["k1", "k2", "k3"] { require(element("keys.row.\(id)"), "the key \(id)") }
-            XCTAssertTrue(element("keys.row.k3").label.contains("default"), "The third key says \"\(element("keys.row.k3").label)\".")
+            // The server names a key nobody named "default", and the list calls it what a person would.
+            XCTAssertTrue(element("keys.row.k3").label.contains("Untitled key"), "The third key says \"\(element("keys.row.k3").label)\".")
             XCTAssertTrue(element("keys.row.k1").label.contains("Agent connected"), "The first key says \"\(element("keys.row.k1").label)\".")
         }
 
@@ -52,7 +53,7 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
         }
 
         step("Revoking a key removes it from the list") {
-            tap(element("keys.row.k3"), "the default key")
+            tap(element("keys.row.k3"), "the key nobody named")
             waitUntil("the key's screen") { isShowingTitle("Key") }
             tap(button("Revoke key"), "Revoke key")
             require(button("Keep it"), "the confirmation")

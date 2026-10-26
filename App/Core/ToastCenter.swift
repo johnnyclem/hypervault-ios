@@ -126,6 +126,7 @@ struct ToastHost: View {
                 .accessibilityLabel(toast.spoken)
                 .accessibilityAddTraits(.isButton)
                 .accessibilityHint("Dismisses this message")
+                .accessibilityAction { center.dismiss(toast.id) }
             }
             Spacer()
         }

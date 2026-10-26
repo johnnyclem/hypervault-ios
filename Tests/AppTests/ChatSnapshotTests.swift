@@ -72,6 +72,32 @@ final class ChatSnapshotTests: XCTestCase {
         )
     }
 
+    /// The whole thread on one tall page, so the top of it can be looked at too: the screen-sized renders
+    /// above start at the newest message.
+    func testConversationInFull() throws {
+        try snapshot(
+            PreviewHost(routes: ChatPreviewData.routes) { ChatConversationContent(model: ChatPreviewData.conversationModel()) },
+            named: "chat-conversation-full",
+            size: CGSize(width: 393, height: 1700)
+        )
+    }
+
+    func testChatListAtTheLargestTextSize() throws {
+        UserDefaults.standard.set("Chats", forKey: sectionKey)
+        try snapshot(
+            PreviewHost(routes: ChatPreviewData.routes) { ChatRootView() }.dynamicTypeSize(.accessibility3),
+            named: "chat-list-xxl"
+        )
+    }
+
+    func testRoomsListAtTheLargestTextSize() throws {
+        UserDefaults.standard.set("Rooms", forKey: sectionKey)
+        try snapshot(
+            PreviewHost(routes: ChatPreviewData.routes) { ChatRootView() }.dynamicTypeSize(.accessibility3),
+            named: "chat-rooms-xxl"
+        )
+    }
+
     func testOptionsSheet() throws {
         try snapshot(
             PreviewHost(routes: ChatPreviewData.routes, embedInNavigation: false) {
@@ -83,6 +109,53 @@ final class ChatSnapshotTests: XCTestCase {
 
     func testRoom() throws {
         try snapshot(PreviewHost(routes: ChatPreviewData.routes) { RoomScreen(roomID: "r1") }, named: "chat-room")
+    }
+
+    func testRoomInFull() throws {
+        try snapshot(
+            PreviewHost(routes: ChatPreviewData.routes) { RoomScreen(roomID: "r1") },
+            named: "chat-room-full",
+            size: CGSize(width: 393, height: 1500)
+        )
+    }
+
+    func testNewRoom() throws {
+        let env = AppEnvironment.preview(routes: ChatPreviewData.routes)
+        try snapshot(
+            PreviewHost(routes: ChatPreviewData.routes, embedInNavigation: false) {
+                ChatNewRoomSheet(client: env.client, cache: env.cache, namespace: "preview") { _ in }
+            },
+            named: "chat-new-room"
+        )
+    }
+
+    func testRoomMembers() async throws {
+        let env = AppEnvironment.preview(routes: ChatPreviewData.routes)
+        let model = ChatRoomModel(roomID: "r1", client: env.client)
+        await model.load()
+        try snapshot(
+            PreviewHost(routes: ChatPreviewData.routes, embedInNavigation: false) {
+                ChatRoomMembersSheet(model: model, env: env)
+            },
+            named: "chat-room-members"
+        )
+    }
+
+    func testWhoCanReadAChat() throws {
+        try snapshot(
+            PreviewHost(routes: ChatPreviewData.routes, embedInNavigation: false) {
+                ChatVisibilitySheet(model: ChatPreviewData.conversationModel())
+            },
+            named: "chat-visibility"
+        )
+    }
+
+    func testModelsAtTheLargestTextSize() throws {
+        try snapshot(
+            PreviewHost(routes: ChatPreviewData.routes) { ChatModelsScreen(onDevice: ChatPreviewData.support(onDevice: true)) }
+                .dynamicTypeSize(.accessibility3),
+            named: "chat-models-xxl"
+        )
     }
 
     func testModels() throws {

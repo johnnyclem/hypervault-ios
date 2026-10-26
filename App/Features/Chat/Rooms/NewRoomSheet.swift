@@ -143,11 +143,15 @@ struct ChatNewRoomSheet: View {
         @Bindable var model = model
         return Form {
             Section {
-                TextField("Room name (optional)", text: $model.title)
-                    .onChange(of: model.title) { if model.title.count > ChatRoomHandles.maxTitle { model.title = String(model.title.prefix(ChatRoomHandles.maxTitle)) } }
+                HVLabeledField(title: "Room name (optional)") {
+                    TextField("Room name", text: $model.title, prompt: chatPrompt("Weekly review"))
+                        .onChange(of: model.title) { if model.title.count > ChatRoomHandles.maxTitle { model.title = String(model.title.prefix(ChatRoomHandles.maxTitle)) } }
+                }
+                .padding(.vertical, HV.Space.xs)
             } footer: {
-                Text("Pick who joins. The handle is how you, and the others, address each one.")
+                ChatFooter("Pick who joins. The handle is how you, and the others, address each one.")
             }
+            .hvListRow()
             ForEach($model.seats) { $seat in
                 Section {
                     Toggle(isOn: $seat.isOn) {
@@ -158,50 +162,64 @@ struct ChatNewRoomSheet: View {
                     }
                     .frame(minHeight: 44)
                     if seat.isOn {
-                        HStack(spacing: 2) {
-                            Text("@").foregroundStyle(Palette.textSecondary)
-                            TextField("handle", text: $seat.handle)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .accessibilityLabel("Handle for \(seat.backend.name)")
+                        VStack(alignment: .leading, spacing: HV.Space.m) {
+                            HVLabeledField(title: "Handle") {
+                                HStack(spacing: 2) {
+                                    Text("@").foregroundStyle(Palette.textSecondary)
+                                    TextField("Handle", text: $seat.handle, prompt: chatPrompt("claude"))
+                                        .textInputAutocapitalization(.never)
+                                        .autocorrectionDisabled()
+                                }
+                            }
+                            HVLabeledField(title: "Role (optional)") {
+                                TextField(
+                                    "Role", text: $seat.brief,
+                                    prompt: chatPrompt("What \(ChatRoomHandles.normalize(seat.handle).map { "@" + $0 } ?? "this member") owns here"),
+                                    axis: .vertical
+                                )
+                                .lineLimit(1...4)
+                            }
                         }
-                        TextField("What \(ChatRoomHandles.normalize(seat.handle).map { "@" + $0 } ?? "this member") owns here (optional)", text: $seat.brief, axis: .vertical)
-                            .lineLimit(1...4)
+                        .padding(.vertical, HV.Space.xs)
                     }
                 }
+                .hvListRow()
             }
             Section {
-                Button {
-                    Task {
-                        if let created = await model.create() {
-                            Haptics.success()
-                            dismiss()
-                            onCreated(created)
+                VStack(alignment: .leading, spacing: HV.Space.s) {
+                    Button {
+                        Task {
+                            if let created = await model.create() {
+                                Haptics.success()
+                                dismiss()
+                                onCreated(created)
+                            }
+                        }
+                    } label: {
+                        if model.isCreating {
+                            ProgressView().tint(.white)
+                        } else {
+                            Text("Start room with \(model.chosen.count) member\(model.chosen.count == 1 ? "" : "s")")
                         }
                     }
-                } label: {
-                    if model.isCreating {
-                        ProgressView().tint(.white)
-                    } else {
-                        Text("Start room with \(model.chosen.count) member\(model.chosen.count == 1 ? "" : "s")")
+                    .buttonStyle(.hvPrimary)
+                    .disabled(!model.canCreate)
+
+                    // The note under the button starts on the same line as the notes under the cards above.
+                    if let text = model.errorText ?? model.problem {
+                        Text(text)
+                            .font(.hvFootnote)
+                            .foregroundStyle(model.errorText != nil ? Palette.danger : Palette.textSecondary)
+                            .padding(.horizontal, HV.Space.m)
+                    } else if model.chosen.isEmpty {
+                        Text("Choose at least one member.")
+                            .font(.hvFootnote)
+                            .foregroundStyle(Palette.textSecondary)
+                            .padding(.horizontal, HV.Space.m)
                     }
                 }
-                .buttonStyle(.hvPrimary)
-                .disabled(!model.canCreate)
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
-
-                if let text = model.errorText ?? model.problem {
-                    Text(text)
-                        .font(.hvFootnote)
-                        .foregroundStyle(model.errorText != nil ? Palette.danger : Palette.textSecondary)
-                        .listRowBackground(Color.clear)
-                } else if model.chosen.isEmpty {
-                    Text("Choose at least one member.")
-                        .font(.hvFootnote)
-                        .foregroundStyle(Palette.textSecondary)
-                        .listRowBackground(Color.clear)
-                }
             }
         }
     }

@@ -77,20 +77,28 @@ struct ChatRoomsListView: View {
     private var list: some View {
         List {
             if model.isStale {
-                HVStaleBanner().listRowSeparator(.hidden).listRowBackground(Color.clear)
+                HVStaleBanner()
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
             }
-            ForEach(model.rooms) { room in
-                NavigationLink(value: Route.room(id: room.id)) {
-                    ChatRoomRow(room: room)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) { pendingDelete = room } label: {
-                        Label("Delete", systemImage: "trash")
+            ForEach(model.sections, id: \.bucket) { section in
+                Section(header: HVSectionHeader(title: section.bucket.title)) {
+                    ForEach(section.items) { room in
+                        NavigationLink(value: Route.room(id: room.id)) {
+                            ChatRoomRow(room: room)
+                        }
+                        .hvListRow()
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) { pendingDelete = room } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
                 }
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .refreshable { await model.load() }
     }
@@ -109,25 +117,19 @@ struct ChatRoomsListView: View {
 
 struct ChatRoomRow: View {
     let room: ChatRoomSummary
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
+        let palette = ChatRoomPalette(members: room.members)
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(room.title).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(2)
-                Spacer(minLength: HV.Space.xs)
-                Text(ChatDates.relative(room.updatedAt)).font(.hvCaption).foregroundStyle(Palette.textTertiary)
-            }
+            titleLine
             ChatFlowLayout(spacing: 6) {
-                ForEach(Array(room.members.enumerated()), id: \.element.id) { index, member in
-                    Text("@\(member.handle)")
-                        .font(.hvCaption.weight(.medium))
-                        .foregroundStyle(ChatRoomPalette.color(at: index))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(ChatRoomPalette.color(at: index).opacity(0.14), in: Capsule())
+                ForEach(room.members) { member in
+                    ChatHandleChip(handle: member.handle, color: palette.color(for: member))
                 }
                 if !room.pending.isEmpty {
-                    HVTag(text: "\(room.pending.count) queued", tint: Color.accentColor)
+                    // Grey, not blue: a status is not a member, and blue is Gemini's.
+                    HVTag(text: "\(room.pending.count) queued")
                 }
             }
         }
@@ -135,5 +137,47 @@ struct ChatRoomRow: View {
         .frame(minHeight: 44, alignment: .leading)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(room.title), \(room.members.map { "@" + $0.handle }.joined(separator: ", "))")
+    }
+
+    /// The name, and when it last moved: side by side, or stacked when the text is too big to share a line.
+    @ViewBuilder private var titleLine: some View {
+        if typeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 2) {
+                title
+                updated
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline) {
+                title
+                Spacer(minLength: HV.Space.xs)
+                updated
+            }
+        }
+    }
+
+    private var title: some View {
+        Text(room.title).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(2)
+    }
+
+    private var updated: some View {
+        Text(ChatDates.relative(room.updatedAt)).font(.hvCaption).foregroundStyle(Palette.textTertiary)
+    }
+}
+
+/// "@grok" on a tint of the model's colour. The text is inked a shade deeper in light mode so it holds
+/// 4.5:1 on its own tint.
+struct ChatHandleChip: View {
+    let handle: String
+    let color: Color
+    var font: Font = .hvCaption.weight(.medium)
+    var verticalPadding: CGFloat = 3
+
+    var body: some View {
+        Text("@\(handle)")
+            .font(font)
+            .foregroundStyle(color.hvInk())
+            .padding(.horizontal, 8)
+            .padding(.vertical, verticalPadding)
+            .background(color.opacity(0.14), in: Capsule())
     }
 }

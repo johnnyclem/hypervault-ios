@@ -101,7 +101,7 @@ enum ChatPreviewData {
         {"backends":[
           {"id":"b1","name":"Claude","provider":"anthropic","base_url":null,"default_model":"claude-opus-4-8","embedding_model":null,"key_hint":"sk-ant-\u{2026}","created_at":"\(ago(900_000))","last_used_at":"\(ago(1_200))"},
           {"id":"b2","name":"GPT","provider":"openai","base_url":null,"default_model":"gpt-4o","embedding_model":"text-embedding-3-small","key_hint":"sk-proj\u{2026}","created_at":"\(ago(800_000))","last_used_at":"\(ago(300_000))"},
-          {"id":"b3","name":"Studio Llama","provider":"ollama","base_url":"https://studio.example.ts.net/v1","default_model":"llama3.3","embedding_model":null,"key_hint":null,"created_at":"\(ago(100_000))","last_used_at":null}
+          {"id":"b3","name":"Office Llama","provider":"ollama","base_url":"https://studio.example.ts.net/v1","default_model":"llama3.3","embedding_model":null,"key_hint":null,"created_at":"\(ago(100_000))","last_used_at":null}
         ],"providers":[]}
         """
     }
@@ -125,7 +125,9 @@ enum ChatPreviewData {
     }
 
     private static func memberJSON(_ id: String, _ handle: String, _ name: String, _ provider: String, _ model: String, _ position: Int) -> String {
-        #"{"id":"\#(id)","room_id":"r1","backend_id":"b-\#(handle)","handle":"\#(handle)","role_brief":"","position":\#(position),"backend":{"name":"\#(name)","provider":"\#(provider)","default_model":"\#(model)"}}"#
+        let briefs = ["grok": "The importer and the API contract.", "gemini": "The UI.", "claude": "Architecture first, then review both."]
+        let brief = briefs[handle] ?? ""
+        return #"{"id":"\#(id)","room_id":"r1","backend_id":"b-\#(handle)","handle":"\#(handle)","role_brief":"\#(brief)","position":\#(position),"backend":{"name":"\#(name)","provider":"\#(provider)","default_model":"\#(model)"}}"#
     }
 
     static var roomJSON: String {

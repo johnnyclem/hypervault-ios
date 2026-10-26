@@ -66,11 +66,7 @@ final class ChatListModel {
     }
 
     var sections: [(bucket: ChatDates.Bucket, items: [ChatConversation])] {
-        let grouped = Dictionary(grouping: visible) { ChatDates.bucket(for: $0.updatedAt) }
-        return ChatDates.Bucket.allCases.compactMap { bucket in
-            guard let items = grouped[bucket], !items.isEmpty else { return nil }
-            return (bucket, items)
-        }
+        ChatDates.sections(of: visible, date: \.updatedAt)
     }
 
     var isFiltering: Bool { platform != nil || !query.trimmingCharacters(in: .whitespaces).isEmpty }

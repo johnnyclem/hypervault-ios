@@ -40,6 +40,17 @@ final class ChatRoomModel {
     /// A round was left half done (here or elsewhere) and nobody is running it.
     var canContinue: Bool { !pending.isEmpty && !isDriving && header?.running != true }
 
+    /// What the empty message box suggests: a way of addressing the members this room has, in the form
+    /// the server reads as an address ("grok, ..." at the start of a clause).
+    var composerPrompt: String {
+        let handles = members.map(\.handle)
+        switch handles.count {
+        case 0: return "Say something to the room"
+        case 1: return "\(handles[0]), what do you think?"
+        default: return "\(handles[0]), draft it. \(handles[1]), review it."
+        }
+    }
+
     /// Members the draft addresses, in order; empty means everyone answers.
     var addressed: [String] {
         ChatRoomHandles.mentions(in: draft, handles: members.map(\.handle))

@@ -50,8 +50,10 @@ final class ChatModelTests: XCTestCase {
         return model
     }
 
+    /// Waits for a turn to finish. The limit is generous: a shared CI runner can stall for seconds, and a
+    /// test that waits longer than it needs to costs nothing, where one that gives up early is a false failure.
     private func settle(_ model: ChatConversationModel) async {
-        for _ in 0..<300 where model.isWorking { try? await Task.sleep(nanoseconds: 10_000_000) }
+        for _ in 0..<2_000 where model.isWorking { try? await Task.sleep(nanoseconds: 10_000_000) }
     }
 
     func testASentMessageGetsItsReplyAndTheConversationIsAdopted() async {
@@ -213,6 +215,81 @@ final class ChatModelTests: XCTestCase {
         XCTAssertEqual(bucket(86_400 * 20), .month)
         XCTAssertEqual(bucket(86_400 * 90), .earlier)
         XCTAssertEqual(ChatDates.bucket(for: nil, now: now, calendar: calendar), .earlier)
+    }
+
+    func testItemsAreGroupedUnderTheirDateBuckets() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let items: [(name: String, date: Date?)] = [
+            ("fresh", now.addingTimeInterval(-60)),
+            ("last week", now.addingTimeInterval(-86_400 * 4)),
+            ("old", now.addingTimeInterval(-86_400 * 90)),
+            ("undated", nil),
+        ]
+        let sections = ChatDates.sections(of: items, date: { $0.date }, now: now, calendar: calendar)
+        XCTAssertEqual(sections.map(\.bucket), [.today, .week, .earlier])
+        XCTAssertEqual(sections[2].items.map(\.name), ["old", "undated"])
+    }
+
+    // MARK: Who wears which colour
+
+    func testAModelKeepsItsColourWhoeverElseIsInTheRoom() {
+        XCTAssertEqual(ChatAgentTone.tones(forProviders: ["xai", "gemini", "anthropic"]), [.violet, .blue, .coral])
+        XCTAssertEqual(ChatAgentTone.tones(forProviders: ["anthropic", "openai"]), [.coral, .mint])
+        XCTAssertEqual(ChatAgentTone.tones(forProviders: ["openai", "anthropic"]), [.mint, .coral])
+    }
+
+    func testTwoMembersOfOneModelNeverShareAColour() {
+        let tones = ChatAgentTone.tones(forProviders: ["anthropic", "anthropic", "openai", "anthropic"])
+        XCTAssertEqual(tones.count, 4)
+        XCTAssertEqual(Set(tones).count, 4)
+        // The first of each family keeps its own tone; the copies take whatever is free.
+        XCTAssertEqual(tones[0], .coral)
+        XCTAssertEqual(tones[2], .mint)
+        XCTAssertEqual(tones, ChatAgentTone.tones(forProviders: ["anthropic", "anthropic", "openai", "anthropic"]))
+    }
+
+    func testARoomLargerThanThePaletteStillGetsAToneForEveryone() {
+        let tones = ChatAgentTone.tones(forProviders: Array(repeating: "anthropic", count: ChatAgentTone.allCases.count + 3))
+        XCTAssertEqual(tones.count, ChatAgentTone.allCases.count + 3)
+        XCTAssertEqual(tones.first, .coral)
+    }
+
+    func testAnImportedChatWearsTheColourOfItsModelsFamily() {
+        XCTAssertEqual(ChatAgentTone(platform: .claude), ChatAgentTone(provider: "anthropic"))
+        XCTAssertEqual(ChatAgentTone(platform: .chatgpt), ChatAgentTone(provider: "openai"))
+        XCTAssertEqual(ChatAgentTone(platform: .gemini), ChatAgentTone(provider: "gemini"))
+        XCTAssertEqual(ChatAgentTone(platform: .grok), ChatAgentTone(provider: "xai"))
+        XCTAssertNotEqual(ChatAgentTone(platform: .claude), ChatAgentTone(platform: .chatgpt))
+        XCTAssertNil(ChatAgentTone(platform: .hypervault))
+    }
+
+    // MARK: Rooms
+
+    func testTheRoomsMessageBoxSuggestsAddressingTheMembersItHas() async {
+        let env = AppEnvironment.preview(routes: ChatPreviewData.routes)
+        let model = ChatRoomModel(roomID: "r1", client: env.client)
+        XCTAssertEqual(model.composerPrompt, "Say something to the room")
+
+        await model.load()
+        let handles = model.members.map(\.handle)
+        XCTAssertEqual(handles, ["grok", "gemini", "claude"])
+        XCTAssertEqual(model.composerPrompt, "grok, draft it. gemini, review it.")
+        // The example is a real address: typed as it stands, it goes to the first two members.
+        XCTAssertEqual(ChatRoomHandles.mentions(in: model.composerPrompt, handles: handles), ["grok", "gemini"])
+    }
+
+    func testRoomsAreGroupedByWhenTheyLastMoved() async throws {
+        let env = AppEnvironment.preview(routes: ChatPreviewData.routes)
+        let model = ChatRoomsListModel(client: env.client, cache: env.cache, namespace: "test")
+        await model.load()
+        XCTAssertEqual(model.rooms.map(\.id), ["r1", "r2"])
+        XCTAssertEqual(model.sections.flatMap(\.items).map(\.id), ["r1", "r2"])
+        // Ten minutes ago is today, or yesterday for the minutes just after midnight; four days ago is last week.
+        let first = try XCTUnwrap(model.sections.first).bucket
+        XCTAssertTrue(first == .today || first == .yesterday)
+        XCTAssertEqual(model.sections.last?.bucket, .week)
     }
 }
 

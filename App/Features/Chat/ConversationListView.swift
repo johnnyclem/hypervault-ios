@@ -7,6 +7,7 @@ struct ChatConversationListView: View {
     @State private var model: ChatListModel
     @State private var pendingDelete: ChatConversation?
     @State private var reloadToken = 0
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     init(client: HVClient, cache: DiskCache, namespace: String) {
         _model = State(initialValue: ChatListModel(client: client, cache: cache, namespace: namespace))
@@ -61,7 +62,10 @@ struct ChatConversationListView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                list
+                VStack(spacing: 0) {
+                    if showsFilter, !typeSize.isAccessibilitySize { filterChips }
+                    list
+                }
             }
         }
     }
@@ -72,9 +76,12 @@ struct ChatConversationListView: View {
                 HVStaleBanner()
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
             }
-            if model.platforms.count > 1 {
-                filterChips
+            if showsFilter, typeSize.isAccessibilitySize {
+                // Too big to scroll sideways: the filters wrap onto as many lines as they need, and
+                // scroll away with the list.
+                ChatFlowLayout(spacing: HV.Space.xs) { filterButtons }
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: HV.Space.xs, trailing: 0))
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
@@ -94,6 +101,7 @@ struct ChatConversationListView: View {
                         NavigationLink(value: Route.conversation(id: conversation.id)) {
                             ChatConversationRow(conversation: conversation)
                         }
+                        .hvListRow()
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
                                 pendingDelete = conversation
@@ -105,20 +113,26 @@ struct ChatConversationListView: View {
                 }
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .refreshable { await model.load() }
     }
 
+    /// The platform filter. It sits above the list, not in it, so it can run to the screen's edges and
+    /// scroll sideways without being cut off at the list's inset.
     private var filterChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: HV.Space.xs) {
-                chip("All", selected: model.platform == nil) { model.platform = nil }
-                ForEach(model.platforms, id: \.self) { name in
-                    chip(name, selected: model.platform == name) { model.platform = name }
-                }
-            }
-            .padding(.horizontal, HV.Space.m)
+            HStack(spacing: HV.Space.xs) { filterButtons }
+                .padding(.horizontal, HV.Space.m)
+        }
+    }
+
+    private var showsFilter: Bool { model.platforms.count > 1 }
+
+    @ViewBuilder private var filterButtons: some View {
+        chip("All", selected: model.platform == nil) { model.platform = nil }
+        ForEach(model.platforms, id: \.self) { name in
+            chip(name, selected: model.platform == name) { model.platform = name }
         }
     }
 
@@ -149,6 +163,7 @@ struct ChatConversationListView: View {
 
 struct ChatConversationRow: View {
     let conversation: ChatConversation
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -156,24 +171,37 @@ struct ChatConversationRow: View {
                 .font(.hvBody)
                 .foregroundStyle(Palette.textPrimary)
                 .lineLimit(2)
-            HStack(spacing: HV.Space.xs) {
-                if conversation.platform.isImported {
-                    HVTag(text: conversation.platform.label, tint: Palette.coral)
-                }
-                if conversation.visibility.hasLink {
-                    Label(conversation.visibility.title, systemImage: "link")
-                        .labelStyle(.titleAndIcon)
-                        .font(.hvCaption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                Text(ChatDates.relative(conversation.updatedAt))
-                    .font(.hvCaption)
-                    .foregroundStyle(Palette.textTertiary)
-                Spacer(minLength: 0)
-            }
+            meta
         }
         .padding(.vertical, HV.Space.xxs)
         .frame(minHeight: 44, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+
+    /// Where it came from, who can read it, when it last moved: on one line, or stacked at large text sizes.
+    @ViewBuilder private var meta: some View {
+        if typeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 2) { details }
+        } else {
+            HStack(spacing: HV.Space.xs) { details }
+        }
+    }
+
+    @ViewBuilder private var details: some View {
+        if conversation.platform.isImported {
+            // Each service keeps its own colour, the same one its models wear on the Models screen.
+            HVTag(text: conversation.platform.label, tint: ChatAgentTone(platform: conversation.platform)?.color ?? Palette.textSecondary)
+        }
+        if conversation.visibility.hasLink {
+            HStack(spacing: 4) {
+                Image(systemName: "link").font(.hvCaption.weight(.semibold)).accessibilityHidden(true)
+                Text(conversation.visibility.title)
+            }
+            .font(.hvCaption)
+            .foregroundStyle(Palette.textSecondary)
+        }
+        Text(ChatDates.relative(conversation.updatedAt))
+            .font(.hvCaption)
+            .foregroundStyle(Palette.textTertiary)
     }
 }

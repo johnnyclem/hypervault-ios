@@ -71,11 +71,12 @@ struct ChatBackendFormSheet: View {
                 if let note = draft.reachabilityNote(spec: spec) {
                     Section {
                         Label {
-                            Text(note).font(.hvFootnote)
+                            Text(note).font(.hvFootnote).foregroundStyle(Palette.textPrimary)
                         } icon: {
                             Image(systemName: "network").foregroundStyle(Palette.warning)
                         }
                     }
+                    .hvListRow()
                 }
                 advancedSection
                 submitSection
@@ -118,9 +119,10 @@ struct ChatBackendFormSheet: View {
             }
         } footer: {
             if editing != nil {
-                Text("The provider can't change. To use another, connect it as a new model.")
+                ChatFooter("The provider can't change. To use another, connect it as a new model.")
             }
         }
+        .hvListRow()
     }
 
     private var providerBinding: Binding<String> {
@@ -134,67 +136,84 @@ struct ChatBackendFormSheet: View {
         )
     }
 
+    /// Every field has its label above it; the example the field would take is the grey text inside.
     @ViewBuilder private var detailsSection: some View {
         Section {
-            TextField("Name (optional)", text: $draft.name)
-                .focused($focus, equals: .name)
-                .submitLabel(.next)
-            if spec.acceptsKey {
-                keyField
+            VStack(alignment: .leading, spacing: HV.Space.m) {
+                HVLabeledField(title: "Name (optional)") {
+                    TextField("Name", text: $draft.name, prompt: chatPrompt(ChatProviders.shortName(for: draft.provider, in: registry)))
+                        .focused($focus, equals: .name)
+                        .submitLabel(.next)
+                }
+                if spec.acceptsKey {
+                    keyField
+                }
+                if spec.asksForBaseURL || !draft.baseURL.isEmpty {
+                    HVLabeledField(title: "Base URL") {
+                        TextField("Base URL", text: $draft.baseURL, prompt: chatPrompt(spec.defaultBaseUrl.isEmpty ? "https://" : spec.defaultBaseUrl))
+                            .keyboardType(.URL)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .focused($focus, equals: .baseURL)
+                    }
+                }
+                HVLabeledField(title: "Model") {
+                    TextField("Model", text: $draft.model, prompt: chatPrompt(spec.defaultModel.isEmpty ? "Model name" : spec.defaultModel))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .focused($focus, equals: .model)
+                }
+                if spec.supportsEmbeddings {
+                    HVLabeledField(title: "Embedding model (optional)") {
+                        TextField("Embedding model", text: $draft.embeddingModel, prompt: chatPrompt(embeddingExample))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .focused($focus, equals: .embedding)
+                    }
+                }
             }
-            if spec.asksForBaseURL || !draft.baseURL.isEmpty {
-                TextField(spec.defaultBaseUrl.isEmpty ? "Base URL" : spec.defaultBaseUrl, text: $draft.baseURL)
-                    .keyboardType(.URL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .focused($focus, equals: .baseURL)
-            }
-            TextField(spec.defaultModel.isEmpty ? "Model" : "Model (\(spec.defaultModel))", text: $draft.model)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .focused($focus, equals: .model)
-            if spec.supportsEmbeddings {
-                TextField(embeddingPlaceholder, text: $draft.embeddingModel)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .focused($focus, equals: .embedding)
-            }
+            .padding(.vertical, HV.Space.xs)
         } footer: {
             VStack(alignment: .leading, spacing: HV.Space.xs) {
                 if spec.supportsEmbeddings {
-                    Text("An embedding model lets recall find memories by meaning. It must return 1536-number vectors, and it is checked when you connect.")
+                    ChatFooter("An embedding model lets recall find memories by meaning. It must return 1536-number vectors, and it is checked when you connect.")
                 }
                 if editing != nil, spec.acceptsKey {
-                    Text("Leave the key empty to keep the current one. Changes to the key, model or address are tested again before they are saved.")
+                    ChatFooter("Leave the key empty to keep the current one. Changes to the key, model or address are tested again before they are saved.")
                 }
             }
         }
+        .hvListRow()
     }
 
     @ViewBuilder private var keyField: some View {
         if serverCanStoreKeys {
-            SecureField(keyPlaceholder, text: $draft.apiKey)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .focused($focus, equals: .key)
+            HVLabeledField(title: spec.requiresKey ? "API key" : "API key (optional)") {
+                SecureField("API key", text: $draft.apiKey, prompt: chatPrompt(keyExample))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .focused($focus, equals: .key)
+            }
         } else {
-            HStack {
-                Image(systemName: "lock.slash").foregroundStyle(Palette.warning)
+            Label {
                 Text("Keys can't be stored on this server right now.")
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.textSecondary)
+            } icon: {
+                Image(systemName: "lock.slash").foregroundStyle(Palette.warning)
             }
         }
     }
 
-    private var keyPlaceholder: String {
-        if let hint = editing?.keyHint, !hint.isEmpty { return "API key (kept: \(hint))" }
-        return spec.requiresKey ? "API key" : "API key (optional)"
+    /// What the key field shows while empty: the stored key's hint when editing, so it is clear one is kept.
+    private var keyExample: String {
+        if let hint = editing?.keyHint, !hint.isEmpty { return "Kept: \(hint)" }
+        return "Paste your key"
     }
 
-    private var embeddingPlaceholder: String {
-        if let model = spec.defaultEmbeddingModel, !model.isEmpty { return "Embedding model (\(model))" }
-        return "Embedding model (optional)"
+    private var embeddingExample: String {
+        if let model = spec.defaultEmbeddingModel, !model.isEmpty { return model }
+        return "Embedding model name"
     }
 
     private var advancedSection: some View {
@@ -207,7 +226,9 @@ struct ChatBackendFormSheet: View {
                         .foregroundStyle(Palette.textSecondary)
                 }
             }
+            .frame(minHeight: 44)
         }
+        .hvListRow()
     }
 
     private var submitSection: some View {
@@ -226,25 +247,26 @@ struct ChatBackendFormSheet: View {
                 .buttonStyle(.hvPrimary)
                 .disabled(isWorking || problem != nil)
 
+                // The notes under the button start on the same line as the notes under the cards above.
                 if isWorking {
                     Text(editing == nil
                          ? "Sending a test message to check the connection. This can take up to a minute."
                          : "Checking the connection again before saving. This can take up to a minute.")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
-                        .padding(.horizontal, HV.Space.xs)
+                        .padding(.horizontal, HV.Space.m)
                     Button("Stop", action: stop).buttonStyle(.hvGhost)
                 } else if let errorText {
                     Text(errorText)
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.danger)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, HV.Space.xs)
+                        .padding(.horizontal, HV.Space.m)
                 } else if let problem {
                     Text(problem)
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
-                        .padding(.horizontal, HV.Space.xs)
+                        .padding(.horizontal, HV.Space.m)
                 }
             }
             .listRowBackground(Color.clear)

@@ -83,7 +83,7 @@ public enum VaultLink: Sendable, Equatable {
     static let vanityBases = [
         "hypervault.store", "vault.cool", "agentvault.cloud", "cleon.wiki", "inkbound.ink", "claudedamnit.com",
         "cleon.casa", "cleon.city", "tinderforai.com", "onlywizards.website", "ralphy.website", "permaclaw.com",
-        "bo.dy", "memory.baby", "memory.delivery",
+        "bo.dy", "memory.baby", "memory.delivery", "smallchat.dev",
     ]
 }
 

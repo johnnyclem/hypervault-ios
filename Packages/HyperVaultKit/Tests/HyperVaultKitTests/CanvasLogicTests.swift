@@ -140,6 +140,24 @@ final class PullAndLinkTests: XCTestCase {
         XCTAssertNil(VaultLink.parse("ftp://hypervault.store/a/x", origin: origin))
     }
 
+    /// Every domain in the web's DOMAIN_PORTFOLIO (lib/domains.ts) is a HyperVault host, for the apex and any subdomain.
+    func testEveryPortfolioDomainIsOurs() {
+        let portfolio = [
+            "vault.cool", "agentvault.cloud", "cleon.wiki", "inkbound.ink", "claudedamnit.com", "cleon.casa", "cleon.city",
+            "tinderforai.com", "onlywizards.website", "hypervault.store", "ralphy.website", "permaclaw.com", "bo.dy",
+            "memory.baby", "memory.delivery", "smallchat.dev",
+        ]
+        for domain in portfolio {
+            XCTAssertEqual(VaultLink.parse("https://x.\(domain)/a/my-game", origin: nil), .artifact(slug: "my-game"), domain)
+            XCTAssertEqual(VaultLink.parse("https://\(domain)/g/site", origin: nil), .artifact(slug: "site"), domain)
+        }
+        XCTAssertEqual(
+            VaultLink.parse("https://x.smallchat.dev/vault/memory?open=7f1c2d3e-1111-2222-3333-444455556666", origin: nil),
+            .memory(id: "7f1c2d3e-1111-2222-3333-444455556666")
+        )
+        XCTAssertNil(VaultLink.parse("https://notsmallchat.dev/a/x", origin: nil), "a lookalike is not a subdomain")
+    }
+
     func testPasteStaging() {
         XCTAssertFalse(PasteStaging.shouldStage("a short sentence"))
         XCTAssertFalse(PasteStaging.shouldStage("https://example.com/" + String(repeating: "a", count: 300)), "a link is never staged")

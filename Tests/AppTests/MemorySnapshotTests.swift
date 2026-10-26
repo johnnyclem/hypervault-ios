@@ -26,7 +26,8 @@ final class MemorySnapshotTests: XCTestCase {
     }
 
     func testEmptyMemory() throws {
-        let empty = [MockRoute.json(.get, "/api/memories", #"{"branch":"main","memories":[]}"#)] + routes
+        var empty: [MockRoute] = [.json(.get, "/api/memories", #"{"branch":"main","memories":[]}"#)]
+        empty.append(contentsOf: routes)
         try snapshot(PreviewHost(routes: empty) { MemoryRootView() }, named: "memory-empty")
     }
 
@@ -84,7 +85,8 @@ final class MemorySnapshotTests: XCTestCase {
     }
 
     func testDreamsQuietNight() throws {
-        let quiet = [MockRoute.json(.get, "/api/dreams", MemoryPreviewData.dreamsEmpty)] + routes
+        var quiet: [MockRoute] = [.json(.get, "/api/dreams", MemoryPreviewData.dreamsEmpty)]
+        quiet.append(contentsOf: routes)
         try snapshot(PreviewHost(routes: quiet) { DreamsRootView() }, named: "dreams-quiet")
     }
 
@@ -93,23 +95,29 @@ final class MemorySnapshotTests: XCTestCase {
     }
 
     func testDigestEmpty() throws {
-        let none = [MockRoute.json(.get, "/api/digest", MemoryPreviewData.digestEmpty), MockRoute.json(.get, "/api/digest/settings", #"{"enabled":false}"#)] + routes
+        var none: [MockRoute] = [
+            .json(.get, "/api/digest", MemoryPreviewData.digestEmpty),
+            .json(.get, "/api/digest/settings", #"{"enabled":false}"#),
+        ]
+        none.append(contentsOf: routes)
         try snapshot(PreviewHost(routes: none) { DigestRootView() }, named: "digest-empty")
     }
 
     func testForceGraphOnItsOwn() throws {
-        let nodes = (0..<24).map { index in
-            ForceGraphNode(
-                id: "n\(index)", label: "Node \(index)", color: index % 3 == 0 ? Palette.violet : Palette.blue,
-                shape: index % 5 == 0 ? .diamond : .circle, weight: 1 + Double(index % 4)
-            )
+        var nodes: [ForceGraphNode] = []
+        for index in 0..<24 {
+            let color: Color = index % 3 == 0 ? Palette.violet : Palette.blue
+            let shape: ForceGraphNode.Shape = index % 5 == 0 ? .diamond : .circle
+            let weight = 1.0 + Double(index % 4)
+            nodes.append(ForceGraphNode(id: "n\(index)", label: "Node \(index)", color: color, shape: shape, weight: weight))
         }
-        let edges = (1..<24).map { ForceGraphEdge(source: "n\($0)", target: "n\($0 / 2)", isStrong: $0 % 7 == 0) }
-        try snapshot(
-            ForceGraphView(nodes: nodes, edges: edges, legend: [ForceGraphLegendItem(title: "Memory", color: Palette.blue)], onOpen: { _ in })
-                .hvScreenBackground(),
-            named: "force-graph", settle: 2.5
-        )
+        var edges: [ForceGraphEdge] = []
+        for index in 1..<24 {
+            edges.append(ForceGraphEdge(source: "n\(index)", target: "n\(index / 2)", isStrong: index % 7 == 0))
+        }
+        let legend = [ForceGraphLegendItem(title: "Memory", color: Palette.blue)]
+        let graph = ForceGraphView(nodes: nodes, edges: edges, legend: legend, onOpen: { _ in })
+        try snapshot(graph.hvScreenBackground(), named: "force-graph", settle: 2.5)
     }
 
     private func conflictFixtures() throws -> [MindMergeConflict] {

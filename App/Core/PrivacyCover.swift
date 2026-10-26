@@ -111,8 +111,9 @@ final class PrivacyCoverController {
 /// while there is something to cover.
 @MainActor
 final class SceneCoverPresenter: CoverPresenting {
-    /// Above the alert level, where an alert's own window and every sheet sit below.
-    static let level = UIWindow.Level.alert + 1
+    /// Above the alert level, and above the window UIKit keeps for text effects (a selection's menu and loupe) a little
+    /// higher still. The keyboard's window is far above any of these; the lock puts the keyboard away instead.
+    static let level = UIWindow.Level.alert + 100
 
     private let lock: AppLock
     private(set) var window: UIWindow?

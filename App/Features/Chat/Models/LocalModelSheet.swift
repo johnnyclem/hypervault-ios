@@ -36,28 +36,40 @@ struct ChatLocalModelSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Name (optional)", text: $draft.name)
-                    TextField("Address, like 192.168.1.20:11434", text: $draft.baseURL)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("Model, like llama3.3", text: $draft.model)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    VStack(alignment: .leading, spacing: HV.Space.m) {
+                        HVLabeledField(title: "Name (optional)") {
+                            TextField("Name", text: $draft.name, prompt: chatPrompt("Studio Llama"))
+                        }
+                        HVLabeledField(title: "Address") {
+                            TextField("Address", text: $draft.baseURL, prompt: chatPrompt("192.168.1.20:11434"))
+                                .keyboardType(.URL)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                        }
+                        HVLabeledField(title: "Model") {
+                            TextField("Model", text: $draft.model, prompt: chatPrompt("llama3.3"))
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                        }
+                    }
+                    .padding(.vertical, HV.Space.xs)
                 } footer: {
-                    Text("Messages go from this iPhone straight to that address. iOS asks once to let HyperVault reach devices on your network.")
+                    ChatFooter("Messages go from this iPhone straight to that address. iOS asks once to let HyperVault reach devices on your network.")
                 }
+                .hvListRow()
 
                 Section {
                     LabeledContent("Context size") {
-                        TextField("4096", text: $tokensText)
+                        TextField("Context size", text: $tokensText, prompt: chatPrompt("4096"))
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .frame(maxWidth: 100)
                     }
+                    .frame(minHeight: 44)
                 } footer: {
-                    Text("How many tokens the model reads at once. Ollama starts small, so HyperVault trims what it sends to fit.")
+                    ChatFooter("How many tokens the model reads at once. Ollama starts small, so HyperVault trims what it sends to fit.")
                 }
+                .hvListRow()
 
                 Section {
                     Button(action: runCheck) {
@@ -90,27 +102,30 @@ struct ChatLocalModelSheet: View {
                         .buttonStyle(.plain)
                     }
                 }
+                .hvListRow()
 
                 Section {
-                    Button(existing == nil ? "Add" : "Save") {
-                        var saved = candidate
-                        saved.baseURL = ChatLocalModel.normalizedBase(saved.baseURL)
-                        saved.model = saved.model.trimmingCharacters(in: .whitespacesAndNewlines)
-                        onSave(saved)
-                        Haptics.success()
-                        dismiss()
+                    VStack(alignment: .leading, spacing: HV.Space.s) {
+                        Button(existing == nil ? "Add" : "Save") {
+                            var saved = candidate
+                            saved.baseURL = ChatLocalModel.normalizedBase(saved.baseURL)
+                            saved.model = saved.model.trimmingCharacters(in: .whitespacesAndNewlines)
+                            onSave(saved)
+                            Haptics.success()
+                            dismiss()
+                        }
+                        .buttonStyle(.hvPrimary)
+                        .disabled(candidate.problem != nil)
+                        if let problem = candidate.problem {
+                            // Indented to the same line as the notes under the cards above.
+                            Text(problem)
+                                .font(.hvFootnote)
+                                .foregroundStyle(Palette.textSecondary)
+                                .padding(.horizontal, HV.Space.m)
+                        }
                     }
-                    .buttonStyle(.hvPrimary)
-                    .disabled(candidate.problem != nil)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
-                    if let problem = candidate.problem {
-                        Text(problem)
-                            .font(.hvFootnote)
-                            .foregroundStyle(Palette.textSecondary)
-                            .padding(.horizontal, HV.Space.xs)
-                            .listRowBackground(Color.clear)
-                    }
                 }
             }
             .scrollContentBackground(.hidden)

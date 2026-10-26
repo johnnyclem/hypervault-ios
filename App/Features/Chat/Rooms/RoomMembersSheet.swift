@@ -23,6 +23,8 @@ struct ChatRoomMembersSheet: View {
 
     private var taken: Set<String> { Set(model.members.map(\.handle)) }
 
+    private var palette: ChatRoomPalette { ChatRoomPalette(members: model.members) }
+
     private var problem: String? {
         guard adding, chosenBackend != nil else { return nil }
         return ChatRoomHandles.problem(in: [newHandle], alreadyTaken: taken)
@@ -32,8 +34,8 @@ struct ChatRoomMembersSheet: View {
         NavigationStack {
             List {
                 Section {
-                    ForEach(Array(model.members.enumerated()), id: \.element.id) { index, member in
-                        memberRow(member, color: ChatRoomPalette.color(at: index))
+                    ForEach(model.members) { member in
+                        memberRow(member, color: palette.color(for: member))
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) { pendingRemoval = member } label: {
                                     Label("Remove", systemImage: "person.badge.minus")
@@ -43,8 +45,10 @@ struct ChatRoomMembersSheet: View {
                 } header: {
                     HVSectionHeader(title: "In this room")
                 }
+                .hvListRow()
                 addSection
             }
+            .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .hvScreenBackground()
             .navigationTitle("Members")
@@ -71,7 +75,7 @@ struct ChatRoomMembersSheet: View {
     private func memberRow(_ member: ChatRoomMember, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                Circle().fill(color).frame(width: 9, height: 9)
+                Circle().fill(color).frame(width: 9, height: 9).accessibilityHidden(true)
                 Text("@\(member.handle)").font(.hvBody.weight(.medium))
                 if let model = member.backend?.defaultModel, !model.isEmpty {
                     Text(model).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(1)
@@ -90,44 +94,61 @@ struct ChatRoomMembersSheet: View {
     }
 
     @ViewBuilder private var addSection: some View {
-        Section {
-            if !adding {
+        if !adding {
+            Section {
                 Button { startAdding() } label: {
                     Label("Add a member", systemImage: "plus.circle").frame(minHeight: 44, alignment: .leading)
                 }
                 .disabled(backends.backends.isEmpty)
-            } else {
+            } footer: {
+                if backends.backends.isEmpty, backends.phase == .loaded {
+                    ChatFooter("Connect a model under Chat, Models, then add it here.")
+                }
+            }
+            .hvListRow()
+        } else {
+            Section {
                 Picker("Model", selection: Binding(get: { chosenBackend ?? "" }, set: { choose($0) })) {
                     ForEach(backends.backends) { backend in
                         Text("\(backend.name) \u{00B7} \(backend.modelLine)").tag(backend.id)
                     }
                 }
-                HStack(spacing: 2) {
-                    Text("@").foregroundStyle(Palette.textSecondary)
-                    TextField("handle", text: $newHandle)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                VStack(alignment: .leading, spacing: HV.Space.m) {
+                    HVLabeledField(title: "Handle") {
+                        HStack(spacing: 2) {
+                            Text("@").foregroundStyle(Palette.textSecondary)
+                            TextField("Handle", text: $newHandle, prompt: chatPrompt("claude"))
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                        }
+                    }
+                    HVLabeledField(title: "Role (optional)") {
+                        TextField("Role", text: $newBrief, prompt: chatPrompt("What they own here"), axis: .vertical)
+                            .lineLimit(1...4)
+                    }
                 }
-                TextField("What they own here (optional)", text: $newBrief, axis: .vertical).lineLimit(1...4)
-                Button {
-                    add()
-                } label: {
-                    if isWorking { ProgressView().tint(.white) } else { Text("Add to the room") }
+                .padding(.vertical, HV.Space.xs)
+            }
+            .hvListRow()
+            Section {
+                VStack(alignment: .leading, spacing: HV.Space.s) {
+                    Button {
+                        add()
+                    } label: {
+                        if isWorking { ProgressView().tint(.white) } else { Text("Add to the room") }
+                    }
+                    .buttonStyle(.hvPrimary)
+                    .disabled(isWorking || chosenBackend == nil || problem != nil || newHandle.trimmingCharacters(in: .whitespaces).isEmpty)
+                    if let text = errorText ?? problem {
+                        Text(text)
+                            .font(.hvFootnote)
+                            .foregroundStyle(errorText != nil ? Palette.danger : Palette.textSecondary)
+                            .padding(.horizontal, HV.Space.m)
+                    }
+                    Button("Cancel") { adding = false; errorText = nil }.buttonStyle(.hvGhost)
                 }
-                .buttonStyle(.hvPrimary)
-                .disabled(isWorking || chosenBackend == nil || problem != nil || newHandle.trimmingCharacters(in: .whitespaces).isEmpty)
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
-                if let text = errorText ?? problem {
-                    Text(text)
-                        .font(.hvFootnote)
-                        .foregroundStyle(errorText != nil ? Palette.danger : Palette.textSecondary)
-                }
-                Button("Cancel") { adding = false; errorText = nil }.buttonStyle(.hvGhost)
-            }
-        } footer: {
-            if backends.backends.isEmpty, backends.phase == .loaded {
-                Text("Connect a model under Chat, Models, then add it here.")
             }
         }
     }

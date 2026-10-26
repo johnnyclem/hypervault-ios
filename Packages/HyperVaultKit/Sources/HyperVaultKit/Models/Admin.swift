@@ -174,8 +174,41 @@ public enum AdminProbe {
         }
     }
 
-    /// How long an answer is trusted before it is asked again.
+    /// How long a clear answer is trusted before it is asked again, and how
+    /// long to leave it alone after an unclear one.
     public static let freshFor: TimeInterval = 6 * 3600
+    public static let retryAfter: TimeInterval = 10 * 60
+}
+
+/// The last answer to the probe, kept so the You tab does not ask on every visit.
+public struct AdminProbeRecord: Sendable, Codable, Equatable {
+    public enum Answer: String, Sendable, Codable { case admin, notAdmin, unknown }
+
+    public let answer: Answer
+    public let checkedAt: Date
+
+    public init(_ verdict: AdminProbe.Verdict, at date: Date = Date()) {
+        switch verdict {
+        case .admin: answer = .admin
+        case .notAdmin: answer = .notAdmin
+        case .unknown: answer = .unknown
+        }
+        checkedAt = date
+    }
+
+    public func isFresh(now: Date = Date()) -> Bool {
+        let limit = answer == .unknown ? AdminProbe.retryAfter : AdminProbe.freshFor
+        return now.timeIntervalSince(checkedAt) < limit
+    }
+
+    /// True or false when the answer was clear; nil when it was not.
+    public var isAdmin: Bool? {
+        switch answer {
+        case .admin: return true
+        case .notAdmin: return false
+        case .unknown: return nil
+        }
+    }
 }
 
 // MARK: Endpoints

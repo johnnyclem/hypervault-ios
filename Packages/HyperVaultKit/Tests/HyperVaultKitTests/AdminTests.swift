@@ -158,6 +158,21 @@ final class AdminTests: XCTestCase {
         XCTAssertEqual(AdminProbe.verdict(status: nil), .unknown)
     }
 
+    func testTheLastAnswerIsRememberedForAWhile() throws {
+        let now = Date()
+        let admin = AdminProbeRecord(.admin, at: now.addingTimeInterval(-3_600))
+        XCTAssertTrue(admin.isFresh(now: now))
+        XCTAssertEqual(admin.isAdmin, true)
+        XCTAssertFalse(AdminProbeRecord(.notAdmin, at: now.addingTimeInterval(-7 * 3_600)).isFresh(now: now))
+        let unclear = AdminProbeRecord(.unknown, at: now.addingTimeInterval(-300))
+        XCTAssertTrue(unclear.isFresh(now: now), "an unclear answer is not asked again at once")
+        XCTAssertFalse(AdminProbeRecord(.unknown, at: now.addingTimeInterval(-700)).isFresh(now: now))
+        XCTAssertNil(unclear.isAdmin)
+
+        let data = try HVCoding.encoder(.verbatim).encode(admin)
+        XCTAssertEqual(try HVCoding.decoder(.verbatim).decode(AdminProbeRecord.self, from: data).answer, .admin)
+    }
+
     func testTheProbeNeverWrites() async throws {
         // Asked of the real route's three answers.
         let admin = MockTransport(routes: [.failure(.patch, "/api/admin/invites/*", status: 400, message: "Pass { disabled: boolean }.")])

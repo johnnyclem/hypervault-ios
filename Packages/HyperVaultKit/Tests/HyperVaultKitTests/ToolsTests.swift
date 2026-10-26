@@ -232,6 +232,22 @@ final class ToolsTests: XCTestCase {
         XCTAssertNil(body["name"])
     }
 
+    func testOAuthCallbacksAreReadIfTheServerEverSendsThem() {
+        XCTAssertEqual(McpOAuthResult(callback: URL(string: "hypervault://mcp-oauth?ok=1")!), .connected)
+        XCTAssertEqual(McpOAuthResult(callback: URL(string: "hypervault://mcp-oauth?error=access_denied&error_description=You%20said%20no")!), .failed("You said no"))
+        XCTAssertEqual(McpOAuthResult(callback: URL(string: "hypervault://mcp-oauth?ok=0&message=Token%20exchange%20failed.")!), .failed("Token exchange failed."))
+        XCTAssertEqual(McpOAuthResult(callback: URL(string: "hypervault://mcp-oauth")!), .unknown)
+    }
+
+    func testReplacingHeadersWritesThemVerbatim() async throws {
+        let transport = MockTransport(routes: [.json(.patch, "/api/mcp-servers/s1", #"{"server":{"id":"s1","name":"A","url":"https://a.example.com"}}"#)])
+        _ = try await client(transport).send(.replaceMcpHeaders(id: "s1", headers: ["X-Api-Key": "k"]))
+        let sent = await transport.requests
+        let body = try JSONDecoder().decode(JSONValue.self, from: sent[0].httpBody ?? Data())
+        XCTAssertEqual(body["headers"]?["X-Api-Key"]?.string, "k")
+        XCTAssertNil(body["enabled"])
+    }
+
     func testRefreshAndDelete() async throws {
         let transport = MockTransport(routes: [
             .json(.post, "/api/mcp-servers/s1/refresh", #"{"tools":[{"name":"a","description":"A","input_schema":{"type":"object"}}],"disabled_tools":[],"introspected_at":"2026-10-24T01:02:03.000Z"}"#),

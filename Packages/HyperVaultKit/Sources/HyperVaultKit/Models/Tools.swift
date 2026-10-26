@@ -332,6 +332,31 @@ public enum McpAuthHeader {
     }
 }
 
+/// What the browser hands back when an OAuth login ends. Today the server's
+/// callback is a web page that closes itself, so the app learns the outcome by
+/// reading the server list again; if the callback ever redirects to
+/// `hypervault://mcp-oauth?ok=1` (or `?error=...`), this reads it.
+public enum McpOAuthResult: Sendable, Equatable {
+    case connected
+    case failed(String)
+    /// Nothing the app recognises: check the server list instead.
+    case unknown
+
+    public init(callback url: URL) {
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        func value(_ name: String) -> String? { items.first { $0.name == name }?.value }
+        if let error = value("error_description") ?? value("error"), !error.isEmpty {
+            self = .failed(error)
+        } else if value("ok") == "1" || value("ok") == "true" {
+            self = .connected
+        } else if value("ok") == "0" || value("ok") == "false" {
+            self = .failed(value("message") ?? "The login did not finish.")
+        } else {
+            self = .unknown
+        }
+    }
+}
+
 /// Reads the address a person typed.
 public enum McpServerURL {
     /// A usable http(s) address, or nil. A missing scheme is taken to be https.
@@ -709,6 +734,13 @@ extension Endpoint where Response == McpServerEnvelope {
             object["disabled_tools"] = .array(disabledTools.prefix(McpServer.maxDisabledTools).map { .string($0) })
         }
         return Endpoint(.patch, "/api/mcp-servers/\(id)", body: .jsonValue(.object(object)), keys: .verbatim)
+    }
+
+    /// Replaces the pasted headers of a server whose sign-in is stored on the
+    /// server row. (A vault-backed sign-in is replaced in the vault instead:
+    /// the route reads the vault reference first, so this would be ignored.)
+    public static func replaceMcpHeaders(id: String, headers: [String: String]) -> Endpoint<McpServerEnvelope> {
+        Endpoint(.patch, "/api/mcp-servers/\(id)", body: .jsonValue(.object(["headers": .object(headers.mapValues { .string($0) })])), keys: .verbatim)
     }
 }
 

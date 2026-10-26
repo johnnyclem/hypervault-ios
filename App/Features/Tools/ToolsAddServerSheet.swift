@@ -267,9 +267,8 @@ struct ToolsAddServerSheet: View {
                 .foregroundStyle(Palette.textSecondary)
 
             VStack(alignment: .leading, spacing: HV.Space.s) {
-                TextField("Server address", text: $flow.url, prompt: Text("https://mcp.example.com/mcp").foregroundStyle(Palette.textTertiary))
+                TextField("https://mcp.example.com/mcp", text: $flow.url)
                     .keyboardType(.URL)
-                    .textContentType(.URL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .focused($focus, equals: .url)

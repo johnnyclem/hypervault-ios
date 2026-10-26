@@ -130,6 +130,10 @@ enum MemoryDates {
 /// Lays chips out in rows, wrapping where the width runs out.
 struct MemoryFlowLayout: Layout {
     var spacing: CGFloat = 6
+    /// The gap between rows, when it should differ from the gap between chips in a row.
+    var lineSpacing: CGFloat?
+
+    private var rowGap: CGFloat { lineSpacing ?? spacing }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let limit = proposal.width ?? .infinity
@@ -141,7 +145,7 @@ struct MemoryFlowLayout: Layout {
             let size = subview.sizeThatFits(.unspecified)
             if x > 0, x + size.width > limit {
                 x = 0
-                y += rowHeight + spacing
+                y += rowHeight + rowGap
                 rowHeight = 0
             }
             x += size.width
@@ -160,7 +164,7 @@ struct MemoryFlowLayout: Layout {
             let size = subview.sizeThatFits(.unspecified)
             if x > bounds.minX, x + size.width > bounds.maxX {
                 x = bounds.minX
-                y += rowHeight + spacing
+                y += rowHeight + rowGap
                 rowHeight = 0
             }
             subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
@@ -181,10 +185,23 @@ struct MemorySourceChip: View {
             Text(MemorySource.label(source))
                 .font(.system(.caption2, design: .rounded, weight: .semibold))
         }
-        .foregroundStyle(MemoryStyle.tint(forSource: source))
+        // Inked like HVTag: in light mode the accent on a tint of itself needs the darker shade to read.
+        .foregroundStyle(MemoryStyle.tint(forSource: source).hvInk())
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(MemoryStyle.tint(forSource: source).opacity(0.14), in: Capsule())
+    }
+}
+
+/// The label above a field that is more than one text field (the tags, with their chips). It matches
+/// the label HVLabeledField puts above a plain one, so a form reads the same all the way down.
+struct MemoryFieldLabel: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.system(.footnote, design: .rounded, weight: .medium))
+            .foregroundStyle(Palette.textSecondary)
     }
 }
 

@@ -2,7 +2,7 @@ import HyperVaultKit
 import SwiftUI
 
 // A reusable force-directed graph. It takes plain nodes and edges (an id, a
-// label, a colour, a shape and a weight), not memories, so the Library can
+// label, a color, a shape and a weight), not memories, so the Library can
 // draw its artifacts with it later.
 
 /// A thing in the graph.
@@ -87,8 +87,8 @@ final class ForceGraphModel {
             layout.update(nodes: forceNodes, edges: forceEdges)
         } else {
             layout = ForceLayout(nodes: forceNodes, edges: forceEdges)
-            if !reduceMotion { for _ in 0..<90 { layout.tick() } }
         }
+        if !reduceMotion { warmUp() }
         points = layout.points
         generation += 1
         if reduceMotion {
@@ -104,6 +104,19 @@ final class ForceGraphModel {
     func stop() {
         task?.cancel()
         isSimulating = false
+    }
+
+    /// Takes the layout most of the way to rest before anything is drawn, so the first frame is close to
+    /// the last. The picture is framed from these positions; a layout framed while it is still spreading
+    /// ends up bigger than the frame it was given. Bigger graphs get fewer steps, to keep this quick.
+    private func warmUp() {
+        let size = max(nodes.count, 1)
+        let budget = min(260, max(30, 3_000_000 / (size * size)))
+        var steps = 0
+        while steps < budget, layout.alpha > 0.06 {
+            layout.tick()
+            steps += 1
+        }
     }
 
     // MARK: Dragging

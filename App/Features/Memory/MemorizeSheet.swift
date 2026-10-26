@@ -18,7 +18,7 @@ private enum MemorizeKind: String, CaseIterable, Identifiable {
 }
 
 /// "Memorize this": write or paste a chunk worth keeping, or bring in a
-/// document or a web page. Everything is titled, tagged, summarised and linked
+/// document or a web page. Everything is titled, tagged, summarized and linked
 /// by the server; the person adds nothing unless they want to.
 struct MemorizeSheet: View {
     let list: MemoryListModel
@@ -105,62 +105,63 @@ struct MemorizeSheet: View {
     private var limitLabel: String { MemoryLimits.label(forBytes: list.env.limits.memoryBytes) }
 
     private var writeForm: some View {
-        VStack(alignment: .leading, spacing: HV.Space.s) {
-            Text("Paste anything from a chat or a coding session. It is titled, tagged, summarised and linked for you.")
+        VStack(alignment: .leading, spacing: HV.Space.m) {
+            Text("Paste anything from a chat or a coding session. It is titled, tagged, summarized and linked for you.")
                 .font(.hvCallout)
                 .foregroundStyle(Palette.textSecondary)
 
-            ZStack(alignment: .topLeading) {
-                TextEditor(text: $draft.content)
-                    .focused($focus, equals: .content)
-                    .scrollContentBackground(.hidden)
-                    .frame(minHeight: 180)
-                    .padding(HV.Space.xs)
-                if draft.content.isEmpty {
-                    Text("Drop the chunk worth keeping")
-                        .foregroundStyle(Palette.textTertiary)
-                        .padding(.horizontal, HV.Space.m)
-                        .padding(.vertical, HV.Space.s + 2)
-                        .allowsHitTesting(false)
+            VStack(alignment: .leading, spacing: HV.Space.xs) {
+                HVLabeledField(title: "What to keep") {
+                    ZStack(alignment: .topLeading) {
+                        TextEditor(text: $draft.content)
+                            .focused($focus, equals: .content)
+                            .scrollContentBackground(.hidden)
+                            .frame(minHeight: 150)
+                        if draft.content.isEmpty {
+                            // A hint inside the editor; the label above is what names it. The insets are the editor's own.
+                            Text("A chat, a decision, a note worth keeping")
+                                .foregroundStyle(Palette.textTertiary)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 8)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                }
+                HStack {
+                    PasteButton(payloadType: String.self) { strings in
+                        guard let text = strings.first, !text.isEmpty else { return }
+                        draft.content = draft.content.isEmpty ? text : draft.content + "\n\n" + text
+                    }
+                    .labelStyle(.titleAndIcon)
+                    .buttonBorderShape(.capsule)
+                    Spacer()
+                    Text(sizeLine)
+                        .font(.hvCaption)
+                        .foregroundStyle(isOverLimit ? Palette.danger : Palette.textSecondary)
                 }
             }
-            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(focus == .content ? Color.accentColor.opacity(0.7) : Palette.border, lineWidth: focus == .content ? 1.5 : 1))
 
-            HStack {
-                PasteButton(payloadType: String.self) { strings in
-                    guard let text = strings.first, !text.isEmpty else { return }
-                    draft.content = draft.content.isEmpty ? text : draft.content + "\n\n" + text
-                }
-                .labelStyle(.titleAndIcon)
-                .buttonBorderShape(.capsule)
-                Spacer()
-                Text(sizeLine)
-                    .font(.hvCaption)
-                    .foregroundStyle(isOverLimit ? Palette.danger : Palette.textTertiary)
-            }
-
-            VStack(spacing: HV.Space.xs) {
-                TextField("Title (optional)", text: $draft.title)
+            HVLabeledField(title: "Title", footnote: "Optional. Left blank, it is titled for you.") {
+                TextField("A short name", text: $draft.title)
                     .focused($focus, equals: .title)
-                    .hvFieldChrome(isFocused: focus == .title)
-                TextField("Tags, separated by commas (optional)", text: $draft.tagsText)
+            }
+            HVLabeledField(title: "Tags", footnote: "Optional. Separate them with commas.") {
+                TextField("trip, passports", text: $draft.tagsText)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .focused($focus, equals: .tags)
-                    .hvFieldChrome(isFocused: focus == .tags)
-                HStack {
-                    Text("Where it came from")
-                        .font(.hvSubheadline)
-                        .foregroundStyle(Palette.textSecondary)
-                    Spacer()
-                    Picker("Where it came from", selection: $draft.source) {
-                        ForEach(MemorySource.writable, id: \.self) { source in
-                            Text(source == "manual" ? "Me" : MemorySource.label(source)).tag(source)
-                        }
+            }
+            HStack {
+                Text("Where it came from")
+                    .font(.hvSubheadline)
+                    .foregroundStyle(Palette.textSecondary)
+                Spacer()
+                Picker("Where it came from", selection: $draft.source) {
+                    ForEach(MemorySource.writable, id: \.self) { source in
+                        Text(source == "manual" ? "Me" : MemorySource.label(source)).tag(source)
                     }
-                    .pickerStyle(.menu)
                 }
+                .pickerStyle(.menu)
             }
         }
     }
@@ -206,14 +207,15 @@ struct MemorizeSheet: View {
             Text("A GitHub repository becomes a digest of the project. Any other page is kept as a note.")
                 .font(.hvCallout)
                 .foregroundStyle(Palette.textSecondary)
-            TextField("github.com/owner/repo, or any article", text: $link)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.URL)
-                .submitLabel(.go)
-                .focused($focus, equals: .link)
-                .onSubmit(submit)
-                .hvFieldChrome(isFocused: focus == .link)
+            HVLabeledField(title: "Link") {
+                TextField("github.com/owner/repo, or any article", text: $link)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                    .submitLabel(.go)
+                    .focused($focus, equals: .link)
+                    .onSubmit(submit)
+            }
         }
     }
 

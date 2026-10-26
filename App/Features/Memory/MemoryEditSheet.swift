@@ -40,38 +40,33 @@ struct MemoryEditSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.m) {
-                    TextField("Title", text: $title)
-                        .font(.hvHeadline)
-                        .focused($focus, equals: .title)
-                        .hvFieldChrome(isFocused: focus == .title)
+                    HVLabeledField(title: "Title") {
+                        TextField("A short name", text: $title)
+                            .font(.hvHeadline)
+                            .focused($focus, equals: .title)
+                    }
 
-                    TextEditor(text: $content)
-                        .focused($focus, equals: .content)
-                        .scrollContentBackground(.hidden)
-                        .frame(minHeight: 260)
-                        .padding(HV.Space.xs)
-                        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(focus == .content ? Color.accentColor.opacity(0.7) : Palette.border, lineWidth: focus == .content ? 1.5 : 1))
+                    HVLabeledField(title: "Text") {
+                        TextEditor(text: $content)
+                            .focused($focus, equals: .content)
+                            .scrollContentBackground(.hidden)
+                            .frame(minHeight: 220)
+                    }
 
                     if isOverLimit {
-                        Text("That chunk is over the \(MemoryLimits.label(forBytes: limit)) memory limit — split it into smaller memories.")
+                        Text("That chunk is over the \(MemoryLimits.label(forBytes: limit)) memory limit. Split it into smaller memories.")
                             .font(.hvFootnote)
                             .foregroundStyle(Palette.danger)
                     }
 
-                    VStack(alignment: .leading, spacing: HV.Space.xs) {
-                        HVSectionHeader(title: "Tags")
+                    VStack(alignment: .leading, spacing: 6) {
+                        MemoryFieldLabel(title: "Tags")
                         MemoryTagEditor(tags: $tags)
                     }
 
-                    VStack(alignment: .leading, spacing: HV.Space.xs) {
-                        HVSectionHeader(title: "Commit message")
+                    HVLabeledField(title: "Commit message", footnote: "Saved as a commit on \(model.branch). You can always go back from History.") {
                         TextField("edit: \(memory.title)", text: $note)
                             .focused($focus, equals: .note)
-                            .hvFieldChrome(isFocused: focus == .note)
-                        Text("Saved as a commit on \(model.branch). You can always go back from History.")
-                            .font(.hvCaption)
-                            .foregroundStyle(Palette.textTertiary)
                     }
 
                     if let problem {

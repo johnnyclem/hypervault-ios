@@ -91,10 +91,12 @@ private struct MindDiffRowView: View {
         }
     }
 
+    // Text on a tint of its own color: inked darker in light mode. Removals use rose, which stays
+    // above 4.5:1 on its tint in dark mode where the plain red does not.
     private var textColor: Color {
         switch row.kind {
-        case .add: return Palette.success
-        case .del: return Palette.danger
+        case .add: return Palette.success.hvInk()
+        case .del: return Palette.rose.hvInk()
         default: return Palette.textSecondary
         }
     }
@@ -102,7 +104,7 @@ private struct MindDiffRowView: View {
     private var background: Color {
         switch row.kind {
         case .add: return Palette.success.opacity(0.12)
-        case .del: return Palette.danger.opacity(0.10)
+        case .del: return Palette.rose.opacity(0.10)
         default: return .clear
         }
     }
@@ -124,7 +126,7 @@ struct MindDiffTally: View {
     var body: some View {
         HStack(spacing: 6) {
             Text("+\(added)").foregroundStyle(Palette.success)
-            Text("\u{2212}\(removed)").foregroundStyle(Palette.danger)
+            Text("\u{2212}\(removed)").foregroundStyle(Palette.rose)
         }
         .font(.system(.caption, design: .monospaced, weight: .semibold))
         .accessibilityLabel("\(added) lines added, \(removed) removed")
@@ -166,7 +168,7 @@ struct MindStateDiffView: View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             HVSectionHeader(title: "Forgotten", detail: "\(diff.removed.count)")
             ForEach(diff.removed) { memory in
-                diffRow(symbol: "minus.circle.fill", tint: Palette.danger, title: memory.title, trailing: restoreButton(for: memory))
+                diffRow(symbol: "minus.circle.fill", tint: Palette.rose, title: memory.title, trailing: restoreButton(for: memory))
             }
         }
     }
@@ -188,7 +190,7 @@ struct MindStateDiffView: View {
                 diffRow(symbol: "link", tint: Palette.success, title: linkTitle(link, titles), trailing: nil)
             }
             ForEach(diff.linksRemoved) { link in
-                diffRow(symbol: "link.badge.plus", tint: Palette.danger, title: linkTitle(link, titles) + " (removed)", trailing: nil)
+                diffRow(symbol: "link.badge.plus", tint: Palette.rose, title: linkTitle(link, titles) + " (removed)", trailing: nil)
             }
         }
     }
@@ -274,7 +276,7 @@ struct MindStateDiffView: View {
             if !change.tagsAdded.isEmpty || !change.tagsRemoved.isEmpty {
                 MemoryFlowLayout(spacing: 6) {
                     ForEach(change.tagsAdded, id: \.self) { HVTag(text: "+ \($0)", tint: Palette.success) }
-                    ForEach(change.tagsRemoved, id: \.self) { HVTag(text: "\u{2212} \($0)", tint: Palette.danger) }
+                    ForEach(change.tagsRemoved, id: \.self) { HVTag(text: "\u{2212} \($0)", tint: Palette.rose) }
                 }
                 .padding(.leading, 30)
             }

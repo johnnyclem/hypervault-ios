@@ -12,10 +12,11 @@ struct MindTimeTravelView: View {
     @State private var moment: Date
     @State private var confirming: MindStateMemory?
 
-    init(list: MemoryListModel) {
+    /// Starts a week back unless `moment` says otherwise (a preview or a test pins it, so the screen looks the same each time).
+    init(list: MemoryListModel, moment: Date? = nil) {
         self.list = list
         _model = State(initialValue: MindTimeTravelModel(env: list.env, branch: list.branch))
-        _moment = State(initialValue: Date().addingTimeInterval(-7 * 86_400))
+        _moment = State(initialValue: moment ?? Date().addingTimeInterval(-7 * 86_400))
     }
 
     private static let presets: [(String, TimeInterval)] = [
@@ -60,17 +61,19 @@ struct MindTimeTravelView: View {
                 .foregroundStyle(Palette.textSecondary)
             DatePicker("Moment", selection: $moment, in: ...Date(), displayedComponents: [.date, .hourAndMinute])
                 .datePickerStyle(.compact)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: HV.Space.xs) {
-                    ForEach(Self.presets, id: \.0) { preset in
-                        Button {
-                            Haptics.select()
-                            moment = Date().addingTimeInterval(-preset.1)
-                        } label: {
-                            HVChip(title: preset.0)
-                        }
-                        .buttonStyle(.plain)
+            // The presets wrap rather than scroll, so every one is on screen and none is cut at the card's edge.
+            MemoryFlowLayout(spacing: HV.Space.xs, lineSpacing: 0) {
+                ForEach(Self.presets, id: \.0) { preset in
+                    Button {
+                        Haptics.select()
+                        moment = Date().addingTimeInterval(-preset.1)
+                    } label: {
+                        // A 44pt touch target around a chip that is drawn smaller.
+                        HVChip(title: preset.0)
+                            .padding(.vertical, 4)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }

@@ -157,13 +157,14 @@ struct NewBranchSheet: View {
                 Text("Forks from \(list.branch). Edits there will not touch \(list.branch) until you merge them.")
                     .font(.hvCallout)
                     .foregroundStyle(Palette.textSecondary)
-                TextField("ideas", text: $name)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .submitLabel(.done)
-                    .focused($focused)
-                    .onSubmit(create)
-                    .hvFieldChrome(isFocused: focused)
+                HVLabeledField(title: "Branch name") {
+                    TextField("ideas", text: $name)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.done)
+                        .focused($focused)
+                        .onSubmit(create)
+                }
                 if let message = problem ?? hint {
                     Text(message)
                         .font(.hvFootnote)

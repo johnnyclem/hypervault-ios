@@ -139,10 +139,8 @@ struct MindMergeView: View {
                 )
             }
 
-            VStack(alignment: .leading, spacing: HV.Space.xs) {
-                HVSectionHeader(title: "Commit message")
+            HVLabeledField(title: "Commit message") {
                 TextField("merge \(model.source) into \(model.target)", text: Binding(get: { session.message }, set: { model.setMessage($0) }))
-                    .hvFieldChrome()
             }
 
             Button {
@@ -363,17 +361,17 @@ private struct MindCustomResolutionSheet: View {
                     Text("Both versions' lines are here to start from. Cut what you do not want.")
                         .font(.hvCallout)
                         .foregroundStyle(Palette.textSecondary)
-                    TextField("Title", text: $title)
-                        .font(.hvHeadline)
-                        .hvFieldChrome()
-                    TextEditor(text: $content)
-                        .scrollContentBackground(.hidden)
-                        .frame(minHeight: 240)
-                        .padding(HV.Space.xs)
-                        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
-                    VStack(alignment: .leading, spacing: HV.Space.xs) {
-                        HVSectionHeader(title: "Tags")
+                    HVLabeledField(title: "Title") {
+                        TextField("A short name", text: $title)
+                            .font(.hvHeadline)
+                    }
+                    HVLabeledField(title: "Text") {
+                        TextEditor(text: $content)
+                            .scrollContentBackground(.hidden)
+                            .frame(minHeight: 220)
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        MemoryFieldLabel(title: "Tags")
                         MemoryTagEditor(tags: $tags)
                     }
                 }

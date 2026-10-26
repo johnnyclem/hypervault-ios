@@ -17,6 +17,15 @@ struct ForceGraphCamera: Equatable {
     }
 }
 
+/// The height the legend takes, so the picture is framed below it however many rows it wraps to.
+private struct ForceGraphLegendHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 private enum ForceGraphDrag: Equatable {
     case undecided
     case pan
@@ -43,6 +52,7 @@ struct ForceGraphView: View {
     @State private var dragStart: CGSize = .zero
     @State private var pinchStart: ForceGraphCamera?
     @State private var viewSize: CGSize = .zero
+    @State private var legendHeight: CGFloat = 0
     @State private var cameraTask: Task<Void, Never>?
 
     var body: some View {
@@ -75,8 +85,15 @@ struct ForceGraphView: View {
         .clipped()
         .onChange(of: nodes) { _, _ in refresh() }
         .onChange(of: edges) { _, _ in refresh() }
+        .onChange(of: model.points) { _, _ in
+            // While the layout is still moving the frame follows it, so the graph never outgrows the screen.
+            if !camera.userMoved, model.isSimulating { follow() }
+        }
         .onChange(of: model.isSimulating) { _, running in
             if !running, !camera.userMoved { fit(animated: true) }
+        }
+        .onChange(of: legendHeight) { _, _ in
+            if !camera.userMoved { fit(animated: false) }
         }
         .onDisappear { model.stop() }
         .accessibilityChildren {
@@ -97,12 +114,30 @@ struct ForceGraphView: View {
         let hubs = hubIDs
         let drawn = model.nodes
         let drawnEdges = model.edges
+        let keepOut = labelKeepOut
         return Canvas { context, size in
             ForceGraphRenderer.draw(
                 into: &context, size: size, nodes: drawn, edges: drawnEdges, points: points,
-                camera: camera, selection: selection, focus: focus, hubs: hubs
+                camera: camera, selection: selection, focus: focus, hubs: hubs, keepOut: keepOut
             )
         }
+    }
+
+    /// What sits on top of the picture and must not be written over: the legend, the buttons, the callout.
+    private var labelKeepOut: [CGRect] {
+        var areas: [CGRect] = []
+        if !legend.isEmpty {
+            areas.append(CGRect(x: 0, y: 0, width: viewSize.width, height: legendHeight + HV.Space.s * 2))
+        }
+        if selection == nil {
+            // Three 44pt buttons and their rules, with the screen's margin round them.
+            let width = 44 + HV.Space.s * 2
+            let height = 3 * 44 + 2 + HV.Space.s * 2
+            areas.append(CGRect(x: viewSize.width - width, y: viewSize.height - height, width: width, height: height))
+        } else {
+            areas.append(CGRect(x: 0, y: viewSize.height - 88, width: viewSize.width, height: 88))
+        }
+        return areas
     }
 
     private var hubIDs: Set<String> {
@@ -132,6 +167,12 @@ struct ForceGraphView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: ForceGraphLegendHeightKey.self, value: proxy.size.height)
+            }
+        }
+        .onPreferenceChange(ForceGraphLegendHeightKey.self) { legendHeight = $0 }
         .accessibilityHidden(true)
     }
 
@@ -217,10 +258,11 @@ struct ForceGraphView: View {
         if !camera.userMoved { fit(animated: false) }
     }
 
-    private func fit(animated: Bool) {
-        guard viewSize.width > 0, viewSize.height > 0, let bounds = model.bounds else { return }
-        // Room for the legend above, the buttons at the right and a label under the lowest node.
-        let top: CGFloat = legend.isEmpty ? 32 : 84
+    /// The camera that puts the whole graph in the open part of the screen: below the legend, clear of
+    /// the buttons, with room under the lowest node for its name.
+    private func fittedCamera() -> ForceGraphCamera? {
+        guard viewSize.width > 0, viewSize.height > 0, let bounds = model.bounds else { return nil }
+        let top: CGFloat = legend.isEmpty ? 32 : (legendHeight > 0 ? legendHeight + HV.Space.s * 2 + 24 : 84)
         let bottom: CGFloat = 56
         let leading: CGFloat = 36
         let trailing: CGFloat = 68
@@ -230,7 +272,7 @@ struct ForceGraphView: View {
         let availableHeight = max(viewSize.height - top - bottom, 60)
         let scale = max(min(availableWidth / width, availableHeight / height, 2.2), 0.05)
         let center = bounds.center
-        let fitted = ForceGraphCamera(
+        return ForceGraphCamera(
             scale: scale,
             translation: CGSize(
                 width: leading + availableWidth / 2 - CGFloat(center.x) * scale,
@@ -238,12 +280,35 @@ struct ForceGraphView: View {
             ),
             userMoved: false
         )
+    }
+
+    private func fit(animated: Bool) {
+        guard let fitted = fittedCamera() else { return }
         if animated {
             animate(to: fitted)
         } else {
             cameraTask?.cancel()
             camera = fitted
         }
+    }
+
+    /// One step towards the framing, taken as the layout moves. Easing keeps the picture from twitching.
+    private func follow() {
+        guard let fitted = fittedCamera() else { return }
+        cameraTask?.cancel()
+        guard !reduceMotion else {
+            camera = fitted
+            return
+        }
+        let ease: CGFloat = 0.3
+        camera = ForceGraphCamera(
+            scale: camera.scale + (fitted.scale - camera.scale) * ease,
+            translation: CGSize(
+                width: camera.translation.width + (fitted.translation.width - camera.translation.width) * ease,
+                height: camera.translation.height + (fitted.translation.height - camera.translation.height) * ease
+            ),
+            userMoved: false
+        )
     }
 
     /// Eases the camera to a new framing. A Canvas does not animate by itself, so the steps are taken here.
@@ -387,26 +452,42 @@ enum ForceGraphRenderer {
         return base * min(max(scale.squareRoot(), 0.75), 1.6)
     }
 
+    /// How far in from the edge of the canvas a name may go.
+    private static let labelMargin = CGSize(width: 12, height: 8)
+
+    /// Links, then nodes, then names. A name goes where nothing is in the way (see `ForceLabelPlacer`) and
+    /// sits on a soft backing of the page's own color, so a link that passes under it does not cut the text.
     static func draw(
         into context: inout GraphicsContext, size: CGSize, nodes: [ForceGraphNode], edges: [ForceGraphEdge],
-        points: [ForcePoint], camera: ForceGraphCamera, selection: String?, focus: Set<String>, hubs: Set<String>
+        points: [ForcePoint], camera: ForceGraphCamera, selection: String?, focus: Set<String>, hubs: Set<String>,
+        keepOut: [CGRect] = []
     ) {
         guard points.count == nodes.count else { return }
         var index: [String: Int] = [:]
         for (i, node) in nodes.enumerated() { index[node.id] = i }
         let dimmed = selection != nil
+        let canvas = CGRect(origin: .zero, size: size)
 
+        // Links sit under everything, strong enough to follow with the eye in both looks.
+        var segments: [ForceLabelPlacer.Segment] = []
         for edge in edges {
             guard let a = index[edge.source], let b = index[edge.target] else { continue }
+            let from = camera.screen(points[a])
+            let to = camera.screen(points[b])
             let involved = !dimmed || (focus.contains(edge.source) && focus.contains(edge.target) && (edge.source == selection || edge.target == selection))
             var path = Path()
-            path.move(to: camera.screen(points[a]))
-            path.addLine(to: camera.screen(points[b]))
-            let opacity: Double = involved ? (edge.isStrong ? 0.75 : 0.45) : 0.08
-            let style = StrokeStyle(lineWidth: edge.isStrong ? 1.6 : 0.9, lineCap: .round)
+            path.move(to: from)
+            path.addLine(to: to)
+            let opacity: Double = involved ? (edge.isStrong ? 0.95 : 0.7) : 0.1
+            let style = StrokeStyle(lineWidth: edge.isStrong ? 1.8 : 1.1, lineCap: .round)
             context.stroke(path, with: .color(Palette.textSecondary.opacity(opacity)), style: style)
+            let segment = ForceLabelPlacer.Segment(from: from, to: to)
+            if involved, ForceLabelPlacer.intersects(segment, canvas) { segments.append(segment) }
         }
 
+        // Nodes, each with a ring of page color so the links seem to stop at it.
+        var obstacles: [ForceLabelPlacer.Obstacle] = []
+        var reaches: [String: CGFloat] = [:]
         for (i, node) in nodes.enumerated() {
             let center = camera.screen(points[i])
             if center.x < -30 || center.y < -30 || center.x > size.width + 30 || center.y > size.height + 30 { continue }
@@ -414,46 +495,58 @@ enum ForceGraphRenderer {
             let faded = dimmed && !focus.contains(node.id)
             let rect = CGRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2)
             let shape = shapePath(node.shape, in: rect)
-            context.fill(shape, with: .color(node.color.opacity(faded ? 0.22 : 0.95)))
+            context.stroke(shape, with: .color(Palette.background), lineWidth: 3)
+            context.fill(shape, with: .color(node.color.opacity(faded ? 0.25 : 1)))
+            var reach = r
             if node.id == selection {
                 let ring = shapePath(node.shape, in: rect.insetBy(dx: -4, dy: -4))
                 context.stroke(ring, with: .color(Palette.textPrimary), lineWidth: 2)
+                reach += 5
             }
+            reaches[node.id] = reach
+            obstacles.append(ForceLabelPlacer.Obstacle(id: node.id, rect: CGRect(x: center.x - reach, y: center.y - reach, width: reach * 2, height: reach * 2)))
         }
 
-        // Labels: the selected node and its neighbours first, then the best connected,
-        // then (zoomed in) everything. A label that would land on one already drawn is skipped.
+        // Names: the selected node and its neighbours first, then the best connected, then (zoomed in)
+        // everything. One that has nowhere clear to go is left out.
         let showAll = camera.scale > 1.7
-        var candidates: [(index: Int, priority: Int)] = []
+        var requests: [ForceLabelPlacer.Request] = []
+        var resolved: [String: GraphicsContext.ResolvedText] = [:]
         for (i, node) in nodes.enumerated() {
+            let priority: Int
             if node.id == selection {
-                candidates.append((i, 3))
+                priority = 3
             } else if dimmed {
-                if focus.contains(node.id) { candidates.append((i, 2)) }
+                guard focus.contains(node.id) else { continue }
+                priority = 2
             } else if hubs.contains(node.id) {
-                candidates.append((i, 1))
+                priority = 1
             } else if showAll {
-                candidates.append((i, 0))
+                priority = 0
+            } else {
+                continue
             }
-        }
-        candidates.sort { $0.priority != $1.priority ? $0.priority > $1.priority : $0.index < $1.index }
-        var occupied: [CGRect] = []
-        for candidate in candidates {
-            let node = nodes[candidate.index]
-            let center = camera.screen(points[candidate.index])
-            if center.x < 0 || center.y < 0 || center.x > size.width || center.y > size.height { continue }
-            let r = radius(for: node, scale: camera.scale)
+            let center = camera.screen(points[i])
+            guard canvas.contains(center), let reach = reaches[node.id] else { continue }
             let text = Text(truncated(node.label))
-                .font(.system(size: 11, weight: candidate.priority >= 2 ? .semibold : .medium, design: .rounded))
+                .font(.system(size: 11, weight: priority >= 2 ? .semibold : .medium, design: .rounded))
                 .foregroundStyle(Palette.textPrimary)
-            let resolved = context.resolve(text)
-            let measured = resolved.measure(in: CGSize(width: 220, height: 40))
-            let left = min(max(center.x - measured.width / 2, 4), max(size.width - measured.width - 4, 4))
-            let frame = CGRect(x: left, y: center.y + r + 3, width: measured.width, height: measured.height)
-            let padded = frame.insetBy(dx: -3, dy: -1)
-            if candidate.priority < 3, occupied.contains(where: { $0.intersects(padded) }) { continue }
-            occupied.append(padded)
-            context.draw(resolved, at: CGPoint(x: frame.midX, y: frame.minY), anchor: .top)
+            let label = context.resolve(text)
+            resolved[node.id] = label
+            requests.append(ForceLabelPlacer.Request(
+                id: node.id, center: center, radius: reach,
+                size: label.measure(in: CGSize(width: 220, height: 40)), priority: priority, isRequired: priority == 3
+            ))
+        }
+        let placements = ForceLabelPlacer.place(
+            requests, nodes: obstacles, links: segments,
+            options: ForceLabelPlacer.Options(bounds: canvas.insetBy(dx: labelMargin.width, dy: labelMargin.height), keepOut: keepOut)
+        )
+        for placement in placements {
+            guard let label = resolved[placement.id] else { continue }
+            let backing = placement.frame.insetBy(dx: -4, dy: -2)
+            context.fill(Path(roundedRect: backing, cornerRadius: 5), with: .color(Palette.background.opacity(0.82)))
+            context.draw(label, at: CGPoint(x: placement.frame.midX, y: placement.frame.midY), anchor: .center)
         }
     }
 

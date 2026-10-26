@@ -143,11 +143,7 @@ struct RealmsRootView: View {
                 HStack {
                     Text("What Pro includes").font(.hvBody).foregroundStyle(Palette.textPrimary)
                     Spacer(minLength: HV.Space.xs)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Palette.textTertiary)
-                        .rotationEffect(.degrees(showsPlans ? 90 : 0))
-                        .accessibilityHidden(true)
+                    KeysChevron(isOpen: showsPlans)
                 }
                 .contentShape(Rectangle())
             }
@@ -203,19 +199,21 @@ struct RealmRow: View {
     private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
-        HStack(spacing: HV.Space.s + 2) {
+        KeysRowLayout {
             HVIconBadge(symbol: "globe", tint: Palette.blue, size: min(tile, 56))
+        } words: {
             VStack(alignment: .leading, spacing: 2) {
+                // An address is one word: it shrinks to fit before it is allowed to break in the middle.
                 Text(claim.host)
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(isLarge ? nil : 1)
-                    .minimumScaleFactor(isLarge ? 1 : 0.75)
+                    .lineLimit(1)
+                    .minimumScaleFactor(isLarge ? 0.5 : 0.75)
                 Text(subtitle).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(isLarge ? nil : 2)
                 if isLarge, isPro { HVTag(text: "Pro", tint: Palette.blue).padding(.top, 2) }
             }
-            Spacer(minLength: HV.Space.xs)
-            if !isLarge, isPro { HVTag(text: "Pro", tint: Palette.blue) }
+        } trailing: {
+            if isPro { HVTag(text: "Pro", tint: Palette.blue) }
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)

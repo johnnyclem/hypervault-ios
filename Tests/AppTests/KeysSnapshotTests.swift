@@ -59,7 +59,7 @@ final class KeysSnapshotTests: XCTestCase {
         try snapshot(
             PreviewHost(routes: VaultPreviewData.routes, embedInNavigation: false) { VaultAddPreview(kind: .card) }.environment(\.dynamicTypeSize, accessibility),
             named: "vault-add-card-large",
-            size: CGSize(width: 393, height: 2600)
+            size: CGSize(width: 393, height: 2000)
         )
         try snapshot(
             PreviewHost(routes: RealmsPreviewData.routes, capabilities: RealmsPreviewData.capabilities) { RealmsRootView() }.environment(\.dynamicTypeSize, accessibility),

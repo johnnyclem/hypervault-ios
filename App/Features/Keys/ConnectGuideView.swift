@@ -139,24 +139,38 @@ struct ConnectGuideView: View {
         }
     }
 
-    /// Open for the entries whose notes decide whether the setup works at all.
+    /// Open for the entries whose notes decide whether the setup works at all. Not a DisclosureGroup: its
+    /// chevron is drawn bold in the primary colour, heavier than every other disclosure mark in the app.
     private var notesSection: some View {
-        DisclosureGroup(isExpanded: Binding(get: { notesOverride ?? (!info.verified || info.keyInUrl) }, set: { notesOverride = $0 })) {
-            VStack(alignment: .leading, spacing: HV.Space.xs) {
-                ForEach(Array(guide.caveats.enumerated()), id: \.offset) { _, caveat in
-                    HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
-                        Text("\u{2022}").foregroundStyle(Palette.textTertiary)
-                        Text(caveat)
-                            .font(.hvFootnote)
-                            .foregroundStyle(Palette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .accessibilityElement(children: .combine)
+        let isOpen = notesOverride ?? (!info.verified || info.keyInUrl)
+        return VStack(alignment: .leading, spacing: HV.Space.xs) {
+            Button {
+                withAnimation(.easeOut(duration: 0.2)) { notesOverride = !isOpen }
+            } label: {
+                HStack {
+                    sectionTitle(ConnectCopy.notesHeading)
+                    Spacer(minLength: HV.Space.xs)
+                    KeysChevron(isOpen: isOpen)
                 }
+                .contentShape(Rectangle())
             }
-            .padding(.top, HV.Space.xs)
-        } label: {
-            sectionTitle(ConnectCopy.notesHeading)
+            .buttonStyle(.plain)
+            .accessibilityValue(isOpen ? "Expanded" : "Collapsed")
+            if isOpen {
+                VStack(alignment: .leading, spacing: HV.Space.xs) {
+                    ForEach(Array(guide.caveats.enumerated()), id: \.offset) { _, caveat in
+                        HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
+                            Text("\u{2022}").foregroundStyle(Palette.textTertiary)
+                            Text(caveat)
+                                .font(.hvFootnote)
+                                .foregroundStyle(Palette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+                .padding(.top, HV.Space.xs)
+            }
         }
         .hvCard()
     }

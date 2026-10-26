@@ -220,7 +220,7 @@ private struct VaultNewItemForm: View {
                     TextField("What is it for?", text: $details)
                 }
 
-                VStack(spacing: HV.Space.s) {
+                VStack(alignment: .leading, spacing: HV.Space.s) {
                     if draft.isTouched, let problem = draft.problem {
                         KeysInlineMessage(text: problem, isError: false)
                     }

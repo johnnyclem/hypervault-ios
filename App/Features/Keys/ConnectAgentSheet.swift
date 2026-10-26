@@ -171,8 +171,9 @@ private struct ClientRow: View {
     private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
-        HStack(spacing: HV.Space.s + 2) {
+        KeysRowLayout {
             HVIconBadge(symbol: info.group.symbol, tint: tint, size: min(tile, 56))
+        } words: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(info.name)
                     .font(.hvBody)
@@ -185,8 +186,8 @@ private struct ClientRow: View {
                 // Under the words at accessibility sizes, where beside them it would take their width.
                 if isLarge, !info.verified { HVTag(text: "Untested", tint: Palette.warning).padding(.top, 2) }
             }
-            Spacer(minLength: HV.Space.xs)
-            if !isLarge, !info.verified { HVTag(text: "Untested", tint: Palette.warning) }
+        } trailing: {
+            if !info.verified { HVTag(text: "Untested", tint: Palette.warning) }
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
@@ -381,7 +382,7 @@ private struct ConnectClientScreen: View {
                     Button("Check again") { Task { await model.checkConnected() } }.buttonStyle(.hvGhost)
                 }
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
-                    HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
+                    HStack(spacing: HV.Space.xs) {
                         ProgressView()
                         waitingText
                     }

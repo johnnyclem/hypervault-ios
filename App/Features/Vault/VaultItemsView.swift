@@ -74,29 +74,13 @@ struct VaultItemsView: View {
     private func list(_ model: VaultItemsModel) -> some View {
         @Bindable var model = model
         return List {
-            Section {
-                // One short sentence here. What else there is to know sits under the list, so at the largest
-                // text sizes the first screen is the filters and the entries, not a page of introduction.
-                Text("Save a login, card or contact once, and the agents you allow can use it.")
-                    .font(.hvCallout)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
-
-                filters(model)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
-            }
-            .listRowSeparator(.hidden)
-
             let shown = model.visible
             if shown.isEmpty {
                 Section {
                     empty(model)
                         .listRowBackground(Color.clear)
                 } footer: {
-                    privacyNote
+                    note
                 }
             } else {
                 Section {
@@ -106,20 +90,24 @@ struct VaultItemsView: View {
                         }
                     }
                 } footer: {
-                    privacyNote
+                    note
                 }
                 .hvListRow()
             }
         }
         .scrollContentBackground(.hidden)
+        // The filters stay in view above the list, so what is shown is always what was asked for, and the chips
+        // run the width of the screen and off its edge instead of stopping at the list's margin.
+        .safeAreaInset(edge: .top, spacing: 0) { filters(model) }
         .searchable(text: $model.query, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search")
         .refreshable { await model.load() }
     }
 
-    /// Who can use what is saved, and that it cannot be read back: said once, under the entries.
-    private var privacyNote: some View {
+    /// What the vault is for and that a value cannot be read back: said once, under the entries, so the first
+    /// screen at any text size is the filters and what is saved.
+    private var note: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            Text("Agents you give a key, like Claude Code, Codex, Cursor, Gemini CLI or your own script, can use what you allow.")
+            Text("Save a login, card or contact once, and the agents you allow can use it. Agents you give a key, like Claude Code, Codex, Cursor, Gemini CLI or your own script, only ever get what you allow.")
             Label("Values are encrypted when you save them and never shown again.", systemImage: "lock.fill")
         }
         .font(.hvFootnote)
@@ -134,11 +122,11 @@ struct VaultItemsView: View {
                     chip(category.label, category: category, model: model)
                 }
             }
-            .padding(.vertical, HV.Space.xxs)
+            .padding(.horizontal, HV.Space.m)
+            .padding(.vertical, HV.Space.xs)
         }
-        // The row is inset like the cards below it. Letting the chips run past that edge means a chip that
-        // does not fit is cut by the screen, which says there are more, and not by an invisible line.
-        .scrollClipDisabled()
+        .background(Palette.background)
+        .overlay(alignment: .bottom) { Rectangle().fill(Palette.hairline).frame(height: 1) }
         .accessibilityElement(children: .contain)
     }
 
@@ -185,8 +173,9 @@ struct VaultRow: View {
     private let spacing = HV.Space.s + 2
 
     var body: some View {
-        HStack(spacing: spacing) {
+        KeysRowLayout {
             VaultTile(secret: secret, size: tileSize)
+        } words: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(secret.name)
                     .font(.hvBody)
@@ -198,13 +187,13 @@ struct VaultRow: View {
                     .lineLimit(isLarge ? nil : 1)
                 if isLarge { lastUsed }
             }
-            Spacer(minLength: HV.Space.xs)
-            if !isLarge { lastUsed }
+        } trailing: {
+            lastUsed
         }
         .contentShape(Rectangle())
         // Every separator starts under the text. Left to itself the system takes a login's monogram, which is
         // text, as the start of the row and draws that one line further left than the rest.
-        .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + tileSize + spacing }
+        .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + (isLarge ? 0 : tileSize + spacing) }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(secret.name), \(secret.subtitle). \(AccountWords.lastUsedLine(secret.lastAccessedAt))")
     }

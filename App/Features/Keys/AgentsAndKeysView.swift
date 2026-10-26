@@ -196,12 +196,13 @@ struct KeyRow: View {
     private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
-        HStack(alignment: .top, spacing: HV.Space.s + 2) {
+        KeysRowLayout(alignment: .top) {
             HVIconBadge(
                 symbol: key.isPaired ? "link" : "key.horizontal",
                 tint: status?.complete == true ? Palette.mint : Palette.amber,
                 size: min(tile, 56)
             )
+        } words: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(key.displayName ?? "Untitled key")
                     .font(.hvBody)
@@ -214,7 +215,6 @@ struct KeyRow: View {
                         .padding(.top, 2)
                 }
             }
-            Spacer(minLength: 0)
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)

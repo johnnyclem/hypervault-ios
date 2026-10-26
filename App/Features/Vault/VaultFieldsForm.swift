@@ -74,7 +74,8 @@ struct VaultFieldsForm: View {
             title: "Website (optional)",
             footnote: "Include the full address, starting with https://, so an agent knows where it signs in."
         ) {
-            TextField("https://github.com", text: binding("url"))
+            // Verbatim: a plain string is read as Markdown, and an address in it is drawn as a link.
+            TextField("Website", text: binding("url"), prompt: Text(verbatim: "https://github.com"))
                 .keyboardType(.URL)
                 .textContentType(.URL)
                 .textInputAutocapitalization(.never)

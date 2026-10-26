@@ -150,15 +150,16 @@ private struct WebhookRow: View {
     private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
-        HStack(spacing: HV.Space.s + 2) {
+        KeysRowLayout {
             HVIconBadge(symbol: "dot.radiowaves.left.and.right", tint: tint, size: min(tile, 56))
+        } words: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(hook.title).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(isLarge ? nil : 1)
                 Text(summary).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(isLarge ? nil : 2)
                 if isLarge, let statusTag { statusTag.padding(.top, 2) }
             }
-            Spacer(minLength: HV.Space.xs)
-            if !isLarge, let statusTag { statusTag }
+        } trailing: {
+            if let statusTag { statusTag }
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
@@ -355,7 +356,7 @@ private struct AddWebhookSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: HV.Space.l) {
                 HVLabeledField(title: "Address", footnote: "Where HyperVault posts. Private and local addresses are refused.") {
-                    TextField("https://example.com/hooks/hypervault", text: $url)
+                    TextField("Address", text: $url, prompt: Text(verbatim: "https://example.com/hooks/hypervault"))
                         .keyboardType(.URL)
                         .textContentType(.URL)
                         .textInputAutocapitalization(.never)

@@ -76,7 +76,9 @@ struct KeysCopyButton: View {
         switch style {
         case .primary: button.buttonStyle(.hvPrimary)
         case .secondary: button.buttonStyle(.hvSecondary)
-        case .compact: button.buttonStyle(.hvGhost)
+        // The ghost style pads its text in from the edge for a 44pt target. In a column of text that would
+        // set the button's words in from the text above it, so it is pulled back by the same amount.
+        case .compact: button.buttonStyle(.hvGhost).padding(.leading, -HV.Space.s)
         }
     }
 
@@ -216,13 +218,65 @@ extension View {
     func keysLargeTitle() -> some View { modifier(KeysTitleDisplay()) }
 }
 
+/// A row's leading mark and its words. Side by side while there is room; at accessibility sizes the mark goes
+/// above the words, so a name or an address is not wrapped into a narrow column beside it. The trailing view
+/// (a tag, a time) is for the side-by-side layout: a row that has one puts it under its words itself when
+/// `dynamicTypeSize.isAccessibilitySize`.
+struct KeysRowLayout<Mark: View, Words: View, Trailing: View>: View {
+    var alignment: VerticalAlignment
+    let mark: Mark
+    let words: Words
+    let trailing: Trailing
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    init(
+        alignment: VerticalAlignment = .center,
+        @ViewBuilder mark: () -> Mark,
+        @ViewBuilder words: () -> Words,
+        @ViewBuilder trailing: () -> Trailing
+    ) {
+        self.alignment = alignment
+        self.mark = mark()
+        self.words = words()
+        self.trailing = trailing()
+    }
+
+    var body: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: HV.Space.xs) {
+                mark
+                words
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            HStack(alignment: alignment, spacing: HV.Space.s + 2) {
+                mark
+                words
+                Spacer(minLength: HV.Space.xs)
+                trailing
+            }
+        }
+    }
+}
+
+extension KeysRowLayout where Trailing == EmptyView {
+    init(alignment: VerticalAlignment = .center, @ViewBuilder mark: () -> Mark, @ViewBuilder words: () -> Words) {
+        self.init(alignment: alignment, mark: mark, words: words) { EmptyView() }
+    }
+}
+
 /// The disclosure mark for a row that opens something without being a NavigationLink (a sheet, another
 /// tab), drawn the way the system draws its own so the two kinds of row read alike.
 struct KeysChevron: View {
+    /// A quarter turn down, for a row that is open.
+    var isOpen = false
+
     var body: some View {
         Image(systemName: "chevron.right")
             .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(Palette.textTertiary)
+            .rotationEffect(.degrees(isOpen ? 90 : 0))
             .accessibilityHidden(true)
     }
 }

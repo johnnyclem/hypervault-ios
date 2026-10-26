@@ -35,8 +35,8 @@ struct RealmDetailView: View {
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
                     Text(claim.host)
                         .font(.system(.title3, design: .monospaced, weight: .semibold))
-                        .minimumScaleFactor(0.7)
-                        .lineLimit(2)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
                     Text("Serves your whole vault. Visitors see this address's look; you still get your dashboard.")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)

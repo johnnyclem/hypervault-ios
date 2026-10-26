@@ -122,7 +122,7 @@ struct VaultItemDetailView: View {
                     Text("No agent keys yet. Connect an agent, then allow it here.")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
-                    Button("Connect an agent") { connecting = true }.buttonStyle(.hvGhost)
+                    Button("Connect an agent") { connecting = true }.buttonStyle(.hvGhost).padding(.leading, -HV.Space.s)
                 }
             } else if grants.hasFailed {
                 // No switches at all: a row of them would read as "none allowed" when nobody knows.
@@ -130,7 +130,7 @@ struct VaultItemDetailView: View {
                     Label(VaultGrantsCopy.loadFailed, systemImage: "exclamationmark.circle")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
-                    Button("Try again") { Task { await loadGrants(secret) } }.buttonStyle(.hvGhost)
+                    Button("Try again") { Task { await loadGrants(secret) } }.buttonStyle(.hvGhost).padding(.leading, -HV.Space.s)
                 }
             } else {
                 ForEach(model.keys) { key in

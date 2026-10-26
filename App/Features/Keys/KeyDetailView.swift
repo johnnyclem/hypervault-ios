@@ -105,7 +105,7 @@ struct KeyDetailView: View {
 
     private func header(_ key: AgentKey, status: AgentSetupStatus?) -> some View {
         let tag = status.map { HVTag(text: $0.complete ? "Agent connected" : "Setup pending", tint: $0.complete ? Palette.success : Palette.warning) }
-        return HStack(alignment: .top, spacing: HV.Space.m) {
+        return HStack(alignment: dynamicTypeSize.isAccessibilitySize ? .top : .center, spacing: HV.Space.m) {
             HVIconBadge(symbol: key.isPaired ? "link" : "key.horizontal", tint: status?.complete == true ? Palette.mint : Palette.amber, size: 48)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(key.displayName ?? "Untitled key").font(.hvTitle3)

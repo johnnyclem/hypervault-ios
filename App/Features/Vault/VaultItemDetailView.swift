@@ -161,13 +161,11 @@ struct VaultItemDetailView: View {
         grants = await model.grantsPhase(for: secret)
     }
 
-    /// The switch moves at once and goes back if the server says no.
+    /// The switch moves at once and goes back if the server says no. Only that switch goes back: another
+    /// one may have been turned and accepted while this one waited, and a copy taken before would undo it.
     private func toggle(_ key: AgentKey, on: Bool, secret: VaultSecret) {
         guard grants.isLoaded else { return }
-        let before = grants.granted
-        var next = before
-        if on { next.insert(key.id) } else { next.remove(key.id) }
-        grants = .loaded(next)
+        grants = grants.setting(key.id, to: on)
         pending.insert(key.id)
         grantsError = nil
         Task {
@@ -176,7 +174,7 @@ struct VaultItemDetailView: View {
                 try await model.setGranted(on, keyID: key.id, for: secret)
                 Haptics.select()
             } catch {
-                grants = .loaded(before)
+                grants = grants.setting(key.id, to: !on)
                 grantsError = keysMessage(for: error)
                 Haptics.failure()
             }

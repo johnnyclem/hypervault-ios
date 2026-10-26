@@ -84,7 +84,7 @@ struct SettingsRootView: View {
             }.hvListRow()
 
             Section(header: HVSectionHeader(title: "Advanced"), footer: advancedFooter) {
-                TextField("hypervault.store", text: $serverText)
+                TextField("Server address", text: $serverText, prompt: .hvPrompt("hypervault.store"))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)

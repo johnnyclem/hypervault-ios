@@ -117,12 +117,11 @@ struct YoursListView: View {
     var body: some View {
         List {
             Section {
-                Picker("Show", selection: $model.filter) {
+                AdaptiveChoicePicker(title: "Show", selection: $model.filter) {
                     ForEach(YoursFilter.allCases) { filter in
                         Text(filter.title).tag(filter)
                     }
                 }
-                .pickerStyle(.segmented)
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
             }

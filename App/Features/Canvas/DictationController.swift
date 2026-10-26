@@ -20,6 +20,14 @@ enum DictationProblem: Equatable {
     }
 }
 
+/// When the canvas can no longer keep the microphone: it is not the tab in front, something is presented over it, or
+/// the app is away. `.inactive` alone is not that: Control Center and system alerts pass through it for a moment.
+enum DictationPolicy {
+    static func mustStop(tab: AppTab, isCovered: Bool, phase: ScenePhase) -> Bool {
+        tab != .canvas || isCovered || phase == .background
+    }
+}
+
 /// Talking into the canvas. Recognition happens on the device when the language supports it, so
 /// what is said does not leave the phone unless it has to.
 @MainActor

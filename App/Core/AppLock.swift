@@ -102,30 +102,42 @@ final class AppLock {
     }
 }
 
-/// What covers the app while it is locked. It is also the only thing VoiceOver, Switch Control and a keyboard can
-/// reach then: `RootView` hides and disables the app underneath.
+/// What covers the app while it is locked. It is drawn in a window of its own above every sheet (see
+/// `PrivacyCoverController`), and it is the only thing VoiceOver, Switch Control and a keyboard can reach then: the
+/// window takes the keyboard's focus and hides the app's windows from VoiceOver, and `RootView` also hides and disables
+/// the app underneath.
 struct LockScreen: View {
     let lock: AppLock
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         ZStack {
             AuroraBackground()
-            VStack(spacing: HV.Space.l) {
-                BrandMark(size: 76)
-                Text("HyperVault is locked").font(.hvTitle).accessibilityAddTraits(.isHeader)
-                Text("Only you can open it.").font(.hvCallout).foregroundStyle(Palette.textSecondary)
-                if let message = lock.failureMessage {
-                    Text(message).font(.hvFootnote).foregroundStyle(Palette.danger)
+            // Centred when it fits, and scrolls when the text is large enough that it does not: the way back in must
+            // never be pushed off the screen.
+            GeometryReader { proxy in
+                ScrollView {
+                    VStack(spacing: HV.Space.l) {
+                        BrandMark(size: 76)
+                        Text("HyperVault is locked").font(.hvTitle).multilineTextAlignment(.center).accessibilityAddTraits(.isHeader)
+                        Text("Only you can open it.").font(.hvCallout).foregroundStyle(Palette.textSecondary).multilineTextAlignment(.center)
+                        if let message = lock.failureMessage {
+                            Text(message).font(.hvFootnote).foregroundStyle(Palette.danger).multilineTextAlignment(.center)
+                        }
+                        Button {
+                            Task { await lock.unlock() }
+                        } label: {
+                            Label("Unlock with \(lock.methodName)", systemImage: "faceid")
+                        }
+                        .buttonStyle(.hvPrimary)
+                        // At the largest text the words need the whole width, or they wrap one to a line.
+                        .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : 300)
+                    }
+                    .padding(HV.Space.xl)
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height)
                 }
-                Button {
-                    Task { await lock.unlock() }
-                } label: {
-                    Label("Unlock with \(lock.methodName)", systemImage: "faceid")
-                }
-                .buttonStyle(.hvPrimary)
-                .frame(maxWidth: 300)
+                .scrollBounceBehavior(.basedOnSize)
             }
-            .padding(HV.Space.xl)
         }
         .accessibilityAddTraits(.isModal)
         .task { await lock.unlock() }
@@ -133,7 +145,7 @@ struct LockScreen: View {
     }
 }
 
-/// A blank card for the app switcher.
+/// A blank card for the app switcher. It is for the eye only: nothing on it is for VoiceOver.
 struct PrivacyShield: View {
     var body: some View {
         ZStack {
@@ -141,5 +153,6 @@ struct PrivacyShield: View {
             BrandMark(size: 64)
         }
         .ignoresSafeArea()
+        .accessibilityHidden(true)
     }
 }

@@ -16,6 +16,22 @@ struct ThreadMessage: Identifiable, Equatable {
     var isLocal = false
     /// Under a local question: the things to choose between.
     var choices: ThreadChoices?
+
+    /// Inline markdown only (bold, italic, code, links); block structure is left as written.
+    static func rendered(_ text: String) -> AttributedString {
+        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        return (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
+    }
+
+    /// The line as VoiceOver reads it: who spoke, then the words as they are drawn, without the marks of the markdown.
+    /// Position and colour say who spoke to the eye; this is the same for the ear.
+    var spokenLine: String {
+        let words = String(Self.rendered(content).characters)
+        switch role {
+        case .user: return "You said: \(words)"
+        case .assistant: return isLocal ? "HyperVault: \(words)" : "Reply: \(words)"
+        }
+    }
 }
 
 struct ThreadChoices: Equatable {
@@ -70,6 +86,9 @@ final class CanvasModel: CanvasCommandHost {
     // Wiring.
     @ObservationIgnored private let client: HVClient
     @ObservationIgnored let origin: URL?
+    /// What the outcomes below are said through. Focus stays where the person last was, and what a keep or a send
+    /// produces is added to the page somewhere else, so without this a VoiceOver user never hears how it went.
+    @ObservationIgnored private let announcer: SpeechAnnouncer
 
     // Turn bookkeeping, as the web's use-canvas-chat keeps it.
     @ObservationIgnored private var conversationId: String?
@@ -83,9 +102,10 @@ final class CanvasModel: CanvasCommandHost {
     /// The last text the page wrote into the field itself, so the change it makes is not taken for a paste.
     @ObservationIgnored private var written: String?
 
-    init(client: HVClient, origin: URL?) {
+    init(client: HVClient, origin: URL?, announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared) {
         self.client = client
         self.origin = origin
+        self.announcer = announcer
     }
 
     // MARK: Derived
@@ -170,7 +190,7 @@ final class CanvasModel: CanvasCommandHost {
         guard thread == sentFrom else { return }
         guard let backend = backends.first else {
             if let failure = backendsFailure {
-                chatError = Self.chatLine(for: failure)
+                report(chatError: Self.chatLine(for: failure))
             } else {
                 triedWithoutModel = true
             }
@@ -196,6 +216,7 @@ final class CanvasModel: CanvasCommandHost {
                 truncated: turn.truncated,
                 using: turn.pulledTitles
             ))
+            announcer.announce("Reply received")
         } catch {
             guard thread == sentFrom else { return }
             fail(error, text: text, userKey: userKey)
@@ -209,8 +230,20 @@ final class CanvasModel: CanvasCommandHost {
             messages.removeAll { $0.id == userKey }
             setDraft(text)
         }
-        chatError = Self.chatLine(for: error)
+        report(chatError: Self.chatLine(for: error))
         if chatError != nil { Haptics.failure() }
+    }
+
+    /// Puts the line under the thread and says it. No line means a cancelled turn, which says nothing.
+    private func report(chatError line: String?) {
+        chatError = line
+        if let line { announcer.announce(line) }
+    }
+
+    /// Puts a line under the cards and says it.
+    private func post(_ notice: KeepNotice) {
+        self.notice = notice
+        announcer.announce(notice.text)
     }
 
     /// What a turn that did not get through says: the network in its own line, the server in its own
@@ -230,6 +263,7 @@ final class CanvasModel: CanvasCommandHost {
     func say(_ content: String, choices: ThreadChoices? = nil) -> String {
         let key = localKey()
         messages.append(ThreadMessage(id: key, role: .assistant, content: content, isLocal: true, choices: choices))
+        announcer.announce(content)
         return key
     }
 
@@ -276,7 +310,7 @@ final class CanvasModel: CanvasCommandHost {
             keepReply(at: index)
             return
         }
-        notice = KeepNotice(kind: .note, text: HVCopy.nothingToKeepLine)
+        post(KeepNotice(kind: .note, text: HVCopy.nothingToKeepLine))
     }
 
     func show(_ target: ShowTarget) {
@@ -420,7 +454,9 @@ final class CanvasModel: CanvasCommandHost {
     func stagePaste(_ text: String) {
         notice = nil
         endAsking()
-        staged = staged.map { "\($0)\n\n\(text)" } ?? text
+        let waiting = staged.map { "\($0)\n\n\(text)" } ?? text
+        staged = waiting
+        announcer.announce(HVCopy.pastedLine(characters: waiting.count))
     }
 
     /// Handles a paste into the field: long things wait above it, a sentence goes in.
@@ -500,9 +536,12 @@ final class CanvasModel: CanvasCommandHost {
             }
             do {
                 let kept = try await client.send(.keep(content: content, sourcePrompt: sourcePrompt))
-                dispatch(.add(CanvasState.keptCard(kept, origin: origin ?? client.baseURL)))
+                let card = CanvasState.keptCard(kept, origin: origin ?? client.baseURL)
+                dispatch(.add(card))
                 Haptics.success()
                 WidgetRefresh.reload()
+                // The card's own line says whether it was kept or already was.
+                announcer.announce("\(card.kept?.line ?? HVCopy.keptLine) \(card.title)")
             } catch {
                 let message: String
                 if let hv = error as? HVError {
@@ -510,7 +549,7 @@ final class CanvasModel: CanvasCommandHost {
                 } else {
                     message = HVCopy.keepFailedLine
                 }
-                notice = KeepNotice(kind: .error, text: message)
+                post(KeepNotice(kind: .error, text: message))
                 Haptics.failure()
                 onFailed?(content)
             }
@@ -521,6 +560,6 @@ final class CanvasModel: CanvasCommandHost {
 
     /// Dictation did not start: say why under the cards, and for a permission that is refused, where to change it.
     func dictationFailed(_ problem: DictationProblem) {
-        notice = KeepNotice(kind: .note, text: problem.line, opensSettings: problem == .denied)
+        post(KeepNotice(kind: .note, text: problem.line, opensSettings: problem == .denied))
     }
 }

@@ -9,6 +9,11 @@ struct Toast: Identifiable, Equatable {
     var message: String
     var style: Style
 
+    /// What VoiceOver says: the words, and that it was an error, which the icon alone shows to the eye.
+    var spoken: String {
+        style == .error ? "Error. \(message)" : message
+    }
+
     var symbol: String {
         switch style {
         case .info: return "info.circle.fill"
@@ -28,11 +33,32 @@ struct Toast: Identifiable, Equatable {
 
 /// Where non-blocking feedback goes. Errors from the API are shown with the
 /// server's own sentence; nothing here ever needs dismissing.
+///
+/// This is the app's one channel for results, and a view that appears is not announced, so every toast is also
+/// spoken. VoiceOver and Switch Control take longer to reach and to read a message than the eye does, so it
+/// stays up longer for them.
 @MainActor
 @Observable
 final class ToastCenter {
     private(set) var current: Toast?
     @ObservationIgnored private var dismissTask: Task<Void, Never>?
+    @ObservationIgnored private let announcer: SpeechAnnouncer
+    @ObservationIgnored private let usesAssistiveTechnology: @MainActor () -> Bool
+
+    init(
+        announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared,
+        usesAssistiveTechnology: @escaping @MainActor () -> Bool = { UIAccessibility.isVoiceOverRunning || UIAccessibility.isSwitchControlRunning }
+    ) {
+        self.announcer = announcer
+        self.usesAssistiveTechnology = usesAssistiveTechnology
+    }
+
+    /// How long a toast stays up, in seconds. About ten characters a second is a comfortable speaking pace; on top of
+    /// that goes time to find the message and to act on it.
+    nonisolated static func hold(style: Toast.Style, message: String, assistive: Bool) -> TimeInterval {
+        guard assistive else { return style == .error ? 4.5 : 3 }
+        return min(20, max(10, 4 + Double(message.count) / 10))
+    }
 
     func show(_ message: String, style: Toast.Style = .info) {
         let toast = Toast(message: message, style: style)
@@ -42,9 +68,11 @@ final class ToastCenter {
         case .error: Haptics.failure()
         case .info: break
         }
+        announcer.announce(toast.spoken)
+        let hold = Self.hold(style: style, message: message, assistive: usesAssistiveTechnology())
         dismissTask?.cancel()
         dismissTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: style == .error ? 4_500_000_000 : 3_000_000_000)
+            try? await Task.sleep(nanoseconds: UInt64(hold * 1_000_000_000))
             guard !Task.isCancelled else { return }
             self?.dismiss(toast.id)
         }
@@ -93,8 +121,12 @@ struct ToastHost: View {
                 .padding(.top, HV.Space.xs)
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .onTapGesture { center.dismiss(toast.id) }
-                .accessibilityElement(children: .combine)
-                .accessibilityAddTraits(.isStaticText)
+                // One element that says what the eye sees, error and all, and that a double tap dismisses.
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(toast.spoken)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityHint("Dismisses this message")
+                .accessibilityAction { center.dismiss(toast.id) }
             }
             Spacer()
         }

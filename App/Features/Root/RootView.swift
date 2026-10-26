@@ -8,26 +8,25 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
+        // The lock and the shield are not drawn here: a sheet is presented above everything in this hierarchy, so a cover
+        // in it would leave the sheet readable. They are a window of their own (`PrivacyCoverController`). While locked
+        // the app is also hidden from VoiceOver and switched off here, so Switch Control, Full Keyboard Access and a
+        // keyboard that is still up cannot reach what is behind it. The shield is not treated so: it is up for a moment
+        // whenever the app is not frontmost, and switching the app off then would drop the focus of the field the
+        // person is typing in.
         ZStack {
-            // A cover hides the app from the eye only. While locked, the app is also hidden from VoiceOver and switched
-            // off, so Switch Control, Full Keyboard Access and a keyboard that is still up cannot reach what is behind it.
-            // The shield is not treated so: it is up for a moment whenever the app is not frontmost, and switching the app
-            // off then would drop the focus of the field the person is typing in.
-            ZStack {
-                content
-                ToastHost(center: model.toasts)
-            }
-            .accessibilityHidden(model.lock.isLocked)
-            .disabled(model.lock.isLocked)
-            if model.lock.isLocked {
-                LockScreen(lock: model.lock).transition(.opacity)
-            } else if model.lock.isShielded {
-                PrivacyShield().transition(.opacity)
-            }
+            content
+            ToastHost(center: model.toasts)
         }
+        .accessibilityHidden(model.lock.isLocked)
+        .disabled(model.lock.isLocked)
         .animation(.easeInOut(duration: 0.35), value: model.phase)
-        .animation(.easeInOut(duration: 0.2), value: model.lock.isLocked)
-        .onChange(of: scenePhase) { _, phase in model.lock.scenePhaseChanged(phase) }
+        .onAppear { model.privacy.start() }
+        .onChange(of: scenePhase) { _, phase in
+            model.lock.scenePhaseChanged(phase)
+            // The cover follows the lock by itself; this is for one that had no scene to go in yet.
+            model.privacy.sync()
+        }
     }
 
     @ViewBuilder
@@ -59,13 +58,14 @@ struct RootView: View {
 /// The moment between tapping the icon and the app: the mark on quiet colour.
 struct LaunchView: View {
     @State private var breathe = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
             AuroraBackground()
             BrandMark(size: 92)
-                .scaleEffect(breathe ? 1.04 : 0.98)
-                .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: breathe)
+                .scaleEffect(reduceMotion ? 1 : (breathe ? 1.04 : 0.98))
+                .animation(reduceMotion ? nil : Animation.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: breathe)
         }
         .onAppear { breathe = true }
         .accessibilityLabel("HyperVault is opening")

@@ -11,7 +11,8 @@ enum PrefKey {
     static let onDeviceChat = "pref.onDeviceChat"
     static let approvedUser = "hv.approvedUser"
     /// Whose traces are on this phone: set when someone signs in, removed once everything they left is gone. It
-    /// outlives the process, so a session that ended while the app was closed is still cleaned up at the next launch.
+    /// outlives the process, so what a session left in the outbox is still known to be theirs at the next launch: it
+    /// waits for them to sign back in, and is wiped if someone else signs in first.
     static let sessionUser = "hv.sessionUser"
     /// The person last put on the waitlist from this phone, so it happens once per sign-in and not on every launch.
     static let waitlistedUser = "hv.waitlistedUser"
@@ -55,6 +56,8 @@ final class AppModel {
     let toasts = ToastCenter()
     let router = AppRouter()
     let lock = AppLock()
+    /// Puts the lock screen and the app-switcher shield in a window above every sheet.
+    let privacy: PrivacyCoverController
 
     /// An invite code that arrived in a link before anyone was signed in.
     var pendingInviteCode: String?
@@ -68,6 +71,9 @@ final class AppModel {
     @ObservationIgnored private var pendingLink: DeepLink?
     /// Bumped whenever the session or the server changes, so an answer that was in flight for the old one can tell.
     @ObservationIgnored private var accessTicket = 0
+    /// Someone has been signed in during this run of the app. A sign-out that follows is a session that really ended;
+    /// the first thing launch reports with no session is only the absence of one.
+    @ObservationIgnored private var sawSession = false
 
     /// The defaults are the real app's; tests pass a mock transport, an in-memory store and a scratch folder.
     init(
@@ -80,6 +86,7 @@ final class AppModel {
         self.server = server
         self.transport = transport
         self.cache = DiskCache(directory: cacheDirectory)
+        self.privacy = PrivacyCoverController(lock: lock, presenter: SceneCoverPresenter(lock: lock))
     }
 
     nonisolated static func cacheDirectory() -> URL {
@@ -145,6 +152,7 @@ final class AppModel {
         // Out of the app first, so the clean-up below does not play out on screen.
         env = nil
         phase = .launching
+        sawSession = false
         // A launch that never got as far as a service still has the session in the Keychain: end it where it began.
         let ending = auth ?? SharedConfig.supabase.map { AuthService(config: $0, transport: transport, store: secureStore) }
         await ending?.signOut()
@@ -208,13 +216,17 @@ final class AppModel {
             break
         case .signedOut:
             // The session ended, by the person or by itself (a refresh the server refused). Whatever the account left
-            // goes either way, but only if someone really was signed in: a launch with no session has nothing to wipe,
-            // and what waits in the outbox then belongs to no one yet.
+            // goes either way, outbox included. A launch that finds no session is not that: someone may have shared a
+            // note after the session ended, and the share sheet said it would be kept once they sign in, so the
+            // outbox stays. The marker stays with it, so a different person signing in still gets none of it.
             accessTicket += 1
-            if let namespace = sessionUserID { await wipeLocalState(namespace: namespace) }
+            let ended = sawSession
+            sawSession = false
+            if let namespace = sessionUserID { await wipeLocalState(namespace: namespace, keepingOutbox: !ended) }
             env = nil
             phase = .signedOut
         case .signedIn(let user):
+            sawSession = true
             // A token refresh republishes the same person: nothing to rebuild.
             if case .ready = phase, env?.user.id == user.id { return }
             if let previous = sessionUserID, previous != user.id { await wipeLocalState(namespace: previous) }
@@ -319,13 +331,19 @@ final class AppModel {
     /// widgets and Spotlight hold, and where the person was in the app. Every way a session can end comes through here
     /// (signing out, a refresh the server refused, a switch of server), so none leaves anything for the next person to
     /// see, or to have kept into their own vault. A link that arrived before sign-in is not the account's and stays.
-    private func wipeLocalState(namespace: String?) async {
+    ///
+    /// `keepingOutbox` is for a launch that finds the session already gone. What was shared since then was promised to
+    /// the person on the sheet, so it waits, and the marker of whose it is waits with it; once the outbox is empty the
+    /// marker has nothing left to guard and goes too.
+    private func wipeLocalState(namespace: String?, keepingOutbox: Bool = false) async {
         if let namespace { await cache.clear(namespace: namespace) }
-        OutboxStore.save([])
+        if !keepingOutbox { OutboxStore.save([]) }
         SpotlightIndexer.clear()
         SharedConfig.forgetWidgetCache()
         WidgetRefresh.reload()
-        for key in [PrefKey.approvedUser, PrefKey.sessionUser, PrefKey.waitlistedUser] {
+        var keys = [PrefKey.approvedUser, PrefKey.waitlistedUser]
+        if OutboxStore.count == 0 { keys.append(PrefKey.sessionUser) }
+        for key in keys {
             SharedConfig.defaults.removeObject(forKey: key)
         }
         router.reset()

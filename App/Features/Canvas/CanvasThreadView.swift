@@ -51,7 +51,7 @@ private struct MessageRow: View {
     }
 
     private var bubble: some View {
-        Text(markdown(message.content))
+        Text(ThreadMessage.rendered(message.content))
             .font(.hvBody)
             .foregroundStyle(message.role == .user ? Color.white : (message.isLocal ? Palette.textSecondary : Palette.textPrimary))
             .textSelection(.enabled)
@@ -59,6 +59,7 @@ private struct MessageRow: View {
             .padding(.vertical, HV.Space.s + 2)
             .background(background)
             .frame(maxWidth: 520, alignment: message.role == .user ? .trailing : .leading)
+            .accessibilityLabel(message.spokenLine)
     }
 
     @ViewBuilder
@@ -121,16 +122,11 @@ private struct MessageRow: View {
         }
         .frame(maxWidth: 420)
     }
-
-    /// Inline markdown only (bold, italic, code, links); block structure is left as written.
-    private func markdown(_ text: String) -> AttributedString {
-        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        return (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
-    }
 }
 
 private struct ThinkingRow: View {
     @State private var phase = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 6) {
@@ -139,7 +135,8 @@ private struct ThinkingRow: View {
                     .fill(Palette.textTertiary)
                     .frame(width: 7, height: 7)
                     .scaleEffect(phase ? 1 : 0.55)
-                    .animation(.easeInOut(duration: 0.6).repeatForever().delay(Double(index) * 0.15), value: phase)
+                    // A reply can take minutes; with Reduce Motion on the dots hold still at full size.
+                    .animation(reduceMotion ? nil : Animation.easeInOut(duration: 0.6).repeatForever().delay(Double(index) * 0.15), value: phase)
             }
             Text(HVCopy.thinkingLine)
                 .font(.hvFootnote)

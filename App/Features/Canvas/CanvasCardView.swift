@@ -1,0 +1,146 @@
+import HyperVaultKit
+import SwiftUI
+
+/// A thing on the page: a memory, a page, a file, a group of files or a key. A key
+/// card names who may use it and never anything it holds.
+struct CanvasCardView: View {
+    let card: CanvasCard
+    let onOpen: () -> Void
+    let onHide: () -> Void
+
+    @State private var showFiles = false
+    @State private var copied = false
+    @State private var sealed = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: HV.Space.s + 2) {
+            header
+            if let kept = card.kept { keptSection(kept) }
+            if card.kind == .group, let files = card.detail?.files, !files.isEmpty { groupFiles(files) }
+            if card.kind == .key, let agents = card.detail?.agents { keyAgents(agents) }
+            actions
+        }
+        .hvCard()
+        .accessibilityElement(children: .contain)
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: HV.Space.s + 2) {
+            HVIconBadge(symbol: card.kind.symbol, tint: card.kind.tint, size: 40)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(card.title)
+                    .font(.hvHeadline)
+                    .foregroundStyle(Palette.textPrimary)
+                    .lineLimit(2)
+                HStack(spacing: HV.Space.xs) {
+                    Text(card.kind.singular.uppercased())
+                        .font(.system(.caption2, design: .rounded, weight: .bold))
+                        .foregroundStyle(card.kind.tint)
+                        .tracking(0.6)
+                    if let subtitle = card.subtitle, !subtitle.isEmpty {
+                        Text("·").foregroundStyle(Palette.textTertiary)
+                        Text(subtitle)
+                            .font(.hvFootnote)
+                            .foregroundStyle(Palette.textSecondary)
+                            .lineLimit(2)
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func keptSection(_ kept: KeptDetails) -> some View {
+        VStack(alignment: .leading, spacing: HV.Space.xs) {
+            HStack(spacing: HV.Space.xs) {
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundStyle(Palette.success)
+                    .symbolEffect(.bounce, value: sealed)
+                    .onAppear { sealed = true }
+                Text(kept.line)
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+            }
+            if kept.isPrivate {
+                Text(HVCopy.onlyYouLine)
+                    .font(.hvFootnote)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            Text(kept.link)
+                .font(.hvMono)
+                .foregroundStyle(Palette.textSecondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .padding(.horizontal, HV.Space.s)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.s, style: .continuous))
+        }
+    }
+
+    private func groupFiles(_ files: [GroupMember]) -> some View {
+        VStack(alignment: .leading, spacing: HV.Space.xs) {
+            Button(showFiles ? "Show less" : "Show files") {
+                withAnimation(.snappy) { showFiles.toggle() }
+            }
+            .buttonStyle(.hvGhost)
+            .padding(.leading, -HV.Space.s)
+            if showFiles {
+                ForEach(files, id: \.path) { file in
+                    HStack {
+                        Text(file.path).font(.hvMono).lineLimit(1)
+                        Spacer()
+                        Text(HVCopy.bytesLine(file.sizeBytes)).font(.hvCaption).foregroundStyle(Palette.textTertiary)
+                    }
+                }
+            }
+        }
+    }
+
+    private func keyAgents(_ agents: [CardAgent]) -> some View {
+        VStack(alignment: .leading, spacing: HV.Space.xs) {
+            Text(HVCopy.agentsAllowedHeading)
+                .font(.system(.caption, design: .rounded, weight: .semibold))
+                .foregroundStyle(Palette.textSecondary)
+            if agents.isEmpty {
+                Text("No agents allowed").font(.hvFootnote).foregroundStyle(Palette.textTertiary)
+            } else {
+                FlowLayout(spacing: 6) {
+                    ForEach(agents) { agent in
+                        HVTag(text: agent.name, tint: Palette.amber)
+                    }
+                }
+            }
+        }
+    }
+
+    private var actions: some View {
+        HStack(spacing: HV.Space.xs) {
+            Button(HVCopy.cardOpenLabel, action: onOpen)
+                .buttonStyle(.hvGhost)
+                .accessibilityLabel("Open \(card.title)")
+            if let kept = card.kept, let url = URL(string: kept.link) {
+                Button(copied ? "Copied" : "Copy link") {
+                    UIPasteboard.general.string = kept.link
+                    Haptics.tap()
+                    copied = true
+                    Task {
+                        try? await Task.sleep(nanoseconds: 1_600_000_000)
+                        copied = false
+                    }
+                }
+                .buttonStyle(.hvGhost)
+                ShareLink(item: url) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                }
+                .padding(.horizontal, HV.Space.s)
+            }
+            Spacer()
+            Button(HVCopy.cardHideLabel, action: onHide)
+                .buttonStyle(.hvGhost)
+                .foregroundStyle(Palette.textSecondary)
+                .accessibilityLabel("Hide \(card.title)")
+        }
+        .padding(.leading, -HV.Space.s)
+    }
+}

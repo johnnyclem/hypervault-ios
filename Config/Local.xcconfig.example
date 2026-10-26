@@ -1,0 +1,4 @@
+// Copy to Config/Local.xcconfig (ignored by git) and fill in.
+DEVELOPMENT_TEAM = ABCDE12345
+// Only change the prefix if store.hypervault is not yours to register.
+// HV_BUNDLE_PREFIX = com.example.hypervault

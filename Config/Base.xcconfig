@@ -1,0 +1,12 @@
+// Settings shared by every target. Machine-specific values (your team, your
+// bundle id prefix) go in Config/Local.xcconfig, which is not committed:
+//
+//   DEVELOPMENT_TEAM = ABCDE12345
+//   HV_BUNDLE_PREFIX = com.example.hypervault
+//
+HV_BUNDLE_PREFIX = store.hypervault
+HV_APP_GROUP = group.$(HV_BUNDLE_PREFIX).app
+HV_KEYCHAIN_GROUP = $(HV_BUNDLE_PREFIX).shared
+HV_DEFAULT_SERVER = https:/$()/hypervault.store
+
+#include? "Local.xcconfig"

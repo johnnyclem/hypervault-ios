@@ -40,6 +40,28 @@ final class LiveServerTests: XCTestCase {
         print("live sign-in methods: google=\(providers.google) apple=\(providers.apple) email=\(providers.email) signupDisabled=\(providers.signupDisabled)")
     }
 
+    /// The Kit's refresh handling against the project's real GoTrue, with a session made up for the purpose: the
+    /// server has never seen these refresh tokens, so it refuses them, and the Kit must read that as "signed out".
+    func testARefreshTokenTheServerNeverIssuedEndsTheSession() async throws {
+        let config = try server()
+        let capabilities = try await client(config).send(.capabilities)
+        let supabase = try XCTUnwrap(capabilities.supabase)
+        for refreshToken in ["abcdefghijkl", "123456789012", "not-a-token", ""] {
+            let store = InMemorySecureStore()
+            let made = AuthSession(
+                accessToken: "expired", refreshToken: refreshToken, expiresAt: Date(timeIntervalSince1970: 1_000),
+                user: AuthUser(id: "00000000-0000-4000-8000-000000000000", email: nil)
+            )
+            await store.set(try HVCoding.encoder(.verbatim).encode(made), for: "hypervault.session")
+            let auth = AuthService(config: supabase, transport: URLSessionTransport(), store: store)
+            await auth.restore()
+            let token = try? await auth.accessToken()
+            XCTAssertNil(token ?? nil, "refresh token '\(refreshToken)'")
+            let kept = await store.get("hypervault.session")
+            XCTAssertNil(kept, "the real server refused '\(refreshToken)' and the Kit kept the session")
+        }
+    }
+
     func testAnAnonymousCallIsRefusedWithASentenceAPersonCanRead() async throws {
         let config = try server()
         do {

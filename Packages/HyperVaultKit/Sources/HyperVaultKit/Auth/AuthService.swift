@@ -246,6 +246,8 @@ public actor AuthService: TokenProvider {
         let refusals = [
             "invalid_grant", "invalid refresh token", "refresh_token_not_found", "refresh_token_already_used",
             "session_not_found", "session_expired", "user_not_found", "user_banned",
+            // What GoTrue says of a stored token that is empty or malformed: it cannot be refreshed either.
+            "refresh token is not valid",
         ]
         return said.contains { text in refusals.contains { text.contains($0) } }
     }
@@ -419,8 +421,13 @@ public actor AuthService: TokenProvider {
         if lowered.contains("invalid refresh token") || lowered.contains("refresh_token_not_found") {
             return "Your session ended. Sign in again."
         }
+        // GoTrue answers a wrong code and an expired one in the same words ("Token has expired or is invalid").
         if lowered.contains("token has expired") || lowered.contains("otp_expired") {
-            return "That code has expired. Ask for a new one."
+            return "That code did not work, or it has expired. Check it, or ask for a new one."
+        }
+        // A Google sign-in whose state is gone (the sheet sat open too long, or the link was used twice).
+        if lowered.contains("flow state") || lowered.contains("flow_state") {
+            return "That sign-in expired. Start again."
         }
         if lowered.contains("invalid") && lowered.contains("token") {
             return "That code did not work. Check it and try again."

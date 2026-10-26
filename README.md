@@ -159,6 +159,8 @@ server change if you want the app to do more:
 - A live contract check (`HV_LIVE_SERVER=https://hypervault.store swift test --filter LiveServerTests`, read-only,
   no credentials) passes against production: the real `/api/capabilities` answer decodes and names a Supabase
   project, the project offers Google and email sign-in (Apple was off when checked), an anonymous call gets a
+  readable 401, the pages the app links to exist, and the real GoTrue's refusals of a refresh token it never
+  issued end the session the way the Kit expects.
   readable 401, and the pages the app links to exist.
 - The signed-in routes have been run for real, on a Linux box, against the web app itself: `scripts/e2e` brings up
   PostgreSQL with the web repo's migrations, a Supabase stand-in (fake sign-in, a PostgREST-compatible layer with

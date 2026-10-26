@@ -33,6 +33,7 @@ enum LibrarySheet: Identifiable {
 struct LibraryScreen: View {
     @Environment(AppModel.self) private var app
     @Environment(AppEnvironment.self) private var env
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage("pref.libraryGraph") private var showGraph = false
     @State private var model: LibraryModel
     @State private var filter: YoursFilter
@@ -46,7 +47,11 @@ struct LibraryScreen: View {
     @State private var photo: PhotosPickerItem?
 
     init(env: AppEnvironment, filter: YoursFilter = .all) {
-        _model = State(initialValue: LibraryModel(env: env))
+        self.init(model: LibraryModel(env: env), filter: filter)
+    }
+
+    init(model: LibraryModel, filter: YoursFilter = .all) {
+        _model = State(initialValue: model)
         _filter = State(initialValue: filter)
     }
 
@@ -86,12 +91,14 @@ struct LibraryScreen: View {
 
     private var listView: some View {
         List {
-            filterBar
-            if model.isStale { staleBanner }
+            filterSection
+            if model.isStale {
+                Section { HVStaleBanner().listRowBackground(Color.clear).listRowInsets(EdgeInsets()) }
+            }
             content
         }
-        .listStyle(.plain)
-        .listRowSeparatorTint(Palette.hairline)
+        // The same grouped cards, paper rows and segmented filter as Yours: one list language.
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .hvScreenBackground()
         .navigationTitle(LibraryCopy.title)
@@ -108,6 +115,7 @@ struct LibraryScreen: View {
             await model.load(filter: filter, query: loadKey.query)
         }
         .task { await model.loadExtras() }
+        .onChange(of: filter) { _, _ in Haptics.select() }
     }
 
     // MARK: Chrome
@@ -121,38 +129,28 @@ struct LibraryScreen: View {
             .toolbar { toolbar }
     }
 
-    private var filterBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: HV.Space.xs) {
-                ForEach(YoursFilter.allCases) { option in
-                    Button {
-                        guard filter != option else { return }
-                        Haptics.select()
-                        filter = option
-                    } label: {
-                        HVChip(title: option.title, isSelected: filter == option)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(filter == option ? .isSelected : [])
-                }
-                NavigationLink(value: Route.mail) {
-                    HVChip(title: "Mail")
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, HV.Space.m)
+    private var filterSection: some View {
+        Section {
+            filterPicker
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
         }
-        .listRowInsets(EdgeInsets())
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(LibraryCopy.filterGroupLabel)
     }
 
-    private var staleBanner: some View {
-        HVStaleBanner()
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
+    /// Four words fit a segmented control until the type gets very large; there a menu takes over.
+    @ViewBuilder
+    private var filterPicker: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            Picker(LibraryCopy.filterGroupLabel, selection: $filter) {
+                ForEach(YoursFilter.allCases) { option in Text(option.title).tag(option) }
+            }
+            .pickerStyle(.menu)
+        } else {
+            Picker(LibraryCopy.filterGroupLabel, selection: $filter) {
+                ForEach(YoursFilter.allCases) { option in Text(option.title).tag(option) }
+            }
+            .pickerStyle(.segmented)
+        }
     }
 
     @ToolbarContentBuilder
@@ -162,6 +160,13 @@ struct LibraryScreen: View {
             if !showGraph, model.pins.artifactSlugs.count > 1, filter == .all || filter == .file, query.isEmpty {
                 EditButton()
             }
+        }
+        // Mail is its own place, not a fifth way to filter what is kept.
+        ToolbarItem(placement: .primaryAction) {
+            NavigationLink(value: Route.mail) {
+                Image(systemName: "tray.full")
+            }
+            .accessibilityLabel("Mail")
         }
         ToolbarItem(placement: .primaryAction) {
             Button {
@@ -202,25 +207,44 @@ struct LibraryScreen: View {
 
     // MARK: Content
 
+    private var isSearching: Bool { !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    /// Pinned pages and pages shared with the person sit above the list, for the two filters that hold pages.
+    private var showsShortcuts: Bool {
+        !isSearching && (filter == .all || filter == .file) && (!model.pinnedRows.isEmpty || !model.sharedWithYou.isEmpty)
+    }
+
     @ViewBuilder
     private var content: some View {
-        let searching = !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         switch model.phase {
         case .loading:
-            HVListSkeleton(rows: 6)
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
+            Section { HVListSkeleton(rows: 6).listRowInsets(EdgeInsets()).listRowBackground(Color.clear) }
         case .failed(let message):
-            HVErrorState(message: message) { Task { await model.load(filter: filter, query: query) } }
-                .listRowSeparator(.hidden)
+            Section {
+                // A lost connection gets the connection's glyph; anything the server answered gets a plain notice.
+                HVErrorState(message: message, symbol: model.failureIsOffline ? "wifi.exclamationmark" : "exclamationmark.circle") {
+                    Task { await model.load(filter: filter, query: query) }
+                }
                 .listRowBackground(Color.clear)
+            }
         case .loaded:
-            if !searching, filter == .all || filter == .file {
+            if showsShortcuts {
                 pinnedSection
                 sharedSection
             }
             if filter == .file { fileRows } else { itemRows }
+        }
+    }
+
+    /// The list proper. Under pinned and shared pages it needs a heading of its own; alone it does not.
+    @ViewBuilder
+    private func listSection<Rows: View, Footer: View>(
+        @ViewBuilder rows: () -> Rows, @ViewBuilder footer: () -> Footer
+    ) -> some View {
+        if showsShortcuts {
+            Section { rows() } header: { HVSectionHeader(title: "Everything") } footer: { footer() }
+        } else {
+            Section { rows() } footer: { footer() }
         }
     }
 
@@ -232,15 +256,19 @@ struct LibraryScreen: View {
             emptyState
         } else {
             let visible = Array(model.items.prefix(model.shown))
-            ForEach(visible) { item in
-                NavigationLink(value: route(for: item)) {
-                    LibraryItemRow(item: item)
+            listSection {
+                ForEach(visible) { item in
+                    NavigationLink(value: route(for: item)) {
+                        LibraryItemRow(item: item)
+                    }
+                    .libraryRow()
+                    .simultaneousGesture(TapGesture().onEnded { model.stampOpen(item) })
+                    .contextMenu { itemMenu(item) }
                 }
-                .libraryRow()
-                .simultaneousGesture(TapGesture().onEnded { model.stampOpen(item) })
-                .contextMenu { itemMenu(item) }
+            } footer: {
+                truncationNote(count: model.items.count)
             }
-            footer(count: model.items.count)
+            showMore(count: model.items.count)
         }
     }
 
@@ -275,20 +303,24 @@ struct LibraryScreen: View {
         if rows.isEmpty {
             emptyState
         } else {
-            ForEach(rows.prefix(model.shown)) { row in
-                NavigationLink(value: Route.artifact(slug: row.summary.slug)) {
-                    LibraryFileRow(row: row)
+            listSection {
+                ForEach(rows.prefix(model.shown)) { row in
+                    NavigationLink(value: Route.artifact(slug: row.summary.slug)) {
+                        LibraryFileRow(row: row)
+                    }
+                    .libraryRow()
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) { visibilitySwipe(row) }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) { pendingDelete = row } label: { Label("Delete", systemImage: "trash") }
+                        Button { share(row) } label: { Label("Share", systemImage: "square.and.arrow.up") }
+                            .tint(Palette.blue)
+                    }
+                    .contextMenu { fileMenu(row) }
                 }
-                .libraryRow()
-                .swipeActions(edge: .leading, allowsFullSwipe: true) { visibilitySwipe(row) }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) { pendingDelete = row } label: { Label("Delete", systemImage: "trash") }
-                    Button { share(row) } label: { Label("Share", systemImage: "square.and.arrow.up") }
-                        .tint(Palette.blue)
-                }
-                .contextMenu { fileMenu(row) }
+            } footer: {
+                truncationNote(count: rows.count, files: true)
             }
-            footer(count: rows.count)
+            showMore(count: rows.count)
         }
     }
 
@@ -342,14 +374,7 @@ struct LibraryScreen: View {
             Section {
                 ForEach(pinned, id: \.slug) { pin in
                     NavigationLink(value: Route.artifact(slug: pin.slug)) {
-                        HStack(spacing: HV.Space.s + 2) {
-                            ArtifactGlyph(slug: pin.slug, title: pin.title, icon: pin.summary?.icon, size: 36)
-                            Text(pin.title).font(.hvBody).lineLimit(1)
-                            Spacer(minLength: HV.Space.xs)
-                            Image(systemName: "pin.fill").font(.system(size: 11)).foregroundStyle(Palette.textTertiary)
-                        }
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel("\(pin.title), pinned")
+                        LibraryPinnedRow(slug: pin.slug, title: pin.title, icon: pin.summary?.icon)
                     }
                     .libraryRow()
                     .swipeActions {
@@ -390,29 +415,34 @@ struct LibraryScreen: View {
     // MARK: Empty, footer
 
     private var emptyState: some View {
-        HVEmptyState(
-            symbol: filter == .file ? "doc.on.doc" : "tray",
-            title: LibraryCopy.emptyLine(filter: filter, query: query),
-            message: filter == .all && query.isEmpty ? "Ask your AI to keep something, or add a page with New." : nil
-        )
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
+        Section {
+            HVEmptyState(
+                symbol: filter == .file ? "doc.on.doc" : "tray",
+                title: LibraryCopy.emptyLine(filter: filter, query: query),
+                message: filter == .all && query.isEmpty ? "Ask your AI to keep something, or add a page with New." : nil
+            )
+            .listRowBackground(Color.clear)
+        }
     }
 
-    /// "Show more" while there are rows left, and the truncation line when the server stopped before the end.
+    /// The line under a list that stopped before the end, so its end is not taken for the end of everything.
     @ViewBuilder
-    private func footer(count: Int) -> some View {
+    private func truncationNote(count: Int, files: Bool = false) -> some View {
+        if count <= model.shown, count >= LibraryModel.readLimit || (files && model.artifacts.count >= 200) {
+            Text(LibraryCopy.truncated).font(.hvCaption)
+        }
+    }
+
+    /// "Show more" while there are rows left.
+    @ViewBuilder
+    private func showMore(count: Int) -> some View {
         if count > model.shown {
-            Button(LibraryCopy.showMore) { model.shown += LibraryModel.pageSize }
-                .buttonStyle(.hvSecondary)
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-        } else if count >= LibraryModel.readLimit || (filter == .file && model.artifacts.count >= 200) {
-            Text(LibraryCopy.truncated)
-                .font(.hvFootnote)
-                .foregroundStyle(Palette.textSecondary)
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
+            Section {
+                Button(LibraryCopy.showMore) { model.shown += LibraryModel.pageSize }
+                    .buttonStyle(.hvSecondary)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+            }
         }
     }
 
@@ -558,10 +588,10 @@ private struct LibraryConfirmations: ViewModifier {
 }
 
 extension View {
-    /// A row on paper, not on the list's own white or black, with its separator in line with the text.
+    /// A row on paper with its separator in line with the text, as the rows of Yours sit.
     fileprivate func libraryRow() -> some View {
         self
-            .listRowBackground(Color.clear)
-            .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + 50 }
+            .hvListRow()
+            .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + LibraryRow.markSize + HV.Space.s + 2 }
     }
 }

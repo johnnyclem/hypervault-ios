@@ -34,6 +34,8 @@ final class LibraryModel {
     private(set) var rowIDs: [String: String] = [:]
     private(set) var edgeCounts: [String: Int] = [:]
     private(set) var isStale = false
+    /// True when the first read failed for want of a connection, so the screen can say so with the right glyph.
+    private(set) var failureIsOffline = false
     private(set) var sharedWithYou: [SharedWithYouItem] = []
     private(set) var pins = SidebarPins()
     private(set) var realms: [ArtifactRealm] = []
@@ -47,6 +49,15 @@ final class LibraryModel {
     init(env: AppEnvironment) {
         self.env = env
     }
+
+    #if DEBUG
+    /// The parts that are read from the person's own rows in Supabase, put in by hand for a preview or a
+    /// snapshot, which have no such server.
+    func seed(pins: SidebarPins = SidebarPins(), sharedWithYou: [SharedWithYouItem] = []) {
+        self.pins = pins
+        self.sharedWithYou = sharedWithYou
+    }
+    #endif
 
     // MARK: Reading
 
@@ -128,7 +139,10 @@ final class LibraryModel {
     private func fail(_ error: Error) {
         guard !(error is CancellationError), (error as? HVError) != .cancelled else { return }
         let hasRows = !items.isEmpty || !artifacts.isEmpty
-        if !hasRows { phase = .failed((error as? HVError)?.isOffline == true ? LibraryCopy.offline : LibraryCopy.failed) }
+        if !hasRows {
+            failureIsOffline = (error as? HVError)?.isOffline == true
+            phase = .failed(failureIsOffline ? LibraryCopy.offline : LibraryCopy.failed)
+        }
     }
 
     /// The parts that sit around the list: what was shared with the person, their pins, their addresses.
@@ -153,7 +167,7 @@ final class LibraryModel {
         }
         guard !needle.isEmpty else { return all }
         return all.filter { row in
-            ([row.summary.title, row.summary.type] + row.summary.tags).joined(separator: " ").lowercased().contains(needle)
+            ([row.summary.title, row.summary.type, row.summary.typeName] + row.summary.tags).joined(separator: " ").lowercased().contains(needle)
         }
     }
 

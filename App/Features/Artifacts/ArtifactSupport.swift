@@ -13,10 +13,16 @@ extension Color {
         let saturation = brightness == 0 ? 0 : 2 * (1 - l / brightness)
         self.init(hue: degrees / 360, saturation: saturation, brightness: brightness)
     }
+
+    init(_ swatch: ArtifactIcon.Swatch) {
+        self.init(artifactHue: swatch.hue, saturation: swatch.saturation, lightness: swatch.lightness)
+    }
 }
 
 /// An artifact's home-screen icon, drawn the way the server draws it: the slug's
-/// gradient with the title's initial (or the glyph the person chose).
+/// gradient with the title's initial (or the glyph the person chose). The web's white
+/// letter cannot be read on the yellows and greens a slug can hash to, so there the
+/// letter is dark; everywhere else it is the web's white.
 struct ArtifactGlyph: View {
     let slug: String
     let title: String
@@ -25,14 +31,14 @@ struct ArtifactGlyph: View {
 
     var body: some View {
         let glyph = ArtifactIcon.glyph(icon: icon, title: title)
-        let first = Color(artifactHue: ArtifactIcon.hue(seed: slug), saturation: 0.85, lightness: 0.62)
-        let second = Color(artifactHue: ArtifactIcon.secondHue(seed: slug), saturation: 0.80, lightness: 0.46)
+        let stops = ArtifactIcon.stops(seed: slug)
+        let ink = ArtifactIcon.prefersDarkGlyph(seed: slug) ? Color(hex: 0x0B0F14) : Color.white
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
-                .fill(LinearGradient(colors: [first, second], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .fill(LinearGradient(colors: [Color(stops.first), Color(stops.second)], startPoint: .topLeading, endPoint: .bottomTrailing))
             Text(glyph)
                 .font(.system(size: size * (glyph.count >= 2 ? 0.42 : 0.52), weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(ink)
         }
         .frame(width: size, height: size)
         .accessibilityHidden(true)
@@ -75,28 +81,6 @@ extension ArtifactVisibility {
         case .public: return Palette.mint
         case .private: return Palette.blue
         case .password: return Palette.amber
-        }
-    }
-}
-
-extension KeptKind {
-    var librarySymbol: String {
-        switch self {
-        case .memory: return "brain.head.profile"
-        case .file: return "doc.richtext"
-        case .group: return "folder"
-        case .key: return "key.horizontal"
-        case .page: return "doc.text"
-        }
-    }
-
-    var libraryTint: Color {
-        switch self {
-        case .memory: return Palette.violet
-        case .file: return Palette.coral
-        case .group: return Palette.amber
-        case .key: return Palette.rose
-        case .page: return Palette.blue
         }
     }
 }
@@ -176,6 +160,20 @@ struct ArtifactErrorLine: View {
             .foregroundStyle(Palette.danger)
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
+    }
+}
+
+/// A field's hint in a colour that can be read. The system's own placeholder is the faintest grey
+/// it has, and under 2:1 on paper.
+func artifactPrompt(_ text: String) -> Text {
+    Text(text).foregroundStyle(Palette.textSecondary)
+}
+
+extension View {
+    /// A header or a footer over a hand-built card, set in from the card's edge the way a grouped
+    /// list sets in its own, so a sheet made of cards and a sheet made of lists line up.
+    func artifactCardCaption() -> some View {
+        padding(.horizontal, HV.Space.m)
     }
 }
 

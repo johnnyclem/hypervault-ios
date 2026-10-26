@@ -98,7 +98,7 @@ struct MailInboxScreen: View {
     private func failure(_ message: String) -> some View {
         switch model.mailboxProblem {
         case .unavailable:
-            HVEmptyState(symbol: "tray", title: "Mail is not set up here yet.", message: message)
+            HVEmptyState(symbol: "tray", title: "Mail is not available yet.", message: message)
         case .offline:
             HVErrorState(message: message, symbol: "wifi.exclamationmark") { Task { await model.refresh() } }
         case .other:
@@ -135,6 +135,7 @@ struct MailInboxScreen: View {
             }
         }
         .listStyle(.insetGrouped)
+        .listSectionSpacing(HV.Space.m)
         .scrollContentBackground(.hidden)
         .refreshable { await model.refresh() }
     }

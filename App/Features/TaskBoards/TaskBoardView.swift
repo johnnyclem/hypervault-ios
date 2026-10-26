@@ -269,7 +269,7 @@ struct TaskBoardScreen: View {
                 Image(systemName: group.status.symbol).foregroundStyle(group.status.tint)
                 HVSectionHeader(title: group.status.title, detail: "\(group.rows.count)")
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(.caption2, weight: .bold))
                     .rotationEffect(.degrees(isCollapsed ? -90 : 0))
                     .foregroundStyle(Palette.textSecondary)
             }
@@ -371,6 +371,7 @@ struct TaskRowBody: View {
     let task: BoardTask
     let rollup: (done: Int, total: Int)?
     let parentTitle: String?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -378,13 +379,13 @@ struct TaskRowBody: View {
                 .font(.hvBody)
                 .foregroundStyle(task.status == .done || task.status == .cancelled ? Palette.textTertiary : Palette.textPrimary)
                 .strikethrough(task.status == .done || task.status == .cancelled, color: Palette.textTertiary)
-                .lineLimit(3)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let line = detailLine {
                 Text(line)
                     .font(.hvCaption)
                     .foregroundStyle(Palette.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
             }
             if let holder = task.holder {
                 HStack(spacing: 4) {

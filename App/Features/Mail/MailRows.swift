@@ -49,9 +49,50 @@ struct MailNotSharedTag: View {
     }
 }
 
+/// Who wrote it (with the agent tag) and when, for the inbox and for search hits. On one line when they
+/// fit together, and with the time under the name when they do not, which is the case at larger text sizes.
+private struct MailRowHeader: View {
+    let author: MailAuthor
+    let date: Date?
+    var weight: Font.Weight = .semibold
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
+                sender.layoutPriority(1)
+                Spacer(minLength: HV.Space.xs)
+                time
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                sender
+                time
+            }
+        }
+    }
+
+    private var sender: some View {
+        HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
+            Text(author.label)
+                .font(.system(.body, weight: weight))
+                .foregroundStyle(Palette.textPrimary)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+            if author.isAgent { MailAgentTag() }
+        }
+    }
+
+    private var time: some View {
+        Text(MailTimeFormat.string(for: date))
+            .font(.hvCaption)
+            .foregroundStyle(Palette.textSecondary)
+            .lineLimit(1)
+    }
+}
+
 /// A row of the inbox: who, when, what about, and an unread dot.
 struct MailThreadRow: View {
     let thread: MailThread
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         let newest = thread.newest
@@ -62,21 +103,11 @@ struct MailThreadRow: View {
                 .padding(.top, 6)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
-                    Text(newest.author.label)
-                        .font(.system(.body, weight: thread.unread ? .bold : .semibold))
-                        .foregroundStyle(Palette.textPrimary)
-                        .lineLimit(1)
-                    if newest.author.isAgent { MailAgentTag() }
-                    Spacer(minLength: HV.Space.xs)
-                    Text(MailTimeFormat.string(for: newest.createdAt))
-                        .font(.hvCaption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
+                MailRowHeader(author: newest.author, date: newest.createdAt, weight: thread.unread ? .bold : .semibold)
                 Text(newest.displaySubject)
                     .font(.system(.subheadline, weight: thread.unread ? .semibold : .regular))
                     .foregroundStyle(thread.unread ? Palette.textPrimary : Palette.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 if newest.attachmentCount > 0 {
                     Label("\(newest.attachmentCount)", systemImage: "paperclip")
                         .font(.hvCaption)
@@ -106,27 +137,20 @@ struct MailThreadRow: View {
 /// A search hit: the row, and the words around the match.
 struct MailHitRow: View {
     let message: MailMessage
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
-                Text(message.author.label)
-                    .font(.system(.body, weight: .semibold))
-                    .lineLimit(1)
-                if message.author.isAgent { MailAgentTag() }
-                Spacer(minLength: HV.Space.xs)
-                Text(MailTimeFormat.string(for: message.createdAt))
-                    .font(.hvCaption)
-                    .foregroundStyle(Palette.textSecondary)
-            }
+            MailRowHeader(author: message.author, date: message.createdAt)
             Text(message.displaySubject)
                 .font(.hvSubheadline)
-                .lineLimit(1)
+                .foregroundStyle(Palette.textPrimary)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
             if let snippet = message.snippet, !snippet.isEmpty {
                 Text(snippet)
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.textSecondary)
-                    .lineLimit(3)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
             }
         }
         .padding(.vertical, HV.Space.xxs)
@@ -185,7 +209,7 @@ struct MailMessageCard: View {
     private var threadHeader: some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
-                sender
+                sender.layoutPriority(1)
                 Spacer(minLength: HV.Space.xs)
                 timestamp
             }
@@ -209,6 +233,7 @@ struct MailMessageCard: View {
         Text(MailTimeFormat.full(message.createdAt))
             .font(.hvCaption)
             .foregroundStyle(Palette.textSecondary)
+            .lineLimit(1)
     }
 
     /// The subject first, then who sent it. For held mail the sender's address is what tells the person

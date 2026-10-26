@@ -31,7 +31,7 @@ struct MailInboxScreen: View {
         content
             .hvScreenBackground()
             .navigationTitle("Mail")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search mail")
             .toolbar { toolbarContent }
             .task { await model.start() }
@@ -82,7 +82,7 @@ struct MailInboxScreen: View {
             }
         case .failed(let message):
             if model.mailboxes.isEmpty && model.messages.isEmpty {
-                HVErrorState(message: message) { Task { await model.refresh() } }
+                failure(message)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 list
@@ -92,19 +92,37 @@ struct MailInboxScreen: View {
         }
     }
 
+    /// A server without mail is not a fault to retry: say so once and leave it. A dropped connection
+    /// and anything else keep the way to try again.
+    @ViewBuilder
+    private func failure(_ message: String) -> some View {
+        switch model.mailboxProblem {
+        case .unavailable:
+            HVEmptyState(symbol: "tray", title: "Mail is not set up here yet.", message: message)
+        case .offline:
+            HVErrorState(message: message, symbol: "wifi.exclamationmark") { Task { await model.refresh() } }
+        case .other:
+            HVErrorState(message: message) { Task { await model.refresh() } }
+        }
+    }
+
     private var isSearching: Bool { !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     private var list: some View {
         List {
             if model.isShowingSavedCopy {
-                HVStaleBanner()
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
+                Section {
+                    HVStaleBanner()
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
+                }
             }
             if isSearching {
-                searchRows
+                Section { searchRows }
             } else {
                 Section {
+                    mailboxLine
                     MailFilterBar(selected: model.filter, unreadCount: model.active?.unreadCount ?? 0) { filter in
                         Task { await model.select(filter: filter) }
                     }
@@ -112,13 +130,55 @@ struct MailInboxScreen: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
                 }
-                if model.heldCount > 0 { heldRow }
-                threadRows
+                if model.heldCount > 0 { Section { heldRow } }
+                Section { threadRows }
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .refreshable { await model.refresh() }
+    }
+
+    /// The address under the large title; with several addresses it is a menu to pick one.
+    @ViewBuilder
+    private var mailboxLine: some View {
+        if let address = model.active?.address {
+            Group {
+                if model.mailboxes.filter({ $0.address != nil }).count > 1 {
+                    Menu {
+                        ForEach(model.mailboxes.filter { $0.address != nil }) { box in
+                            Button {
+                                Haptics.select()
+                                Task { await model.select(mailbox: box.id) }
+                            } label: {
+                                if box.id == model.active?.id {
+                                    Label(boxTitle(box), systemImage: "checkmark")
+                                } else {
+                                    Text(boxTitle(box))
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(address).lineLimit(1)
+                            Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
+                        }
+                        .frame(minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel("Mailbox: \(address)")
+                    .accessibilityHint("Choose another address")
+                } else {
+                    Text(address).lineLimit(1).frame(minHeight: 44, alignment: .leading)
+                }
+            }
+            .font(.hvSubheadline)
+            .foregroundStyle(Palette.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 0, leading: HV.Space.m, bottom: 0, trailing: HV.Space.m))
+        }
     }
 
     // MARK: Rows
@@ -145,7 +205,7 @@ struct MailInboxScreen: View {
                     NavigationLink(value: ref(for: thread.id)) {
                         MailThreadRow(thread: thread)
                     }
-                    .listRowBackground(Palette.surface)
+                    .hvListRow()
                     .swipeActions(edge: .leading, allowsFullSwipe: true) { leadingActions(thread) }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) { trailingActions(thread) }
                     .contextMenu { menuActions(thread) }
@@ -162,12 +222,13 @@ struct MailInboxScreen: View {
                 .buttonStyle(.hvGhost)
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .disabled(model.isLoadingMore)
-                .listRowSeparator(.hidden)
+                .hvListRow()
         }
         if model.filter == .trash {
             Button("Empty Trash", role: .destructive) { confirmEmptyTrash = true }
+                .buttonStyle(.hvGhost)
                 .frame(maxWidth: .infinity, minHeight: 44)
-                .listRowSeparator(.hidden)
+                .hvListRow()
         }
     }
 
@@ -181,6 +242,7 @@ struct MailInboxScreen: View {
             .frame(minHeight: 44)
         }
         .buttonStyle(.plain)
+        .hvListRow()
     }
 
     @ViewBuilder
@@ -188,12 +250,18 @@ struct MailInboxScreen: View {
         if model.filter == .inbox {
             HVEmptyState(
                 symbol: "tray",
-                title: model.active?.displayAddress ?? "No address yet",
-                message: "Agents you connect can send you mail here. Mail from anyone else waits for you, and they cannot see it."
+                title: "No mail yet.",
+                message: emptyInboxMessage
             )
         } else {
             HVEmptyState(symbol: emptySymbol, title: "Nothing here.")
         }
+    }
+
+    /// Where mail arrives, with the address when there is one: the one thing an empty inbox can usefully say.
+    private var emptyInboxMessage: String {
+        let place = model.active?.address.map { "at \($0)" } ?? "here"
+        return "Agents you connect can send you mail \(place). Mail from anyone else waits for you, and they cannot see it."
     }
 
     private var emptySymbol: String {
@@ -226,7 +294,7 @@ struct MailInboxScreen: View {
                     NavigationLink(value: ref(for: hit.threadId)) {
                         MailHitRow(message: hit)
                     }
-                    .listRowBackground(Palette.surface)
+                    .hvListRow()
                 }
             }
         }
@@ -295,7 +363,6 @@ struct MailInboxScreen: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .principal) { titleMenu }
         ToolbarItemGroup(placement: .topBarTrailing) {
             Menu {
                 Button { showHeld = true } label: { Label("Held mail", systemImage: "hand.raised") }
@@ -304,56 +371,16 @@ struct MailInboxScreen: View {
             } label: {
                 Image(systemName: "ellipsis.circle").frame(minWidth: 44, minHeight: 44)
             }
+            .disabled(model.isMailUnavailable)
             .accessibilityLabel("More")
             Button {
                 showCompose = true
             } label: {
                 Image(systemName: "square.and.pencil").frame(minWidth: 44, minHeight: 44)
             }
+            .disabled(model.isMailUnavailable)
             .accessibilityLabel("New note")
         }
-    }
-
-    /// The title: "Mail" over the address; with several addresses it is a menu to pick one.
-    @ViewBuilder
-    private var titleMenu: some View {
-        if model.mailboxes.filter({ $0.address != nil }).count > 1 {
-            Menu {
-                ForEach(model.mailboxes.filter { $0.address != nil }) { box in
-                    Button {
-                        Haptics.select()
-                        Task { await model.select(mailbox: box.id) }
-                    } label: {
-                        if box.id == model.active?.id {
-                            Label(boxTitle(box), systemImage: "checkmark")
-                        } else {
-                            Text(boxTitle(box))
-                        }
-                    }
-                }
-            } label: {
-                titleLabel(showsChevron: true)
-            }
-            .accessibilityLabel("Mailbox: \(model.active?.displayAddress ?? "Mail")")
-            .accessibilityHint("Choose another address")
-        } else {
-            titleLabel(showsChevron: false)
-        }
-    }
-
-    private func titleLabel(showsChevron: Bool) -> some View {
-        VStack(spacing: 0) {
-            Text("Mail").font(.hvHeadline).foregroundStyle(Palette.textPrimary)
-            if let address = model.active?.address {
-                HStack(spacing: 3) {
-                    Text(address).lineLimit(1)
-                    if showsChevron { Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold)) }
-                }
-                .font(.hvCaption)
-                .foregroundStyle(Palette.textSecondary)
-            }
-        }
-        .frame(minHeight: 44)
     }
 
     private func boxTitle(_ box: OwnerMailbox) -> String {

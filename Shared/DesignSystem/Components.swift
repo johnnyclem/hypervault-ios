@@ -10,6 +10,8 @@ struct HVPrimaryButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(.headline, design: .rounded, weight: .semibold))
             .foregroundStyle(isEnabled ? Color.white : Palette.textSecondary)
+            // A label that wraps at a large text size is centred in its capsule, not left on the first line's edge.
+            .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity, minHeight: 52)
             .padding(.horizontal, HV.Space.l)
             .background {
@@ -35,6 +37,7 @@ struct HVSecondaryButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(.headline, design: .rounded, weight: .semibold))
             .foregroundStyle(isEnabled ? Palette.textPrimary : Palette.textTertiary)
+            .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity, minHeight: 52)
             .padding(.horizontal, HV.Space.l)
             .background(Palette.surfaceRaised, in: Capsule())
@@ -300,10 +303,15 @@ struct HVSheetHeader: View {
 
     var body: some View {
         HStack(alignment: .top) {
+            // Never cut short: a sheet with the keyboard up is short, and a header squeezed to one line read
+            // "Sign in wi..." at a large text size.
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.hvTitle)
+                Text(title).font(.hvTitle).fixedSize(horizontal: false, vertical: true)
                 if let subtitle {
-                    Text(subtitle).font(.hvSubheadline).foregroundStyle(Palette.textSecondary)
+                    Text(subtitle)
+                        .font(.hvSubheadline)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Spacer()

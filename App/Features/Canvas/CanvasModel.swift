@@ -297,7 +297,7 @@ final class CanvasModel: CanvasCommandHost {
                 let list = try await client.send(.yours(filter: .all, query: query, limit: PullResolver.searchLimit))
                 switch PullResolver.resolve(query: query, results: list.results) {
                 case .one(let item):
-                    addCard(for: item)
+                    pullItem(item)
                 case .choose(let items, let more):
                     say(HVCopy.pullWhichLine, choices: ThreadChoices(items: items, more: more))
                 case .none:
@@ -317,7 +317,9 @@ final class CanvasModel: CanvasCommandHost {
                 case .artifact(let slug): detail = try await client.send(.card(slug: slug))
                 case .memory(let id): detail = try await client.send(.card(kind: .memory, id: id))
                 }
-                dispatch(.add(CanvasState.payloadCard(detail)))
+                let card = CanvasState.payloadCard(detail)
+                dispatch(.add(card))
+                markOpened(card)
             } catch let error as HVError where error.isNotFound {
                 say(HVCopy.pullNoneLine)
             } catch {
@@ -329,11 +331,18 @@ final class CanvasModel: CanvasCommandHost {
     /// A choice from "Which one?": pulls it and takes the question off the page.
     func choose(_ item: KeptItem, answering key: String) {
         dropLine(key)
+        pullItem(item)
+    }
+
+    /// Puts something a person chose on the page, and notes the open as a tap in Yours does, so it is
+    /// first in Yours next time. "Show my ..." is not this: nothing was opened, only shown.
+    func pullItem(_ item: KeptItem) {
         addCard(for: item)
+        markOpened(kind: item.kind, id: item.id)
     }
 
     /// Puts something from Yours on the page, then asks the server what to say about it.
-    func addCard(for item: KeptItem) {
+    private func addCard(for item: KeptItem) {
         let card = CanvasState.itemCard(item)
         dispatch(.add(card))
         Haptics.tap()
@@ -353,7 +362,11 @@ final class CanvasModel: CanvasCommandHost {
     /// Records that a card was opened, so Recent follows what was gone back to. Best effort.
     func markOpened(_ card: CanvasCard) {
         guard let ref = card.ref else { return }
-        Task { _ = try? await client.send(.markOpened(kind: ref.kind, id: ref.id)) }
+        markOpened(kind: ref.kind, id: ref.id)
+    }
+
+    private func markOpened(kind: KeptKind, id: String) {
+        Task { _ = try? await client.send(.markOpened(kind: kind, id: id)) }
     }
 
     // MARK: The field

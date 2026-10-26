@@ -75,7 +75,7 @@ struct CanvasScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showYours) {
             YoursSheet(onPull: { item in
-                model.addCard(for: item)
+                model.pullItem(item)
                 showYours = false
             }, onNew: {
                 showYours = false
@@ -90,7 +90,7 @@ struct CanvasScreen: View {
         .onChange(of: app.router.canvasPull) { _, item in
             guard let item else { return }
             app.router.canvasPull = nil
-            model.addCard(for: item)
+            model.pullItem(item)
         }
         .onChange(of: app.router.sheet) { _, sheet in
             // Connecting a model happens in a sheet over the page: on its way out, look again for one.

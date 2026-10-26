@@ -59,7 +59,8 @@ private struct YoursTab: View {
     }
 }
 
-/// The panel the canvas opens from its corner icon. Tapping a thing puts it on the page.
+/// The panel the canvas opens from its corner icon. Tapping a thing, or choosing "Put on the canvas"
+/// on it, puts it on the page; `onPull` is where that notes the open.
 struct YoursSheet: View {
     let onPull: (KeptItem) -> Void
     let onNew: () -> Void
@@ -89,10 +90,7 @@ private struct YoursSheetContent: View {
 
     var body: some View {
         NavigationStack {
-            YoursListView(model: model, baseURL: baseURL, onSelect: { item in
-                model.markOpened(item)
-                onPull(item)
-            }, onPull: onPull)
+            YoursListView(model: model, baseURL: baseURL, onSelect: onPull, onPull: onPull)
             .navigationTitle(HVCopy.panelTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

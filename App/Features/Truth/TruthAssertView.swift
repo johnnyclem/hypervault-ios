@@ -74,7 +74,7 @@ struct TruthAssertView: View {
                 TextField(
                     draft.type == .tb ? "The claim" : "What you believe",
                     text: $draft.text,
-                    prompt: truthPrompt(draft.type == .tb ? "Retries are capped at 5; the old cap of 3 is dead." : "Retries are idempotent across regions."),
+                    prompt: truthPrompt(draft.type == .tb ? "Retries are capped at 5, not 3." : "Retries are idempotent."),
                     axis: .vertical
                 )
                 .lineLimit(3...8)
@@ -84,7 +84,7 @@ struct TruthAssertView: View {
 
             if draft.type == .uv {
                 HVLabeledField(title: "Why you believe it") {
-                    TextField("Why you believe it", text: $draft.basis, prompt: truthPrompt("The design doc says so."), axis: .vertical)
+                    TextField("Why you believe it", text: $draft.basis, prompt: truthPrompt("The design doc"), axis: .vertical)
                         .lineLimit(2...5)
                         .focused($focus, equals: .basis)
                 }

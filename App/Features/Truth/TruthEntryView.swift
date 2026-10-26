@@ -178,7 +178,7 @@ struct TruthEntryScreen: View {
                 Text(ripple.sentence).font(.hvCallout).foregroundStyle(Palette.textSecondary).hvListRow()
                 let named = claims(in: ripple)
                 ForEach(ripple.entries) { entry in
-                    TruthBriefRow(entry: entry, claims: named).hvListRow()
+                    TruthBriefRow(entry: entry, claims: named, listedUnder: row.id).hvListRow()
                 }
                 ForEach(ripple.context) { context in
                     contextRow(context).hvListRow()

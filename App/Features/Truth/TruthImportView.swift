@@ -115,7 +115,7 @@ struct TruthImportView: View {
                 title: "The page's name or link",
                 footnote: Self.slug(from: pageName).isEmpty ? "Name the page to turn filing on." : nil
             ) {
-                TextField("The page's name or link", text: $pageName, prompt: truthPrompt("my-page, or its hypervault.store/a/ link"))
+                TextField("The page's name or link", text: $pageName, prompt: truthPrompt("my-page or its link"))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }

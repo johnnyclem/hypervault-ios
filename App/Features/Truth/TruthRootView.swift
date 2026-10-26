@@ -134,37 +134,43 @@ struct TruthScreen: View {
     @ViewBuilder
     private var headerRows: some View {
         if let overview = model.overview {
-            VStack(alignment: .leading, spacing: HV.Space.s) {
-                HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
-                    Text(model.active?.name ?? "Ledger").font(.hvTitle)
-                    if let kind = model.active?.kind { HVTag(text: kind.title, tint: kind == .hosted ? Palette.blue : Palette.textSecondary) }
-                }
-                TruthSummaryStats(summary: overview.summary)
-                Text(model.active?.isHosted == true
-                    ? "Written here: you and your agents assert into it, and the review decides it."
-                    : "A mirror of a stenographer stream. Import to update it; decide its items there.")
-                    .font(.hvFootnote)
-                    .foregroundStyle(Palette.textSecondary)
-            }
-            .padding(.vertical, HV.Space.xxs)
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
-
-            NavigationLink(value: TruthDestination.review) {
-                docketRow(overview)
-            }
-            .hvListRow()
-
-            Toggle(isOn: Binding(get: { overview.chatTruth }, set: { setCiting($0) })) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Cite in chat")
-                    Text("Put the ledger at the head of every chat turn, so a signed TB outranks recalled memory.")
-                        .font(.hvCaption)
+            // Its own section: a bare row at the top of the card below would take the card's rounded corners
+            // and leave the visible rows square.
+            Section {
+                VStack(alignment: .leading, spacing: HV.Space.s) {
+                    HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
+                        Text(model.active?.name ?? "Ledger").font(.hvTitle)
+                        if let kind = model.active?.kind { HVTag(text: kind.title, tint: kind == .hosted ? Palette.blue : Palette.textSecondary) }
+                    }
+                    TruthSummaryStats(summary: overview.summary)
+                    Text(model.active?.isHosted == true
+                        ? "Written here: you and your agents assert into it, and the review decides it."
+                        : "A mirror of a stenographer stream. Import to update it; decide its items there.")
+                        .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                 }
+                .padding(.vertical, HV.Space.xxs)
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             }
-            .disabled(model.isCiteBusy)
-            .hvListRow()
+
+            Section {
+                NavigationLink(value: TruthDestination.review) {
+                    docketRow(overview)
+                }
+                .hvListRow()
+
+                Toggle(isOn: Binding(get: { overview.chatTruth }, set: { setCiting($0) })) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Cite in chat")
+                        Text("Put the ledger at the head of every chat turn, so a signed TB outranks recalled memory.")
+                            .font(.hvCaption)
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                }
+                .disabled(model.isCiteBusy)
+                .hvListRow()
+            }
         }
     }
 

@@ -167,7 +167,7 @@ struct TruthDecisionSheet: View {
                             Text(verbatim: uv.assertion).font(.hvCallout).foregroundStyle(Palette.textPrimary)
                             Text(uv.author).font(.hvCaption).foregroundStyle(Palette.textSecondary)
                         }
-                        Spacer(minLength: 0)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())

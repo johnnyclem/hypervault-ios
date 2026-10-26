@@ -25,6 +25,8 @@ struct TruthCardView: View {
             if let approvals = item.approvals { record(approvals) }
             if !replies.isEmpty { answers }
         }
+        // Take the full height: at a large text size the footnotes were cut to a line.
+        .fixedSize(horizontal: false, vertical: true)
         .padding(HV.Space.m)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.xl, style: .continuous))

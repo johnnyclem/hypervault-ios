@@ -203,6 +203,7 @@ struct TruthClaimText: View {
 
 /// A row of the ledger page.
 struct TruthEntryRowView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let row: TruthEntryRow
 
     var body: some View {
@@ -225,7 +226,7 @@ struct TruthEntryRowView: View {
                 Text(detail)
                     .font(.hvCaption)
                     .foregroundStyle(Palette.textTertiary)
-                    .lineLimit(2)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
             }
             ForEach(row.contestedBy) { uv in
                 HStack(alignment: .top, spacing: HV.Space.xs) {
@@ -234,7 +235,7 @@ struct TruthEntryRowView: View {
                     Text("Contested by \(uv.author ?? "someone"): \(uv.text)")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
-                        .lineLimit(3)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                 }
                 .padding(.leading, HV.Space.xs)
             }
@@ -382,6 +383,7 @@ struct TruthTraceRowView: View {
                     .foregroundStyle(Palette.textTertiary)
             }
         }
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
     }
@@ -434,6 +436,8 @@ struct TruthBriefRow: View {
     let entry: TruthEntryBrief
     /// Claims by entry id, so a row can name the entry it was reached through and not show its id.
     var claims: [String: String] = [:]
+    /// An entry the row is listed under: "rests on" it says nothing a heading has not already said.
+    var listedUnder: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -449,7 +453,7 @@ struct TruthBriefRow: View {
             if let sentence = entry.reasonSentence {
                 Text(sentence).font(.hvCaption).foregroundStyle(Palette.textSecondary)
             }
-            if let via = entry.via, let depth = entry.depth {
+            if let via = entry.via, let depth = entry.depth, via != listedUnder {
                 Text(viaPhrase(via: via, depth: depth))
                     .font(.hvCaption)
                     .foregroundStyle(Palette.textTertiary)

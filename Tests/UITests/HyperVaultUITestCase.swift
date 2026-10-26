@@ -281,7 +281,9 @@ class HyperVaultUITestCase: XCTestCase {
     private func drag(towardsEnd: Bool) {
         let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: towardsEnd ? 0.82 : 0.22))
         let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: towardsEnd ? 0.22 : 0.82))
-        from.press(forDuration: 0.05, thenDragTo: to, withVelocity: .slow, thenHoldForDuration: 0.2)
+        // The finger holds still before it lifts, so the page stops where the finger does and keeps no momentum; the speed
+        // is the finger's, 500 points a second (the system's .slow is 100, and takes five seconds to move a page).
+        from.press(forDuration: 0.05, thenDragTo: to, withVelocity: XCUIGestureVelocity(rawValue: 500), thenHoldForDuration: 0.2)
     }
 
     /// Scrolls to an element, clear of the bars, then taps it: for rows that a larger text size has pushed below the fold.

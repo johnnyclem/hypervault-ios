@@ -29,14 +29,14 @@ struct MemoryConnectSheet: View {
                     }
                     if !shownMemories.isEmpty {
                         HVSectionHeader(title: "Memories").padding(.top, HV.Space.s)
-                        ForEach(shownMemories) { item in
-                            row(id: item.id, symbol: "brain.head.profile", tint: Palette.blue, title: item.title, subtitle: item.summary)
+                        MemoryRowStack(items: shownMemories) { item in
+                            row(id: item.id, kind: .memory, title: item.title, subtitle: item.summary)
                         }
                     }
                     if !shownPages.isEmpty {
                         HVSectionHeader(title: "Pages").padding(.top, HV.Space.s)
-                        ForEach(shownPages, id: \.id) { page in
-                            row(id: page.id, symbol: "doc.richtext", tint: Palette.rose, title: page.title, subtitle: nil)
+                        MemoryRowStack(items: shownPages) { page in
+                            row(id: page.id, kind: .page, title: page.title, subtitle: nil)
                         }
                     }
                 }
@@ -67,11 +67,11 @@ struct MemoryConnectSheet: View {
         return candidates.filter { $0.title.localizedCaseInsensitiveContains(trimmed) }
     }
 
-    private func row(id: String, symbol: String, tint: Color, title: String, subtitle: String?) -> some View {
+    private func row(id: String, kind: KeptKind, title: String, subtitle: String?) -> some View {
         Button {
             connect(id)
         } label: {
-            HVRow(symbol: symbol, tint: tint, title: title, subtitle: subtitle) {
+            HVRow(symbol: kind.symbol, tint: kind.tint, title: title, subtitle: subtitle) {
                 if connecting == id { ProgressView() } else { Image(systemName: "plus.circle").foregroundStyle(Color.accentColor) }
             }
             .padding(.vertical, 6)

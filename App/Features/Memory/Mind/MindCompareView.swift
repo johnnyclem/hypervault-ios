@@ -166,13 +166,5 @@ struct MindRefPicker: View {
         }
     }
 
-    private var label: String {
-        switch ref {
-        case .branch(let name): return name
-        case .commit(let id):
-            if let commit = commits.first(where: { $0.id == id }) { return "\(commit.message) (\(commit.shortId))" }
-            return "Commit \(id.prefix(8))"
-        case .moment(let date): return date.formatted(date: .abbreviated, time: .shortened)
-        }
-    }
+    private var label: String { ref.fieldText(commits: commits) }
 }

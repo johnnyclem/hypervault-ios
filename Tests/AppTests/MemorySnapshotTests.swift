@@ -8,6 +8,8 @@ import XCTest
 final class MemorySnapshotTests: XCTestCase {
     private let routes = MemoryPreviewData.routes
     private let tall = CGSize(width: 393, height: 1200)
+    /// The moment Time travel and Compare start from, pinned so the renders do not change with the clock.
+    private let pinnedMoment = ISO8601DateFormatter().date(from: "2026-10-15T09:00:00Z") ?? Date(timeIntervalSince1970: 1_792_054_800)
 
     func testMemoryList() throws {
         try snapshot(PreviewHost(routes: routes) { MemoryRootView() }, named: "memory-list")
@@ -61,11 +63,19 @@ final class MemorySnapshotTests: XCTestCase {
     }
 
     func testCompare() throws {
-        try snapshot(PreviewHost(routes: routes) { MemoryScreenHost { list in MindCompareView(list: list) } }, named: "mind-compare", size: tall)
+        let moment = pinnedMoment
+        try snapshot(
+            PreviewHost(routes: routes) { MemoryScreenHost { list in MindCompareView(list: list, from: .moment(moment)) } },
+            named: "mind-compare", size: tall
+        )
     }
 
     func testTimeTravel() throws {
-        try snapshot(PreviewHost(routes: routes) { MemoryScreenHost { list in MindTimeTravelView(list: list) } }, named: "mind-time-travel", size: tall, settle: 1.6)
+        let moment = pinnedMoment
+        try snapshot(
+            PreviewHost(routes: routes) { MemoryScreenHost { list in MindTimeTravelView(list: list, moment: moment) } },
+            named: "mind-time-travel", size: tall, settle: 1.6
+        )
     }
 
     func testMergePreview() throws {
@@ -143,6 +153,8 @@ final class MemorySnapshotTests: XCTestCase {
                 MindDiffView(diff: diff)
             }
             .padding()
+            // Fill the canvas first, so the page color is the whole picture and not a band round the diff.
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .hvScreenBackground(),
             named: "mind-diff"
         )

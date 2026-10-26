@@ -186,7 +186,7 @@ private struct DreamsContent: View {
                 HVEmptyState(
                     symbol: "moon.zzz",
                     title: "Nothing found overnight",
-                    message: "No new connections yet. Check back after tonight's pass, or dream now."
+                    message: "No new connections yet. Check back after tonight\u{2019}s pass, or dream now."
                 )
             } else {
                 HVEmptyState(
@@ -274,18 +274,21 @@ private extension View {
     }
 }
 
-/// A quiet filled button for the many small yeses on a review screen.
+/// A quiet filled button for the many small yeses on a review screen. The label takes the person's
+/// accent; the fill is raised paper, because a tint of the accent under the accent itself falls
+/// short of 4.5:1 for some of the accents a person can choose.
 struct DreamTintedButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(.subheadline, design: .rounded, weight: .semibold))
-            .foregroundStyle(Color.accentColor)
+            .foregroundStyle(isEnabled ? AnyShapeStyle(TintShapeStyle()) : AnyShapeStyle(Palette.textTertiary))
             .padding(.horizontal, HV.Space.m)
             .frame(minHeight: 44)
-            .background(Color.accentColor.opacity(configuration.isPressed ? 0.22 : 0.13), in: Capsule())
-            .opacity(isEnabled ? 1 : 0.45)
+            .background(Palette.surfaceRaised, in: Capsule())
+            .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
+            .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
 
@@ -353,8 +356,8 @@ private struct DreamConnectionCard: View {
         } label: {
             HStack(spacing: HV.Space.s) {
                 HVIconBadge(
-                    symbol: end.kind == .memory ? "brain.head.profile" : "doc.richtext",
-                    tint: end.kind == .memory ? Palette.blue : Palette.rose,
+                    symbol: end.kind == .memory ? KeptKind.memory.symbol : KeptKind.page.symbol,
+                    tint: end.kind == .memory ? KeptKind.memory.tint : KeptKind.page.tint,
                     size: 36
                 )
                 Text(end.label)

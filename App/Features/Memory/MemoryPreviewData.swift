@@ -22,11 +22,11 @@ enum MemoryPreviewData {
       {"id":"m1","title":"Trip to Lisbon: ferry and passports","summary":"Book the Friday ferry across the Tagus.","tags":["trip","ferry","passports"],"source":"manual","created_at":"2026-10-22T08:15:00Z","score":0.84,
        "content":"Book the Friday ferry across the Tagus. Bring both passports and the printed tickets, the app is flaky on the pier. Leave by seven so we make the early crossing before the queue builds up at the terminal.",
        "related":["Passport checklist"],
-       "provenance":{"commit_id":"3f2a9c1e-0000-4000-8000-000000000001","message":"memorize: Trip to Lisbon","author_kind":"user","committed_at":"2026-10-22T08:15:01Z"}},
+       "provenance":{"commit_id":"a47d1e60-3c58-4b19-92f7-d8e05b6a1c07","message":"memorize: Trip to Lisbon","author_kind":"user","committed_at":"2026-10-22T08:15:01Z"}},
       {"id":"m6","title":"Passport checklist","summary":"Where they are, when they expire, and what the consulate needs for a renewal.","tags":["passports","admin"],"source":"agent","created_at":"2026-09-30T11:11:00Z","score":0.41,
        "content":"Both passports are in the grey folder. Sam's expires in March, so renew before booking anything past spring.",
        "related":["Trip to Lisbon: ferry and passports"],
-       "provenance":{"commit_id":"3f2a9c1e-0000-4000-8000-000000000002","message":"memorize: Passport checklist","author_kind":"agent","author_key_prefix":"hv_ab12cdef","committed_at":"2026-09-30T11:11:02Z"}}
+       "provenance":{"commit_id":"8b41d07a-2c93-4f55-a6e0-1d7c93b4e802","message":"memorize: Passport checklist","author_kind":"agent","author_key_prefix":"hv_ab12cdef","committed_at":"2026-09-30T11:11:02Z"}}
     ],"message":"Recalled 2 matching memories."}
     """#
 
@@ -35,7 +35,7 @@ enum MemoryPreviewData {
      "memory":{"id":"m1","title":"Trip to Lisbon: ferry and passports","content":"# Lisbon, first weekend\n\nBook the **Friday ferry** across the Tagus. Bring both passports and the printed tickets, the app is flaky on the pier.\n\n## Packing\n\n- Passports (grey folder)\n- Printed tickets\n- Layers: it is windy on the water\n\n> Leave by seven so we make the early crossing before the queue builds up at the terminal.\n\nSee also the passport checklist.","summary":"Book the Friday ferry across the Tagus. Bring both passports and the printed tickets.","tags":["trip","ferry","passports"],"source":"manual","created_at":"2026-10-22T08:15:00Z"},
      "related":[{"id":"m6","title":"Passport checklist","summary":"Where they are, when they expire, and what the consulate needs for a renewal.","tags":["passports","admin"]}],
      "artifacts":[{"id":"a1","slug":"trip-plan","title":"Lisbon trip plan","type":"note"}],
-     "provenance":{"commit_id":"3f2a9c1e-0000-4000-8000-000000000001","message":"edit: Trip to Lisbon","author_kind":"user","committed_at":"2026-10-23T09:00:00Z"},
+     "provenance":{"commit_id":"c92e5f13-aa6d-4b08-8f3c-62d0b1e7a903","message":"edit: Trip to Lisbon","author_kind":"user","committed_at":"2026-10-23T09:00:00Z"},
      "revision_count":3,
      "truth":{"stale":1,"rests_on":[{"ledger":"default","entry":{"id":"TB-12","type":"TB","status":"held","standing":"upheld","reasons":[],"text":"The Friday ferry leaves at 07:10.","signedBy":null,"answerableBy":null},"relation":"rests_on","seen_status":"held","seen_standing":"upheld","stale_since":"2026-10-24T10:00:00Z","stale_kind":"struck","stale_by":"sam","stale_summary":"TB-12 was restated: the ferry now leaves at 07:40.","successor":null}]}}
     """#
@@ -63,12 +63,12 @@ enum MemoryPreviewData {
 
     static let commits = #"""
     {"branch":"main","commits":[
-      {"id":"3f2a9c1e-0000-4000-8000-00000000000a","message":"merge ideas into main","author_kind":"user","parent_commit_id":"c8","merge_parent_commit_id":"c13","created_at":"2026-10-25T10:00:00Z","change_counts":{"created":2,"updated":1,"deleted":0,"links":3}},
-      {"id":"3f2a9c1e-0000-4000-8000-00000000000b","message":"memorize: Passport checklist","author_kind":"agent","author_key_prefix":"hv_ab12cdef","parent_commit_id":"c7","created_at":"2026-10-24T10:00:00Z","change_counts":{"created":1,"updated":0,"deleted":0,"links":2}},
-      {"id":"3f2a9c1e-0000-4000-8000-00000000000c","message":"edit: Trip to Lisbon","author_kind":"user","parent_commit_id":"c6","created_at":"2026-10-23T09:00:00Z","change_counts":{"created":0,"updated":1,"deleted":0,"links":0}},
-      {"id":"3f2a9c1e-0000-4000-8000-00000000000d","message":"forget: Old reading list","author_kind":"user","parent_commit_id":"c5","created_at":"2026-10-21T11:00:00Z","change_counts":{"created":0,"updated":0,"deleted":1,"links":0}},
-      {"id":"3f2a9c1e-0000-4000-8000-00000000000e","message":"import (file): Quarterly report","author_kind":"user","parent_commit_id":"c4","created_at":"2026-10-12T10:00:00Z","change_counts":{"created":1,"updated":0,"deleted":0,"links":1}},
-      {"id":"3f2a9c1e-0000-4000-8000-00000000000f","message":"genesis","author_kind":"system","created_at":"2026-09-01T00:00:00Z","change_counts":{"created":40,"updated":0,"deleted":0,"links":12}}
+      {"id":"3f2a9c1e-7b40-4d0a-9c11-5e8a0d2f6b01","message":"merge ideas into main","author_kind":"user","parent_commit_id":"c8","merge_parent_commit_id":"c13","created_at":"2026-10-25T10:00:00Z","change_counts":{"created":2,"updated":1,"deleted":0,"links":3}},
+      {"id":"8b41d07a-2c93-4f55-a6e0-1d7c93b4e802","message":"memorize: Passport checklist","author_kind":"agent","author_key_prefix":"hv_ab12cdef","parent_commit_id":"c7","created_at":"2026-10-24T10:00:00Z","change_counts":{"created":1,"updated":0,"deleted":0,"links":2}},
+      {"id":"c92e5f13-aa6d-4b08-8f3c-62d0b1e7a903","message":"edit: Trip to Lisbon","author_kind":"user","parent_commit_id":"c6","created_at":"2026-10-23T09:00:00Z","change_counts":{"created":0,"updated":1,"deleted":0,"links":0}},
+      {"id":"5d07b6e4-91fc-4e2a-b3d8-0a4f7c61d504","message":"forget: Old reading list","author_kind":"user","parent_commit_id":"c5","created_at":"2026-10-21T11:00:00Z","change_counts":{"created":0,"updated":0,"deleted":1,"links":0}},
+      {"id":"e1a8c7f2-04b5-43d9-87ae-9c3b25f0d605","message":"import (file): Quarterly report","author_kind":"user","parent_commit_id":"c4","created_at":"2026-10-12T10:00:00Z","change_counts":{"created":1,"updated":0,"deleted":0,"links":1}},
+      {"id":"0f6d3a98-bd12-4c77-a1e4-73e8b9c2f006","message":"genesis","author_kind":"system","created_at":"2026-09-01T00:00:00Z","change_counts":{"created":40,"updated":0,"deleted":0,"links":12}}
     ]}
     """#
 

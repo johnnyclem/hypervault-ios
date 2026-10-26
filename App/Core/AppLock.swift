@@ -79,7 +79,9 @@ final class AppLock {
             isLocked = false
             failureMessage = nil
         } else {
-            failureMessage = "That did not unlock. Try again."
+            let message = "That did not unlock. Try again."
+            failureMessage = message
+            AccessibilityNotification.Announcement(message).post()
         }
     }
 
@@ -100,7 +102,8 @@ final class AppLock {
     }
 }
 
-/// What covers the app while it is locked.
+/// What covers the app while it is locked. It is also the only thing VoiceOver, Switch Control and a keyboard can
+/// reach then: `RootView` hides and disables the app underneath.
 struct LockScreen: View {
     let lock: AppLock
 
@@ -109,7 +112,7 @@ struct LockScreen: View {
             AuroraBackground()
             VStack(spacing: HV.Space.l) {
                 BrandMark(size: 76)
-                Text("HyperVault is locked").font(.hvTitle)
+                Text("HyperVault is locked").font(.hvTitle).accessibilityAddTraits(.isHeader)
                 Text("Only you can open it.").font(.hvCallout).foregroundStyle(Palette.textSecondary)
                 if let message = lock.failureMessage {
                     Text(message).font(.hvFootnote).foregroundStyle(Palette.danger)
@@ -124,7 +127,9 @@ struct LockScreen: View {
             }
             .padding(HV.Space.xl)
         }
+        .accessibilityAddTraits(.isModal)
         .task { await lock.unlock() }
+        .onAppear { UIAccessibility.post(notification: .screenChanged, argument: nil) }
     }
 }
 

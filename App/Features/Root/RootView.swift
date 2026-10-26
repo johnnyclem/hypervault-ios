@@ -9,8 +9,16 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            content
-            ToastHost(center: model.toasts)
+            // A cover hides the app from the eye only. While locked, the app is also hidden from VoiceOver and switched
+            // off, so Switch Control, Full Keyboard Access and a keyboard that is still up cannot reach what is behind it.
+            // The shield is not treated so: it is up for a moment whenever the app is not frontmost, and switching the app
+            // off then would drop the focus of the field the person is typing in.
+            ZStack {
+                content
+                ToastHost(center: model.toasts)
+            }
+            .accessibilityHidden(model.lock.isLocked)
+            .disabled(model.lock.isLocked)
             if model.lock.isLocked {
                 LockScreen(lock: model.lock).transition(.opacity)
             } else if model.lock.isShielded {

@@ -24,12 +24,12 @@ final class ChatRoomModel {
 
     let roomID: String
     private let client: HVClient
-    @ObservationIgnored private let announcer: FeatureAnnouncer
+    @ObservationIgnored private let announcer: SpeechAnnouncer
     @ObservationIgnored private var driveTask: Task<Void, Never>?
     /// The Continue card is on screen and VoiceOver has been told about it.
     @ObservationIgnored private var continueAnnounced = false
 
-    init(roomID: String, client: HVClient, announcer: FeatureAnnouncer = VoiceOverFeatureAnnouncer.shared) {
+    init(roomID: String, client: HVClient, announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared) {
         self.roomID = roomID
         self.client = client
         self.announcer = announcer

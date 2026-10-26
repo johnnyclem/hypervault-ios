@@ -22,7 +22,7 @@ struct SettingsRootView: View {
     var body: some View {
         Form {
             Section(header: HVSectionHeader(title: "Look")) {
-                AdaptiveChoicePicker(title: "Appearance", selection: $appearance) {
+                HVChoicePicker(title: "Appearance", selection: $appearance) {
                     ForEach(AppearanceChoice.allCases) { choice in
                         Text(choice.title).tag(choice)
                     }

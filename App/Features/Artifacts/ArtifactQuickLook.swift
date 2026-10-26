@@ -37,6 +37,8 @@ struct ArtifactQuickLook: UIViewControllerRepresentable {
 /// page, so Quick Look knows what it is.
 enum ArtifactFileDownload {
     static func fetch(_ file: ArtifactEmbeddedFile, title: String) async throws -> URL {
+        // A copy of a private file belongs in the temporary folder only while it is on screen.
+        PrivateTemporaryFiles.removeStale(prefix: "hv-files-")
         let (temporary, response) = try await URLSession.shared.download(from: file.url)
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             throw HVError.api(APIFailure(status: http.statusCode, message: "The file couldn't be downloaded just now. Try again in a moment."))
@@ -79,6 +81,9 @@ struct ArtifactQuickLookScreen: View {
             }
         }
         .task { await download() }
+        .onDisappear {
+            if case .loaded(let url) = state { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        }
     }
 
     private func download() async {

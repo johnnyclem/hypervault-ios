@@ -8,14 +8,14 @@ import XCTest
 final class CanvasAnnouncementTests: CanvasTestCase {
     private let keptAgain = #"{"slug":"here-you-go-1","url":"https://hypervault.store/a/here-you-go-1","kind":"page","form":"note","title":"Here you go.","visibility":"private","duplicate":true,"message":"Already kept."}"#
 
-    private func speaking(_ routes: [MockRoute]) -> (model: CanvasModel, speech: CoreRecordingAnnouncer, transport: MockTransport) {
+    private func speaking(_ routes: [MockRoute]) -> (model: CanvasModel, speech: RecordingAnnouncer, transport: MockTransport) {
         let transport = MockTransport(routes: routes)
-        let speech = CoreRecordingAnnouncer()
+        let speech = RecordingAnnouncer()
         return (CanvasModel(client: client(transport), origin: origin, announcer: speech), speech, transport)
     }
 
-    private func offlineSpeaking() -> (model: CanvasModel, speech: CoreRecordingAnnouncer) {
-        let speech = CoreRecordingAnnouncer()
+    private func offlineSpeaking() -> (model: CanvasModel, speech: RecordingAnnouncer) {
+        let speech = RecordingAnnouncer()
         return (CanvasModel(client: client(OfflineTransport()), origin: origin, announcer: speech), speech)
     }
 
@@ -95,7 +95,7 @@ final class CanvasAnnouncementTests: CanvasTestCase {
 
     func testACancelledTurnSaysNothing() async {
         let transport = ServedOnce(first: oneModel)
-        let speech = CoreRecordingAnnouncer()
+        let speech = RecordingAnnouncer()
         let model = CanvasModel(client: client(transport), origin: origin, announcer: speech)
         await model.loadBackends()
         model.draft = "What did I decide?"
@@ -110,7 +110,7 @@ final class CanvasAnnouncementTests: CanvasTestCase {
 
     func testATurnAbandonedForANewThreadSaysNothing() async {
         let transport = ServedOnce(first: oneModel)
-        let speech = CoreRecordingAnnouncer()
+        let speech = RecordingAnnouncer()
         let model = CanvasModel(client: client(transport), origin: origin, announcer: speech)
         await model.loadBackends()
         model.draft = "What did I decide?"

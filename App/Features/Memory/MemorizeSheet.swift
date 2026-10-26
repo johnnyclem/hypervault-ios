@@ -45,7 +45,7 @@ struct MemorizeSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.l) {
-                    TruthChoicePicker(title: "What to keep", selection: $kind) {
+                    HVChoicePicker(title: "What to keep", selection: $kind) {
                         ForEach(MemorizeKind.allCases) { kind in
                             Text(kind.title).tag(kind)
                         }

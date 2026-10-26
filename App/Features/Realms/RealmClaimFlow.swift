@@ -23,14 +23,14 @@ final class RealmClaimFlow {
 
     @ObservationIgnored private let checkName: (String, String) async throws -> ClaimAvailability
     @ObservationIgnored private let claimName: (String, String) async throws -> ClaimResult
-    @ObservationIgnored private let announcer: FeatureAnnouncer
+    @ObservationIgnored private let announcer: SpeechAnnouncer
     @ObservationIgnored private let pause: UInt64
 
     /// `pause` is how long typing must rest before the server is asked.
     init(
         checkName: @escaping (String, String) async throws -> ClaimAvailability,
         claimName: @escaping (String, String) async throws -> ClaimResult,
-        announcer: FeatureAnnouncer = VoiceOverFeatureAnnouncer.shared,
+        announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared,
         pause: UInt64 = 350_000_000
     ) {
         self.checkName = checkName

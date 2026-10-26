@@ -20,8 +20,8 @@ final class RoomAnnouncementTests: XCTestCase {
         ChatPreviewData.roomJSON.replacingOccurrences(of: #""pending":[{"handle":"gemini","reason":"@grok handed you the turn"}]"#, with: #""pending":[]"#)
     }
 
-    private func make(_ extra: [MockRoute] = [], room: String? = nil) -> (model: ChatRoomModel, speech: FeaturesRecordingAnnouncer) {
-        let speech = FeaturesRecordingAnnouncer()
+    private func make(_ extra: [MockRoute] = [], room: String? = nil) -> (model: ChatRoomModel, speech: RecordingAnnouncer) {
+        let speech = RecordingAnnouncer()
         let routes = extra + (room.map { [MockRoute.json(.get, "/api/rooms/r1", $0)] } ?? []) + ChatPreviewData.routes
         let env = AppEnvironment.preview(routes: routes)
         return (ChatRoomModel(roomID: "r1", client: env.client, announcer: speech), speech)

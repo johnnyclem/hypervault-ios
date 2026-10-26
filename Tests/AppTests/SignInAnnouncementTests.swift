@@ -6,8 +6,8 @@ import XCTest
 /// A line about a failed sign-in appears without moving VoiceOver focus, so it has to be said as well as shown.
 @MainActor
 final class SignInAnnouncementTests: XCTestCase {
-    private func make(_ routes: [MockRoute] = []) -> (controller: SignInController, speech: CoreRecordingAnnouncer) {
-        let speech = CoreRecordingAnnouncer()
+    private func make(_ routes: [MockRoute] = []) -> (controller: SignInController, speech: RecordingAnnouncer) {
+        let speech = RecordingAnnouncer()
         let auth = AuthService(
             config: SupabaseConfig(url: URL(string: "https://proj.supabase.test")!, anonKey: "anon"),
             transport: MockTransport(routes: routes),

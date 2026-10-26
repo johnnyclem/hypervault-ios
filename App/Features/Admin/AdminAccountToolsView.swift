@@ -158,7 +158,7 @@ struct AdminAccountToolsView: View {
         .disabled(model.isWorking)
 
         Section(header: HVSectionHeader(title: "Plan")) {
-            FeatureChoicePicker(title: "Plan", selection: $model.plan) {
+            HVChoicePicker(title: "Plan", selection: $model.plan) {
                 ForEach(AdminPlan.allCases) { plan in Text(plan.title).tag(plan) }
             }
             Button {

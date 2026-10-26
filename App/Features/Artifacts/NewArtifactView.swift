@@ -294,7 +294,7 @@ struct NewArtifactView: View {
     private var visibilityField: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             HVSectionHeader(title: "Who can open it").artifactCardCaption()
-            TruthChoicePicker(title: "Who can open it", selection: Bindable(model).visibility) {
+            HVChoicePicker(title: "Who can open it", selection: Bindable(model).visibility) {
                 Text("Only me").tag(ArtifactVisibility.private)
                 Text("Anyone with the link").tag(ArtifactVisibility.public)
             }

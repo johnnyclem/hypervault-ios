@@ -88,13 +88,13 @@ final class ImportZipInflaterTests: XCTestCase {
 
 @MainActor
 final class ImportModelTests: XCTestCase {
-    private func model(_ routes: [MockRoute], announcer: FeatureAnnouncer? = nil) -> ImportModel {
+    private func model(_ routes: [MockRoute], announcer: SpeechAnnouncer? = nil) -> ImportModel {
         model(transport: MockTransport(routes: routes), announcer: announcer)
     }
 
-    private func model(transport: HTTPTransport, announcer: FeatureAnnouncer? = nil) -> ImportModel {
+    private func model(transport: HTTPTransport, announcer: SpeechAnnouncer? = nil) -> ImportModel {
         let client = HVClient(baseURL: URL(string: "https://t.test")!, transport: transport, tokens: StaticTokenProvider(), retry: .none, sleep: { _ in })
-        return ImportModel(client: client, importBytes: 50_000_000, announcer: announcer ?? FeaturesRecordingAnnouncer())
+        return ImportModel(client: client, importBytes: 50_000_000, announcer: announcer ?? RecordingAnnouncer())
     }
 
     private func history(_ count: Int) -> ImportDocument {
@@ -167,7 +167,7 @@ final class ImportModelTests: XCTestCase {
     // MARK: Leaving, stopping and the screen's sleep
 
     func testTheScreenStaysAwakeOnlyWhileSendingAndSaysWhenTheImportEnds() async {
-        let speech = FeaturesRecordingAnnouncer()
+        let speech = RecordingAnnouncer()
         let model = model([.json(.post, "/api/import", #"{"platform":"other","imported":1,"skipped":0,"messages":2,"message":"ok"}"#)], announcer: speech)
         model.source = .other
         model.pasted = "User: hi\nAssistant: hello"
@@ -183,7 +183,7 @@ final class ImportModelTests: XCTestCase {
     }
 
     func testAFailureGivesTheScreenItsSleepBackAndSaysSo() async {
-        let speech = FeaturesRecordingAnnouncer()
+        let speech = RecordingAnnouncer()
         let model = model([.failure(.post, "/api/import", status: 500, message: "The server had a problem. Try again in a moment.")], announcer: speech)
         model.previewSeedDocuments([history(3)])
         model.start()
@@ -194,7 +194,7 @@ final class ImportModelTests: XCTestCase {
     }
 
     func testStoppingGivesTheScreenItsSleepBackAndSaysSo() async {
-        let speech = FeaturesRecordingAnnouncer()
+        let speech = RecordingAnnouncer()
         let model = model(transport: ImportHangingTransport(), announcer: speech)
         model.previewSeedDocuments([history(3)])
         model.start()

@@ -138,7 +138,7 @@ struct LibraryScreen: View {
 
     /// Four words fit a segmented control until the type gets very large; there a menu takes over.
     private var filterPicker: some View {
-        TruthChoicePicker(title: LibraryCopy.filterGroupLabel, selection: $filter) {
+        HVChoicePicker(title: LibraryCopy.filterGroupLabel, selection: $filter) {
             ForEach(YoursFilter.allCases) { option in Text(option.title).tag(option) }
         }
     }

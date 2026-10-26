@@ -63,7 +63,7 @@ final class ImportModel {
 
     @ObservationIgnored private let client: HVClient
     @ObservationIgnored private let limit: Int
-    @ObservationIgnored private let announcer: FeatureAnnouncer
+    @ObservationIgnored private let announcer: SpeechAnnouncer
     @ObservationIgnored private let leftovers = ImportLeftovers()
 
     private var temporaryFiles: [URL] {
@@ -76,7 +76,7 @@ final class ImportModel {
         set { leftovers.task = newValue }
     }
 
-    init(client: HVClient, importBytes: Int, announcer: FeatureAnnouncer = VoiceOverFeatureAnnouncer.shared) {
+    init(client: HVClient, importBytes: Int, announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared) {
         self.client = client
         self.limit = importBytes
         self.announcer = announcer

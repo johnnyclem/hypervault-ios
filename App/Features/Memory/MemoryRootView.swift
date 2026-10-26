@@ -51,7 +51,7 @@ struct MemoryTabScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             // At the largest text sizes a segmented control stays small, so the choice becomes a menu.
-            TruthChoicePicker(title: "View", selection: $mode) {
+            HVChoicePicker(title: "View", selection: $mode) {
                 ForEach(MemoryMode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }

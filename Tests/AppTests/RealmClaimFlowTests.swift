@@ -13,13 +13,13 @@ final class RealmClaimFlowTests: XCTestCase {
         check: @escaping (String, String) async throws -> ClaimAvailability = { _, _ in ClaimAvailability(available: true) },
         claim: @escaping (String, String) async throws -> ClaimResult
             = { _, _ in throw HVError.api(APIFailure(status: 500, message: "not used")) },
-        speech: FeaturesRecordingAnnouncer
+        speech: RecordingAnnouncer
     ) -> RealmClaimFlow {
         RealmClaimFlow(checkName: check, claimName: claim, announcer: speech, pause: 0)
     }
 
     func testAFreeNameIsSaidOnceTheTypingHasRested() async {
-        let speech = FeaturesRecordingAnnouncer()
+        let speech = RecordingAnnouncer()
         let flow = makeFlow(speech: speech)
         await flow.check(name: "nova", base: "vault.cool")
         XCTAssertEqual(flow.availability, .available)
@@ -27,7 +27,7 @@ final class RealmClaimFlowTests: XCTestCase {
     }
 
     func testATakenNameIsSaidInTheServersWords() async {
-        let speech = FeaturesRecordingAnnouncer()
+        let speech = RecordingAnnouncer()
         let flow = makeFlow(check: { _, _ in ClaimAvailability(available: false, reason: "nova.vault.cool is already claimed.") }, speech: speech)
         await flow.check(name: "nova", base: "vault.cool")
         XCTAssertEqual(flow.availability, .unavailable("nova.vault.cool is already claimed."))
@@ -39,7 +39,7 @@ final class RealmClaimFlowTests: XCTestCase {
     }
 
     func testANameThatIsWrongOnSightIsShownAtOnceAndNotSaidOverTheKeys() async {
-        let speech = FeaturesRecordingAnnouncer()
+        let speech = RecordingAnnouncer()
         let asked = RealmsTestCounter()
         let flow = makeFlow(check: { _, _ in asked.bump(); return ClaimAvailability(available: true) }, speech: speech)
         await flow.check(name: "a", base: "vault.cool")
@@ -49,7 +49,7 @@ final class RealmClaimFlowTests: XCTestCase {
     }
 
     func testAnAnswerThatArrivesAfterTheNameChangedIsNeitherShownNorSaid() async {
-        let speech = FeaturesRecordingAnnouncer()
+        let speech = RecordingAnnouncer()
         let flow = makeFlow(check: { _, _ in
             try? await Task.sleep(nanoseconds: 150_000_000)
             return ClaimAvailability(available: true)
@@ -63,7 +63,7 @@ final class RealmClaimFlowTests: XCTestCase {
     }
 
     func testAHiccupWhileCheckingIsQuiet() async {
-        let speech = FeaturesRecordingAnnouncer()
+        let speech = RecordingAnnouncer()
         let flow = makeFlow(check: { _, _ in throw Hiccup() }, speech: speech)
         await flow.check(name: "nova", base: "vault.cool")
         XCTAssertEqual(flow.availability, .idle)
@@ -71,7 +71,7 @@ final class RealmClaimFlowTests: XCTestCase {
     }
 
     func testAClaimThatFailedIsSaidInTheServersWords() async {
-        let speech = FeaturesRecordingAnnouncer()
+        let speech = RecordingAnnouncer()
         let flow = makeFlow(claim: { _, _ in throw HVError.api(APIFailure(status: 403, message: "Free accounts can claim one address.")) }, speech: speech)
         await flow.claim(name: "nova", base: "vault.cool")
         XCTAssertNil(flow.claimed)
@@ -81,7 +81,7 @@ final class RealmClaimFlowTests: XCTestCase {
     }
 
     func testAClaimThatWorkedShowsTheResultAndLeavesTheSpeakingToTheScreensFocus() async throws {
-        let speech = FeaturesRecordingAnnouncer()
+        let speech = RecordingAnnouncer()
         let result = try HVCoding.decoder().decode(ClaimResult.self, from: Data(won.utf8))
         let flow = makeFlow(claim: { name, base in
             XCTAssertEqual(name, "nova")

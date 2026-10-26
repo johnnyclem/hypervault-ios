@@ -26,9 +26,11 @@ final class DreamsModel {
     private(set) var woven: Set<String> = []
 
     @ObservationIgnored private let env: AppEnvironment
+    @ObservationIgnored private let announcer: SpeechAnnouncer
 
-    init(env: AppEnvironment) {
+    init(env: AppEnvironment, announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared) {
         self.env = env
+        self.announcer = announcer
     }
 
     var topScore: Double {
@@ -128,6 +130,7 @@ final class DreamsModel {
             throw error
         }
         Haptics.success()
+        announcer.announce("Woven into your graph")
         if !calm { try? await Task.sleep(nanoseconds: 1_000_000_000) }
         withAnimation(calm ? nil : .spring(response: 0.4, dampingFraction: 0.85)) {
             review.remove(connection: id, verdict: .accept)
@@ -164,6 +167,8 @@ final class DreamsModel {
         }
         if verdict == .accept {
             Haptics.success()
+            let accepted = ids.count - decision.failures.count
+            if accepted > 0 { announcer.announce(accepted == 1 ? "1 connection woven into your graph" : "\(accepted) connections woven into your graph") }
             if !calm { try? await Task.sleep(nanoseconds: 1_000_000_000) }
         }
         var removal: DreamReview.Removal?

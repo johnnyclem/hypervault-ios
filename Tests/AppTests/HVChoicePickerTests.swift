@@ -6,14 +6,14 @@ import XCTest
 /// A segmented control stays at its small size however large the text is set. At accessibility sizes the choice
 /// has to be something else, so these look at what UIKit actually draws.
 @MainActor
-final class FeatureChoicePickerTests: XCTestCase {
+final class HVChoicePickerTests: XCTestCase {
     private enum Pick: String, CaseIterable, Hashable { case one, two, three }
 
     private struct Harness: View {
         @State private var pick = Pick.one
 
         var body: some View {
-            FeatureChoicePicker(title: "Pick", selection: $pick) {
+            HVChoicePicker(title: "Pick", selection: $pick) {
                 ForEach(Pick.allCases, id: \.self) { Text($0.rawValue).tag($0) }
             }
         }

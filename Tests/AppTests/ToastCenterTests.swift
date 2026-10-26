@@ -5,8 +5,8 @@ import XCTest
 /// A toast is the app's one channel for results, so it has to reach people who do not see it appear.
 @MainActor
 final class ToastCenterTests: XCTestCase {
-    private func make(assistive: Bool = false) -> (center: ToastCenter, speech: CoreRecordingAnnouncer) {
-        let speech = CoreRecordingAnnouncer()
+    private func make(assistive: Bool = false) -> (center: ToastCenter, speech: RecordingAnnouncer) {
+        let speech = RecordingAnnouncer()
         return (ToastCenter(announcer: speech, usesAssistiveTechnology: { assistive }), speech)
     }
 

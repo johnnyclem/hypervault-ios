@@ -76,7 +76,7 @@ final class ToolsModel {
     @ObservationIgnored private let client: HVClient
     @ObservationIgnored private let cache: DiskCache
     @ObservationIgnored private let namespace: String
-    @ObservationIgnored private let announcer: FeatureAnnouncer
+    @ObservationIgnored private let announcer: SpeechAnnouncer
     @ObservationIgnored private var saves: [String: Task<Void, Never>] = [:]
     @ObservationIgnored private var confirmedDisabled: [String: [String]] = [:]
     @ObservationIgnored private var compileTask: Task<Void, Never>?
@@ -84,7 +84,7 @@ final class ToolsModel {
     /// How long to wait between asking whether a dropped compile finished.
     @ObservationIgnored var recoveryPoll: UInt64 = 6_000_000_000
 
-    init(client: HVClient, cache: DiskCache, namespace: String, maxServers: Int, announcer: FeatureAnnouncer = VoiceOverFeatureAnnouncer.shared) {
+    init(client: HVClient, cache: DiskCache, namespace: String, maxServers: Int, announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared) {
         self.client = client
         self.cache = cache
         self.namespace = namespace

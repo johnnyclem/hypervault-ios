@@ -90,6 +90,7 @@ struct HVSkeleton: View {
     var height: CGFloat = 18
     var width: CGFloat?
     @State private var dim = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         RoundedRectangle(cornerRadius: height / 2.5, style: .continuous)
@@ -97,6 +98,7 @@ struct HVSkeleton: View {
             .frame(width: width, height: height)
             .opacity(dim ? 0.55 : 1)
             .onAppear {
+                guard !reduceMotion else { return }
                 withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { dim = true }
             }
             .accessibilityHidden(true)

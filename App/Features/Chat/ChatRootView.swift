@@ -17,7 +17,7 @@ struct ChatRootView: View {
         // The switch sits under the title, not in the bar: a control in the bar is drawn inside its own
         // glass capsule, whose shadow shows as a box on a light page.
         VStack(spacing: 0) {
-            FeatureChoicePicker(title: "Chats or rooms", selection: $section) {
+            HVChoicePicker(title: "Chats or rooms", selection: $section) {
                 ForEach(Half.allCases) { Text($0.rawValue).tag($0) }
             }
             .padding(.horizontal, HV.Space.m)

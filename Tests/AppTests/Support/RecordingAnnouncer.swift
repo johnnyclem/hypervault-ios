@@ -1,8 +1,8 @@
 @testable import HyperVault
 
-/// Stands in for VoiceOver: keeps what a screen asked to have said, in order.
+/// Stands in for VoiceOver: keeps what the app asked to have said, in order.
 @MainActor
-final class FeaturesRecordingAnnouncer: FeatureAnnouncer {
+final class RecordingAnnouncer: SpeechAnnouncer {
     private(set) var spoken: [String] = []
 
     func announce(_ text: String) {

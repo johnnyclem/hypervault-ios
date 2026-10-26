@@ -117,7 +117,7 @@ struct YoursListView: View {
     var body: some View {
         List {
             Section {
-                AdaptiveChoicePicker(title: "Show", selection: $model.filter) {
+                HVChoicePicker(title: "Show", selection: $model.filter) {
                     ForEach(YoursFilter.allCases) { filter in
                         Text(filter.title).tag(filter)
                     }

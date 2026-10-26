@@ -400,7 +400,109 @@ private struct ConnectClientScreen: View {
 }
 
 #if DEBUG
+enum ConnectPreviewData {
+    /// The Cursor block of the live /connect.md?client=cursor, trimmed.
+    static let cursorMarkdown = #"""
+    # Connect an agent to HyperVault
+
+    ## Coding agents
+
+    ### Cursor
+
+    - Client id: `cursor`
+    - Family: Coding agents
+    - Lane: MCP: native tools
+    - Key: Key sent as a request header
+    - Can show a tool's UI inside the chat (documented)
+    - Status: Checked against the vendor's documentation on 2026-10-08. Most steps were not run in the live app.
+
+    Steps:
+
+    1. Choose where the config lives. ~/.cursor/mcp.json makes HyperVault available in every project. .cursor/mcp.json inside a repo limits it to that project and is normally committed, so use the environment-variable block there.
+    2. Create the file if it does not exist and paste the block. If it already has an mcpServers object, add only the hypervault entry.
+    3. Open Customize in the sidebar, find HyperVault under MCP and make sure its toggle is on.
+    4. Start a new Agent chat and send the message below. Cursor asks for approval before an MCP tool runs, so approve the call.
+
+    Paste exactly as shown (hv_YOUR_KEY_HERE stands for the key):
+
+    **~/.cursor/mcp.json (key inline)**
+
+    ```json
+    {
+      "mcpServers": {
+        "hypervault": {
+          "url": "https://mcp.vault.cool/mcp",
+          "headers": {
+            "Authorization": "Bearer hv_YOUR_KEY_HERE"
+          }
+        }
+      }
+    }
+    ```
+
+    **First message in a new Agent chat**
+
+    ```text
+    Run the HyperVault setup_challenge tool and complete the challenge it returns.
+    ```
+
+    Check: In a new Agent chat send: Run the HyperVault setup_challenge tool and complete the challenge it returns. Approve the tool call. Once the challenge is written, the key's row in the Agent keys card on the Account page reads Agent connected.
+
+    Things to know:
+
+    - Never put the literal key in a project-level .cursor/mcp.json.
+    - Team admins can restrict remote servers with the MCP Allowlist.
+
+    Sources: https://cursor.com/docs/context/mcp
+    """#
+
+    static let mintedJSON = #"{"key":"hv_Zk3pQ9vL2mX8aRt5NwYb7CdEfGhJ1sUo","prefix":"hv_Zk3pQ9vL","challenge":{"slug":"agent-setup-ab12","url":"https://preview.hypervault.test/a/agent-setup-ab12"},"message":"Copy this key now."}"#
+
+    static var routes: [MockRoute] {
+        [
+            .json(.post, "/api/keys", mintedJSON),
+            MockRoute(.get, "/connect.md") { _ in HTTPResponse(status: 200, headers: ["content-type": "text/markdown"], data: Data(cursorMarkdown.utf8)) },
+        ] + KeysPreviewData.routes
+    }
+}
+
+/// A preview and snapshot helper: one app's screen after its key has been made.
+struct ConnectReadyPreview: View {
+    let clientID: String
+
+    @Environment(AppEnvironment.self) private var env
+    @State private var model: ConnectAgentModel?
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let model, let info = AgentClientCatalog.client(id: clientID) {
+                    ConnectClientScreen(info: info, model: model)
+                } else {
+                    HVLoadingState()
+                }
+            }
+        }
+        .task {
+            let made = ConnectAgentModel(
+                client: env.client, rest: env.keysRest, cache: env.cache, userID: env.user.id,
+                origin: PairingCode.origin(of: env.server.baseURL)
+            )
+            if let info = AgentClientCatalog.client(id: clientID) {
+                made.keyName = info.name
+                await made.makeKey()
+                await made.loadDocument(for: info)
+            }
+            model = made
+        }
+    }
+}
+
 #Preview("Connect, picker") {
     KeysPreviewHost(embedInNavigation: false) { ConnectAgentSheet() }
+}
+
+#Preview("Connect, Cursor with a key") {
+    KeysPreviewHost(routes: ConnectPreviewData.routes, embedInNavigation: false) { ConnectReadyPreview(clientID: "cursor") }
 }
 #endif

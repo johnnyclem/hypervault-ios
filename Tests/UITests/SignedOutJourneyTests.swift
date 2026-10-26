@@ -82,7 +82,7 @@ final class SignedOutJourneyTests: HyperVaultUITestCase {
             enter("000000", into: textField("email.code"), "the code field")
             let error = element("email.error")
             require(error, "the line that turns the code down")
-            XCTAssertEqual(error.label, "That code has expired. Ask for a new one.")
+            XCTAssertEqual(error.label, "That code did not work, or it has expired. Check it, or ask for a new one.")
         }
 
         step("Closing the sheet returns to the way in") {

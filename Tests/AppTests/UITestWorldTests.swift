@@ -36,7 +36,7 @@ final class UITestWorldTests: XCTestCase {
             _ = try await auth.verifyEmailCode(email: "sam@example.com", code: "000000")
             XCTFail("The canned server turns every code down.")
         } catch let error as AuthError {
-            XCTAssertEqual(error.errorDescription, "That code has expired. Ask for a new one.")
+            XCTAssertEqual(error.errorDescription, "That code did not work, or it has expired. Check it, or ask for a new one.")
         }
     }
 

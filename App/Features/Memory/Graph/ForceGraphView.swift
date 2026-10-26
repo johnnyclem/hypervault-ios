@@ -448,11 +448,12 @@ enum ForceGraphRenderer {
                 .foregroundStyle(Palette.textPrimary)
             let resolved = context.resolve(text)
             let measured = resolved.measure(in: CGSize(width: 220, height: 40))
-            let frame = CGRect(x: center.x - measured.width / 2, y: center.y + r + 3, width: measured.width, height: measured.height)
+            let left = min(max(center.x - measured.width / 2, 4), max(size.width - measured.width - 4, 4))
+            let frame = CGRect(x: left, y: center.y + r + 3, width: measured.width, height: measured.height)
             let padded = frame.insetBy(dx: -3, dy: -1)
             if candidate.priority < 3, occupied.contains(where: { $0.intersects(padded) }) { continue }
             occupied.append(padded)
-            context.draw(resolved, at: CGPoint(x: center.x, y: frame.minY), anchor: .top)
+            context.draw(resolved, at: CGPoint(x: frame.midX, y: frame.minY), anchor: .top)
         }
     }
 

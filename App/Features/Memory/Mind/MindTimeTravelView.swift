@@ -143,6 +143,7 @@ struct MindTimeTravelView: View {
                 Spacer(minLength: 0)
                 if model.restoringID == memory.id { ProgressView() }
             }
+            .padding(.leading, -HV.Space.s)
         }
         .hvCard()
     }

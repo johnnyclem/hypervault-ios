@@ -83,7 +83,7 @@ struct TruthEntryScreen: View {
     private var headerSection: some View {
         Section {
             VStack(alignment: .leading, spacing: HV.Space.s) {
-                HStack(spacing: HV.Space.xs) {
+                TruthTagFlow {
                     TruthTypeTag(type: row.type)
                     TruthStatusBadge(status: row.status)
                     TruthStandingBadge(standing: row.standing, showsSound: true)

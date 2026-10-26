@@ -35,14 +35,14 @@ struct TruthCardView: View {
     // MARK: Pieces
 
     private var tags: some View {
-        HStack(spacing: HV.Space.xs) {
+        TruthTagFlow {
             HVTag(text: item.kind.title, tint: item.kind == .appeal ? Palette.amber : Palette.blue)
             if item.nominated { HVTag(text: "Nominated by agents", tint: Palette.violet) }
             if item.suspect { HVTag(text: "Suspect premise", tint: Palette.amber) }
             if item.stale { HVTag(text: "Stale", tint: Palette.amber) }
             TruthStandingBadge(standing: item.standing)
-            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func labelled(_ title: String, _ text: String) -> some View {

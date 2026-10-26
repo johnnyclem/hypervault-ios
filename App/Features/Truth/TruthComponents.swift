@@ -33,6 +33,48 @@ extension TruthStatusTone {
     }
 }
 
+/// Tags side by side, wrapping onto the next line when the text is large.
+struct TruthTagFlow: Layout {
+    var spacing: CGFloat = HV.Space.xs
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let limit = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var widest: CGFloat = 0
+        for view in subviews {
+            let size = view.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > limit {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+            widest = max(widest, x - spacing)
+        }
+        return CGSize(width: widest, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+        for view in subviews {
+            let size = view.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
 /// "TB" or "UV".
 struct TruthTypeTag: View {
     let type: TruthEntryType
@@ -102,13 +144,12 @@ struct TruthEntryRowView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HStack(spacing: HV.Space.xs) {
+            TruthTagFlow {
                 TruthTypeTag(type: row.type)
                 TruthStatusBadge(status: row.status)
                 TruthStandingBadge(standing: row.standing)
                 if row.isStale { HVTag(text: "Stale", tint: Palette.amber) }
                 if row.corroborated { HVTag(text: "Agents agree", tint: Palette.violet) }
-                Spacer(minLength: 0)
             }
             TruthClaimText(text: row.line.text, lines: 4)
             if let reason = row.reasonSentence {

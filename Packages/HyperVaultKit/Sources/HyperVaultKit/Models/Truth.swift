@@ -705,6 +705,12 @@ public struct TruthSections: Sendable, Hashable {
     public let history: [TruthEntryRow]
 
     public var isEmpty: Bool { standing.isEmpty && unverified.isEmpty && history.isEmpty }
+
+    public init(standing: [TruthEntryRow] = [], unverified: [TruthEntryRow] = [], history: [TruthEntryRow] = []) {
+        self.standing = standing
+        self.unverified = unverified
+        self.history = history
+    }
 }
 
 /// `GET /api/truth?ledger=`: one ledger's current truth, bucketed.

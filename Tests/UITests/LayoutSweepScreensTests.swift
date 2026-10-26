@@ -27,24 +27,24 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
         visit("library", "Library", key: element("library.row.a1"), "the Bakery landing page row")
 
         visit("vaultItems", "Logins, cards & keys", key: element("vault.row.github.com"), "the github.com entry") {
-            open(element("vault.row.github.com"), "the github.com entry")
+            open(element("vault.row.github.com"), "the github.com entry", until: { self.shows("How an agent reads it").exists })
             look(mode, "a vault entry", key: shows("How an agent reads it"), "the section that says how an agent reads it")
         }
 
         visit("taskBoards", "Task boards", key: element("taskboards.row.eurorack-choir"), "the Eurorack Choir board") {
-            open(element("taskboards.row.eurorack-choir"), "the Eurorack Choir board")
+            open(element("taskboards.row.eurorack-choir"), "the Eurorack Choir board", until: { self.element("taskboard.task.t-panels").exists })
             look(mode, "a task board", key: element("taskboard.task.t-panels"), "the front panels task")
-            open(element("taskboard.task.t-panels"), "the front panels task")
+            open(element("taskboard.task.t-panels"), "the front panels task", until: { self.shows("Two quotes in, one to go.").exists })
             look(mode, "a task", key: shows("Two quotes in, one to go."), "the agent's note")
         }
 
         // Agents
         visit("agentsAndKeys", "Account & keys", key: element("keys.connect"), "Connect an agent") {
-            open(element("keys.row.k1"), "the Claude Code key")
+            open(element("keys.row.k1"), "the Claude Code key", until: { self.isShowingTitle("Key") })
             look(mode, "a key", key: shows("Revoke key"), "the Revoke key row")
             goBack()
 
-            open(element("keys.connect"), "Connect an agent")
+            open(element("keys.connect"), "Connect an agent", until: { self.shows("Just make a key").exists })
             look(mode, "Connect your AI", key: shows("Just make a key"), "the way to make a key for anything not listed")
             open(element("connect.client.cursor"), "the Cursor row")
             open(button("Make the key"), "Make the key")
@@ -58,12 +58,12 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
         }
 
         visit("tools", "Tools", key: element("tools.server.s1"), "the Linear server") {
-            open(element("tools.server.s1"), "the Linear server")
+            open(element("tools.server.s1"), "the Linear server", until: { self.shows("list_issues").exists })
             look(mode, "a tool server", key: shows("list_issues"), "the list_issues tool")
         }
 
         visit("mail", "Mail", key: element("mail.thread.11111111-1111-4111-8111-111111111111"), "the Weekly plan thread") {
-            open(element("mail.thread.11111111-1111-4111-8111-111111111111"), "the Weekly plan thread")
+            open(element("mail.thread.11111111-1111-4111-8111-111111111111"), "the Weekly plan thread", until: { self.shows("Done. Friday it is, and I updated the page.").exists })
             look(mode, "a mail thread", key: shows("Done. Friday it is, and I updated the page."), "the newest message")
         }
 
@@ -73,18 +73,18 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
         visit("digest", "Digest", key: shows("Planning chat with Sam"), "the memory to split")
 
         visit("truth", "Truth", key: element("truth.review"), "the review row") {
-            open(element("truth.entry.01M1E6JK8SQAJ8K0JBRHTD10YG"), "the retry cap entry")
+            open(element("truth.entry.01M1E6JK8SQAJ8K0JBRHTD10YG"), "the retry cap entry", until: { self.isShowingTitle("Signed truth") })
             look(mode, "a truth entry", key: shows("The retry budget is 100."), "the premise beneath it")
         }
 
         // Account
         visit("realms", "Your address", key: element("realms.row.c1"), "the nova.vault.cool address") {
-            open(element("realms.row.c1"), "the nova.vault.cool address")
+            open(element("realms.row.c1"), "the nova.vault.cool address", until: { self.isShowingTitle("Address") })
             look(mode, "an address", key: shows("Glassmorphism"), "the look it has")
         }
 
         visit("importHistory", "Import", key: element("import.source.chatgpt"), "the ChatGPT card") {
-            open(element("import.source.other"), "the Something else card")
+            open(element("import.source.other"), "the Something else card", until: { self.app.textViews["Pasted conversation"].exists })
             look(mode, "the paste box", key: app.textViews["Pasted conversation"], "the paste box")
         }
 

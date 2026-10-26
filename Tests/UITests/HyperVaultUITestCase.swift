@@ -208,6 +208,8 @@ class HyperVaultUITestCase: XCTestCase {
     /// a tap that lands while a list is still settling is lost, and a person would just tap again.
     func tap(_ element: XCUIElement, _ what: String, until reached: () -> Bool, file: StaticString = #filePath, line: UInt = #line) {
         for attempt in 1...3 {
+            // A tap that was slow to take is not repeated on a screen that has already moved on.
+            if attempt > 1, reached() { return }
             tap(element, what, file: file, line: line)
             let deadline = Date().addingTimeInterval(6)
             while Date() < deadline {
@@ -283,9 +285,15 @@ class HyperVaultUITestCase: XCTestCase {
     }
 
     /// Scrolls to an element, clear of the bars, then taps it: for rows that a larger text size has pushed below the fold.
-    func open(_ element: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
+    /// With `reached`, a tap that comes to nothing (a list that was still settling after a screen was popped) is repeated, as
+    /// `tap(_:_:until:)` does.
+    func open(_ element: XCUIElement, _ what: String, until reached: (() -> Bool)? = nil, file: StaticString = #filePath, line: UInt = #line) {
         reveal(element, what, file: file, line: line)
-        tap(element, what, file: file, line: line)
+        if let reached {
+            tap(element, what, until: reached, file: file, line: line)
+        } else {
+            tap(element, what, file: file, line: line)
+        }
     }
 
     /// Opens a tab. What it shows is for the journey to wait for.
@@ -315,7 +323,8 @@ class HyperVaultUITestCase: XCTestCase {
         }
         let row = element("you.\(id)")
         reveal(row, "the \(id) row of the You tab", file: file, line: line)
-        tap(row, "the \(id) row", file: file, line: line)
+        // The list can still be settling from the screen that was just popped off it, and a tap on it then comes to nothing.
+        tap(row, "the \(id) row", until: { isShowingTitle(title) }, file: file, line: line)
         waitUntil("the \(title) screen", file: file, line: line) { isShowingTitle(title) }
     }
 

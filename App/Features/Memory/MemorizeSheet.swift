@@ -45,12 +45,11 @@ struct MemorizeSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.l) {
-                    Picker("What to keep", selection: $kind) {
+                    TruthChoicePicker(title: "What to keep", selection: $kind) {
                         ForEach(MemorizeKind.allCases) { kind in
                             Text(kind.title).tag(kind)
                         }
                     }
-                    .pickerStyle(.segmented)
 
                     switch kind {
                     case .write: writeForm

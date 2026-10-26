@@ -72,6 +72,9 @@ final class LibraryModel {
             lastFilter = filter
             items = []
             phase = .loading
+        } else if case .failed = phase {
+            // A retry shows that it is reading, rather than the failure it is trying to get past.
+            phase = .loading
         }
         if filter == .file {
             await loadFiles()
@@ -95,7 +98,8 @@ final class LibraryModel {
                 isStale = false
                 phase = .loaded
             } catch {
-                fail(error)
+                // The list on screen is for another search, so it is not left standing as this one's answer.
+                fail(error, keepingRows: false)
             }
             return
         }
@@ -109,7 +113,7 @@ final class LibraryModel {
                 phase = .loaded
             }
         } catch {
-            fail(error)
+            fail(error, keepingRows: true)
         }
     }
 
@@ -126,7 +130,7 @@ final class LibraryModel {
                 phase = .loaded
             }
         } catch {
-            fail(error)
+            fail(error, keepingRows: true)
         }
         if let list = await ids {
             var map: [String: String] = [:]
@@ -138,13 +142,17 @@ final class LibraryModel {
         if let found = await edges { edgeCounts = found.counts }
     }
 
-    private func fail(_ error: Error) {
+    /// A read that failed. The rows on screen are kept only when they are this very view's, read before and
+    /// only being refreshed: a filter switch resets the phase, so it never leans on another view's rows, and a
+    /// search that fails says so instead of leaving the list it was meant to narrow.
+    private func fail(_ error: Error, keepingRows: Bool) {
         guard !(error is CancellationError), (error as? HVError) != .cancelled else { return }
-        let hasRows = !items.isEmpty || !artifacts.isEmpty
-        if !hasRows {
-            failureIsOffline = (error as? HVError)?.isOffline == true
-            phase = .failed(failureIsOffline ? LibraryCopy.offline : LibraryCopy.failed)
+        if keepingRows, phase == .loaded {
+            isStale = true
+            return
         }
+        failureIsOffline = (error as? HVError)?.isOffline == true
+        phase = .failed(failureIsOffline ? LibraryCopy.offline : LibraryCopy.failed)
     }
 
     /// The parts that sit around the list: what was shared with the person, their pins, their addresses.
@@ -201,23 +209,27 @@ final class LibraryModel {
     // MARK: Changing a row
 
     func setVisibility(_ row: FileRow, to visibility: ArtifactVisibility, toasts: ToastCenter) async {
-        guard let index = artifacts.firstIndex(where: { $0.slug == row.summary.slug }) else { return }
-        let before = artifacts
+        let slug = row.summary.slug
+        guard let index = artifacts.firstIndex(where: { $0.slug == slug }) else { return }
         artifacts[index] = row.summary.withVisibility(visibility)
         do {
-            let result = try await env.client.send(.setArtifactVisibility(slug: row.summary.slug, to: visibility))
+            let result = try await env.client.send(.setArtifactVisibility(slug: slug, to: visibility))
             toasts.show(result.message, style: .success)
             await persist()
         } catch {
-            artifacts = before
+            // Only this row goes back. Other rows may have changed while this one was out, and the server kept those.
+            if let current = artifacts.firstIndex(where: { $0.slug == slug }) {
+                artifacts[current] = artifacts[current].withVisibility(row.summary.visibility)
+            }
             toasts.show(error: error)
         }
     }
 
     /// Deletes a page, or a group with its files. Gone from the list at once; back if the server says no.
     func delete(_ row: FileRow, toasts: ToastCenter) async -> Bool {
-        let before = artifacts
-        artifacts.removeAll { $0.slug == row.summary.slug }
+        let slug = row.summary.slug
+        let position = artifacts.firstIndex { $0.slug == slug }
+        artifacts.removeAll { $0.slug == slug }
         do {
             if row.summary.isGroup {
                 _ = try await env.client.send(.deleteArtifactGroup(slug: row.summary.slug))
@@ -228,7 +240,10 @@ final class LibraryModel {
             await persist()
             return true
         } catch {
-            artifacts = before
+            // Only this row comes back, where it was. A row deleted meanwhile stays deleted.
+            if !artifacts.contains(where: { $0.slug == slug }) {
+                artifacts.insert(row.summary, at: min(position ?? artifacts.count, artifacts.count))
+            }
             toasts.show(error: error)
             return false
         }

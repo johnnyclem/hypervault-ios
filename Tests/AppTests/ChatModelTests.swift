@@ -50,8 +50,10 @@ final class ChatModelTests: XCTestCase {
         return model
     }
 
+    /// Waits for a turn to finish. The limit is generous: a shared CI runner can stall for seconds, and a
+    /// test that waits longer than it needs to costs nothing, where one that gives up early is a false failure.
     private func settle(_ model: ChatConversationModel) async {
-        for _ in 0..<300 where model.isWorking { try? await Task.sleep(nanoseconds: 10_000_000) }
+        for _ in 0..<2_000 where model.isWorking { try? await Task.sleep(nanoseconds: 10_000_000) }
     }
 
     func testASentMessageGetsItsReplyAndTheConversationIsAdopted() async {

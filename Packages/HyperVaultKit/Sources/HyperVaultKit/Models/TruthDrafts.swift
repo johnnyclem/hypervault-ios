@@ -332,6 +332,8 @@ public struct TruthImportPreview: Sendable, Equatable {
     public var firstProblem: TruthImportLineError?
     public var bytes = 0
 
+    public init() {}
+
     public static let maxBytes = 2_000_000
 
     public static func parse(_ text: String) -> TruthImportPreview {

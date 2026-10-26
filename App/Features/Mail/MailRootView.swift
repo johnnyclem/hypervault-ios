@@ -145,6 +145,7 @@ struct MailInboxScreen: View {
                     NavigationLink(value: ref(for: thread.id)) {
                         MailThreadRow(thread: thread)
                     }
+                    .listRowBackground(Palette.surface)
                     .swipeActions(edge: .leading, allowsFullSwipe: true) { leadingActions(thread) }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) { trailingActions(thread) }
                     .contextMenu { menuActions(thread) }
@@ -225,6 +226,7 @@ struct MailInboxScreen: View {
                     NavigationLink(value: ref(for: hit.threadId)) {
                         MailHitRow(message: hit)
                     }
+                    .listRowBackground(Palette.surface)
                 }
             }
         }

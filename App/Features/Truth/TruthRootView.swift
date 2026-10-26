@@ -210,6 +210,7 @@ struct TruthScreen: View {
                     NavigationLink(value: TruthDestination.entry(ref(row))) {
                         TruthEntryRowView(row: row)
                     }
+                    .listRowBackground(Palette.surface)
                 }
             }
         } header: {
@@ -229,6 +230,7 @@ struct TruthScreen: View {
                         NavigationLink(value: TruthDestination.entry(ref(row))) {
                             TruthEntryRowView(row: row).opacity(0.8)
                         }
+                        .listRowBackground(Palette.surface)
                     }
                 }
             } header: {

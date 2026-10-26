@@ -216,6 +216,7 @@ struct TaskBoardScreen: View {
                 .onSubmit { addTask() }
         }
         .frame(minHeight: 44)
+        .listRowBackground(Palette.surface)
         .listRowSeparator(.hidden)
     }
 
@@ -262,6 +263,7 @@ struct TaskBoardScreen: View {
             .disabled(temporary)
         }
         .padding(.leading, CGFloat(min(row.depth, 3)) * HV.Space.l)
+        .listRowBackground(Palette.surface)
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             Button {
                 tick(task)

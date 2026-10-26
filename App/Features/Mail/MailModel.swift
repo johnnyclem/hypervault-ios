@@ -17,7 +17,8 @@ final class MailModel {
     private(set) var mailboxState: Load = .loading
     private(set) var mailboxes: [OwnerMailbox] = []
     private(set) var activeID: String?
-    private(set) var isShowingSavedCopy = false
+    private(set) var mailboxesAreSaved = false
+    private(set) var listIsSaved = false
 
     private(set) var filter: MailFilter = .inbox
     private(set) var listState: Load = .idle
@@ -52,6 +53,9 @@ final class MailModel {
     var agentsSeeOwnerMail: Bool { active?.agentsSeeOwnerMail ?? true }
 
     var heldCount: Int { active?.heldCount ?? 0 }
+
+    /// What is on screen came from the phone, not the server (yet, or because the server could not be reached).
+    var isShowingSavedCopy: Bool { mailboxesAreSaved || listIsSaved }
 
     var totalUnread: Int { mailboxes.reduce(0) { $0 + $1.unreadCount } }
 
@@ -89,7 +93,7 @@ final class MailModel {
             }
             for try await loaded in stream {
                 mailboxes = loaded.value.mailboxes
-                isShowingSavedCopy = loaded.isStale
+                mailboxesAreSaved = loaded.isStale
                 mailboxState = .loaded
             }
         } catch {
@@ -116,7 +120,7 @@ final class MailModel {
                 messages = loaded.value.messages
                 nextCursor = loaded.value.nextCursor
                 listState = .loaded
-                if loaded.isStale { isShowingSavedCopy = true }
+                listIsSaved = loaded.isStale
             }
         } catch {
             guard mine == generation else { return }
@@ -129,6 +133,7 @@ final class MailModel {
         messages = []
         nextCursor = nil
         listState = .loading
+        listIsSaved = false
     }
 
     func select(mailbox id: String) async {

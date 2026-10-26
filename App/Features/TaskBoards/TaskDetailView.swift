@@ -11,6 +11,7 @@ struct TaskDetailView: View {
     @State private var newSubtask = ""
     @State private var newNote = ""
     @State private var progress = 0.0
+    @State private var isSliding = false
     @State private var confirmTakeOver = false
     @FocusState private var focus: Field?
 
@@ -30,13 +31,16 @@ struct TaskDetailView: View {
         .hvScreenBackground()
         .navigationTitle("Task")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { syncFields() }
+        .onAppear { syncFields(force: true) }
+        .onChange(of: task) { _, _ in syncFields(force: false) }
     }
 
-    private func syncFields() {
+    /// Fills the fields from the task: at first, and again when it changes under
+    /// the person (an agent renamed it, say) unless they are in the middle of editing.
+    private func syncFields(force: Bool) {
         guard let task else { return }
-        title = task.title
-        progress = Double(task.progress ?? 0)
+        if force || focus != .title { title = task.title }
+        if force || !isSliding { progress = Double(task.progress ?? 0) }
     }
 
     private func form(_ task: BoardTask) -> some View {
@@ -70,6 +74,7 @@ struct TaskDetailView: View {
                             Text("\(Int(progress))%").foregroundStyle(Palette.textSecondary).monospacedDigit()
                         }
                         Slider(value: $progress, in: 0...100, step: 5) { editing in
+                            isSliding = editing
                             if !editing { model.enqueue(.setProgress(taskID: task.id, to: Int(progress))) }
                         }
                         .accessibilityLabel("Progress")

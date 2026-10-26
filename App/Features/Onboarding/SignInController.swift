@@ -16,16 +16,35 @@ final class SignInController {
     private(set) var emailSentTo: String?
 
     @ObservationIgnored private let auth: AuthService
+    @ObservationIgnored private let oauthOrigin: URL
     @ObservationIgnored private let announcer: SpeechAnnouncer
     @ObservationIgnored private let presenter = WebAuthPresenter()
     @ObservationIgnored private var webSession: ASWebAuthenticationSession?
 
+    /// Closes the sheet when the callback page redirects to hypervault://.
     static let callbackScheme = "hypervault"
-    static let redirect = URL(string: "hypervault://auth/callback")!
 
-    init(auth: AuthService, announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared) {
+    init(
+        auth: AuthService,
+        oauthOrigin: URL = URL(string: "https://hypervault.store")!,
+        announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared
+    ) {
         self.auth = auth
+        self.oauthOrigin = oauthOrigin
         self.announcer = announcer
+    }
+
+    /// Supabase sends the code here. `client=app` tells that page to redirect
+    /// to `appCallback` instead of signing the website in. The scheme itself
+    /// is not on Supabase's allow-list, so asking for it drops the code on the
+    /// website and the sheet stays open.
+    static func oauthRedirect(on origin: URL) -> URL {
+        var components = URLComponents(url: origin, resolvingAgainstBaseURL: false) ?? URLComponents()
+        components.path = "/auth/callback"
+        components.queryItems = [URLQueryItem(name: "client", value: "app")]
+        components.fragment = nil
+        guard let url = components.url else { return origin }
+        return url
     }
 
     var isWorking: Bool { work != .idle }
@@ -40,7 +59,7 @@ final class SignInController {
         message = nil
         defer { work = .idle }
         do {
-            let url = try await auth.authorizationURL(provider: "google", redirectTo: Self.redirect)
+            let url = try await auth.authorizationURL(provider: "google", redirectTo: Self.oauthRedirect(on: oauthOrigin))
             let callback = try await runWebSession(url: url)
             try await auth.completeOAuth(callbackURL: callback)
             Haptics.success()

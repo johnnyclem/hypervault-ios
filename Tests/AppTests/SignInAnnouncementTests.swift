@@ -16,6 +16,11 @@ final class SignInAnnouncementTests: XCTestCase {
         return (SignInController(auth: auth, announcer: speech), speech)
     }
 
+    func testGoogleReturnsThroughTheWebsiteSoTheSheetCanClose() {
+        let url = SignInController.oauthRedirect(on: URL(string: "https://www.claudedamnit.com/vault?x=1")!)
+        XCTAssertEqual(url.absoluteString, "https://www.claudedamnit.com/auth/callback?client=app")
+    }
+
     func testAnEmailThatIsNotOneIsSaidAndShown() async {
         let (controller, speech) = make()
         let sent = await controller.sendEmailCode("sam")

@@ -9,7 +9,7 @@ struct SignInScreen: View {
 
     var body: some View {
         if let auth = model.auth {
-            SignInContent(auth: auth, providers: model.providers, onBack: onBack)
+            SignInContent(auth: auth, oauthOrigin: model.oauthReturnOrigin, providers: model.providers, onBack: onBack)
         } else {
             LaunchView()
         }
@@ -25,8 +25,8 @@ struct SignInContent: View {
     @State private var nonce = AuthNonce.make()
     @State private var showEmail = false
 
-    init(auth: AuthService, providers: AuthProviders, onBack: (() -> Void)?) {
-        _controller = State(initialValue: SignInController(auth: auth))
+    init(auth: AuthService, oauthOrigin: URL, providers: AuthProviders, onBack: (() -> Void)?) {
+        _controller = State(initialValue: SignInController(auth: auth, oauthOrigin: oauthOrigin))
         self.providers = providers
         self.onBack = onBack
     }

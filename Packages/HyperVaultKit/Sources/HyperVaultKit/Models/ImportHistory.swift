@@ -131,6 +131,14 @@ public struct ImportProgress: Sendable, Equatable {
     public var batchesTotal: Int
     public var totals: ImportTotals
 
+    public init(conversationsDone: Int, conversationsTotal: Int, batchesDone: Int, batchesTotal: Int, totals: ImportTotals = ImportTotals()) {
+        self.conversationsDone = conversationsDone
+        self.conversationsTotal = conversationsTotal
+        self.batchesDone = batchesDone
+        self.batchesTotal = batchesTotal
+        self.totals = totals
+    }
+
     public var fraction: Double {
         guard conversationsTotal > 0 else { return 0 }
         return min(1, Double(conversationsDone) / Double(conversationsTotal))

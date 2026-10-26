@@ -51,7 +51,8 @@ final class ToolsCatalogModel {
     private func probe(_ entries: [McpRegistryEntry]) {
         let urls = entries.prefix(McpRegistryEntry.livenessBatchSize).map(\.url)
         guard !urls.isEmpty else { return }
-        probing = Task { [weak self, client] in
+        let client = self.client
+        probing = Task { [weak self] in
             guard let answer = try? await client.send(.probeMcpLiveness(urls: urls)), !Task.isCancelled else { return }
             guard let self else { return }
             for verdict in answer.results {

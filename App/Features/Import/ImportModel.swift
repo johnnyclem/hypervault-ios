@@ -60,9 +60,10 @@ final class ImportModel {
         guard stage == .choose || stage == .review || isStoppedOrDone else { return }
         reset(keepSource: true)
         stage = .reading
-        task = Task { [source] in
+        let chosen = source
+        task = Task {
             do {
-                let result = try await ImportFileReader.read(urls, chosen: source)
+                let result = try await ImportFileReader.read(urls, chosen: chosen)
                 finishReading(result)
             } catch is CancellationError {
                 stage = .choose

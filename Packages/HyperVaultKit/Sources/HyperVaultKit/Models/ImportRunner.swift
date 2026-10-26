@@ -51,6 +51,13 @@ public struct ImportRunError: Error, Sendable {
     public let totals: ImportTotals
     public let conversationsDone: Int
 
+    public init(error: HVError, resumeAt: Int, totals: ImportTotals, conversationsDone: Int) {
+        self.error = error
+        self.resumeAt = resumeAt
+        self.totals = totals
+        self.conversationsDone = conversationsDone
+    }
+
     public var userMessage: String { error.userMessage }
 }
 

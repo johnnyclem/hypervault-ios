@@ -22,6 +22,28 @@ enum ToolsCompileState: Equatable {
         if case .running = self { return true }
         return false
     }
+
+    /// What VoiceOver is told when the compile ends, which can be minutes after Compile was pressed and
+    /// leaves the button that was on screen gone. Nothing while it is idle or running.
+    var spoken: String? {
+        switch self {
+        case .idle, .running:
+            return nil
+        case .finished(let result):
+            let tools = result.stats.toolCount
+            return "Your toolkit is ready. \(tools) tool\(tools == 1 ? "" : "s"). New chats can use them now."
+        case .recovered:
+            return "Your toolkit is ready. The connection dropped while it was building, and it finished on the server."
+        case .failed(let message):
+            return "The build failed. \(message)"
+        case .lostConnection(let message):
+            return "The connection was lost. \(message)"
+        case .nothingToCompile:
+            return "Nothing to compile. Every tool is switched off."
+        case .stopped:
+            return "Stopped waiting. HyperVault may still finish building on the server."
+        }
+    }
 }
 
 /// The Tools screen's state: the servers a person has connected, the compiled
@@ -54,6 +76,7 @@ final class ToolsModel {
     @ObservationIgnored private let client: HVClient
     @ObservationIgnored private let cache: DiskCache
     @ObservationIgnored private let namespace: String
+    @ObservationIgnored private let announcer: FeatureAnnouncer
     @ObservationIgnored private var saves: [String: Task<Void, Never>] = [:]
     @ObservationIgnored private var confirmedDisabled: [String: [String]] = [:]
     @ObservationIgnored private var compileTask: Task<Void, Never>?
@@ -61,11 +84,12 @@ final class ToolsModel {
     /// How long to wait between asking whether a dropped compile finished.
     @ObservationIgnored var recoveryPoll: UInt64 = 6_000_000_000
 
-    init(client: HVClient, cache: DiskCache, namespace: String, maxServers: Int) {
+    init(client: HVClient, cache: DiskCache, namespace: String, maxServers: Int, announcer: FeatureAnnouncer = VoiceOverFeatureAnnouncer.shared) {
         self.client = client
         self.cache = cache
         self.namespace = namespace
         self.maxServers = maxServers
+        self.announcer = announcer
         self.hasUncompiledChanges = UserDefaults.standard.bool(forKey: Self.dirtyKey(namespace))
     }
 
@@ -336,11 +360,17 @@ final class ToolsModel {
         if let start = lastCompileStart, toolkit.compiled(since: start), let built = toolkit.toolkit {
             hasUncompiledChanges = false
             UserDefaults.standard.set(false, forKey: Self.dirtyKey(namespace))
-            compile = .recovered(built)
+            settle(.recovered(built))
             Haptics.success()
         } else {
             reportSuccess("Not finished yet. Check again in a minute.")
         }
+    }
+
+    /// The compile ended: shown on the sheet, and said.
+    private func settle(_ state: ToolsCompileState) {
+        compile = state
+        if let sentence = state.spoken { announcer.announce(sentence) }
     }
 
     private func runCompile(started: Date) async {
@@ -353,32 +383,32 @@ final class ToolsModel {
             )
             hasUncompiledChanges = false
             UserDefaults.standard.set(false, forKey: Self.dirtyKey(namespace))
-            compile = .finished(result)
+            settle(.finished(result))
             Haptics.success()
         } catch let error as HVError {
             switch error {
             case .cancelled:
-                compile = .stopped
+                settle(.stopped)
             case .transport:
                 // The phone lost the connection (or was put away); the server keeps going.
                 if let landed = await waitForToolkit(since: started) {
-                    compile = .recovered(landed)
+                    settle(.recovered(landed))
                     Haptics.success()
                 } else if Task.isCancelled {
-                    compile = .stopped
+                    settle(.stopped)
                 } else {
-                    compile = .lostConnection(error.userMessage)
+                    settle(.lostConnection(error.userMessage))
                 }
             default:
                 if error.isMcpNothingToCompile {
-                    compile = .nothingToCompile
+                    settle(.nothingToCompile)
                 } else {
-                    compile = .failed(error.mcpCompileSentence)
+                    settle(.failed(error.mcpCompileSentence))
                     Haptics.failure()
                 }
             }
         } catch {
-            compile = .failed(error.localizedDescription)
+            settle(.failed(error.localizedDescription))
         }
     }
 

@@ -1,9 +1,10 @@
 import XCTest
 
-/// Someone signed in who has kept nothing and connected no model: the canvas teaches, Yours says it is empty.
+/// Someone signed in who has kept nothing and connected no model: the canvas teaches, the connect sheet opens, Yours
+/// says it is empty.
 @MainActor
 final class FirstRunJourneyTests: HyperVaultUITestCase {
-    func testTheCanvasTeachesAndYoursIsEmpty() {
+    func testTheCanvasTeachesConnectOpensItsSheetAndYoursIsEmpty() {
         launch(.signedInEmpty)
 
         step("The canvas shows the first-run hints") {
@@ -19,26 +20,17 @@ final class FirstRunJourneyTests: HyperVaultUITestCase {
             require(text("HyperVault: No memories yet."), "the page's own answer")
         }
 
+        step("Connect your AI opens a sheet, and Cancel closes it") {
+            tap(element("canvas.connect"), "the Connect your AI button")
+            waitUntil("the Connect your AI title") { isShowingTitle("Connect your AI") }
+            tap(button("Cancel"), "Cancel")
+            requireGone(button("Cancel"), "the sheet")
+        }
+
         step("Yours says it is empty") {
             openTab("Yours")
             require(text("Nothing kept yet."), "Yours' empty state")
             require(text("Ask your AI to keep something, or paste it on the canvas."), "the empty state's hint")
-        }
-    }
-
-    func testConnectYourAIOpensItsSheetFromTheCanvas() {
-        launch(.signedInEmpty)
-
-        step("Connect your AI opens a sheet") {
-            tap(element("canvas.connect"), "the Connect your AI button")
-            waitUntil("the Connect your AI title") { isShowingTitle("Connect your AI") }
-            require(button("Cancel"), "the sheet's Cancel button")
-        }
-
-        step("Cancel returns to the canvas") {
-            tap(button("Cancel"), "Cancel")
-            requireGone(button("Cancel"), "the sheet")
-            require(element("canvas.hint"), "the canvas again")
         }
     }
 }

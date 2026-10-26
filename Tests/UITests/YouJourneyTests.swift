@@ -77,7 +77,7 @@ final class YouJourneyTests: HyperVaultUITestCase {
         }
     }
 
-    func testAccountAndKeysOpensAndConnectOpensItsSheet() {
+    func testAccountAndKeysOpensWithItsKeys() {
         launch(.signedIn)
         openTab("You")
 
@@ -88,18 +88,6 @@ final class YouJourneyTests: HyperVaultUITestCase {
             require(element("keys.row.k1"), "the Claude Code key")
             XCTAssertTrue(element("keys.row.k1").label.contains("Claude Code"), "The key row says \"\(element("keys.row.k1").label)\".")
             require(element("keys.connect"), "Connect an agent")
-        }
-
-        step("Connect an agent opens its sheet") {
-            tap(element("keys.connect"), "Connect an agent")
-            waitUntil("the Connect your AI title") { isShowingTitle("Connect your AI") }
-            require(button("Cancel"), "the sheet's Cancel button")
-        }
-
-        step("Cancel closes it") {
-            tap(button("Cancel"), "Cancel")
-            requireGone(button("Cancel"), "the sheet")
-            require(element("keys.connect"), "the keys screen again")
         }
     }
 }

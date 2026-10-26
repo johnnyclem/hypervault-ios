@@ -181,7 +181,7 @@ release builds). The scenarios are `signedOut` (the welcome story and the way in
 chats, a connected model), `signedInEmpty` (the first run) and `waitlisted`. The network is a `MockTransport` over the routes in
 `App/Core/UITestWorld.swift`, the secure store is in memory, the cache and the shared defaults are scratch, and the
 canned hosts end in `.invalid`; anything that builds its own `URLSession` request is answered or refused by
-`UITestURLProtocol`. A run never reaches a real server, the Keychain or anything a person left on the phone.
+`UITestURLProtocol`. Animations are off, so the app settles at once after every tap. A run never reaches a real server, the Keychain or anything a person left on the phone.
 
 **Adding a journey.**
 

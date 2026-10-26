@@ -30,6 +30,7 @@ enum UITestScenario: String, CaseIterable {
 /// - The secure store is in memory, seeded with a session for the scenarios that start signed in.
 /// - The shared defaults are a scratch suite and the standard defaults are emptied, so each launch starts like a first one.
 /// - The cache is a folder of its own in the temporary directory.
+/// - Animations are off, so the app settles at once after every tap.
 ///
 /// The whole thing is compiled only into debug builds, and `HyperVaultApp` reaches it through one call. A normal launch
 /// never has the flag, so it never gets here.
@@ -47,6 +48,9 @@ enum UITestHarness {
     static func makeModel() -> AppModel? {
         guard let scenario = requested else { return nil }
         isolateState()
+        // No animation: a journey waits for the app to go idle after every tap, and a push, a sheet or a spring that
+        // takes half a second to settle is half a second of every step on a slow simulator.
+        UIView.setAnimationsEnabled(false)
 
         let transport = MockTransport(routes: UITestWorld.routes(for: scenario))
         UITestURLProtocol.transport = transport

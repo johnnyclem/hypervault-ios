@@ -219,10 +219,13 @@ class HyperVaultUITestCase: XCTestCase {
 
     /// Runs one step of a journey as a named activity, and keeps a screenshot of how it ended with the result.
     func step(_ name: String, _ body: () -> Void) {
+        let started = Date()
         XCTContext.runActivity(named: name) { _ in
             body()
             attachScreenshot(name)
         }
+        // In the build log, so a slow journey can be read without opening the result bundle.
+        print(String(format: "[journey] %6.1f s  %@ / %@", Date().timeIntervalSince(started), String(describing: type(of: self)), name))
     }
 
     func attachScreenshot(_ name: String) {

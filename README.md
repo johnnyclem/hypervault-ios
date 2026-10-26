@@ -159,7 +159,8 @@ server change if you want the app to do more:
 - A live contract check (`HV_LIVE_SERVER=https://hypervault.store swift test --filter LiveServerTests`, read-only,
   no credentials) passes against production: the real `/api/capabilities` answer decodes and names a Supabase
   project, the project offers Google and email sign-in (Apple was off when checked), an anonymous call gets a
-  readable 401, and the pages the app links to exist.
+  readable 401, the pages the app links to exist, and the real GoTrue's refusals of a refresh token it never
+  issued end the session the way the Kit expects.
 - **Not yet done:** a run on a physical device, against the production Supabase project, with
   a real Google or Apple sign-in. On-device chat (Foundation Models), Face ID, dictation,
   the scanner, widgets and the share extension compile and are exercised only as far as the

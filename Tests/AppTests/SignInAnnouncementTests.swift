@@ -34,8 +34,8 @@ final class SignInAnnouncementTests: XCTestCase {
         XCTAssertTrue(speech.spoken.isEmpty, "a code that was sent is not bad news")
 
         await controller.verifyEmailCode("123456")
-        XCTAssertEqual(controller.message, "That code has expired. Ask for a new one.")
-        XCTAssertEqual(speech.spoken, ["That code has expired. Ask for a new one."])
+        XCTAssertEqual(controller.message, "That code did not work, or it has expired. Check it, or ask for a new one.")
+        XCTAssertEqual(speech.spoken, ["That code did not work, or it has expired. Check it, or ask for a new one."])
     }
 
     func testACodeThatCouldNotBeSentIsSaid() async {

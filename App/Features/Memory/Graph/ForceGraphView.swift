@@ -454,6 +454,8 @@ enum ForceGraphRenderer {
 
     /// How far in from the edge of the canvas a name may go.
     private static let labelMargin = CGSize(width: 12, height: 8)
+    /// The selected node's name goes first and is always drawn.
+    private static let selectedPriority = 1000
 
     /// Links, then nodes, then names. A name goes where nothing is in the way (see `ForceLabelPlacer`) and
     /// sits on a soft backing of the page's own color, so a link that passes under it does not cut the text.
@@ -470,8 +472,11 @@ enum ForceGraphRenderer {
 
         // Links sit under everything, strong enough to follow with the eye in both looks.
         var segments: [ForceLabelPlacer.Segment] = []
+        var degree: [String: Int] = [:]
         for edge in edges {
             guard let a = index[edge.source], let b = index[edge.target] else { continue }
+            degree[edge.source, default: 0] += 1
+            degree[edge.target, default: 0] += 1
             let from = camera.screen(points[a])
             let to = camera.screen(points[b])
             let involved = !dimmed || (focus.contains(edge.source) && focus.contains(edge.target) && (edge.source == selection || edge.target == selection))
@@ -507,35 +512,37 @@ enum ForceGraphRenderer {
             obstacles.append(ForceLabelPlacer.Obstacle(id: node.id, rect: CGRect(x: center.x - reach, y: center.y - reach, width: reach * 2, height: reach * 2)))
         }
 
-        // Names: the selected node and its neighbours first, then the best connected, then (zoomed in)
-        // everything. One that has nowhere clear to go is left out.
+        // Names: the selected node and its neighbours first, then the best connected (the better connected
+        // first among them, so the busiest nodes get the room), then (zoomed in) everything. One that has
+        // nowhere clear to go is left out.
         let showAll = camera.scale > 1.7
         var requests: [ForceLabelPlacer.Request] = []
         var resolved: [String: GraphicsContext.ResolvedText] = [:]
         for (i, node) in nodes.enumerated() {
+            let links = min(degree[node.id] ?? 0, 99)
             let priority: Int
             if node.id == selection {
-                priority = 3
+                priority = Self.selectedPriority
             } else if dimmed {
                 guard focus.contains(node.id) else { continue }
-                priority = 2
+                priority = 500 + links
             } else if hubs.contains(node.id) {
-                priority = 1
+                priority = 200 + links
             } else if showAll {
-                priority = 0
+                priority = links
             } else {
                 continue
             }
             let center = camera.screen(points[i])
             guard canvas.contains(center), let reach = reaches[node.id] else { continue }
             let text = Text(truncated(node.label))
-                .font(.system(size: 11, weight: priority >= 2 ? .semibold : .medium, design: .rounded))
+                .font(.system(size: 11, weight: priority >= 500 ? .semibold : .medium, design: .rounded))
                 .foregroundStyle(Palette.textPrimary)
             let label = context.resolve(text)
             resolved[node.id] = label
             requests.append(ForceLabelPlacer.Request(
                 id: node.id, center: center, radius: reach,
-                size: label.measure(in: CGSize(width: 220, height: 40)), priority: priority, isRequired: priority == 3
+                size: label.measure(in: CGSize(width: 220, height: 40)), priority: priority, isRequired: priority == Self.selectedPriority
             ))
         }
         let placements = ForceLabelPlacer.place(

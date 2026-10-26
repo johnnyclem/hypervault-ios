@@ -193,6 +193,20 @@ final class ClientTests: XCTestCase {
         XCTAssertEqual(request.url?.absoluteString, "https://hv.test/api/yours?filter=memory")
     }
 
+    func testAPlusInAQueryIsSentEncodedBecauseTheServerReadsItAsASpace() throws {
+        let api = HVClient(baseURL: URL(string: "https://hv.test")!, transport: MockTransport())
+        // Searching Yours for "c++ notes"; a space still goes as %20.
+        let search = try api.makeRequest(.yours(filter: .all, query: "c++ notes", limit: 50), token: nil)
+        XCTAssertEqual(search.url?.absoluteString, "https://hv.test/api/yours?kind=all&q=c%2B%2B%20notes&limit=50")
+        // "Pull C++ cheatsheet onto the page" searches with the name it read.
+        guard case .pull(let name)? = CanvasCommandParser.parse("pull C++ cheatsheet onto the page") else { return XCTFail("should be a pull") }
+        let pull = try api.makeRequest(.yours(filter: .all, query: name, limit: PullResolver.searchLimit), token: nil)
+        XCTAssertEqual(pull.url?.absoluteString, "https://hv.test/api/yours?kind=all&q=C%2B%2B%20cheatsheet&limit=50")
+        // What was already escaped stays as it was, and a "%2B" is not escaped twice.
+        let mixed = try api.makeRequest(Endpoint<NoContent>(.get, "/api/x", query: .make([("q", "a+b & 100% %2B")])), token: nil)
+        XCTAssertEqual(mixed.url?.query, "q=a%2Bb%20%26%20100%25%20%252B")
+    }
+
     func testPathEscapesAreKeptNotEscapedTwice() throws {
         let api = HVClient(baseURL: URL(string: "https://hv.test")!, transport: MockTransport())
         func url(_ path: String) throws -> String? {

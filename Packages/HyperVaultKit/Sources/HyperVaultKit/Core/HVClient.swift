@@ -118,12 +118,34 @@ public final class HVClient: Sendable {
 
     // MARK: Request building
 
+    /// A path with whatever needs escaping escaped, and escapes already in it left alone. A branch called
+    /// `research/quantum` goes in as `research%2Fquantum` and must reach the server that way; setting
+    /// `URLComponents.path` would turn that `%` into `%25`. A lone `%`, a space or a `?` is escaped.
+    static func encodedPath(_ path: String) -> String {
+        let characters = Array(path)
+        var result = ""
+        var index = 0
+        while index < characters.count {
+            let character = characters[index]
+            if character == "%", index + 2 < characters.count,
+               characters[index + 1].isHexDigit, characters[index + 2].isHexDigit {
+                result += String(characters[index...index + 2])
+                index += 3
+                continue
+            }
+            let text = String(character)
+            result += text.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? text
+            index += 1
+        }
+        return result
+    }
+
     func makeRequest<Response>(_ endpoint: Endpoint<Response>, token: String?) throws -> URLRequest {
         guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
             throw HVError.invalidRequest("Bad server address.")
         }
-        let basePath = components.path.hasSuffix("/") ? String(components.path.dropLast()) : components.path
-        components.path = basePath + (endpoint.path.hasPrefix("/") ? endpoint.path : "/" + endpoint.path)
+        let basePath = components.percentEncodedPath.hasSuffix("/") ? String(components.percentEncodedPath.dropLast()) : components.percentEncodedPath
+        components.percentEncodedPath = basePath + Self.encodedPath(endpoint.path.hasPrefix("/") ? endpoint.path : "/" + endpoint.path)
         if !endpoint.query.isEmpty { components.queryItems = endpoint.query }
         guard let url = components.url else { throw HVError.invalidRequest("Bad request address.") }
 

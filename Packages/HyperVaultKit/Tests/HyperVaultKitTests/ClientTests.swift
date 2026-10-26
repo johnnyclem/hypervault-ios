@@ -193,6 +193,23 @@ final class ClientTests: XCTestCase {
         XCTAssertEqual(request.url?.absoluteString, "https://hv.test/api/yours?filter=memory")
     }
 
+    func testPathEscapesAreKeptNotEscapedTwice() throws {
+        let api = HVClient(baseURL: URL(string: "https://hv.test")!, transport: MockTransport())
+        func url(_ path: String) throws -> String? {
+            try api.makeRequest(Endpoint<NoContent>(.delete, path), token: nil).url?.absoluteString
+        }
+        // A branch with a slash arrives pre-escaped and must reach the route that way.
+        XCTAssertEqual(try url("/api/mind/branches/research%2Fquantum"), "https://hv.test/api/mind/branches/research%2Fquantum")
+        // Anything raw is escaped once: a space, a question mark, a lone percent sign, non-ASCII.
+        XCTAssertEqual(try url("/api/a/two words"), "https://hv.test/api/a/two%20words")
+        XCTAssertEqual(try url("/api/a/what?"), "https://hv.test/api/a/what%3F")
+        XCTAssertEqual(try url("/api/a/100%"), "https://hv.test/api/a/100%25")
+        XCTAssertEqual(try url("/api/a/caf\u{e9}"), "https://hv.test/api/a/caf%C3%A9")
+        // A base URL with its own path keeps it.
+        let nested = HVClient(baseURL: URL(string: "https://hv.test/root/")!, transport: MockTransport())
+        XCTAssertEqual(try nested.makeRequest(Endpoint<NoContent>(.get, "api/x%2Fy"), token: nil).url?.absoluteString, "https://hv.test/root/api/x%2Fy")
+    }
+
     func testDecodingFailureNamesTheField() async {
         let transport = MockTransport(routes: [.json(.get, "/api/thing", #"{"other":1}"#)])
         let api = client(transport, tokens: FakeTokens(token: "t"))

@@ -277,6 +277,7 @@ final class TruthTests: XCTestCase {
         XCTAssertEqual(edge.entry?.status, "overridden")
         XCTAssertEqual(edge.successor?.id, "E9")
         XCTAssertEqual(edge.whatMoved, "TB E1 was overridden by E9.")
+        XCTAssertEqual(edge.readableWhatMoved, "\u{201C}Old\u{201D} was overridden by \u{201C}New\u{201D}.")
         XCTAssertEqual(edge.seenStatus, "active")
         XCTAssertNotNil(edge.staleSince)
     }
@@ -384,6 +385,8 @@ final class TruthTests: XCTestCase {
         XCTAssertEqual(tb.headline, "The old cap no longer holds.")
         XCTAssertEqual(tb.evidenceLines, ["commit abc123", "a note"])
         XCTAssertEqual(tb.signalDetail, "Said in chat")
+        XCTAssertEqual(tb.originPhrase, "chat")
+        XCTAssertEqual(list.proposals[1].originPhrase, "the API")
         let uv = list.proposals[1]
         XCTAssertEqual(uv.headline, "It is idempotent.")
         XCTAssertEqual(uv.basis, "The docs say so")

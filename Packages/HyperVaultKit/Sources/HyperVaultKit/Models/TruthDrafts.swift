@@ -71,6 +71,15 @@ public struct TruthProposal: Sendable, Codable, Hashable, Identifiable {
 
     public var isTombstone: Bool { kind == "tombstone" }
 
+    /// Where the draft came from, in words: the origin is a slug ("chat-compaction", "api").
+    public var originPhrase: String {
+        switch origin {
+        case "chat-compaction": return "chat"
+        case "api": return "the API"
+        default: return origin.replacingOccurrences(of: "-", with: " ").replacingOccurrences(of: "_", with: " ")
+        }
+    }
+
     private var draft: JSONValue? { line["draft"] ?? (line["kind"] != nil ? line : nil) }
 
     /// The words of the draft: a TB's claim or a UV's assertion.

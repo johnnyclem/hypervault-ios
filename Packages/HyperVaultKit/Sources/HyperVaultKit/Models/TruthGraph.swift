@@ -216,6 +216,15 @@ public struct TruthStaleEdge: Sendable, Decodable, Hashable, Identifiable {
         default: return "It changed."
         }
     }
+
+    /// What moved, with the entries named by what they say and not by their ids: the server's own summary
+    /// reads "TB 01M1E6JK8S... was overridden by 01M1E6JK81...".
+    public var readableWhatMoved: String {
+        var claims: [String: String] = [:]
+        if let entry, !entry.text.isEmpty { claims[entryId] = entry.text }
+        if let successor, !successor.text.isEmpty { claims[successor.id] = successor.text }
+        return TruthWords.readable(whatMoved, claims: claims, limit: 40)
+    }
 }
 
 public struct TruthStaleItem: Sendable, Decodable, Hashable, Identifiable {

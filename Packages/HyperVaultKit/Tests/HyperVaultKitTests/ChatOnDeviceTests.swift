@@ -270,6 +270,39 @@ final class ChatOnDeviceTests: XCTestCase {
         XCTAssertEqual(ids.value.map { $0 ?? "nil" }, ["nil", "new1", "nil"])
     }
 
+    func testAFlushThatStopsHalfWayKeepsTheRestOfTheThreadInTheConversationItMade() async throws {
+        let ids = TestBox<[String?]>([])
+        let hiccup = TestBox(true)
+        let transport = MockTransport(routes: [
+            MockRoute(.post, "/api/chat/turns") { request in
+                let id = requestJSON(request)?["conversation_id"]?.string
+                ids.value.append(id)
+                // The second request of the first pass meets a server hiccup.
+                if id != nil, hiccup.value { return HTTPResponse(status: 503, data: Data(#"{"error":"Try again."}"#.utf8)) }
+                return HTTPResponse(status: 200, data: Data(#"{"conversation_id":"new1","reply":{"id":"m","role":"assistant","content":"x","model":"m"}}"#.utf8))
+            },
+            .json(.get, "/api/conversations/*", #"{"conversation":{"id":"new1","title":"t"},"messages":[]}"#),
+        ])
+        let store = outbox()
+        await store.enqueue(PendingChatTurn(threadKey: "T", conversationID: nil, userMessage: "one", assistantContent: "1", model: "m"))
+        await store.enqueue(PendingChatTurn(threadKey: "T", conversationID: nil, userMessage: "two", assistantContent: "2", model: "m"))
+
+        let first = await store.flush(client: client(transport))
+        XCTAssertEqual(first.saved.count, 1)
+        XCTAssertEqual(first.remaining, 1)
+        // The turn left behind already belongs to the conversation the first one made.
+        let waiting = await store.pending()
+        XCTAssertEqual(waiting.map(\.userMessage), ["two"])
+        XCTAssertEqual(waiting.first?.conversationID, "new1")
+
+        hiccup.value = false
+        let second = await store.flush(client: client(transport))
+        XCTAssertEqual(second.saved.map(\.conversationID), ["new1"])
+        XCTAssertEqual(second.remaining, 0)
+        // One conversation was made: only the very first request went without an id.
+        XCTAssertEqual(ids.value.map { $0 ?? "nil" }, ["nil", "new1", "new1"])
+    }
+
     func testAReplayedTurnThatAlreadyGotThroughIsNotSavedTwice() async throws {
         let saves = Counter()
         let transport = MockTransport(routes: [

@@ -391,7 +391,7 @@ public actor ChatTurnOutbox {
                 conversationID = result.conversationID
                 created[turn.threadKey] = result.conversationID
                 report.saved.append(.init(turnID: turn.id, threadKey: turn.threadKey, conversationID: result.conversationID, messageID: result.reply.id))
-                await remove(turn.id)
+                await complete(turn, conversationID: result.conversationID)
             } catch let error as HVError {
                 if let status = error.status, (400..<500).contains(status), status != 429, status != 401 {
                     report.rejected.append(.init(turnID: turn.id, message: error.userMessage))
@@ -417,6 +417,22 @@ public actor ChatTurnOutbox {
     private func remove(_ id: String) async {
         var all = await load()
         all.removeAll { $0.id == id }
+        items = all
+        await persist()
+    }
+
+    /// A turn is saved. If it made the conversation, the turns of the same
+    /// thread still waiting join that conversation in the same write, so a
+    /// flush that stops half way (or the app being closed) does not leave them
+    /// to start a second one.
+    private func complete(_ turn: PendingChatTurn, conversationID: String) async {
+        var all = await load()
+        all.removeAll { $0.id == turn.id }
+        if turn.conversationID == nil {
+            for index in all.indices where all[index].threadKey == turn.threadKey && all[index].conversationID == nil {
+                all[index].conversationID = conversationID
+            }
+        }
         items = all
         await persist()
     }

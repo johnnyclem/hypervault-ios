@@ -59,6 +59,9 @@ final class YoursModel {
                 apply(list, stale: false)
             } catch is CancellationError {
                 return
+            } catch HVError.cancelled {
+                // Typing again replaced this search; the newer one says what it finds.
+                return
             } catch {
                 fail(error)
             }
@@ -76,6 +79,8 @@ final class YoursModel {
                 apply(loaded.value, stale: loaded.isStale && loaded.refreshError != nil)
             }
         } catch is CancellationError {
+            return
+        } catch HVError.cancelled {
             return
         } catch {
             fail(error)

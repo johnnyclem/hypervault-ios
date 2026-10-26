@@ -42,7 +42,7 @@ struct CanvasScreen: View {
 
     var body: some View {
         ZStack {
-            AuroraBackground(intensity: model.isEmpty ? 1 : 0.55)
+            AuroraBackground(intensity: model.isQuiet ? 1 : 0.55)
             content
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -68,14 +68,14 @@ struct CanvasScreen: View {
         .onChange(of: dictation.transcript) { _, transcript in
             guard dictation.isListening || !transcript.isEmpty else { return }
             let separator = dictationBase.isEmpty || dictationBase.hasSuffix(" ") ? "" : " "
-            model.draft = dictationBase + separator + transcript
+            model.setDraft(dictationBase + separator + transcript)
         }
         .toolbar { toolbarContent }
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showYours) {
             YoursSheet(onPull: { item in
-                model.addCard(for: item)
+                model.pullItem(item)
                 showYours = false
             }, onNew: {
                 showYours = false
@@ -90,7 +90,11 @@ struct CanvasScreen: View {
         .onChange(of: app.router.canvasPull) { _, item in
             guard let item else { return }
             app.router.canvasPull = nil
-            model.addCard(for: item)
+            model.pullItem(item)
+        }
+        .onChange(of: app.router.sheet) { _, sheet in
+            // Connecting a model happens in a sheet over the page: on its way out, look again for one.
+            if sheet == nil, !model.hasModel { Task { await model.loadBackends() } }
         }
         .onChange(of: app.router.canvasAsk) { _, asks in
             guard asks else { return }
@@ -103,7 +107,6 @@ struct CanvasScreen: View {
                 showYours = true
             }
         }
-        .sensoryFeedback(.success, trigger: keptKey)
         .overlay {
             if celebrating { ConfettiBurst().transition(.opacity) }
         }
@@ -119,7 +122,7 @@ struct CanvasScreen: View {
         }
     }
 
-    /// Changes when a keep lands, which is when the screen taps back.
+    /// The newest kept card. It changes when a keep lands, which is what the first-keep celebration waits for.
     private var keptKey: String? {
         model.cards.last(where: { $0.kept != nil })?.key
     }
@@ -128,7 +131,7 @@ struct CanvasScreen: View {
 
     @ViewBuilder
     private var content: some View {
-        if model.isEmpty {
+        if model.isQuiet {
             ScrollView {
                 CanvasHints(model: model, userName: userName, onCopyStarter: copyStarter, starterCopied: starterCopied)
                     .padding(.top, HV.Space.xxl)
@@ -197,8 +200,15 @@ struct CanvasScreen: View {
     }
 
     private func toggleDictation() {
-        if !dictation.isListening { dictationBase = model.draft }
-        Task { await dictation.toggle() }
+        if !dictation.isListening {
+            dictationBase = model.draft
+            model.dismissNotice()
+        }
+        Task {
+            await dictation.toggle()
+            // Read once the start has finished, not watched: asking again after a refusal must say so again.
+            if let problem = dictation.problem { model.dictationFailed(problem) }
+        }
     }
 
     private func copyStarter() {

@@ -16,7 +16,16 @@ struct CanvasComposer: View {
     var body: some View {
         VStack(spacing: HV.Space.xs + 2) {
             if let staged = model.staged {
-                StagedChip(characters: staged.count, isKeeping: model.isKeeping, keep: model.keepStaged, ask: model.askInstead)
+                StagedChip(
+                    characters: staged.count,
+                    canAsk: model.canAsk,
+                    isKeeping: model.isKeeping,
+                    keep: model.keepStaged,
+                    ask: {
+                        model.askInstead()
+                        focused = true
+                    }
+                )
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             if let notice = model.notice {
@@ -52,13 +61,11 @@ struct CanvasComposer: View {
                 .lineLimit(1...6)
                 .focused($focused)
                 .submitLabel(.send)
+                .onSubmit(sendFromKeyboard)
                 .padding(.vertical, 9)
                 .onChange(of: model.draft) { old, new in
-                    // A text field gives no paste event, but a paste is the one edit that adds a whole page at once.
-                    if let inserted = PasteDiff.insertion(old: old, new: new), PasteStaging.shouldStage(inserted) {
-                        model.draft = old
-                        model.stagePaste(inserted)
-                    }
+                    // A field that grows with its text takes Return as a line break and never calls onSubmit.
+                    if model.draftChanged(from: old, to: new) == .returned { sendFromKeyboard() }
                 }
 
             trailing
@@ -66,6 +73,14 @@ struct CanvasComposer: View {
         .padding(.horizontal, HV.Space.xs)
         .padding(.vertical, HV.Space.xs)
         .hvGlass(radius: 26)
+    }
+
+    /// Return, or the Send key: send what is in the field, or keep the paste waiting above it.
+    private func sendFromKeyboard() {
+        // Words still arriving from dictation would refill the field the moment it is sent.
+        if isDictating { onDictate?() }
+        Task { await model.submit() }
+        focused = true
     }
 
     @ViewBuilder
@@ -107,6 +122,8 @@ struct CanvasComposer: View {
 /// "Pasted - 1,234 characters" with its two ways out.
 private struct StagedChip: View {
     let characters: Int
+    /// Asking needs a model; without one the paste can only be kept.
+    let canAsk: Bool
     let isKeeping: Bool
     let keep: () -> Void
     let ask: () -> Void
@@ -122,9 +139,11 @@ private struct StagedChip: View {
             Button(isKeeping ? HVCopy.keepingLine : HVCopy.keepItLabel, action: keep)
                 .buttonStyle(.hvGhost)
                 .disabled(isKeeping)
-            Button(HVCopy.askInsteadLabel, action: ask)
-                .buttonStyle(.hvGhost)
-                .foregroundStyle(Palette.textSecondary)
+            if canAsk {
+                Button(HVCopy.askInsteadLabel, action: ask)
+                    .buttonStyle(.hvGhost)
+                    .foregroundStyle(Palette.textSecondary)
+            }
         }
         .padding(.horizontal, HV.Space.m)
         .padding(.vertical, 4)
@@ -137,11 +156,17 @@ private struct NoticeLine: View {
     let notice: KeepNotice
     let dismiss: () -> Void
 
+    @Environment(\.openURL) private var openURL
+
     var body: some View {
         HStack(spacing: HV.Space.xs) {
             Image(systemName: notice.kind == .error ? "exclamationmark.circle" : "info.circle")
             Text(notice.text).font(.hvFootnote)
             Spacer(minLength: 0)
+            if notice.opensSettings, let settings = URL(string: UIApplication.openSettingsURLString) {
+                Button("Settings") { openURL(settings) }
+                    .font(.system(.footnote, design: .rounded, weight: .semibold))
+            }
             Button(action: dismiss) { Image(systemName: "xmark") }
                 .font(.system(size: 11, weight: .bold))
                 .accessibilityLabel("Dismiss")

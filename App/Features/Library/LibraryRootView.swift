@@ -32,6 +32,8 @@ enum LibrarySheet: Identifiable {
 
 struct LibraryScreen: View {
     @Environment(AppModel.self) private var app
+    @Environment(AppEnvironment.self) private var env
+    @AppStorage("pref.libraryGraph") private var showGraph = false
     @State private var model: LibraryModel
     @State private var filter: YoursFilter
     @State private var query = ""
@@ -60,7 +62,9 @@ struct LibraryScreen: View {
     }
 
     var body: some View {
-        listView
+        Group {
+            if showGraph { graphView } else { listView }
+        }
             .sheet(item: $sheet) { sheet in sheetContent(sheet) }
             .fileImporter(isPresented: $importingFile, allowedContentTypes: [.pdf, .image], allowsMultipleSelection: false) { result in
                 importFile(result)
@@ -108,9 +112,15 @@ struct LibraryScreen: View {
 
     // MARK: Chrome
 
-    // GRAPH-TOGGLE: the Library has a List view only. The memory feature is building a reusable
-    // force graph; when it lands, a List/Graph control belongs here (a segmented picker beside the
-    // filters, with the graph replacing `content` below), as the web's `VaultView` has.
+    /// The same map the Memory tab draws: memories, the links between them and the pages they are bridged to.
+    private var graphView: some View {
+        LibraryGraphScreen(env: env)
+            .hvScreenBackground()
+            .navigationTitle(LibraryCopy.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { toolbar }
+    }
+
     private var filterBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: HV.Space.xs) {
@@ -149,9 +159,18 @@ struct LibraryScreen: View {
     private var toolbar: some ToolbarContent {
         // Pins can be put in the order the person likes (the side menu keeps the same order).
         ToolbarItem(placement: .topBarLeading) {
-            if model.pins.artifactSlugs.count > 1, filter == .all || filter == .file, query.isEmpty {
+            if !showGraph, model.pins.artifactSlugs.count > 1, filter == .all || filter == .file, query.isEmpty {
                 EditButton()
             }
+        }
+        ToolbarItem(placement: .primaryAction) {
+            Button {
+                Haptics.select()
+                withAnimation(.snappy) { showGraph.toggle() }
+            } label: {
+                Image(systemName: showGraph ? "list.bullet" : "point.3.connected.trianglepath.dotted")
+            }
+            .accessibilityLabel(showGraph ? "Show as a list" : "Show as a graph")
         }
         ToolbarItem(placement: .primaryAction) {
             Menu {

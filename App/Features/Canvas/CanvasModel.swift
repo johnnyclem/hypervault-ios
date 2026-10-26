@@ -499,7 +499,7 @@ final class CanvasModel: CanvasCommandHost {
                 isKeeping = false
             }
             do {
-                let kept = try await client.send(.keep(content: content, sourcePrompt: sourcePrompt.flatMap { SourcePrompt.clipped($0) }))
+                let kept = try await client.send(.keep(content: content, sourcePrompt: sourcePrompt))
                 dispatch(.add(CanvasState.keptCard(kept, origin: origin ?? client.baseURL)))
                 Haptics.success()
                 WidgetRefresh.reload()

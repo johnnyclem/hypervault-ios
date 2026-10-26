@@ -189,15 +189,40 @@ public struct KeptThing: Sendable, Codable, Equatable {
     }
 }
 
+/// What `POST /api/keep` takes as `source_prompt`: at most 10,000 characters as the server counts
+/// them, which is UTF-16 units (a JavaScript string's length), not Swift Characters. A longer one is a
+/// 400, not a trim, so it is clipped as the web does (`trim().slice(0, 10000)`), but only between
+/// characters, never through an emoji or a pair of units that belong together.
+public enum SourcePrompt {
+    public static let limit = 10_000
+
+    /// The prompt trimmed and, if it is over the limit, cut at the last whole character that fits.
+    /// Nil when nothing is left, so the field is left out as the web leaves it out.
+    public static func clipped(_ prompt: String, to limit: Int = SourcePrompt.limit) -> String? {
+        let trimmed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.utf16.count > limit else { return trimmed.isEmpty ? nil : trimmed }
+        var kept = ""
+        var units = 0
+        for character in trimmed {
+            units += String(character).utf16.count
+            if units > limit { break }
+            kept.append(character)
+        }
+        return kept.isEmpty ? nil : kept
+    }
+}
+
 public struct KeepRequest: Sendable, Encodable {
     public let content: String
     public let title: String?
     public let sourcePrompt: String?
 
+    /// Every way of keeping goes through here, so a prompt that is too long for the server is clipped
+    /// whoever sends it: the canvas, a kept chat reply, or the share-sheet outbox.
     public init(content: String, title: String? = nil, sourcePrompt: String? = nil) {
         self.content = content
         self.title = title
-        self.sourcePrompt = sourcePrompt
+        self.sourcePrompt = sourcePrompt.flatMap { SourcePrompt.clipped($0) }
     }
 }
 

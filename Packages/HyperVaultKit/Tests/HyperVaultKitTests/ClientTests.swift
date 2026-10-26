@@ -265,3 +265,27 @@ final class PlainMessageTests: XCTestCase {
         XCTAssertFalse(HVError.api(failure).userMessage.isEmpty)
     }
 }
+
+final class SourcePromptTests: XCTestCase {
+    func testAPromptWithinTheLimitIsKeptAsItIsAndABlankOneIsLeftOut() {
+        XCTAssertEqual(SourcePrompt.clipped("  Plan my week \u{1F600}  "), "Plan my week \u{1F600}")
+        XCTAssertNil(SourcePrompt.clipped(" \n\t "))
+    }
+
+    func testTheLimitIsCountedInUTF16UnitsLikeTheServer() {
+        // A CRLF is one Character but two units: 3,000 of them are 15,000 units.
+        let crlf = String(repeating: "line\r\n", count: 3_000)
+        XCTAssertEqual(SourcePrompt.clipped(crlf)?.utf16.count ?? 0 <= 10_000, true)
+        XCTAssertGreaterThan(SourcePrompt.clipped(crlf)?.utf16.count ?? 0, 9_990)
+        // Emoji are two units each: 6,000 of them are 12,000 units, and the cut falls between two of them.
+        let emoji = SourcePrompt.clipped(String(repeating: "\u{1F600}", count: 6_000))
+        XCTAssertEqual(emoji?.utf16.count, 10_000)
+        XCTAssertFalse(emoji?.contains("\u{FFFD}") ?? true)
+    }
+
+    func testEveryKeepRequestClipsItsPrompt() throws {
+        let request = KeepRequest(content: "x", sourcePrompt: String(repeating: "a", count: 12_000))
+        XCTAssertEqual(request.sourcePrompt?.utf16.count, 10_000)
+        XCTAssertNil(KeepRequest(content: "x", sourcePrompt: "   ").sourcePrompt)
+    }
+}

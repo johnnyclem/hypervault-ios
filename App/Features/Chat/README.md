@@ -3,11 +3,16 @@
 The fourth tab: chats, rooms (group chats with several of your models), your own
 models, on-device chat and reading replies aloud.
 
-- `ChatRootView`: "Chats | Rooms" list screen; Models is the toolbar button.
+- `ChatRootView`: "Chats | Rooms" list screen (the switch sits under the title); Models is the
+  toolbar button. Both lists are inset cards on paper (`hvListRow`), grouped by when they last moved.
 - `ConversationScreen`: the thread. `Conversation/` holds its model, composer,
   options sheet, bubbles, markdown and read-aloud.
 - `RoomScreen`: a room. `Rooms/` holds the list, creation, members and the model.
-- `Models/`: connect, edit and disconnect your own models (`/api/backends`).
+- `Models/`: connect, edit and disconnect your own models (`/api/backends`). Every field has its
+  label above it (`HVLabeledField`).
+- Colour follows the model, not its place in a list: `ChatAgentTone` (in `ChatSupport`) gives Claude,
+  GPT, Gemini, Grok and the rest one colour each on the Models screen, on an imported chat's pill and
+  in a room. A second member of the same model in one room takes a neighbouring tone.
 - `OnDevice/`: availability, the Foundation Models adapter, and models on the
   person's own network. The turn itself (context, generate, save, the offline
   outbox) is `OnDeviceChat` in the Kit; a model on this iPhone and a model on

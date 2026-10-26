@@ -289,25 +289,30 @@ final class TruthReviewTests: XCTestCase {
     // MARK: The deck
 
     func testTheDeckKeepsTrackOfWhatYouHaveDealtWith() throws {
-        var deck = TruthDeck(items: try items())
+        let now = ISO.date("2026-10-26T00:00:00Z")
+        var deck = TruthDeck(items: try items(), now: now)
+        // the page-import card is deferred to 2 November, so it is not in this session
+        XCTAssertEqual(deck.remaining.map(\.id), ["UV1", "TB1", "11111111-1111-4111-8111-111111111111"])
         XCTAssertEqual(deck.current?.id, "UV1")
         XCTAssertEqual(deck.next?.id, "TB1")
         XCTAssertEqual(deck.position, 1)
-        XCTAssertEqual(deck.total, 4)
+        XCTAssertEqual(deck.total, 3)
         deck.markHandled("UV1")
         XCTAssertEqual(deck.current?.id, "TB1")
         XCTAssertEqual(deck.position, 2)
+        XCTAssertEqual(deck.total, 3)
         deck.skip("TB1")
         XCTAssertEqual(deck.current?.id, "11111111-1111-4111-8111-111111111111")
         XCTAssertEqual(deck.items.last?.id, "TB1")
         deck.unmark("UV1")
         XCTAssertEqual(deck.current?.id, "UV1", "undo brings the card back")
 
-        // a fresh docket: what is gone stops counting as handled
+        // a fresh docket: what is gone stops counting as handled, and a deferral that ran out is back
         deck.markHandled("UV1")
         let fresh = Array(try items().dropFirst())
-        deck.replace(with: fresh)
+        deck.replace(with: fresh, now: ISO.date("2026-11-05T00:00:00Z"))
         XCTAssertEqual(deck.handled, [])
+        XCTAssertEqual(deck.remaining.count, 3)
         XCTAssertEqual(deck.current?.id, "TB1")
         for item in fresh { deck.markHandled(item.id) }
         XCTAssertTrue(deck.isFinished)

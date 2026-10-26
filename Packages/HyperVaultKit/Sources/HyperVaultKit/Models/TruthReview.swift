@@ -717,23 +717,35 @@ public struct TruthAskAnswer: Sendable, Decodable {
 /// The cards of a session in the order the server listed them. What the person
 /// has dealt with this session stays out of the way, including an approval
 /// that did not complete (the card is still on the docket, but they are done
-/// with it for now).
+/// with it for now), and so does anything deferred to a later date.
 public struct TruthDeck: Sendable, Equatable {
     public private(set) var items: [TruthDocketItem]
     public private(set) var handled: Set<String>
+    /// The clock a deferral is measured against.
+    public private(set) var now: Date
 
-    public init(items: [TruthDocketItem] = [], handled: Set<String> = []) {
+    public init(items: [TruthDocketItem] = [], handled: Set<String> = [], now: Date = Date()) {
         self.items = items
         self.handled = handled
+        self.now = now
     }
 
-    public var remaining: [TruthDocketItem] { items.filter { !handled.contains($0.id) } }
+    public var remaining: [TruthDocketItem] {
+        items.filter { !handled.contains($0.id) && !$0.isDeferred(now: now) }
+    }
+
     public var current: TruthDocketItem? { remaining.first }
     public var next: TruthDocketItem? { remaining.dropFirst().first }
 
-    /// 1-based position of the current card among those this session.
-    public var position: Int { handled.intersection(items.map(\.id)).count + 1 }
-    public var total: Int { items.count }
+    /// Cards dealt with so far this session (and still on the docket).
+    public var dealtWith: Int { items.filter { handled.contains($0.id) }.count }
+
+    /// 1-based position of the current card.
+    public var position: Int { dealtWith + 1 }
+
+    /// Cards in this session: what is dealt with and what is left.
+    public var total: Int { dealtWith + remaining.count }
+
     public var isFinished: Bool { remaining.isEmpty }
 
     public mutating func markHandled(_ id: String) { handled.insert(id) }
@@ -747,9 +759,10 @@ public struct TruthDeck: Sendable, Equatable {
     }
 
     /// A fresh docket from the server: keep what was handled if it is still there.
-    public mutating func replace(with fresh: [TruthDocketItem]) {
+    public mutating func replace(with fresh: [TruthDocketItem], now: Date = Date()) {
         items = fresh
         handled = handled.intersection(fresh.map(\.id))
+        self.now = now
     }
 }
 

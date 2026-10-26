@@ -78,7 +78,7 @@ struct KeyDetailView: View {
 
             Section {
                 Button(role: .destructive) { confirmRevoke = true } label: {
-                    Label("Revoke key", systemImage: "xmark.circle")
+                    Label("Revoke key", systemImage: "xmark.circle").foregroundStyle(Palette.danger)
                 }
                 .disabled(model.changing.contains(key.id))
             } footer: {

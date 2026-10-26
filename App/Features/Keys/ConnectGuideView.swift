@@ -28,7 +28,7 @@ struct ConnectGuideView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            Text(guide.name.isEmpty ? info.name : guide.name).font(.hvTitle)
+            sectionTitle("Setup for \(guide.name.isEmpty ? info.name : guide.name)")
             HStack(spacing: HV.Space.xs) {
                 HVTag(text: info.lane.shortLabel, tint: Palette.blue)
                 if info.keyInUrl { HVTag(text: "Key in the URL", tint: Palette.warning) }

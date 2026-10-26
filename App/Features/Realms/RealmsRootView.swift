@@ -74,7 +74,7 @@ struct RealmsRootView: View {
                     claimButton(model)
                 }
                 .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
+                .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xl, trailing: HV.Space.m))
             }
 
             Section(header: HVSectionHeader(title: "Your addresses", detail: model.claims.isEmpty ? nil : "\(model.claims.count) of \(maxClaims)")) {

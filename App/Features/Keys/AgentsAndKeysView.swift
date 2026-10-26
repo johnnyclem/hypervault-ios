@@ -71,7 +71,7 @@ struct AgentsAndKeysView: View {
 
             Section {
                 connectCard(model)
-                    .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
+                    .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.xl, trailing: HV.Space.m))
                     .listRowBackground(Color.clear)
             }
 
@@ -181,22 +181,23 @@ struct KeyRow: View {
     let status: AgentSetupStatus?
 
     var body: some View {
-        HStack(spacing: HV.Space.s + 2) {
+        HStack(alignment: .top, spacing: HV.Space.s + 2) {
             HVIconBadge(symbol: key.isPaired ? "link" : "key.horizontal", tint: status?.complete == true ? Palette.mint : Palette.amber)
             VStack(alignment: .leading, spacing: 2) {
                 Text(key.displayName ?? "Untitled key")
                     .font(.hvBody)
                     .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(1)
+                    .lineLimit(2)
                 Text("\(key.prefixLabel) · \(AccountWords.lastUsedLine(key.lastUsedAt))")
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.textSecondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                if let status {
+                    HVTag(text: status.complete ? "Agent connected" : "Setup pending", tint: status.complete ? Palette.success : Palette.warning)
+                        .padding(.top, 2)
+                }
             }
-            Spacer(minLength: HV.Space.xs)
-            if let status {
-                HVTag(text: status.complete ? "Agent connected" : "Setup pending", tint: status.complete ? Palette.success : Palette.warning)
-            }
+            Spacer(minLength: 0)
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)

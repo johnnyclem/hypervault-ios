@@ -253,7 +253,7 @@ private struct WebhookDetailView: View {
             }
 
             Section {
-                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete webhook", systemImage: "trash") }
+                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete webhook", systemImage: "trash").foregroundStyle(Palette.danger) }
                     .disabled(model.changing.contains(hook.id))
             } footer: {
                 Text("It stops at once, and its delivery history goes with it.")
@@ -369,9 +369,12 @@ private struct AddWebhookSheet: View {
                 Button {
                     Task { await save() }
                 } label: {
-                    if saving { ProgressView() } else { Text("Add webhook") }
+                    if saving { ProgressView().tint(.white) } else { Text("Add webhook") }
                 }
+                .buttonStyle(.hvPrimary)
                 .disabled(!canSave || saving)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
             }
         }
         .scrollContentBackground(.hidden)

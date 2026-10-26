@@ -80,9 +80,12 @@ struct VaultItemsView: View {
                         .font(.hvCallout)
                         .foregroundStyle(Palette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Label("Values are encrypted when you save them and never shown again.", systemImage: "lock.fill")
-                        .font(.hvFootnote)
-                        .foregroundStyle(Palette.textTertiary)
+                    HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
+                        Image(systemName: "lock.fill").accessibilityHidden(true)
+                        Text("Values are encrypted when you save them and never shown again.")
+                    }
+                    .font(.hvFootnote)
+                    .foregroundStyle(Palette.textTertiary)
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))

@@ -211,13 +211,12 @@ private struct VaultNewItemForm: View {
                 Button {
                     Task { await save() }
                 } label: {
-                    HStack {
-                        Spacer()
-                        if saving { ProgressView() } else { Text("Save").font(.hvHeadline) }
-                        Spacer()
-                    }
+                    if saving { ProgressView().tint(.white) } else { Text("Save") }
                 }
+                .buttonStyle(.hvPrimary)
                 .disabled(!canSave)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
             } footer: {
                 Text("Once saved, the value cannot be shown again. You can replace it.")
             }

@@ -27,7 +27,25 @@ final class KeysSnapshotTests: XCTestCase {
         try snapshot(
             KeysPreviewHost(routes: ConnectPreviewData.routes, embedInNavigation: false) { ConnectReadyPreview(clientID: "cursor") },
             named: "keys-connect-ready",
+            size: CGSize(width: 393, height: 2400),
             settle: 1.5
+        )
+    }
+
+    func testLargestTextSizes() throws {
+        let accessibility = DynamicTypeSize.accessibility3
+        try snapshot(
+            KeysPreviewHost(routes: KeysPreviewData.routes) { AgentsAndKeysView() }.environment(\.dynamicTypeSize, accessibility),
+            named: "keys-account-large"
+        )
+        try snapshot(
+            KeysPreviewHost(routes: VaultPreviewData.routes) { VaultItemsView() }.environment(\.dynamicTypeSize, accessibility),
+            named: "vault-list-large"
+        )
+        let probe: [MockRoute] = [.failure(.post, "/api/pair/poll", status: 400, message: "device_code is required")]
+        try snapshot(
+            KeysPreviewHost(routes: probe, embedInNavigation: false) { PairApprovalView(code: "BCDF-2346") }.environment(\.dynamicTypeSize, accessibility),
+            named: "keys-pair-large"
         )
     }
 

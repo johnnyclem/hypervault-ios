@@ -48,6 +48,9 @@ struct ClaimRealmView: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if claimed == nil { claimBar }
+        }
         .hvScreenBackground()
         .navigationTitle("Claim an address")
         .navigationBarTitleDisplayMode(.inline)
@@ -60,16 +63,6 @@ struct ClaimRealmView: View {
 
     private var picker: some View {
         VStack(alignment: .leading, spacing: HV.Space.l) {
-            Text(RealmPlanCopy.pickLine)
-                .font(.hvCallout)
-                .foregroundStyle(Palette.textSecondary)
-
-            VStack(spacing: HV.Space.s) {
-                ForEach(portfolio) { domain in
-                    domainCard(domain)
-                }
-            }
-
             VStack(alignment: .leading, spacing: HV.Space.xs) {
                 Text("Pick your name").font(.hvHeadline)
                 HStack(spacing: HV.Space.xs) {
@@ -93,10 +86,26 @@ struct ClaimRealmView: View {
                 }
                 availabilityLine
                     .frame(minHeight: 20, alignment: .leading)
+                if let failure { KeysInlineMessage(text: failure) }
             }
 
-            if let failure { KeysInlineMessage(text: failure) }
+            VStack(alignment: .leading, spacing: HV.Space.s) {
+                Text("Where it lives").font(.hvHeadline)
+                Text(RealmPlanCopy.pickLine)
+                    .font(.hvFootnote)
+                    .foregroundStyle(Palette.textSecondary)
+                ForEach(portfolio) { domain in
+                    domainCard(domain)
+                }
+            }
+        }
+        .padding(HV.Space.m)
+        .hvReadableWidth()
+    }
 
+    /// The one filled action, pinned where the thumb is, so it is there whatever the portfolio's length.
+    private var claimBar: some View {
+        VStack(spacing: HV.Space.xs) {
             Button {
                 Task { await claim() }
             } label: {
@@ -105,8 +114,11 @@ struct ClaimRealmView: View {
             .buttonStyle(.hvPrimary)
             .disabled(availability != .available || claiming)
         }
-        .padding(HV.Space.m)
-        .hvReadableWidth()
+        .padding(.horizontal, HV.Space.m)
+        .padding(.top, HV.Space.s)
+        .padding(.bottom, HV.Space.s)
+        .frame(maxWidth: .infinity)
+        .background(.bar)
     }
 
     private func domainCard(_ domain: Capabilities.PortfolioDomain) -> some View {

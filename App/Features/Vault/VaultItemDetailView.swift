@@ -75,7 +75,7 @@ struct VaultItemDetailView: View {
             }
 
             Section {
-                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: "trash") }
+                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: "trash").foregroundStyle(Palette.danger) }
             } footer: {
                 Text("Deleting it cuts off every agent at once.")
             }

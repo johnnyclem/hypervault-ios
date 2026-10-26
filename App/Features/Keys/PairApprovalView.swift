@@ -235,6 +235,7 @@ struct PairApprovalScreen: View {
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
             }
+            .frame(maxWidth: .infinity)
             .hvCard()
 
             KeysNotice(text: PairingCopy.warning)

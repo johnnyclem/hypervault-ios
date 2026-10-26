@@ -121,7 +121,7 @@ jobs:
   # The journeys: the real app launched on a simulator and driven with taps and typing, through the welcome story,
   # sign-in, the canvas, each tab, every screen the You tab opens, and the waitlist; and a sweep of the main screens in
   # the dark appearance and at an accessibility text size. The app is a debug build whose network is canned inside it
-  # (App/Core/UITestHarness.swift); nothing here reaches a real server. Three jobs run side by side (each builds the
+  # (App/Core/UITestHarness.swift); nothing here reaches a real server. Four jobs run side by side (each builds the
   # app for itself), so a push waits for the slowest of them and none of them for the others.
   ui:
     name: UI tests (macOS, ${{ matrix.suite }})
@@ -139,6 +139,7 @@ jobs:
               -skip-testing:HyperVaultUITests/AccountAndAdminJourneyTests
               -skip-testing:HyperVaultUITests/ContentJourneyTests
               -skip-testing:HyperVaultUITests/LayoutSweepTests
+              -skip-testing:HyperVaultUITests/LayoutSweepScreensTests
           - suite: screens
             tests: >-
               -only-testing:HyperVaultUITests/YouScreensJourneyTests
@@ -146,6 +147,8 @@ jobs:
               -only-testing:HyperVaultUITests/ContentJourneyTests
           - suite: sweep
             tests: -only-testing:HyperVaultUITests/LayoutSweepTests
+          - suite: sweep-screens
+            tests: -only-testing:HyperVaultUITests/LayoutSweepScreensTests
     steps:
       - uses: actions/checkout@v4
 

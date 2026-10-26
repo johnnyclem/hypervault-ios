@@ -205,8 +205,9 @@ canned hosts end in `.invalid`; anything that builds its own `URLSession` reques
    for the right element rather than sleeping, and fix a flaky journey at its cause (an identifier, a better wait),
    never by skipping it.
 
-**The layout sweep.** `LayoutSweepTests` launches the app with the simulator in the dark appearance
-(`XCUIDevice.shared.appearance`; the launch argument `-AppleInterfaceStyle Dark` does nothing on iOS) and with
+**The layout sweep.** `LayoutSweepTests` launches the app in the dark appearance (the
+`-pref.appearance dark` launch argument, which is what Settings stores; `-AppleInterfaceStyle Dark` and the device's
+`appearance` did nothing on CI) and with
 `-UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityXXXL`, visits the main screens, and for each keeps a
 screenshot and a text note (`LayoutReport`: controls under 44 points, anything drawn off the screen) beside it. It
 asserts only that the screen's key control can be tapped. The point is to look: fetch `ui-snapshots-<branch>` after a

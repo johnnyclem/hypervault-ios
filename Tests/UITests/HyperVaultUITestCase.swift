@@ -42,14 +42,8 @@ class HyperVaultUITestCase: XCTestCase {
     /// where the rules of a journey are set: the first failure ends it, and a system alert that appears over the app
     /// (a permission, a save-password offer) is dismissed rather than left to swallow the next tap.
     @discardableResult
-    func launch(_ scenario: Scenario, arguments extra: [String] = [], appearance: XCUIDevice.Appearance? = nil, file: StaticString = #filePath, line: UInt = #line) -> XCUIApplication {
+    func launch(_ scenario: Scenario, arguments extra: [String] = [], file: StaticString = #filePath, line: UInt = #line) -> XCUIApplication {
         continueAfterFailure = false
-        // The dark appearance is the simulator's own (the app follows the system unless Settings says otherwise): a launch
-        // argument does not turn it on. It is put back for whatever test runs next.
-        if let appearance {
-            XCUIDevice.shared.appearance = appearance
-            addTeardownBlock { XCUIDevice.shared.appearance = .light }
-        }
         _ = addUIInterruptionMonitor(withDescription: "System alert") { alert in
             for title in ["Not Now", "Don\u{2019}t Allow", "Don't Allow", "OK", "Cancel"] {
                 let candidate = alert.buttons[title]
@@ -227,22 +221,22 @@ class HyperVaultUITestCase: XCTestCase {
 
     /// Scrolls until `element` is on screen and can be tapped: down the page first, then back up it. A drag stops where
     /// the finger stops (a swipe flings, and at a large text size a fling carries a row past the screen without ever
-    /// letting it be seen), and moves the page by about a third of its height.
+    /// letting it be seen), and moves the page by about three fifths of its height.
     func reveal(_ element: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
         func ready() -> Bool { element.exists && element.isHittable }
         if !ready() {
-            for _ in 0..<10 where !ready() { drag(towardsEnd: true) }
+            for _ in 0..<14 where !ready() { drag(towardsEnd: true) }
         }
         if !ready() {
-            for _ in 0..<16 where !ready() { drag(towardsEnd: false) }
+            for _ in 0..<20 where !ready() { drag(towardsEnd: false) }
         }
         require(element, what, timeout: 5, file: file, line: line)
     }
 
     /// Moves the page: towards its end (the content goes up) or back towards its start.
     private func drag(towardsEnd: Bool) {
-        let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: towardsEnd ? 0.72 : 0.28))
-        let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: towardsEnd ? 0.36 : 0.64))
+        let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: towardsEnd ? 0.82 : 0.22))
+        let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: towardsEnd ? 0.22 : 0.82))
         from.press(forDuration: 0.05, thenDragTo: to, withVelocity: .slow, thenHoldForDuration: 0.2)
     }
 

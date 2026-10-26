@@ -127,9 +127,14 @@ struct ArtifactShareSheet: View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
             HVSectionHeader(title: "Link").artifactCardCaption()
             VStack(alignment: .leading, spacing: HV.Space.xs) {
+                // Cut in the middle rather than wrapped: at an accessibility size a long address broken into pieces of
+                // eight characters, with a hyphen drawn at each break, is harder to read than one with its middle left out
+                // (the whole of it is what the buttons below copy and share, and what a long press selects).
                 Text(url.absoluteString)
                     .font(.hvMono)
                     .foregroundStyle(Palette.textPrimary)
+                    .lineLimit(3)
+                    .truncationMode(.middle)
                     .textSelection(.enabled)
                 if let line = linkLine {
                     Text(line).font(.hvFootnote).foregroundStyle(Palette.textSecondary)

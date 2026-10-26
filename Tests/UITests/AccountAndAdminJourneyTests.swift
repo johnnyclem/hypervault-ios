@@ -44,6 +44,9 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
             let back = app.navigationBars.buttons.matching(NSPredicate(format: "label == %@", "Connect your AI")).firstMatch
             tap(back, "the back button to Connect your AI")
             require(shows("Your key is ready"), "the banner that keeps the key until the sheet closes")
+            // The search is still open (it was used to find the app), and while it is open its own close button
+            // stands where Done is.
+            if !button("Done").exists { tap(button("Close"), "the search's close button") }
             tap(button("Done"), "Done")
             require(element("keys.row.k4"), "the key that was just made")
             let made = element("keys.row.k4")

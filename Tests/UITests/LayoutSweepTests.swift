@@ -8,19 +8,7 @@ import XCTest
 ///
 /// A screen that fails its check does not stop the sweep: the rest are still looked at, and the failures say which.
 @MainActor
-final class LayoutSweepTests: HyperVaultUITestCase {
-    /// How a sweep launches the app: the dark appearance is the simulator's, the large text size is a launch argument.
-    private struct Mode {
-        let name: String
-        let arguments: [String]
-        let appearance: XCUIDevice.Appearance?
-    }
-
-    private static let dark = Mode(name: "dark", arguments: [], appearance: .dark)
-    private static let large = Mode(
-        name: "large", arguments: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"], appearance: nil
-    )
-
+final class LayoutSweepTests: LayoutSweepCase {
     // MARK: The tabs
 
     func testTheTabsInTheDark() { sweepTabs(Self.dark) }
@@ -29,7 +17,7 @@ final class LayoutSweepTests: HyperVaultUITestCase {
 
     private func sweepTabs(_ setting: Mode) {
         let mode = setting.name
-        launch(.signedIn, arguments: setting.arguments, appearance: setting.appearance)
+        launch(.signedIn, arguments: setting.arguments)
         continueAfterFailure = true
 
         look(mode, "canvas with its hints", key: element("canvas.field"), "the canvas field", dumpTree: true)
@@ -55,72 +43,6 @@ final class LayoutSweepTests: HyperVaultUITestCase {
         look(mode, "canvas with cards", key: element("canvas.field"), "the canvas field")
     }
 
-    // MARK: What the You tab opens
-
-    func testTheYouScreensInTheDark() { sweepYouScreens(Self.dark) }
-
-    func testTheYouScreensAtAnAccessibilityTextSize() { sweepYouScreens(Self.large) }
-
-    private func sweepYouScreens(_ setting: Mode) {
-        let mode = setting.name
-        launch(.signedIn, arguments: setting.arguments, appearance: setting.appearance)
-        continueAfterFailure = true
-
-        let screens: [(row: String, title: String, name: String, key: () -> XCUIElement, what: String)] = [
-            ("settings", "Settings", "Settings", { self.toggle("Haptics") }, "the Haptics switch"),
-            ("library", "Library", "Library", { self.element("library.row.a1") }, "the Bakery landing page row"),
-            ("agentsAndKeys", "Account & keys", "Account & keys", { self.element("keys.connect") }, "Connect an agent"),
-            ("vaultItems", "Logins, cards & keys", "Logins, cards & keys", { self.element("vault.row.github.com") }, "the github.com entry"),
-            ("mail", "Mail", "Mail", { self.element("mail.thread.11111111-1111-4111-8111-111111111111") }, "the Weekly plan thread"),
-            ("truth", "Truth", "Truth", { self.element("truth.review") }, "the review row"),
-            ("tools", "Tools", "Tools", { self.element("tools.server.s1") }, "the Linear server"),
-            ("realms", "Your address", "Your address", { self.element("realms.row.c1") }, "the nova.vault.cool address"),
-            ("importHistory", "Import", "Import", { self.element("import.source.chatgpt") }, "the ChatGPT card"),
-            ("dreams", "Dreams", "Dreams", { self.shows("Dream every night") }, "the nightly switch"),
-            ("digest", "Digest", "Digest", { self.shows("Planning chat with Sam") }, "the memory to split"),
-            ("taskBoards", "Task boards", "Task boards", { self.element("taskboards.row.eurorack-choir") }, "the Eurorack Choir board"),
-        ]
-        for screen in screens {
-            openFromYou(screen.row, title: screen.title)
-            look(mode, screen.name, key: screen.key(), screen.what)
-        }
-
-        // One level further in, where the layouts are different again.
-        openFromYou("taskBoards", title: "Task boards")
-        open(element("taskboards.row.eurorack-choir"), "the Eurorack Choir board")
-        look(mode, "a task board", key: element("taskboard.task.t-panels"), "the front panels task")
-        open(element("taskboard.task.t-panels"), "the front panels task")
-        look(mode, "a task", key: shows("Two quotes in, one to go."), "the agent's note")
-
-        openFromYou("truth", title: "Truth")
-        open(element("truth.entry.01M1E6JK8SQAJ8K0JBRHTD10YG"), "the retry cap entry")
-        look(mode, "a truth entry", key: shows("The retry budget is 100."), "the premise beneath it")
-
-        openFromYou("mail", title: "Mail")
-        open(element("mail.thread.11111111-1111-4111-8111-111111111111"), "the Weekly plan thread")
-        look(mode, "a mail thread", key: shows("Done. Friday it is, and I updated the page."), "the newest message")
-
-        openFromYou("vaultItems", title: "Logins, cards & keys")
-        open(element("vault.row.github.com"), "the github.com entry")
-        look(mode, "a vault entry", key: shows("How an agent reads it"), "the section that says how an agent reads it")
-
-        openFromYou("realms", title: "Your address")
-        open(element("realms.row.c1"), "the nova.vault.cool address")
-        look(mode, "an address", key: shows("Glassmorphism"), "the look it has")
-
-        openFromYou("agentsAndKeys", title: "Account & keys")
-        open(element("keys.row.k1"), "the Claude Code key")
-        look(mode, "a key", key: shows("Revoke key"), "the Revoke key row")
-
-        openFromYou("agentsAndKeys", title: "Account & keys")
-        open(element("keys.connect"), "Connect an agent")
-        look(mode, "Connect your AI", key: shows("Just make a key"), "the way to make a key for anything not listed")
-        enter("Cursor", into: searchField("Search apps, like Cursor or curl"), "the app search")
-        open(element("connect.client.cursor"), "the Cursor row")
-        open(button("Make the key"), "Make the key")
-        look(mode, "a key, just made", key: button("Copy key"), "the Copy key button")
-    }
-
     // MARK: Memory, chat and a page
 
     func testWhatTheTabsOpenInTheDark() { sweepOpened(Self.dark) }
@@ -129,7 +51,7 @@ final class LayoutSweepTests: HyperVaultUITestCase {
 
     private func sweepOpened(_ setting: Mode) {
         let mode = setting.name
-        launch(.signedIn, arguments: setting.arguments, appearance: setting.appearance)
+        launch(.signedIn, arguments: setting.arguments)
         continueAfterFailure = true
 
         openTab("Memory")
@@ -161,7 +83,7 @@ final class LayoutSweepTests: HyperVaultUITestCase {
 
     private func sweepWelcome(_ setting: Mode) {
         let mode = setting.name
-        launch(.signedOut, arguments: setting.arguments, appearance: setting.appearance)
+        launch(.signedOut, arguments: setting.arguments)
         continueAfterFailure = true
 
         for page in 1...4 {
@@ -173,47 +95,8 @@ final class LayoutSweepTests: HyperVaultUITestCase {
         tap(element("signin.email"), "Continue with email")
         look(mode, "the email sheet", key: element("email.send"), "the Send me a code button")
 
-        launch(.waitlisted, arguments: setting.arguments, appearance: setting.appearance)
+        launch(.waitlisted, arguments: setting.arguments)
         continueAfterFailure = true
         look(mode, "the waitlist", key: element("waitlist.code"), "the invite code field")
-    }
-
-    // MARK: Looking
-
-    /// Keeps a screenshot of the screen as it opens (its top, which is where most layout bugs show), writes down what its
-    /// tree says about the layout, then makes sure the key control is there and can be tapped, scrolling to it if the
-    /// text size has pushed it below the fold (and keeping a second screenshot if it had to).
-    private func look(_ mode: String, _ screen: String, key: XCUIElement, _ what: String, dumpTree: Bool = false, file: StaticString = #filePath, line: UInt = #line) {
-        let started = Date()
-        XCTContext.runActivity(named: "\(mode): \(screen)") { _ in
-            // What the screen is for has to be there before it is looked at (not a skeleton, not the launch splash fading).
-            // A key below the fold of a large text size is not in the tree yet, so this waits only a few seconds for it.
-            _ = key.waitForExistence(timeout: 4)
-            RunLoop.current.run(until: Date().addingTimeInterval(1))
-            attachScreenshot("\(mode) - \(screen)")
-            let tree = app.debugDescription
-            let notes = LayoutReport.notes(from: tree)
-            let report = notes.isEmpty ? "Nothing to note: every control is at least 44 points and nothing is off the screen." : notes.joined(separator: "\n")
-            print("[layout] \(mode) / \(screen): \(notes.count) notes\n\(report)")
-            let attachment = XCTAttachment(string: "\(mode) / \(screen)\n\n\(report)\n")
-            attachment.name = "Layout notes - \(mode) - \(screen)"
-            attachment.lifetime = .keepAlways
-            add(attachment)
-            if dumpTree {
-                let raw = XCTAttachment(string: String(tree.prefix(30_000)))
-                raw.name = "Tree - \(mode) - \(screen)"
-                raw.lifetime = .keepAlways
-                add(raw)
-            }
-
-            if !(key.exists && key.isHittable) {
-                reveal(key, what, file: file, line: line)
-                if key.exists { attachScreenshot("\(mode) - \(screen) - scrolled to \(what)") }
-            }
-            if key.exists {
-                XCTAssertTrue(key.isHittable, "\(what) is on the \(screen) screen (\(mode)) but cannot be tapped.", file: file, line: line)
-            }
-        }
-        print(String(format: "[journey] %6.1f s  %@ / %@ - %@", Date().timeIntervalSince(started), String(describing: type(of: self)), mode, screen))
     }
 }

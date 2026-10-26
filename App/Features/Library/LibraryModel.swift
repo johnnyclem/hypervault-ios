@@ -34,8 +34,12 @@ final class LibraryModel {
     private(set) var rowIDs: [String: String] = [:]
     private(set) var edgeCounts: [String: Int] = [:]
     private(set) var isStale = false
+    /// True when the first read failed for want of a connection, so the screen can say so with the right glyph.
+    private(set) var failureIsOffline = false
     private(set) var sharedWithYou: [SharedWithYouItem] = []
     private(set) var pins = SidebarPins()
+    /// The list of pages, read only to name the pinned ones when the file manager (which holds it) is not what is showing.
+    private(set) var pinSummaries: [ArtifactSummary] = []
     private(set) var realms: [ArtifactRealm] = []
     var shown = LibraryModel.pageSize
     /// Set while something is being kept from a file.
@@ -47,6 +51,15 @@ final class LibraryModel {
     init(env: AppEnvironment) {
         self.env = env
     }
+
+    #if DEBUG
+    /// The parts that are read from the person's own rows in Supabase, put in by hand for a preview or a
+    /// snapshot, which have no such server.
+    func seed(pins: SidebarPins = SidebarPins(), sharedWithYou: [SharedWithYouItem] = []) {
+        self.pins = pins
+        self.sharedWithYou = sharedWithYou
+    }
+    #endif
 
     // MARK: Reading
 
@@ -128,20 +141,40 @@ final class LibraryModel {
     private func fail(_ error: Error) {
         guard !(error is CancellationError), (error as? HVError) != .cancelled else { return }
         let hasRows = !items.isEmpty || !artifacts.isEmpty
-        if !hasRows { phase = .failed((error as? HVError)?.isOffline == true ? LibraryCopy.offline : LibraryCopy.failed) }
+        if !hasRows {
+            failureIsOffline = (error as? HVError)?.isOffline == true
+            phase = .failed(failureIsOffline ? LibraryCopy.offline : LibraryCopy.failed)
+        }
     }
 
     /// The parts that sit around the list: what was shared with the person, their pins, their addresses.
     func loadExtras() async {
         // These are the person's own rows, read as themselves; a server with no such project shows none.
-        guard let tables = env.artifactTables else { return }
-        let userId = env.user.id
-        async let shared = try? SharedWithYouReader(tables: tables, userId: userId).items()
-        async let pinned = try? SidebarPinsReader(tables: tables, userId: userId).pins()
-        async let claimed = try? ArtifactRealmReader(tables: tables, userId: userId).realms()
-        if let list = await shared { sharedWithYou = list }
-        if let value = await pinned { pins = value }
-        if let list = await claimed { realms = list }
+        if let tables = env.artifactTables {
+            let userId = env.user.id
+            async let shared = try? SharedWithYouReader(tables: tables, userId: userId).items()
+            async let pinned = try? SidebarPinsReader(tables: tables, userId: userId).pins()
+            async let claimed = try? ArtifactRealmReader(tables: tables, userId: userId).realms()
+            if let list = await shared { sharedWithYou = list }
+            if let value = await pinned { pins = value }
+            if let list = await claimed { realms = list }
+        }
+        await loadPinnedNames()
+    }
+
+    /// A pin is a slug. Its name is in the list of pages, which only the Files filter reads, so any other
+    /// filter reads it here rather than show the slug.
+    private func loadPinnedNames() async {
+        guard !pins.artifactSlugs.isEmpty else { return }
+        let client = env.client
+        let fetch: @Sendable () async throws -> ArtifactList = { try await client.send(.artifacts) }
+        do {
+            for try await loaded in env.load(LibraryCache.artifactsKey, fetch: fetch) {
+                pinSummaries = loaded.value.items
+            }
+        } catch {
+            // The pins still show, under a name made from the slug.
+        }
     }
 
     // MARK: The file manager
@@ -153,15 +186,15 @@ final class LibraryModel {
         }
         guard !needle.isEmpty else { return all }
         return all.filter { row in
-            ([row.summary.title, row.summary.type] + row.summary.tags).joined(separator: " ").lowercased().contains(needle)
+            ([row.summary.title, row.summary.type, row.summary.typeName] + row.summary.tags).joined(separator: " ").lowercased().contains(needle)
         }
     }
 
     /// Pinned pages, in the order they were pinned, named from the list when it holds them.
     var pinnedRows: [(slug: String, title: String, summary: ArtifactSummary?)] {
         pins.artifactSlugs.map { slug in
-            let found = artifacts.first { $0.slug == slug }
-            return (slug, found?.title ?? slug, found)
+            let found = artifacts.first { $0.slug == slug } ?? pinSummaries.first { $0.slug == slug }
+            return (slug, found?.title ?? ArtifactSlugName.readable(slug), found)
         }
     }
 

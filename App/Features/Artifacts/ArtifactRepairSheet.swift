@@ -92,7 +92,7 @@ struct ArtifactRepairSheet: View {
                                 .textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .hvCard(padding: HV.Space.s, radius: HV.Radius.m)
+                        .hvCard()
                     }
 
                     result

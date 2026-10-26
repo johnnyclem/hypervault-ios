@@ -47,25 +47,66 @@ final class LibrarySnapshotTests: XCTestCase {
 
     // MARK: Hosts
 
+    /// The Library, with a pinned page and a page someone shared when `shortcuts` (those are read from the
+    /// person's own rows in Supabase, which a snapshot has no server for, so they are put in by hand).
     private struct LibraryHost: View {
         @Environment(AppEnvironment.self) private var env
         let filter: YoursFilter
-        var body: some View { LibraryScreen(env: env, filter: filter) }
+        var shortcuts = true
+
+        var body: some View { LibraryScreen(model: model, filter: filter) }
+
+        private var model: LibraryModel {
+            let model = LibraryModel(env: env)
+            guard shortcuts else { return model }
+            model.seed(
+                pins: SidebarPins(pins: [.artifact("pomodoro-timer-x7k2p9")]),
+                sharedWithYou: [
+                    SharedWithYouItem(
+                        shareId: "s1", slug: "launch-notes-k3m9", title: "Launch notes", type: "html", owner: "Maya Chen",
+                        createdAt: Date(timeIntervalSince1970: 1_792_700_000)
+                    ),
+                ]
+            )
+            return model
+        }
     }
 
-    /// A page screen whose page is served from canned markup rather than the network.
+    /// A page screen whose page is served from canned markup rather than the network. The model reads
+    /// the page first and the screen is drawn once it has, so what is drawn is the page's state and not
+    /// how long the canned answers took.
     private struct DetailHost: View {
         @Environment(AppEnvironment.self) private var env
         let status: Int
         let body_: String
+        @State private var model: ArtifactDetailModel?
+
         var body: some View {
-            let transport = MockTransport(routes: [
-                MockRoute(.get, "/a/pomodoro-timer-x7k2p9") { _ in HTTPResponse(status: status, data: Data(body_.utf8)) },
-            ])
-            let loader = ArtifactPageLoader(baseURL: env.server.baseURL, tokens: StaticTokenProvider(), transport: transport)
-            ArtifactDetailScreen(slug: "pomodoro-timer-x7k2p9", env: env, loader: loader)
+            Group {
+                if let model { ArtifactDetailScreen(model: model) } else { Color.clear }
+            }
+            .task {
+                let transport = MockTransport(routes: [
+                    MockRoute(.get, "/a/pomodoro-timer-x7k2p9") { _ in HTTPResponse(status: status, data: Data(body_.utf8)) },
+                ])
+                let loader = ArtifactPageLoader(baseURL: env.server.baseURL, tokens: StaticTokenProvider(), transport: transport)
+                let created = ArtifactDetailModel(slug: "pomodoro-timer-x7k2p9", env: env, loader: loader)
+                await created.load()
+                model = created
+            }
         }
     }
+
+    /// What a kept page looks like when it opens: a small page of its own, in its own colours.
+    static let pomodoroPage = """
+    <!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>
+    body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    font-family:-apple-system,sans-serif;background:#fff7ed;color:#7c2d12}
+    h1{font-size:88px;margin:0;font-weight:700}p{margin:0;font-size:20px}
+    </style>
+    <p>Focus</p><h1>25:00</h1><p>A short break comes after this round.</p>
+    """
 
     /// Builds a sheet that needs the page's model.
     private struct SheetHost<Sheet: View>: View {
@@ -91,17 +132,33 @@ final class LibrarySnapshotTests: XCTestCase {
         try snapshot(PreviewHost(routes: Self.routes) { LibraryHost(filter: .all) }, named: "library-all")
     }
 
+    func testLibraryWithoutShortcuts() throws {
+        try snapshot(PreviewHost(routes: Self.routes) { LibraryHost(filter: .all, shortcuts: false) }, named: "library-plain")
+    }
+
     func testLibraryFiles() throws {
         try snapshot(PreviewHost(routes: Self.routes) { LibraryHost(filter: .file) }, named: "library-files")
     }
 
+    /// The largest accessibility type: rows wrap rather than cut, and the filter becomes a menu.
+    func testLibraryAtTheLargestType() throws {
+        try snapshot(
+            PreviewHost(routes: Self.routes) { LibraryHost(filter: .all).environment(\.dynamicTypeSize, .accessibility3) },
+            named: "library-large", schemes: [.light]
+        )
+        try snapshot(
+            PreviewHost(routes: Self.routes) { LibraryHost(filter: .file).environment(\.dynamicTypeSize, .accessibility3) },
+            named: "library-files-large", schemes: [.light]
+        )
+    }
+
     func testLibraryEmptyAndFailed() throws {
         try snapshot(
-            PreviewHost(routes: [.json(.get, "/api/yours", #"{"recent":[],"results":[]}"#)]) { LibraryHost(filter: .all) },
+            PreviewHost(routes: [.json(.get, "/api/yours", #"{"recent":[],"results":[]}"#)]) { LibraryHost(filter: .all, shortcuts: false) },
             named: "library-empty"
         )
         try snapshot(
-            PreviewHost(routes: [.failure(.get, "/api/yours", status: 500, message: "Could not list what you have kept. Try again.")]) { LibraryHost(filter: .memory) },
+            PreviewHost(routes: [.failure(.get, "/api/yours", status: 500, message: "Could not list what you have kept. Try again.")]) { LibraryHost(filter: .memory, shortcuts: false) },
             named: "library-failed"
         )
     }
@@ -110,15 +167,15 @@ final class LibrarySnapshotTests: XCTestCase {
 
     func testPageScreen() throws {
         try snapshot(
-            PreviewHost(routes: Self.routes) { DetailHost(status: 200, body_: "<h1>Pomodoro</h1>") },
-            named: "page-ready"
+            PreviewHost(routes: Self.routes, delay: 0.05) { DetailHost(status: 200, body_: Self.pomodoroPage) },
+            named: "page-ready", settle: 4
         )
     }
 
     func testPageThatCannotBeShown() throws {
         try snapshot(
-            PreviewHost(routes: Self.routes) { DetailHost(status: 403, body_: "<h1>This is private</h1>") },
-            named: "page-blocked"
+            PreviewHost(routes: Self.routes, delay: 0.05) { DetailHost(status: 403, body_: "<h1>This is private</h1>") },
+            named: "page-blocked", settle: 3
         )
     }
 
@@ -129,6 +186,16 @@ final class LibrarySnapshotTests: XCTestCase {
             .json(.get, "/api/shares", #"{"shares":[{"id":"s1","email":"maya@example.com","display_name":"Maya","role":"edit","created_at":"2026-10-01T00:00:00.000Z"},{"id":"s2","email":"jon@example.com","display_name":null,"role":"view","created_at":"2026-10-02T00:00:00.000Z"}],"roles":["view","use","edit"],"roles_enforced":true}"#),
         ]
         try snapshot(PreviewHost(routes: routes, embedInNavigation: false) { SheetHost { ArtifactShareSheet(detail: $0) } }, named: "page-share")
+    }
+
+    func testShareSheetAtALargeType() throws {
+        let routes = Self.routes + [
+            .json(.get, "/api/shares", #"{"shares":[{"id":"s1","email":"maya@example.com","display_name":"Maya","role":"edit","created_at":"2026-10-01T00:00:00.000Z"}],"roles":["view","use","edit"],"roles_enforced":true}"#),
+        ]
+        try snapshot(
+            PreviewHost(routes: routes, embedInNavigation: false) { SheetHost { ArtifactShareSheet(detail: $0) }.environment(\.dynamicTypeSize, .accessibility2) },
+            named: "page-share-large", settle: 3, schemes: [.light]
+        )
     }
 
     func testSourceSheet() throws {
@@ -150,9 +217,21 @@ final class LibrarySnapshotTests: XCTestCase {
     }
 
     func testConnectionsSheet() throws {
-        let routes = Self.routes + [
-            .json(.get, "/api/yours/card", #"{"id":"x1","kind":"page","name":"Focus playlist","href":"/a/focus-playlist-1","updated_at":"2026-10-20T10:00:00.000Z"}"#),
-        ]
+        // Each end of a connection is looked up by its own id and answers with its own name; a page
+        // looked up by its slug is the Pomodoro Timer itself. This route is first because the first match wins.
+        let cards = MockRoute(.get, "/api/yours/card") { request in
+            let query = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            let id = query.first { $0.name == "id" }?.value
+            let json: String
+            switch id {
+            case "x1": json = #"{"id":"x1","kind":"page","name":"Focus playlist","href":"/a/focus-playlist-1","updated_at":"2026-10-20T10:00:00.000Z"}"#
+            case "x2": json = #"{"id":"x2","kind":"page","name":"Meal prep for the week","href":"/a/meal-prep-9z","updated_at":"2026-10-19T10:00:00.000Z"}"#
+            case "m1": json = #"{"id":"m1","kind":"memory","name":"Co-parenting notes","href":"/vault/memory?open=m1","updated_at":"2026-10-25T20:00:00.000Z"}"#
+            default: json = Self.card
+            }
+            return HTTPResponse(status: 200, headers: ["content-type": "application/json"], data: Data(json.utf8))
+        }
+        let routes = [cards] + Self.routes
         try snapshot(PreviewHost(routes: routes, embedInNavigation: false) { SheetHost { ArtifactConnectionsSheet(detail: $0) } }, named: "page-connections", settle: 3)
     }
 

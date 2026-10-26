@@ -359,10 +359,10 @@ struct ArtifactConflictSheet: View {
                             .font(.hvFootnote)
                             .foregroundStyle(Palette.textSecondary)
                     }
-                    HVSectionHeader(title: "What keeping yours would change")
+                    HVSectionHeader(title: "What keeping yours would change").artifactCardCaption()
                     ArtifactDiffView(lines: ArtifactDiffLines.compare(old: conflict.headContent, new: mine))
                         .frame(minHeight: 160, maxHeight: 360)
-                        .hvCard(padding: 0, radius: HV.Radius.m)
+                        .hvCard(padding: 0)
                 }
                 .padding(HV.Space.m)
                 .hvReadableWidth()

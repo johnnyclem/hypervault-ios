@@ -254,6 +254,81 @@ final class ArtifactsTests: XCTestCase {
     }
 }
 
+/// What an icon and a type are called on screen.
+final class ArtifactIconAndTypeNameTests: XCTestCase {
+    func testASwatchIsTheColourCSSWouldDraw() {
+        // hsl(0, 100%, 50%) is red; hsl(120, 100%, 25%) is a dark green; a grey has no saturation.
+        let red = ArtifactIcon.Swatch(hue: 0, saturation: 1, lightness: 0.5).rgb
+        XCTAssertEqual([red.red, red.green, red.blue], [1, 0, 0])
+        let green = ArtifactIcon.Swatch(hue: 120, saturation: 1, lightness: 0.25).rgb
+        XCTAssertEqual(green.red, 0, accuracy: 0.0001)
+        XCTAssertEqual(green.green, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(green.blue, 0, accuracy: 0.0001)
+        let grey = ArtifactIcon.Swatch(hue: 200, saturation: 0, lightness: 0.4).rgb
+        XCTAssertEqual(grey.red, 0.4, accuracy: 0.0001)
+        XCTAssertEqual(grey.blue, 0.4, accuracy: 0.0001)
+    }
+
+    func testStopsAreTheWebsTwoColoursFromTheSlug() {
+        let stops = ArtifactIcon.stops(seed: "pomodoro-timer-x7k2p9")
+        XCTAssertEqual(stops.first.hue, ArtifactIcon.hue(seed: "pomodoro-timer-x7k2p9"))
+        XCTAssertEqual(stops.second.hue, ArtifactIcon.secondHue(seed: "pomodoro-timer-x7k2p9"), accuracy: 0.0001)
+        XCTAssertEqual(stops.first.lightness, 0.62)
+        XCTAssertEqual(stops.second.lightness, 0.46)
+    }
+
+    func testTheGlyphGoesDarkOnlyWhereWhiteCannotBeRead() {
+        // Every hue the hash can reach: white is kept only where it holds 3:1 on the brightest part of the tile.
+        var dark = 0
+        for degrees in 0..<360 {
+            let hue = Double(degrees)
+            let contrast = ArtifactIcon.whiteGlyphContrast(hue: hue)
+            if ArtifactIcon.prefersDarkGlyph(hue: hue) {
+                dark += 1
+                XCTAssertLessThan(contrast, 3, "hue \(degrees)")
+            } else {
+                XCTAssertGreaterThanOrEqual(contrast, 3, "hue \(degrees)")
+            }
+        }
+        XCTAssertGreaterThan(dark, 0, "the yellows and greens cannot carry a white letter")
+        XCTAssertLessThan(dark, 360, "the blues, purples and pinks still do")
+    }
+
+    func testTheYellowGreensThatWereUnreadableGoDark() {
+        // The slugs of the two tiles QA measured at under 2:1 ("Lease.pdf" and "Budget 2026 Q4").
+        XCTAssertTrue(ArtifactIcon.prefersDarkGlyph(seed: "lease-pdf-123456"))
+        XCTAssertTrue(ArtifactIcon.prefersDarkGlyph(seed: "budget-2026-q4"))
+        XCTAssertFalse(ArtifactIcon.prefersDarkGlyph(seed: "pomodoro-timer-x7k2p9"))
+        XCTAssertFalse(ArtifactIcon.prefersDarkGlyph(seed: "trip-planner-abc123"))
+    }
+
+    func testTypesReadAsWordsNotCodes() {
+        XCTAssertEqual(ArtifactTypeName.name(type: "react"), "React page")
+        XCTAssertEqual(ArtifactTypeName.name(type: "html", isJsx: true), "React page")
+        XCTAssertEqual(ArtifactTypeName.name(type: "html"), "HTML page")
+        XCTAssertEqual(ArtifactTypeName.name(type: "pdf"), "PDF")
+        XCTAssertEqual(ArtifactTypeName.name(type: "image"), "Image")
+        XCTAssertEqual(ArtifactTypeName.name(type: "group"), "Group")
+        XCTAssertEqual(ArtifactTypeName.name(type: "svg"), "SVG")
+        XCTAssertEqual(ArtifactTypeName.name(type: "spreadsheet"), "Spreadsheet")
+        XCTAssertEqual(ArtifactTypeName.name(type: ""), "Page")
+    }
+
+    func testASlugReadsAsATitleWhenNothingBetterIsKnown() {
+        XCTAssertEqual(ArtifactSlugName.readable("pomodoro-timer-x7k2p9"), "Pomodoro timer")
+        XCTAssertEqual(ArtifactSlugName.readable("lease-pdf-123456"), "Lease pdf")
+        XCTAssertEqual(ArtifactSlugName.readable("budget-2026-q4"), "Budget 2026 q4", "a short last word is not a suffix")
+        XCTAssertEqual(ArtifactSlugName.readable("k3m9zz"), "K3m9zz", "a slug of only the suffix is all there is")
+        XCTAssertEqual(ArtifactSlugName.readable(""), "")
+    }
+
+    func testARowAndASharedRowUseTheSameNames() {
+        XCTAssertEqual(ArtifactSummary(slug: "a", title: "A", type: "react", isJsx: true).typeName, "React page")
+        XCTAssertEqual(ArtifactSummary(slug: "a", title: "A", type: "react", isJsx: true).typeLabel, "react", "the web's word stays available")
+        XCTAssertEqual(SharedWithYouItem(shareId: "s", slug: "a", title: "A", type: "group").typeName, "Group")
+    }
+}
+
 final class LibraryCopyTests: XCTestCase {
     func testAgoMatchesTheWebsRounding() {
         XCTAssertEqual(LibraryCopy.ago(seconds: 0), "Just now")

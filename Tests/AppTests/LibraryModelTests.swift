@@ -51,14 +51,25 @@ final class LibraryModelTests: XCTestCase {
         XCTAssertEqual(model.phase, .loaded)
     }
 
-    func testSearchReadsNameTypeAndTags() async {
+    func testSearchReadsTheNameATypeAsAPersonSaysItAndTags() async {
         let model = model(routes())
         await model.load(filter: .file, query: "")
         XCTAssertEqual(model.rows(matching: "pomo").map(\.summary.slug), ["pomo-1"])
         XCTAssertEqual(model.rows(matching: "TRAVEL").map(\.summary.slug), ["trip-1"])
         XCTAssertEqual(model.rows(matching: "group").map(\.summary.slug), ["trip-1"])
         XCTAssertEqual(model.rows(matching: "  react ").map(\.summary.slug), ["pomo-1"])
+        XCTAssertEqual(model.rows(matching: "react page").map(\.summary.slug), ["pomo-1"], "the words the row shows find it")
         XCTAssertEqual(model.rows(matching: "nothing like this"), [])
+    }
+
+    func testAPinIsNamedFromTheListOnAnyFilterNotShownAsItsSlug() async {
+        let model = model(routes())
+        model.seed(pins: SidebarPins(pins: [.artifact("pomo-1"), .artifact("gone-9ab3c1")]))
+        await model.load(filter: .all, query: "")
+        await model.loadExtras()
+        XCTAssertEqual(model.pinnedRows.map(\.title), ["Pomodoro Timer", "Gone"], "a page the list no longer holds is named from its slug, without the suffix")
+        XCTAssertNotNil(model.pinnedRows[0].summary)
+        XCTAssertNil(model.pinnedRows[1].summary)
     }
 
     func testAPageWhoseIdIsNotKnownStillListsWithNoCount() async {
@@ -88,6 +99,34 @@ final class LibraryModelTests: XCTestCase {
         await model.load(filter: .all, query: "")
         XCTAssertEqual(model.phase, .failed(LibraryCopy.failed))
         XCTAssertEqual(model.items, [])
+    }
+
+    func testAFailedReadSaysWhatHappenedAndLeavesTheRetryToTheButton() async {
+        let model = model([.failure(.get, "/api/yours", status: 500, message: "Could not list what you have kept. Try again.")])
+        await model.load(filter: .all, query: "")
+        XCTAssertFalse(model.failureIsOffline, "a server that answered is not a lost connection")
+        XCTAssertFalse(LibraryCopy.failed.contains("Try again"), "the screen's button says that")
+        XCTAssertFalse(LibraryCopy.offline.contains("Try again"))
+    }
+
+    func testAReadThatNeverGotThroughIsOffline() async {
+        let server = ServerConfig(baseURL: URL(string: "https://preview.hypervault.test")!)
+        let offline = LibraryOfflineTransport()
+        let env = AppEnvironment(
+            client: HVClient(baseURL: server.baseURL, transport: offline, tokens: StaticTokenProvider(), retry: .none),
+            auth: AuthService(
+                config: SupabaseConfig(url: URL(string: "https://preview.supabase.test")!, anonKey: "preview"),
+                transport: offline, store: InMemorySecureStore()
+            ),
+            capabilities: Capabilities(),
+            user: AuthUser(id: "preview-user", email: "sam@example.com", displayName: "Sam"),
+            server: server,
+            cache: DiskCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-offline-\(UUID().uuidString)"))
+        )
+        let model = LibraryModel(env: env)
+        await model.load(filter: .all, query: "")
+        XCTAssertEqual(model.phase, .failed(LibraryCopy.offline))
+        XCTAssertTrue(model.failureIsOffline)
     }
 
     func testASearchCutsTheNameAtOneHundredCharacters() async throws {
@@ -180,6 +219,13 @@ final class LibraryModelTests: XCTestCase {
         ]))
         await model.movePin(from: IndexSet(integer: 0), to: 1, toasts: toasts)
         XCTAssertNil(sent.value, "with nothing pinned there is nothing to move")
+    }
+}
+
+/// A network that is never there.
+struct LibraryOfflineTransport: HTTPTransport {
+    func send(_ request: URLRequest) async throws -> HTTPResponse {
+        throw URLError(.notConnectedToInternet)
     }
 }
 

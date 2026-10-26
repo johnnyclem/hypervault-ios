@@ -209,16 +209,24 @@ struct NewArtifactView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
-            Button {
-                Task {
-                    await model.keep()
-                    if model.result != nil { Haptics.success() } else if model.error != nil { Haptics.failure() }
+            VStack(spacing: HV.Space.xs) {
+                // A button that is off should say what turns it on.
+                if model.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Paste something to keep it.")
+                        .font(.hvFootnote)
+                        .foregroundStyle(Palette.textSecondary)
                 }
-            } label: {
-                if model.saving { ProgressView().tint(.white) } else { Text("Keep it") }
+                Button {
+                    Task {
+                        await model.keep()
+                        if model.result != nil { Haptics.success() } else if model.error != nil { Haptics.failure() }
+                    }
+                } label: {
+                    if model.saving { ProgressView().tint(.white) } else { Text("Keep it") }
+                }
+                .buttonStyle(.hvPrimary)
+                .disabled(!model.canKeep)
             }
-            .buttonStyle(.hvPrimary)
-            .disabled(!model.canKeep)
             .padding(HV.Space.m)
             .background(Palette.background)
         }
@@ -226,24 +234,27 @@ struct NewArtifactView: View {
 
     private var contentField: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HStack {
-                HVSectionHeader(title: "Paste from chat")
+            HStack(spacing: HV.Space.xs) {
+                HVSectionHeader(title: "Paste from chat").padding(.leading, HV.Space.m)
                 Spacer()
+                // Both pills are set at the same size and shape, with the system's own type: the paste
+                // control cannot be restyled, so the file button follows it.
                 PasteButton(payloadType: String.self) { strings in
                     guard let text = strings.first else { return }
                     model.typed(text)
                 }
                 .labelStyle(.titleAndIcon)
                 .buttonBorderShape(.capsule)
+                .controlSize(.regular)
                 Button {
                     fileError = nil
                     importing = true
                 } label: {
                     Label("File", systemImage: "doc")
-                        .font(.hvFootnote.weight(.medium))
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
+                .controlSize(.regular)
             }
             ArtifactCodeView(text: Bindable(model).content, isEditable: true)
                 .frame(height: 260)
@@ -253,7 +264,7 @@ struct NewArtifactView: View {
                     if model.content.isEmpty {
                         Text("Paste HTML or a React component. We'll work out which and make it run.")
                             .font(.hvMono)
-                            .foregroundStyle(Palette.textTertiary)
+                            .foregroundStyle(Palette.textSecondary)
                             .padding(HV.Space.s + 2)
                             .allowsHitTesting(false)
                     }
@@ -265,15 +276,15 @@ struct NewArtifactView: View {
                 Spacer()
                 Text("\(Self.size(model.contentBytes)) of \(NewArtifactModel.megabytes(model.byteLimit))")
                     .font(.hvCaption)
-                    .foregroundStyle(model.isOverLimit ? Palette.danger : Palette.textTertiary)
+                    .foregroundStyle(model.isOverLimit ? Palette.danger : Palette.textSecondary)
             }
         }
     }
 
     private var titleField: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HVSectionHeader(title: "Title")
-            TextField("Untitled", text: Bindable(model).title)
+            HVSectionHeader(title: "Title").artifactCardCaption()
+            TextField("Title", text: Bindable(model).title, prompt: artifactPrompt("Untitled"))
                 .focused($titleFocused)
                 .submitLabel(.done)
                 .hvFieldChrome(isFocused: titleFocused)
@@ -282,7 +293,7 @@ struct NewArtifactView: View {
 
     private var visibilityField: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HVSectionHeader(title: "Who can open it")
+            HVSectionHeader(title: "Who can open it").artifactCardCaption()
             Picker("Who can open it", selection: Bindable(model).visibility) {
                 Text("Only me").tag(ArtifactVisibility.private)
                 Text("Anyone with the link").tag(ArtifactVisibility.public)
@@ -293,31 +304,31 @@ struct NewArtifactView: View {
                 : "Anyone who has the link can open it. You can change this any time.")
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
+                .artifactCardCaption()
         }
     }
 
     private var moreOptions: some View {
         DisclosureGroup(isExpanded: $showMore) {
             VStack(alignment: .leading, spacing: HV.Space.m) {
-                labelled("Source prompt", detail: "The prompt that made this. It is saved into the page so any AI can pick up where you left off.") {
-                    TextField("Optional", text: Bindable(model).sourcePrompt, axis: .vertical)
-                        .lineLimit(3...8)
-                        .hvFieldChrome()
-                    Text("\(model.promptCount.formatted()) of \(model.promptLimit.formatted())")
-                        .font(.hvCaption)
-                        .foregroundStyle(model.promptIsOverLimit ? Palette.danger : Palette.textTertiary)
+                HVLabeledField(title: "Source prompt", footnote: "The prompt that made this. It is saved into the page so any AI can pick up where you left off.") {
+                    VStack(alignment: .trailing, spacing: HV.Space.xxs) {
+                        TextField("Source prompt", text: Bindable(model).sourcePrompt, prompt: artifactPrompt("Optional"), axis: .vertical)
+                            .lineLimit(3...8)
+                        Text("\(model.promptCount.formatted()) of \(model.promptLimit.formatted())")
+                            .font(.hvCaption)
+                            .foregroundStyle(model.promptIsOverLimit ? Palette.danger : Palette.textSecondary)
+                    }
                 }
-                labelled("Tags", detail: "Separated by commas.") {
-                    TextField("Optional", text: Bindable(model).tags)
+                HVLabeledField(title: "Tags", footnote: "Separated by commas.") {
+                    TextField("Tags", text: Bindable(model).tags, prompt: artifactPrompt("Optional"))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .hvFieldChrome()
                 }
-                labelled("Connect to", detail: "Titles or addresses of related pages, separated by commas. Similar pages are connected for you too.") {
-                    TextField("Optional", text: Bindable(model).connectTo)
+                HVLabeledField(title: "Connect to", footnote: "Titles or addresses of related pages, separated by commas. Similar pages are connected for you too.") {
+                    TextField("Connect to", text: Bindable(model).connectTo, prompt: artifactPrompt("Optional"))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .hvFieldChrome()
                 }
                 Toggle("Keep versions, so it can be rewritten", isOn: Bindable(model).living)
                 Toggle("Make it installable", isOn: Bindable(model).installable)
@@ -326,14 +337,6 @@ struct NewArtifactView: View {
             .padding(.top, HV.Space.s)
         } label: {
             Text("More options").font(.hvHeadline)
-        }
-    }
-
-    private func labelled<Field: View>(_ title: String, detail: String, @ViewBuilder field: () -> Field) -> some View {
-        VStack(alignment: .leading, spacing: HV.Space.xs) {
-            Text(title).font(.hvSubheadline.weight(.semibold))
-            field()
-            Text(detail).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
         }
     }
 
@@ -385,7 +388,7 @@ struct ArtifactKeptView: View {
                     .font(.hvMono)
                     .textSelection(.enabled)
                     .multilineTextAlignment(.center)
-                    .hvCard(padding: HV.Space.s, radius: HV.Radius.m)
+                    .hvCard()
 
                 VStack(spacing: HV.Space.xs) {
                     Button("Open", action: onOpen).buttonStyle(.hvPrimary)

@@ -180,7 +180,8 @@ struct ArtifactConnectionsSheet: View {
             case .loading:
                 HVLoadingState().listRowBackground(Color.clear)
             case .failed(let message):
-                HVErrorState(message: message) { Task { await model.load() } }.listRowBackground(Color.clear)
+                HVErrorState(message: message) { Task { await model.load() } }
+                    .listRowBackground(Color.clear)
             case .loaded(let items):
                 if items.isEmpty {
                     Text("Nothing is connected to this yet.")
@@ -200,10 +201,11 @@ struct ArtifactConnectionsSheet: View {
         } header: {
             HVSectionHeader(title: "Connected")
         }
+        .hvListRow()
     }
 
     private func linkedRow(_ item: ArtifactLinkedItem) -> some View {
-        HVRow(symbol: item.kind.librarySymbol, tint: item.kind.libraryTint, title: item.name, subtitle: item.kind.singular) {
+        HVRow(symbol: item.kind.symbol, tint: item.kind.tint, title: item.name, subtitle: item.kind.singular) {
             if item.isAuto { HVTag(text: "Found for you") }
         }
         .contentShape(Rectangle())
@@ -211,9 +213,12 @@ struct ArtifactConnectionsSheet: View {
 
     private var connectSection: some View {
         Section {
-            TextField("Search by name", text: $query)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+            HVLabeledField(title: "Find by name") {
+                TextField("Find by name", text: $query, prompt: artifactPrompt("A page, file, group or memory"))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
+            .listRowSeparator(.hidden)
             if model.searching && model.results.isEmpty {
                 HStack { ProgressView(); Text("Searching").font(.hvFootnote).foregroundStyle(Palette.textSecondary) }
             }
@@ -221,7 +226,7 @@ struct ArtifactConnectionsSheet: View {
                 Button {
                     connect(item)
                 } label: {
-                    HVRow(symbol: item.kind.librarySymbol, tint: item.kind.libraryTint, title: item.name, subtitle: item.kind.singular) {
+                    HVRow(symbol: item.kind.symbol, tint: item.kind.tint, title: item.name, subtitle: item.kind.singular) {
                         Image(systemName: "plus.circle").foregroundStyle(.tint)
                     }
                 }
@@ -234,6 +239,7 @@ struct ArtifactConnectionsSheet: View {
         } footer: {
             Text("A connection shows in the graph and tells your agents the two belong together.")
         }
+        .hvListRow()
     }
 
     // MARK: Actions

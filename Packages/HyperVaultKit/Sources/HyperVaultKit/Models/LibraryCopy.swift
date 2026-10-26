@@ -11,8 +11,10 @@ public enum LibraryCopy {
     public static let truncated = "These are the most recent. Search by name to find the rest."
     public static let emptyVault = "Nothing kept yet."
     public static let nothingHere = "Nothing here."
-    public static let failed = "That did not load. Try again."
-    public static let offline = "Network hiccup. That did not load. Try again."
+    // The web ends these with "Try again." because its error has no button. Here the screen has one,
+    // so the line says what happened and the button says what to do.
+    public static let failed = "That did not load."
+    public static let offline = "Network hiccup. That did not load."
     public static let tryAgain = "Try again"
     public static let newLabel = "New"
 

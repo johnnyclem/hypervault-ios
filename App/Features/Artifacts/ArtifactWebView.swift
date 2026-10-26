@@ -66,7 +66,7 @@ struct ArtifactWebView: UIViewRepresentable {
         webView.allowsBackForwardNavigationGestures = false
         // A peek at a link would load it outside the rules below.
         webView.allowsLinkPreview = false
-        webView.underPageBackgroundColor = UIColor(Palette.background)
+        webView.underPageBackgroundColor = Self.paper(in: context.environment)
         webView.scrollView.contentInsetAdjustmentBehavior = .automatic
         #if DEBUG
         webView.isInspectable = true
@@ -78,7 +78,16 @@ struct ArtifactWebView: UIViewRepresentable {
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         context.coordinator.parent = self
+        // The look can change under an open page.
+        webView.underPageBackgroundColor = Self.paper(in: context.environment)
         context.coordinator.load(content, in: webView)
+    }
+
+    /// The screen's paper in the look the screen is in. `UIColor(Color)` fixes a dynamic colour to the
+    /// look it is converted in (the light one, before the view is on screen), so the colour is resolved
+    /// against the environment first. It is what shows before a page has painted and past its edges.
+    private static func paper(in environment: EnvironmentValues) -> UIColor {
+        UIColor(Color(Palette.background.resolve(in: environment)))
     }
 
     static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {

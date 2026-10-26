@@ -12,8 +12,8 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
         step("The canvas opens with its one line of help") {
             require(element("canvas.hint"), "the line that says to paste anything")
             XCTAssertEqual(element("canvas.hint").label, "Paste anything here to keep it.")
-            XCTAssertTrue(button("Account").exists, "The avatar should be labelled \"Account\" for VoiceOver.")
-            XCTAssertTrue(button("Open Yours").exists, "The corner icon should be labelled \"Open Yours\" for VoiceOver.")
+            require(button("Account"), "the avatar, labelled \"Account\" for VoiceOver")
+            require(button("Open Yours"), "the corner icon, labelled \"Open Yours\" for VoiceOver")
         }
 
         step("A long paste waits above the field") {
@@ -23,7 +23,7 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
             require(chip, "the chip that says what was pasted")
             XCTAssertTrue(chip.label.hasPrefix("Pasted - "), "The chip says \"\(chip.label)\".")
             require(element("canvas.keep"), "Keep it")
-            XCTAssertTrue(element("canvas.askInstead").exists, "A model is connected, so the paste can be asked about instead.")
+            require(element("canvas.askInstead"), "Ask instead, offered because a model is connected")
         }
 
         step("Keep it makes a card with its private link") {
@@ -32,7 +32,7 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
             require(text("Only you can open it."), "the line that says the link is private")
             require(text("https://uitest.hypervault.invalid/a/lisbon-trip-checklist-k1"), "the card's link")
             require(button("Hide Lisbon trip checklist"), "the card's Hide button")
-            XCTAssertTrue(button("Copy link").exists)
+            require(button("Copy link"), "the card's Copy link button")
             requireGone(element("canvas.pasted"), "the chip, now that it is kept")
         }
 
@@ -52,7 +52,7 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
             tap(button("Hide Noted: Remember to buy milk on Friday"), "Hide on the card of the kept reply")
             requireGone(button("Hide Noted: Remember to buy milk on Friday"), "the hidden card")
             XCTAssertEqual(count(ofText: keptLine), 1, "Only the card that was hidden should have gone.")
-            XCTAssertTrue(button("Hide Lisbon trip checklist").exists, "The other card should stay.")
+            require(button("Hide Lisbon trip checklist"), "the other card, which should stay")
         }
     }
 
@@ -65,13 +65,13 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
             require(button("Hide Trip to Lisbon: ferry and passports"), "the Lisbon memory's card")
             require(button("Hide Auth decision: passkeys first"), "the auth memory's card")
             require(button("Hide Planning chat with Sam"), "the planning memory's card")
-            XCTAssertTrue(button("Open Planning chat with Sam").exists, "A card should have an Open button labelled with its title.")
+            require(button("Open Planning chat with Sam"), "a card's Open button, labelled with its title")
         }
 
         step("Hide removes one memory's card") {
             tap(button("Hide Auth decision: passkeys first"), "Hide on the auth card")
             requireGone(button("Hide Auth decision: passkeys first"), "the hidden card")
-            XCTAssertTrue(button("Hide Planning chat with Sam").exists, "The other cards should stay.")
+            require(button("Hide Planning chat with Sam"), "the other cards, which should stay")
         }
 
         step("The Yours panel opens over the page") {
@@ -83,7 +83,7 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
         step("Done closes the panel") {
             tap(button("Done"), "Done")
             requireGone(button("Done"), "the panel")
-            XCTAssertTrue(button("Hide Planning chat with Sam").exists, "The page should be as it was left.")
+            require(button("Hide Planning chat with Sam"), "the page as it was left")
         }
     }
 }

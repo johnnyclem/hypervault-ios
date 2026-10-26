@@ -17,14 +17,14 @@ final class TabsJourneyTests: HyperVaultUITestCase {
             tap(segment("Memories"), "the Memories filter")
             require(element("yours.row.m2"), "the Auth decision memory")
             requireGone(element("yours.row.a1"), "the page, which is not a memory")
-            XCTAssertTrue(element("yours.row.m1").exists)
+            require(element("yours.row.m1"), "the other memory")
         }
 
         step("The Files filter keeps pages and groups") {
             tap(segment("Files"), "the Files filter")
             require(element("yours.row.g1"), "the Portfolio site group")
             requireGone(element("yours.row.m1"), "the memory, which is not a file")
-            XCTAssertTrue(element("yours.row.a1").exists)
+            require(element("yours.row.a1"), "the page")
         }
 
         step("The Keys filter keeps only keys") {
@@ -38,7 +38,7 @@ final class TabsJourneyTests: HyperVaultUITestCase {
             require(element("yours.row.m1"), "the full list again")
             enter("bakery", into: searchField("Search by name"), "the search field")
             requireGone(element("yours.row.m1"), "rows that do not match the search")
-            XCTAssertTrue(element("yours.row.a1").exists, "The match should stay.")
+            require(element("yours.row.a1"), "the match, which should stay")
         }
 
         step("Tapping a row opens the page") {
@@ -98,7 +98,7 @@ final class TabsJourneyTests: HyperVaultUITestCase {
         step("Chat lists conversations") {
             require(element("chat.row.c1"), "the Lisbon conversation")
             XCTAssertTrue(element("chat.row.c1").label.contains("Three days in Lisbon"))
-            XCTAssertTrue(element("chat.row.c2").exists, "The next conversation should be listed too.")
+            require(element("chat.row.c2"), "the next conversation")
         }
 
         step("Rooms lists the group chats") {

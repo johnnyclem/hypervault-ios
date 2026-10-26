@@ -30,7 +30,7 @@ final class SignedOutJourneyTests: HyperVaultUITestCase {
         }
 
         step("The last page offers Get started") {
-            XCTAssertEqual(element("welcome.continue").label, "Get started")
+            waitUntil("the button on the last page to say Get started") { element("welcome.continue").label == "Get started" }
         }
 
         step("Get started leads to the way in") {
@@ -71,7 +71,7 @@ final class SignedOutJourneyTests: HyperVaultUITestCase {
         step("An address gets a code sent") {
             let address = textField("email.address")
             enter("sam@example.com", into: address, "the email field")
-            XCTAssertTrue(element("email.send").isEnabled, "With an address typed, the button should be on.")
+            waitUntil("the Send me a code button to turn on, now that an address is typed") { element("email.send").isEnabled }
             // Return is the keyboard's Send key, as a person would press it.
             address.typeText("\n")
             require(text("Check your email"), "the sheet asking for the code")

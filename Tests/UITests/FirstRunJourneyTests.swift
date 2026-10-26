@@ -9,8 +9,8 @@ final class FirstRunJourneyTests: HyperVaultUITestCase {
 
         step("The canvas shows the first-run hints") {
             require(element("canvas.hint"), "the line that says to paste anything")
-            XCTAssertTrue(button("Show my memories").exists, "The example chips should be offered.")
-            XCTAssertTrue(button("Show my files").exists, "The example chips should be offered.")
+            require(button("Show my memories"), "the Show my memories chip")
+            require(button("Show my files"), "the Show my files chip")
             require(text("Connect your AI and it keeps things here for you."), "the line that says no model is connected")
             require(element("canvas.connect"), "the Connect your AI button")
         }

@@ -23,12 +23,12 @@ final class WaitlistJourneyTests: HyperVaultUITestCase {
         step("The field takes a code, and a wrong one is refused") {
             let code = textField("waitlist.code")
             enter("HV-NOPE-NOPE", into: code, "the invite code field")
-            XCTAssertTrue(element("waitlist.redeem").isEnabled, "With a code typed, the button should be on.")
+            waitUntil("the Use this code button to turn on, now that a code is typed") { element("waitlist.redeem").isEnabled }
             tap(element("waitlist.redeem"), "Use this code")
             let message = element("waitlist.message")
             require(message, "the line that refuses the code")
             XCTAssertEqual(message.label, "That invite code doesn't exist. Double-check for typos.")
-            XCTAssertTrue(element("waitlist.title").exists, "A refused code should leave them on the waitlist.")
+            require(element("waitlist.title"), "the waitlist, which a refused code should leave them on")
         }
 
         step("The right code opens the door to the canvas") {

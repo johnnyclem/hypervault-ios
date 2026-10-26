@@ -219,6 +219,34 @@ class LocalE2ECase: XCTestCase {
     func fetch<R: Sendable>(_ endpoint: Endpoint<R>, _ api: HVClient, file: StaticString = #filePath, line: UInt = #line) async throws -> (value: R, raw: JSONValue) {
         let response = try await api.sendRaw(endpoint)
         let raw = (try? HVCoding.decoder(.verbatim).decode(JSONValue.self, from: response.data)) ?? .null
+        if ProcessInfo.processInfo.environment["HV_E2E_KEYS"] == "1" {
+            // An audit aid: the names of the keys the server sent for this call, to be set against the names the Kit reads.
+            var names = Set<String>()
+            func walk(_ value: JSONValue) {
+                switch value {
+                case .object(let object): for (key, inner) in object { names.insert(key); walk(inner) }
+                case .array(let list): list.forEach(walk)
+                default: break
+                }
+            }
+            walk(raw)
+            let path = endpoint.path.split(separator: "/").map { $0.count > 20 || $0.contains("-") && $0.count > 12 ? ":id" : String($0) }.joined(separator: "/")
+            print("e2e-keys \(endpoint.method.rawValue) /\(path) \(names.sorted().joined(separator: ","))")
+        }
+        // Every timestamp the server sends, whatever the route, must be one the Kit can read.
+        func checkDates(_ value: JSONValue, key: String) {
+            switch value {
+            case .object(let object): for (inner, v) in object { checkDates(v, key: inner) }
+            case .array(let list): list.forEach { checkDates($0, key: key) }
+            case .string(let text):
+                let dated = key.hasSuffix("_at") || key.hasSuffix("At") || ["ts", "since", "until", "expires", "deferred_until", "created", "time"].contains(key)
+                if dated, text.range(of: #"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}"#, options: .regularExpression) != nil {
+                    XCTAssertNotNil(HVDate.parse(text), "the Kit cannot read the timestamp '\(text)' in '\(key)' from \(endpoint.method.rawValue) \(endpoint.path)", file: file, line: line)
+                }
+            default: break
+            }
+        }
+        checkDates(raw, key: "")
         do {
             return (try endpoint.decode(response, endpoint.keys), raw)
         } catch {

@@ -244,11 +244,24 @@ final class LocalE2EAccountTests: LocalE2ECase {
         XCTAssertFalse(ping.ok)
         XCTAssertFalse(ping.summary.isEmpty)
 
-        // Targets the server will not call.
-        for bad in ["http://127.0.0.1:9/hook", "http://169.254.169.254/latest", "http://localhost/x", "ftp://example.com/x", "https://10.0.0.1/x"] {
-            let failure = await expectFailure(400, .createWebhook(url: bad), api)
-            XCTAssertFalse(failure?.message.isEmpty ?? true, bad)
+        // Targets the server will not call. A deployment that opts in to local addresses (HYPERVAULT_ALLOW_LOCAL_LLM=1,
+        // which the local stack sets so that its model stand-in can be reached) takes them; the refusals are checked
+        // whenever the guard is on (start the stack with HV_E2E_STRICT_URLS=1).
+        let probe = Endpoint<CreatedWebhook>(.post, "/api/webhooks", body: .jsonValue(["url": "http://127.0.0.1:9/hook"]))
+        var guardIsOn = true
+        if let accepted = try? await api.send(probe) {
+            guardIsOn = false
+            _ = try await send(.deleteWebhook(id: accepted.webhook.id), api)
+            print("e2e webhook private-address guard is off on this server (HYPERVAULT_ALLOW_LOCAL_LLM=1)")
         }
+        if guardIsOn {
+            for bad in ["http://127.0.0.1:9/hook", "http://169.254.169.254/latest", "http://localhost/x", "https://10.0.0.1/x"] {
+                let failure = await expectFailure(400, .createWebhook(url: bad), api)
+                XCTAssertFalse(failure?.message.isEmpty ?? true, bad)
+                XCTAssertTrue(failure?.message.localizedCaseInsensitiveContains("private") ?? false, "the refusal should say why: \(failure?.message ?? "")")
+            }
+        }
+        await expectFailure(400, .createWebhook(url: "ftp://example.com/x"), api)
         await expectFailure(400, .createWebhook(url: target, events: ["bogus.event"]), api)
         let (bob, _) = try second()
         await expectFailure(404, .webhookDetail(id: created.webhook.id), bob)

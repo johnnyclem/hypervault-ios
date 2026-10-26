@@ -209,7 +209,7 @@ final class LocalE2EMoreTests: LocalE2ECase {
     }
 
     func testRoutesThatNeedAServiceThatIsNotHereAnswerPlainly() async throws {
-        let (api, _) = member(26)
+        let api = try await freshMember("sidecar").client
         // The truth sidecar: the person must have chosen a handle first (the Kit knows that refusal), then there is no sidecar.
         let handleFirst = await expectFailure(409, .dismissSidecarProposal(id: "01ZZZZZZZZZZZZZZZZZZZZZZZZ", reason: "no"), api)
         XCTAssertTrue(HVError.api(try XCTUnwrap(handleFirst)).isTruthHandleRequired, "\(String(describing: handleFirst?.body))")

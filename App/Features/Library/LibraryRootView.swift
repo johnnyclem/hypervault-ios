@@ -54,6 +54,11 @@ struct LibraryScreen: View {
         let query: String
     }
 
+    /// Files are searched where they are (every page is already here), so typing does not read them again.
+    private var loadKey: LoadKey {
+        LoadKey(filter: filter, query: filter == .file ? "" : query.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
     var body: some View {
         listView
             .sheet(item: $sheet) { sheet in sheetContent(sheet) }
@@ -90,13 +95,13 @@ struct LibraryScreen: View {
         .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: LibraryCopy.searchLabel)
         .toolbar { toolbar }
         .refreshable { await model.refresh(filter: filter, query: query) }
-        .task(id: LoadKey(filter: filter, query: query.trimmingCharacters(in: .whitespacesAndNewlines))) {
+        .task(id: loadKey) {
             // A pause in typing, then the search; typing again cancels this one.
-            if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if !loadKey.query.isEmpty {
                 try? await Task.sleep(nanoseconds: 250_000_000)
                 guard !Task.isCancelled else { return }
             }
-            await model.load(filter: filter, query: query)
+            await model.load(filter: filter, query: loadKey.query)
         }
         .task { await model.loadExtras() }
     }

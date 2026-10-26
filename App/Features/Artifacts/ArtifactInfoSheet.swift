@@ -138,7 +138,7 @@ struct ArtifactInfoSheet: View {
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(option == current ? .isSelected : [])
             }
-            if current == .password, !detail.isGroup {
+            if current == .password {
                 NavigationLink {
                     ArtifactPasswordsScreen(client: detail.env.client, slug: detail.slug)
                 } label: {

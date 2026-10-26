@@ -137,6 +137,8 @@ struct SignInContent: View {
 
     private var emailButton: some View {
         Button {
+            // A line from another way in belongs to the screen behind, not to the form that opens over it.
+            controller.clearMessage()
             showEmail = true
         } label: {
             HStack(spacing: HV.Space.s) {
@@ -169,7 +171,8 @@ struct EmailCodeSheet: View {
             )
 
             if controller.emailSentTo == nil {
-                TextField("you@example.com", text: $email)
+                // The example is the prompt, not the title: VoiceOver reads the title as the field's name.
+                TextField("Email address", text: $email, prompt: .hvPrompt("you@example.com"))
                     .textContentType(.emailAddress)
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
@@ -177,7 +180,9 @@ struct EmailCodeSheet: View {
                     .focused($focus, equals: .email)
                     .submitLabel(.send)
                     .onSubmit { send() }
+                    .accessibilityHint(controller.message ?? "")
                     .hvFieldChrome(isFocused: focus == .email)
+                errorLine
 
                 Button {
                     send()
@@ -187,18 +192,20 @@ struct EmailCodeSheet: View {
                 .buttonStyle(.hvPrimary)
                 .disabled(email.isEmpty || controller.isWorking)
             } else {
-                TextField("123456", text: $code)
+                TextField("Six-digit code", text: $code, prompt: .hvPrompt("123456"))
                     .textContentType(.oneTimeCode)
                     .keyboardType(.numberPad)
                     .font(.system(.title2, design: .monospaced, weight: .semibold))
                     .multilineTextAlignment(.center)
                     .focused($focus, equals: .code)
+                    .accessibilityHint(controller.message ?? "")
                     .hvFieldChrome(isFocused: focus == .code)
                     .onChange(of: code) { _, newValue in
                         let digits = newValue.filter(\.isNumber)
                         if digits != newValue { code = digits }
                         if digits.count == 6 { verify() }
                     }
+                errorLine
 
                 Button {
                     verify()
@@ -221,15 +228,20 @@ struct EmailCodeSheet: View {
                 .buttonStyle(.hvGhost)
             }
 
-            if let message = controller.message {
-                Text(message).font(.hvFootnote).foregroundStyle(Palette.danger)
-            }
             Spacer(minLength: 0)
         }
         .padding(HV.Space.l)
         .task { focus = controller.emailSentTo == nil ? .email : .code }
         .onChange(of: controller.emailSentTo) { _, sent in
             focus = sent == nil ? .email : .code
+        }
+    }
+
+    /// What went wrong, right under the field it is about, so it is the next thing read after the field.
+    @ViewBuilder
+    private var errorLine: some View {
+        if let message = controller.message {
+            Text(message).font(.hvFootnote).foregroundStyle(Palette.danger)
         }
     }
 

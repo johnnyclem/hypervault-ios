@@ -32,7 +32,7 @@ struct WaitlistView: View {
                     }
 
                     VStack(spacing: HV.Space.s + 2) {
-                        TextField("HV-XXXX-XXXX", text: $code)
+                        TextField("Invite code", text: $code, prompt: .hvPrompt("HV-XXXX-XXXX"))
                             .font(.system(.title3, design: .monospaced, weight: .semibold))
                             .multilineTextAlignment(.center)
                             .textInputAutocapitalization(.characters)
@@ -40,6 +40,7 @@ struct WaitlistView: View {
                             .focused($focused)
                             .submitLabel(.go)
                             .onSubmit { redeem() }
+                            .accessibilityHint(message ?? "")
                             .hvFieldChrome(isFocused: focused)
 
                         Button {
@@ -130,13 +131,19 @@ struct WaitlistView: View {
                 if result.isAccepted {
                     Haptics.success()
                 } else {
-                    message = result.message
-                    Haptics.failure()
+                    reject(result.message)
                 }
             } catch {
-                message = (error as? HVError)?.userMessage ?? error.localizedDescription
-                Haptics.failure()
+                reject((error as? HVError)?.userMessage ?? error.localizedDescription)
             }
         }
+    }
+
+    /// Shows why the code did not work and says it: the line appears without moving focus, and a view that appears
+    /// is not announced.
+    private func reject(_ text: String) {
+        message = text
+        Haptics.failure()
+        AccessibilityNotification.Announcement(text).post()
     }
 }

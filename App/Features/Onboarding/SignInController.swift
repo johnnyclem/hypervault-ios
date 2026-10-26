@@ -16,14 +16,16 @@ final class SignInController {
     private(set) var emailSentTo: String?
 
     @ObservationIgnored private let auth: AuthService
+    @ObservationIgnored private let announcer: SpeechAnnouncer
     @ObservationIgnored private let presenter = WebAuthPresenter()
     @ObservationIgnored private var webSession: ASWebAuthenticationSession?
 
     static let callbackScheme = "hypervault"
     static let redirect = URL(string: "hypervault://auth/callback")!
 
-    init(auth: AuthService) {
+    init(auth: AuthService, announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared) {
         self.auth = auth
+        self.announcer = announcer
     }
 
     var isWorking: Bool { work != .idle }
@@ -75,13 +77,13 @@ final class SignInController {
         switch result {
         case .failure(let error):
             if let error = error as? ASAuthorizationError, error.code == .canceled { return }
-            message = "Sign in with Apple did not finish. Try again."
+            report("Sign in with Apple did not finish. Try again.")
         case .success(let authorization):
             guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
                   let tokenData = credential.identityToken,
                   let token = String(data: tokenData, encoding: .utf8)
             else {
-                message = "Apple did not send what HyperVault needs. Try again."
+                report("Apple did not send what HyperVault needs. Try again.")
                 return
             }
             work = .apple
@@ -101,7 +103,7 @@ final class SignInController {
         guard !isWorking else { return false }
         let trimmed = email.trimmingCharacters(in: .whitespaces)
         guard trimmed.contains("@"), trimmed.contains(".") else {
-            message = "Enter the email you want to sign in with."
+            report("Enter the email you want to sign in with.")
             return false
         }
         work = .emailSend
@@ -137,8 +139,15 @@ final class SignInController {
 
     private func fail(_ error: Error) {
         if let error = error as? AuthError, case .cancelled = error { return }
-        message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        report((error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
         Haptics.failure()
+    }
+
+    /// Shows a line about what went wrong and says it. The line is inserted without moving focus, and a view that
+    /// appears is not announced, so a person using VoiceOver would otherwise be left waiting for a result that came.
+    private func report(_ text: String) {
+        message = text
+        announcer.announce(text)
     }
 }
 

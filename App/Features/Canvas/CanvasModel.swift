@@ -410,6 +410,7 @@ final class CanvasModel: CanvasCommandHost {
                 let kept = try await client.send(.keep(content: content, sourcePrompt: sourcePrompt.map { String($0.prefix(10_000)) }))
                 dispatch(.add(CanvasState.keptCard(kept, origin: origin ?? client.baseURL)))
                 Haptics.success()
+                WidgetRefresh.reload()
             } catch {
                 let message: String
                 if let hv = error as? HVError {

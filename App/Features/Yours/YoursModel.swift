@@ -88,7 +88,10 @@ final class YoursModel {
         isStale = stale
         phase = .loaded
         // The unfiltered list is the whole of what is kept: it is what system search is given.
-        if filter == .all, !isSearching, !stale { SpotlightIndexer.index(list.results) }
+        if filter == .all, !isSearching, !stale {
+            SpotlightIndexer.index(list.results)
+            WidgetRefresh.reload()
+        }
     }
 
     private func fail(_ error: Error) {

@@ -14,6 +14,7 @@ extension AppEnvironment {
         OutboxStore.remove(ids: Set((result.kept + result.dropped).map(\.id)))
         if !result.kept.isEmpty {
             Haptics.success()
+            WidgetRefresh.reload()
             toasts.success(result.kept.count == 1 ? "Kept the thing you shared." : "Kept \(result.kept.count) things you shared.")
         }
         if !result.dropped.isEmpty {

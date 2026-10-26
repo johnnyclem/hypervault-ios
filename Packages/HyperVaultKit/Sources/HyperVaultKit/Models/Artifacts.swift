@@ -109,8 +109,33 @@ public struct ArtifactSummary: Sendable, Codable, Identifiable, Hashable {
 
     static let bookkeepingTags: Set<String> = ["agent-setup-challenge", "tasklist"]
 
-    /// The word on a row: "react" for a component, else the stored type.
+    /// The word the web puts on a row: "react" for a component, else the stored type.
     public var typeLabel: String { isJsx ? "react" : type }
+
+    /// What a person calls it: "React page", "PDF", "Group". The stored type is a developer's word.
+    public var typeName: String { ArtifactTypeName.name(type: type, isJsx: isJsx) }
+}
+
+/// The names the app gives the stored types of an artifact. The server keeps free text there
+/// (`html`, `react`, `pdf`...), so a type nobody listed still reads as a word rather than a code.
+public enum ArtifactTypeName {
+    public static func name(type: String, isJsx: Bool = false) -> String {
+        if isJsx { return "React page" }
+        switch type.lowercased() {
+        case "react", "jsx": return "React page"
+        case "html": return "HTML page"
+        case "markdown", "md": return "Markdown page"
+        case "note": return "Note"
+        case "json": return "JSON file"
+        case "pdf": return "PDF"
+        case "image": return "Image"
+        case "group": return "Group"
+        case "": return "Page"
+        default:
+            // A short code is an acronym (svg, csv); anything longer is a word.
+            return type.count <= 3 ? type.uppercased() : type.prefix(1).uppercased() + type.dropFirst()
+        }
+    }
 }
 
 public struct ArtifactList: Sendable, Codable, Equatable {
@@ -166,6 +191,87 @@ public enum ArtifactIcon {
 
     public static func secondHue(seed: String) -> Double {
         (hue(seed: seed) + 42).truncatingRemainder(dividingBy: 360)
+    }
+
+    /// A colour as CSS writes it: hue in degrees, saturation and lightness 0...1.
+    public struct Swatch: Sendable, Equatable {
+        public let hue: Double
+        public let saturation: Double
+        public let lightness: Double
+
+        public init(hue: Double, saturation: Double, lightness: Double) {
+            self.hue = hue
+            self.saturation = saturation
+            self.lightness = lightness
+        }
+
+        /// sRGB, each channel 0...1.
+        public var rgb: (red: Double, green: Double, blue: Double) {
+            let chroma = (1 - abs(2 * lightness - 1)) * saturation
+            let sector = (hue.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360) / 60
+            let second = chroma * (1 - abs(sector.truncatingRemainder(dividingBy: 2) - 1))
+            let base = lightness - chroma / 2
+            let parts: (Double, Double, Double)
+            switch Int(sector) {
+            case 0: parts = (chroma, second, 0)
+            case 1: parts = (second, chroma, 0)
+            case 2: parts = (0, chroma, second)
+            case 3: parts = (0, second, chroma)
+            case 4: parts = (second, 0, chroma)
+            default: parts = (chroma, 0, second)
+            }
+            return (parts.0 + base, parts.1 + base, parts.2 + base)
+        }
+    }
+
+    /// The icon's two gradient stops for a first hue, as the web draws them (`lib/pwa.ts`).
+    public static func stops(hue: Double) -> (first: Swatch, second: Swatch) {
+        (
+            Swatch(hue: hue, saturation: 0.85, lightness: 0.62),
+            Swatch(hue: (hue + 42).truncatingRemainder(dividingBy: 360), saturation: 0.80, lightness: 0.46)
+        )
+    }
+
+    public static func stops(seed: String) -> (first: Swatch, second: Swatch) {
+        stops(hue: hue(seed: seed))
+    }
+
+    /// WCAG relative luminance of an sRGB colour, 0 (black) to 1 (white).
+    static func luminance(_ rgb: (red: Double, green: Double, blue: Double)) -> Double {
+        func linear(_ value: Double) -> Double {
+            value <= 0.03928 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * linear(rgb.red) + 0.7152 * linear(rgb.green) + 0.0722 * linear(rgb.blue)
+    }
+
+    /// The contrast of white lettering on the icon's gradient, at its brightest where a glyph sits
+    /// (a third to two thirds of the way along; the gradient blends in sRGB, as SwiftUI blends it).
+    public static func whiteGlyphContrast(hue: Double) -> Double {
+        let (first, second) = stops(hue: hue)
+        let a = first.rgb
+        let b = second.rgb
+        var brightest = 0.0
+        for t in [0.3, 0.5, 0.7] as [Double] {
+            let red: Double = a.red + (b.red - a.red) * t
+            let green: Double = a.green + (b.green - a.green) * t
+            let blue: Double = a.blue + (b.blue - a.blue) * t
+            brightest = max(brightest, luminance((red: red, green: green, blue: blue)))
+        }
+        return 1.05 / (brightest + 0.05)
+    }
+
+    public static func whiteGlyphContrast(seed: String) -> Double {
+        whiteGlyphContrast(hue: hue(seed: seed))
+    }
+
+    /// Whether the glyph on this icon is drawn dark. The web's white letter is unreadable on the
+    /// yellows and greens its hash can land on; a glyph is large bold type, so 3:1 is what it has to hold.
+    public static func prefersDarkGlyph(hue: Double) -> Bool {
+        whiteGlyphContrast(hue: hue) < 3
+    }
+
+    public static func prefersDarkGlyph(seed: String) -> Bool {
+        prefersDarkGlyph(hue: hue(seed: seed))
     }
 }
 

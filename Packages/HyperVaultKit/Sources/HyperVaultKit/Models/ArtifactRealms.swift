@@ -257,6 +257,8 @@ public struct SharedWithYouItem: Sendable, Codable, Identifiable, Hashable {
 
     public var isGroup: Bool { type == "group" }
     public var typeLabel: String { isJsx ? "react" : type }
+    /// What a person calls it: "React page", "PDF", "Group".
+    public var typeName: String { ArtifactTypeName.name(type: type, isJsx: isJsx) }
 }
 
 struct SharedWithYouRow: Decodable, Sendable {

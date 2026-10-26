@@ -7,6 +7,7 @@ import SwiftUI
 struct ShareView: View {
     let context: NSExtensionContext?
     @State private var model = ShareModel()
+    @State private var celebrated = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -103,7 +104,8 @@ struct ShareView: View {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 52))
                 .foregroundStyle(Palette.success)
-                .symbolEffect(.bounce)
+                .symbolEffect(.bounce, value: celebrated)
+                .onAppear { celebrated = true }
             Text(kept.duplicate ? HVCopy.alreadyKeptLine : HVCopy.keptLine)
                 .font(.hvTitle3)
             if kept.isPrivate {

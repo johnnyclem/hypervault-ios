@@ -60,7 +60,7 @@ final class AppModel {
         self.cache = DiskCache(directory: cacheDirectory)
     }
 
-    static func cacheDirectory() -> URL {
+    nonisolated static func cacheDirectory() -> URL {
         let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
         return base.appendingPathComponent("HyperVault", isDirectory: true)

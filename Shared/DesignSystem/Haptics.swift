@@ -5,7 +5,7 @@ import UIKit
 /// them all off.
 @MainActor
 enum Haptics {
-    static let preferenceKey = "pref.haptics"
+    nonisolated static let preferenceKey = "pref.haptics"
 
     private static var isEnabled: Bool {
         UserDefaults.standard.object(forKey: preferenceKey) as? Bool ?? true

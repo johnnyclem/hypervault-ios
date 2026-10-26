@@ -24,15 +24,17 @@ struct MailComposeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.m) {
                     recipient
-                    TextField("Subject", text: $subject)
-                        .focused($focus, equals: .subject)
-                        .submitLabel(.next)
-                        .onSubmit { focus = .body }
-                        .hvFieldChrome(isFocused: focus == .subject)
-                    TextField("Note", text: $text, axis: .vertical)
-                        .lineLimit(6...20)
-                        .focused($focus, equals: .body)
-                        .hvFieldChrome(isFocused: focus == .body)
+                    HVLabeledField(title: "Subject (optional)") {
+                        TextField("What it is about", text: $subject)
+                            .focused($focus, equals: .subject)
+                            .submitLabel(.next)
+                            .onSubmit { focus = .body }
+                    }
+                    HVLabeledField(title: "Note") {
+                        TextField("Write to your agents", text: $text, axis: .vertical)
+                            .lineLimit(6...20)
+                            .focused($focus, equals: .body)
+                    }
                     if let errorMessage {
                         Text(errorMessage)
                             .font(.hvFootnote)
@@ -67,21 +69,40 @@ struct MailComposeView: View {
 
     private var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
+    /// Who it goes to, with the one privacy signal on its own line: three things in one row left the tag
+    /// wrapping into a tall capsule, and would do worse at a larger text size.
     private var recipient: some View {
-        HStack(spacing: HV.Space.xs) {
-            Text("To: your agents")
-                .font(.hvSubheadline)
-                .foregroundStyle(Palette.textSecondary)
-            if let address {
-                Text(address)
-                    .font(.hvMono)
-                    .foregroundStyle(Palette.textTertiary)
-                    .lineLimit(1)
+        VStack(alignment: .leading, spacing: HV.Space.xs) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
+                    recipientName
+                    recipientAddress
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    recipientName
+                    recipientAddress
+                }
             }
             if !agentsSeeReplies { MailNotSharedTag() }
-            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+
+    private var recipientName: some View {
+        Text("To: your agents")
+            .font(.hvSubheadline)
+            .foregroundStyle(Palette.textSecondary)
+    }
+
+    @ViewBuilder
+    private var recipientAddress: some View {
+        if let address {
+            Text(address)
+                .font(.hvMono)
+                .foregroundStyle(Palette.textSecondary)
+                .lineLimit(1)
+        }
     }
 
     private func send() {

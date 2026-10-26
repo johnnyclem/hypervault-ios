@@ -113,20 +113,30 @@ struct TaskBoardScreen: View {
     private var board: some View {
         List {
             if model.isShowingSavedCopy {
-                HVStaleBanner()
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
+                Section {
+                    HVStaleBanner()
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
+                }
             }
-            headerRow
-            addRow
+            Section {
+                summaryRow
+                filterRow
+            }
+            Section { addRow }
             if let current = model.board, current.tasks.isEmpty {
-                HVEmptyState(symbol: "checklist", title: "Nothing here yet.", message: "Add the first task above. Your agents will see it too.")
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
+                Section {
+                    HVEmptyState(symbol: "checklist", title: "Nothing here yet.", message: "Add the first task above. Your agents will see it too.")
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                }
             } else if model.groups.isEmpty {
-                HVEmptyState(symbol: "line.3.horizontal.decrease.circle", title: "Nothing matches.", message: "Try another filter.")
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
+                Section {
+                    HVEmptyState(symbol: "line.3.horizontal.decrease.circle", title: "Nothing matches.", message: "Try another filter.")
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                }
             }
             ForEach(model.groups) { group in
                 Section {
@@ -140,34 +150,56 @@ struct TaskBoardScreen: View {
                 }
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .refreshable { await model.refreshAndReport() }
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: model.board)
     }
 
-    private var headerRow: some View {
+    /// How far along the board is, and when it last moved. The row sits on the page, not on paper: it is
+    /// the board's own heading, not one of its tasks.
+    private var summaryRow: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
             if let summary = model.summary {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("\(summary.progress)%")
-                        .font(.system(.title, design: .rounded, weight: .bold))
-                    Text("\(summary.done) of \(summary.countable) done")
-                        .font(.hvSubheadline)
-                        .foregroundStyle(Palette.textSecondary)
-                    Spacer()
-                    if let version = model.board?.version {
-                        Text("rev \(version)").font(.hvCaption).foregroundStyle(Palette.textTertiary)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
+                        progressFigures(summary)
+                        Spacer(minLength: HV.Space.xs)
+                        updatedLine
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        progressFigures(summary)
+                        updatedLine
                     }
                 }
                 TaskProgressBar(done: summary.done, total: summary.countable)
                 statusLine(summary)
             }
-            filterBar
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)
-        .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
+        .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
+    }
+
+    private func progressFigures(_ summary: TaskBoardSummary) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
+            Text("\(summary.progress)%")
+                .font(.system(.title, design: .rounded, weight: .bold))
+            Text("\(summary.done) of \(summary.countable) done")
+                .font(.hvSubheadline)
+                .foregroundStyle(Palette.textSecondary)
+        }
+    }
+
+    /// When the board last changed, in a person's words. A revision number means nothing to them.
+    @ViewBuilder
+    private var updatedLine: some View {
+        if let updated = model.board?.updatedAt {
+            Text("Updated \(HVCopy.ago(since: updated).lowercased())")
+                .font(.hvCaption)
+                .foregroundStyle(Palette.textSecondary)
+        }
     }
 
     @ViewBuilder
@@ -184,7 +216,9 @@ struct TaskBoardScreen: View {
         }
     }
 
-    private var filterBar: some View {
+    /// The filter chips. The row has no side insets of its own so the chips can scroll out to the edge of
+    /// the screen; the first one starts where the heading above it does.
+    private var filterRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: HV.Space.xs) {
                 ForEach(TaskBoardFilter.allCases) { filter in
@@ -201,7 +235,11 @@ struct TaskBoardScreen: View {
                 }
             }
         }
-        .padding(.horizontal, -HV.Space.xxs)
+        .contentMargins(.horizontal, HV.Space.m, for: .scrollContent)
+        .scrollClipDisabled()
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets())
     }
 
     private var addRow: some View {
@@ -216,8 +254,7 @@ struct TaskBoardScreen: View {
                 .onSubmit { addTask() }
         }
         .frame(minHeight: 44)
-        .listRowBackground(Palette.surface)
-        .listRowSeparator(.hidden)
+        .hvListRow()
     }
 
     private func groupHeader(_ group: TaskBoardGroup) -> some View {
@@ -230,16 +267,12 @@ struct TaskBoardScreen: View {
         } label: {
             HStack(spacing: HV.Space.xs) {
                 Image(systemName: group.status.symbol).foregroundStyle(group.status.tint)
-                Text(group.status.title)
-                Text("\(group.rows.count)").foregroundStyle(Palette.textTertiary)
-                Spacer()
+                HVSectionHeader(title: group.status.title, detail: "\(group.rows.count)")
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(.caption2, weight: .bold))
                     .rotationEffect(.degrees(isCollapsed ? -90 : 0))
-                    .foregroundStyle(Palette.textTertiary)
+                    .foregroundStyle(Palette.textSecondary)
             }
-            .font(.system(.subheadline, design: .rounded, weight: .semibold))
-            .foregroundStyle(Palette.textSecondary)
             .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
@@ -263,7 +296,7 @@ struct TaskBoardScreen: View {
             .disabled(temporary)
         }
         .padding(.leading, CGFloat(min(row.depth, 3)) * HV.Space.l)
-        .listRowBackground(Palette.surface)
+        .hvListRow()
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             Button {
                 tick(task)
@@ -338,6 +371,7 @@ struct TaskRowBody: View {
     let task: BoardTask
     let rollup: (done: Int, total: Int)?
     let parentTitle: String?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -345,13 +379,13 @@ struct TaskRowBody: View {
                 .font(.hvBody)
                 .foregroundStyle(task.status == .done || task.status == .cancelled ? Palette.textTertiary : Palette.textPrimary)
                 .strikethrough(task.status == .done || task.status == .cancelled, color: Palette.textTertiary)
-                .lineLimit(3)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let line = detailLine {
                 Text(line)
                     .font(.hvCaption)
                     .foregroundStyle(Palette.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
             }
             if let holder = task.holder {
                 HStack(spacing: 4) {

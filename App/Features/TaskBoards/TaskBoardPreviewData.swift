@@ -13,9 +13,10 @@ enum TaskBoardPreviewData {
         let now = HVDate.format(Date())
         let later = HVDate.format(Date().addingTimeInterval(3000))
         let earlier = HVDate.format(Date().addingTimeInterval(-3600))
+        let moved = HVDate.format(Date().addingTimeInterval(-12 * 60))
         return """
         {"$schema":"https://hypervault.store/schemas/tasklist-v1.json","schemaVersion":1,"id":"eurorack-choir",
-         "title":"Eurorack Choir Module","version":42,"settings":{},"createdAt":"\(earlier)","updatedAt":"\(now)",
+         "title":"Eurorack Choir Module","version":42,"settings":{},"createdAt":"\(earlier)","updatedAt":"\(moved)",
          "tasks":[
           {"id":"epic-hw","title":"Hardware","type":"epic","status":"in_progress","assignee":{"kind":"unassigned"},"parent":null,"children":["t-panels","t-psu"]},
           {"id":"t-panels","title":"Order the front panels","type":"task","status":"in_progress","priority":"high","activeForm":"Comparing three quotes",

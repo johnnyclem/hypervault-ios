@@ -107,7 +107,7 @@ struct MailHeldScreen: View {
             } else {
                 ForEach(model.messages) { message in
                     VStack(alignment: .leading, spacing: HV.Space.s) {
-                        MailMessageCard(message: message)
+                        MailMessageCard(message: message, style: .held)
                         Button("Let agents see this") {
                             Haptics.tap()
                             candidate = message

@@ -14,7 +14,16 @@ final class MailModel {
         case failed(String)
     }
 
+    /// Why the mailboxes could not be read, so the screen can tell a server that has no mail (a calm
+    /// notice, nothing to retry) from a connection that dropped (worth trying again).
+    enum Problem: Equatable {
+        case unavailable
+        case offline
+        case other
+    }
+
     private(set) var mailboxState: Load = .loading
+    private(set) var mailboxProblem: Problem = .other
     private(set) var mailboxes: [OwnerMailbox] = []
     private(set) var activeID: String?
     private(set) var mailboxesAreSaved = false
@@ -57,12 +66,25 @@ final class MailModel {
     /// What is on screen came from the phone, not the server (yet, or because the server could not be reached).
     var isShowingSavedCopy: Bool { mailboxesAreSaved || listIsSaved }
 
+    /// The server has no mail at all (the migration was never run): nothing here can work, so the screen says so.
+    var isMailUnavailable: Bool {
+        if case .failed = mailboxState { return mailboxProblem == .unavailable }
+        return false
+    }
+
     var totalUnread: Int { mailboxes.reduce(0) { $0 + $1.unreadCount } }
 
     private var service: MailService { MailService(client: client) }
 
     static func sentence(_ error: Error) -> String {
         (error as? HVError)?.mailSentence ?? error.localizedDescription
+    }
+
+    static func problem(for error: Error) -> Problem {
+        guard let failure = error as? HVError else { return .other }
+        if failure.isMailUnavailable { return .unavailable }
+        if case .transport = failure { return .offline }
+        return .other
     }
 
     // MARK: Loading
@@ -97,7 +119,10 @@ final class MailModel {
                 mailboxState = .loaded
             }
         } catch {
-            if !quiet || mailboxState != .loaded { mailboxState = .failed(Self.sentence(error)) }
+            if !quiet || mailboxState != .loaded {
+                mailboxProblem = Self.problem(for: error)
+                mailboxState = .failed(Self.sentence(error))
+            }
         }
     }
 

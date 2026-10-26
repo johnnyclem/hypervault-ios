@@ -91,19 +91,24 @@ struct TaskBoardsScreen: View {
     private var list: some View {
         List {
             if model.isShowingSavedCopy {
-                HVStaleBanner()
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-            }
-            ForEach(model.boards) { board in
-                NavigationLink(value: board) {
-                    TaskBoardRowView(board: board, summary: model.summaries[board.project])
+                Section {
+                    HVStaleBanner()
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
                 }
-                .listRowBackground(Palette.surface)
-                .task { await model.loadSummary(for: board) }
+            }
+            Section {
+                ForEach(model.boards) { board in
+                    NavigationLink(value: board) {
+                        TaskBoardRowView(board: board, summary: model.summaries[board.project])
+                    }
+                    .hvListRow()
+                    .task { await model.loadSummary(for: board) }
+                }
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .refreshable { await model.refresh() }
     }
@@ -189,17 +194,15 @@ struct TaskBoardCreateView: View {
                     Text("A board is a list you share with your agents. They claim tasks and tick them off; you can do the same.")
                         .font(.hvCallout)
                         .foregroundStyle(Palette.textSecondary)
-                    TextField("What is it for?", text: $draft.title)
-                        .focused($focused)
-                        .submitLabel(.next)
-                        .hvFieldChrome(isFocused: focused)
-                    VStack(alignment: .leading, spacing: HV.Space.xs) {
-                        Text("A first plan (optional)")
-                            .font(.hvFootnote)
-                            .foregroundStyle(Palette.textSecondary)
-                        TextField("One task per line", text: $draft.plan, axis: .vertical)
+                    // The footnote says why the button below is off until there is a name.
+                    HVLabeledField(title: "Name", footnote: draft.canCreate ? nil : "Give it a name to start.") {
+                        TextField("What is it for?", text: $draft.title)
+                            .focused($focused)
+                            .submitLabel(.next)
+                    }
+                    HVLabeledField(title: "A first plan (optional)", footnote: "One task per line. Your agents see them too.") {
+                        TextField("Order the front panels", text: $draft.plan, axis: .vertical)
                             .lineLimit(5...12)
-                            .hvFieldChrome()
                     }
                     if let errorMessage {
                         Text(errorMessage).font(.hvFootnote).foregroundStyle(Palette.danger)

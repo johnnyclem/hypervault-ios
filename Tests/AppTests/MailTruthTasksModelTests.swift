@@ -220,6 +220,38 @@ final class MailModelTests: XCTestCase {
         await model.start()
         guard case .failed(let message) = model.mailboxState else { return XCTFail("expected a failure") }
         XCTAssertEqual(message, "Agent Mail is not set up on this server yet.")
+        XCTAssertEqual(model.mailboxProblem, .unavailable)
+        XCTAssertTrue(model.isMailUnavailable, "the screen shows its calm notice and turns writing off")
+    }
+
+    func testALostConnectionIsNotTakenForMailThatIsNotSetUp() async throws {
+        let transport = OfflineTransport()
+        let client = HVClient(baseURL: URL(string: "https://offline.hypervault.test")!, transport: transport, tokens: StaticTokenProvider(), retry: .none)
+        let cache = DiskCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-offline-\(UUID().uuidString)"))
+        let model = MailModel(client: client, cache: cache, namespace: "tests")
+        await model.start()
+        XCTAssertEqual(model.mailboxProblem, .offline)
+        XCTAssertFalse(model.isMailUnavailable, "a dropped connection keeps its way to try again")
+    }
+
+    func testAServerFaultIsNeitherOfThose() async throws {
+        let model = model([.failure(.get, "/api/mail/owner/mailboxes", status: 500, message: "Something broke.")])
+        await model.start()
+        XCTAssertEqual(model.mailboxProblem, .other)
+        XCTAssertFalse(model.isMailUnavailable)
+    }
+
+    func testMailThatWorksIsNotMarkedUnavailable() async throws {
+        let model = model(MailPreviewData.routes)
+        await model.start()
+        XCTAssertFalse(model.isMailUnavailable)
+    }
+}
+
+/// A network that is never there: every request fails the way a phone with no signal does.
+private struct OfflineTransport: HTTPTransport {
+    func send(_ request: URLRequest) async throws -> HTTPResponse {
+        throw URLError(.notConnectedToInternet)
     }
 }
 

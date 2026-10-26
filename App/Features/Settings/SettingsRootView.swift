@@ -22,12 +22,11 @@ struct SettingsRootView: View {
     var body: some View {
         Form {
             Section(header: HVSectionHeader(title: "Look")) {
-                Picker("Appearance", selection: $appearance) {
+                AdaptiveChoicePicker(title: "Appearance", selection: $appearance) {
                     ForEach(AppearanceChoice.allCases) { choice in
                         Text(choice.title).tag(choice)
                     }
                 }
-                .pickerStyle(.segmented)
 
                 VStack(alignment: .leading, spacing: HV.Space.s) {
                     Text("Accent").font(.hvBody)

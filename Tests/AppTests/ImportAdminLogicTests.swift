@@ -88,13 +88,13 @@ final class ImportZipInflaterTests: XCTestCase {
 
 @MainActor
 final class ImportModelTests: XCTestCase {
-    private func model(_ routes: [MockRoute], announcer: FeatureAnnouncer = FeaturesRecordingAnnouncer()) -> ImportModel {
+    private func model(_ routes: [MockRoute], announcer: FeatureAnnouncer? = nil) -> ImportModel {
         model(transport: MockTransport(routes: routes), announcer: announcer)
     }
 
-    private func model(transport: HTTPTransport, announcer: FeatureAnnouncer = FeaturesRecordingAnnouncer()) -> ImportModel {
+    private func model(transport: HTTPTransport, announcer: FeatureAnnouncer? = nil) -> ImportModel {
         let client = HVClient(baseURL: URL(string: "https://t.test")!, transport: transport, tokens: StaticTokenProvider(), retry: .none, sleep: { _ in })
-        return ImportModel(client: client, importBytes: 50_000_000, announcer: announcer)
+        return ImportModel(client: client, importBytes: 50_000_000, announcer: announcer ?? FeaturesRecordingAnnouncer())
     }
 
     private func history(_ count: Int) -> ImportDocument {
@@ -276,16 +276,18 @@ private final class ImportHangingTransport: HTTPTransport, @unchecked Sendable {
     var started: Int { lock.lock(); defer { lock.unlock() }; return arrived }
     var cancelled: Int { lock.lock(); defer { lock.unlock() }; return cancellations }
 
-    func send(_ request: URLRequest) async throws -> HTTPResponse {
+    private func count(arrival: Bool) {
         lock.lock()
-        arrived += 1
+        if arrival { arrived += 1 } else { cancellations += 1 }
         lock.unlock()
+    }
+
+    func send(_ request: URLRequest) async throws -> HTTPResponse {
+        count(arrival: true)
         do {
             try await Task.sleep(nanoseconds: 60_000_000_000)
         } catch {
-            lock.lock()
-            cancellations += 1
-            lock.unlock()
+            count(arrival: false)
             throw error
         }
         return HTTPResponse(status: 200)

@@ -11,26 +11,26 @@ struct ClaimRealmView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
 
-    private enum Availability: Equatable {
-        case idle
-        case checking
-        case available
-        case unavailable(String)
-    }
-
     private struct Query: Equatable {
         var name: String
         var base: String
     }
 
+    @State private var flow: RealmClaimFlow
     @State private var base = ""
     @State private var name = ""
-    @State private var availability = Availability.idle
-    @State private var claiming = false
-    @State private var failure: String?
-    @State private var claimed: ClaimResult?
     @State private var webPage: KeysWebPage?
     @FocusState private var nameFocused: Bool
+    /// Claiming replaces the page, and the button VoiceOver was on with it.
+    @AccessibilityFocusState private var celebrationFocused: Bool
+
+    init(model: RealmsModel) {
+        self.model = model
+        _flow = State(initialValue: RealmClaimFlow(
+            checkName: { name, base in try await model.availability(name: name, base: base) },
+            claimName: { name, base in try await model.claim(name: name, base: base) }
+        ))
+    }
 
     private var portfolio: [Capabilities.PortfolioDomain] { RealmRules.ordered(env.capabilities.domains) }
 
@@ -41,7 +41,7 @@ struct ClaimRealmView: View {
 
     var body: some View {
         ScrollView {
-            if let claimed {
+            if let claimed = flow.claimed {
                 celebration(claimed)
             } else {
                 picker
@@ -49,14 +49,14 @@ struct ClaimRealmView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if claimed == nil { claimBar }
+            if flow.claimed == nil { claimBar }
         }
         .hvScreenBackground()
         .navigationTitle("Claim an address")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $webPage) { page in KeysSafariSheet(url: page.url).ignoresSafeArea() }
         // Debounced live availability: each change restarts the wait, and a stale answer is dropped.
-        .task(id: Query(name: name, base: chosenBase)) { await checkAvailability() }
+        .task(id: Query(name: name, base: chosenBase)) { await flow.check(name: name, base: chosenBase) }
     }
 
     // MARK: Picking
@@ -79,7 +79,7 @@ struct ClaimRealmView: View {
                 }
                 availabilityLine
                     .frame(minHeight: 20, alignment: .leading)
-                if let failure { KeysInlineMessage(text: failure) }
+                if let failure = flow.failure { KeysInlineMessage(text: failure) }
             }
 
             VStack(alignment: .leading, spacing: HV.Space.s) {
@@ -97,7 +97,7 @@ struct ClaimRealmView: View {
     }
 
     private var nameField: some View {
-        TextField("nova", text: $name)
+        TextField("Address name", text: $name, prompt: Text.hvPrompt("nova"))
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .keyboardType(.asciiCapable)
@@ -106,7 +106,7 @@ struct ClaimRealmView: View {
             .onChange(of: name) { _, value in
                 let lowered = value.lowercased()
                 if lowered != value { name = lowered }
-                failure = nil
+                flow.failure = nil
             }
             .hvFieldChrome(isFocused: nameFocused)
     }
@@ -123,12 +123,13 @@ struct ClaimRealmView: View {
     private var claimBar: some View {
         VStack(spacing: HV.Space.xs) {
             Button {
-                Task { await claim() }
+                Task { await flow.claim(name: name, base: chosenBase) }
             } label: {
-                if claiming { ProgressView().tint(.white) } else { Text("Claim my address") }
+                if flow.claiming { ProgressView().tint(.white) } else { Text("Claim my address") }
             }
             .buttonStyle(.hvPrimary)
-            .disabled(availability != .available || claiming)
+            .disabled(flow.availability != .available || flow.claiming)
+            .accessibilityHint(flow.availability == .available ? "" : "Pick a name that is free first.")
         }
         .padding(.horizontal, HV.Space.m)
         .padding(.top, HV.Space.s)
@@ -192,7 +193,7 @@ struct ClaimRealmView: View {
     @ViewBuilder
     private var availabilityLine: some View {
         let preview = "\(name).\(chosenBase)"
-        switch availability {
+        switch flow.availability {
         case .idle:
             Text("Your address will live at \(name.isEmpty ? "you" : name).\(chosenBase)")
                 .font(.hvFootnote).foregroundStyle(Palette.textSecondary)
@@ -205,46 +206,6 @@ struct ClaimRealmView: View {
         }
     }
 
-    // MARK: Checking and claiming
-
-    private func checkAvailability() async {
-        let current = name
-        let base = chosenBase
-        guard !current.isEmpty else { availability = .idle; return }
-        switch RealmRules.validate(current) {
-        case .failure(let problem):
-            availability = .unavailable(problem.message)
-            return
-        case .success(let valid):
-            availability = .checking
-            // Wait for a pause in typing; a change cancels this task before the request goes out.
-            try? await Task.sleep(nanoseconds: 350_000_000)
-            if Task.isCancelled { return }
-            do {
-                let answer = try await model.availability(name: valid, base: base)
-                if Task.isCancelled { return }
-                availability = answer.available ? .available : .unavailable(answer.reason ?? "That name is taken.")
-            } catch {
-                // Rate limited or a hiccup: stay quiet, claiming still validates.
-                if !Task.isCancelled { availability = .idle }
-            }
-        }
-    }
-
-    private func claim() async {
-        guard case .success(let valid) = RealmRules.validate(name) else { return }
-        claiming = true
-        failure = nil
-        defer { claiming = false }
-        do {
-            claimed = try await model.claim(name: valid, base: chosenBase)
-            Haptics.success()
-        } catch {
-            failure = keysMessage(for: error)
-            Haptics.failure()
-        }
-    }
-
     // MARK: Done
 
     private func celebration(_ result: ClaimResult) -> some View {
@@ -254,7 +215,11 @@ struct ClaimRealmView: View {
                 .foregroundStyle(Palette.brandGradient)
                 .accessibilityHidden(true)
             VStack(spacing: HV.Space.xs) {
-                Text("\(result.domain) is yours").font(.hvTitle).multilineTextAlignment(.center)
+                Text("\(result.domain) is yours")
+                    .font(.hvTitle)
+                    .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityFocused($celebrationFocused)
                 Text(result.message ?? "It is live now.")
                     .font(.hvCallout)
                     .foregroundStyle(Palette.textSecondary)
@@ -274,6 +239,7 @@ struct ClaimRealmView: View {
         }
         .padding(HV.Space.xl)
         .hvReadableWidth()
+        .task { celebrationFocused = true }
     }
 }
 

@@ -332,3 +332,23 @@ final class CallCounter: @unchecked Sendable {
     func increment() { lock.lock(); count += 1; lock.unlock() }
     var value: Int { lock.lock(); defer { lock.unlock() }; return count }
 }
+
+final class AccountWordsTests: XCTestCase {
+    func testAgoLine() {
+        let cases: [(TimeInterval, String)] = [
+            (0, "Just now"), (59, "Just now"), (-30, "Just now"), (.nan, "Just now"),
+            (60, "1 min ago"), (59 * 60, "59 min ago"), (3600, "1 hr ago"), (23 * 3600, "23 hr ago"),
+            (24 * 3600, "Yesterday"), (47 * 3600, "Yesterday"), (48 * 3600, "2 days ago"), (29 * 86400, "29 days ago"),
+            (30 * 86400, "1 month ago"), (90 * 86400, "3 months ago"), (365 * 86400, "1 year ago"), (800 * 86400, "2 years ago"),
+        ]
+        for (seconds, line) in cases { XCTAssertEqual(AccountWords.agoLine(seconds: seconds), line, "\(seconds)") }
+    }
+
+    func testLastUsedLine() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        XCTAssertEqual(AccountWords.lastUsedLine(nil, now: now), "Never used")
+        XCTAssertEqual(AccountWords.lastUsedLine(now.addingTimeInterval(-3 * 86400), now: now), "Last used 3 days ago")
+        XCTAssertEqual(AccountWords.lastUsedLine(now.addingTimeInterval(-86400), now: now), "Last used yesterday")
+        XCTAssertEqual(AccountWords.lastUsedLine(now, now: now), "Last used just now")
+    }
+}

@@ -399,3 +399,38 @@ extension Endpoint where Response == OnboardingRecord {
         return Endpoint(.patch, "/api/onboarding", body: .jsonValue(.object(body)))
     }
 }
+
+// MARK: Words
+
+/// Lines the key and vault lists share with the web's lists (lib/copy.ts).
+public enum AccountWords {
+    public static let neverUsed = "Never used"
+
+    public static func lastUsed(_ ago: String) -> String { "Last used \(ago)" }
+
+    public static let mailSendLabel = "Can send mail"
+
+    /// How long ago something was last used: the biggest unit that fits, rounded down. Anything under a
+    /// minute, in the future (a clock that disagrees with the server's) or not a number is "Just now".
+    public static func agoLine(seconds: TimeInterval) -> String {
+        guard seconds >= 60 else { return "Just now" }
+        let minutes = Int(seconds / 60)
+        if minutes < 60 { return "\(minutes) min ago" }
+        let hours = minutes / 60
+        if hours < 24 { return "\(hours) hr ago" }
+        let days = hours / 24
+        if days < 2 { return "Yesterday" }
+        if days < 30 { return "\(days) days ago" }
+        let months = days / 30
+        if days < 365 { return months == 1 ? "1 month ago" : "\(months) months ago" }
+        let years = days / 365
+        return years == 1 ? "1 year ago" : "\(years) years ago"
+    }
+
+    /// "Last used 3 days ago", or "Never used" for a key or secret nothing has read.
+    public static func lastUsedLine(_ date: Date?, now: Date = Date()) -> String {
+        guard let date else { return neverUsed }
+        let ago = agoLine(seconds: now.timeIntervalSince(date))
+        return lastUsed(ago.prefix(1).lowercased() + ago.dropFirst())
+    }
+}

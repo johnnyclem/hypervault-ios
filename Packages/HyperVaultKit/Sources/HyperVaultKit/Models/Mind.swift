@@ -307,6 +307,15 @@ public struct MindCommitLog: Sendable, Codable, Equatable {
     }
 
     enum Keys: String, CodingKey { case branch, commits }
+
+    /// The most commits the route gives for one branch.
+    public static let maxLimit = 200
+
+    /// Whether `commit` is part of this branch's history as far as the log shows: one of its commits, or the other
+    /// parent of a merge among them. A commit that is not found may still be further back than the log reaches.
+    public func holds(_ commit: String) -> Bool {
+        commits.contains { $0.id == commit || $0.mergeParentCommitId == commit }
+    }
 }
 
 // MARK: Diffs
@@ -644,6 +653,18 @@ public struct MindStateDiff: Sendable, Codable, Hashable {
         return MindSummaryText.join(parts)
     }
 
+    /// A diff taken from `target` to `source`, said as how the two branches differ and not as what a merge does. A merge
+    /// takes what `source` changed since the two split; a memory only `target` has was not forgotten by `source`.
+    public func differenceSummary(source: String, target: String) -> String {
+        var parts: [String] = []
+        if !added.isEmpty { parts.append(MindSummaryText.count(added.count, "only on \(source)")) }
+        if !changed.isEmpty { parts.append(MindSummaryText.count(changed.count, "different")) }
+        if !removed.isEmpty { parts.append(MindSummaryText.count(removed.count, "only on \(target)")) }
+        let links = linksAdded.count + linksRemoved.count
+        if links > 0 { parts.append(MindSummaryText.count(links, links == 1 ? "link differs" : "links differ")) }
+        return MindSummaryText.join(parts)
+    }
+
     /// Titles for the ids a diff mentions, so a link can be read as two names.
     public var titles: [String: String] {
         var map: [String: String] = [:]
@@ -738,7 +759,10 @@ public struct MindStateMemory: Sendable, Codable, Identifiable, Hashable {
     public let summary: String
     public let tags: [String]
     public let source: String
+    /// When the commit that made this version was made.
     public let committedAt: Date?
+    /// The revision this version is, when the server says (it does not yet): the exact thing to restore.
+    public let revisionId: String?
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Keys.self)
@@ -748,9 +772,10 @@ public struct MindStateMemory: Sendable, Codable, Identifiable, Hashable {
         tags = try c.decodeIfPresent([String].self, forKey: .tags) ?? []
         source = try c.decodeIfPresent(String.self, forKey: .source) ?? "manual"
         committedAt = try c.decodeIfPresent(Date.self, forKey: .committedAt)
+        revisionId = try c.decodeIfPresent(String.self, forKey: .revisionId)
     }
 
-    enum Keys: String, CodingKey { case id, title, summary, tags, source, committedAt }
+    enum Keys: String, CodingKey { case id, title, summary, tags, source, committedAt, revisionId }
 }
 
 /// `GET /api/mind/state?at=`: the whole mind as it stood at a point.

@@ -76,6 +76,41 @@ final class MindTests: XCTestCase {
         }
     }
 
+    func testALogHoldsTheCommitsAndTheMergesItTookIn() throws {
+        let log = try decode(MindCommitLog.self, #"""
+        {"branch":"main","commits":[
+          {"id":"m1","message":"merge ideas into main","author_kind":"user","parent_commit_id":"c2","merge_parent_commit_id":"x2","created_at":"2026-10-25T10:00:00Z"},
+          {"id":"c2","message":"memorize: A","author_kind":"user","parent_commit_id":"c1","created_at":"2026-10-24T10:00:00Z"},
+          {"id":"c1","message":"genesis","author_kind":"system","created_at":"2026-09-01T10:00:00Z"}]}
+        """#)
+        XCTAssertTrue(log.holds("c1"), "on the branch")
+        XCTAssertTrue(log.holds("m1"))
+        XCTAssertTrue(log.holds("x2"), "the other branch's last commit, merged in")
+        XCTAssertFalse(log.holds("x1"), "not in what the log shows")
+        XCTAssertFalse(MindCommitLog().holds("c1"))
+    }
+
+    func testTwoBranchesAreSaidAsHowTheyDifferNotAsWhatAMergeDoes() throws {
+        let diff = try decode(MindStateDiff.self, #"""
+        {"from":{"ref":"main","commit_id":"c9"},"to":{"ref":"ideas","commit_id":"c13"},
+         "memories":{"added":[{"id":"b","title":"B"}],"removed":[{"id":"a","title":"A"},{"id":"a2","title":"A2"}],
+           "changed":[{"id":"m","title_from":"M","title_to":"M","tags_added":[],"tags_removed":[],"content_changed":true,"diff":{"hunks":[],"oversize":false}}]},
+         "links":{"added":[{"a_id":"a","b_id":"b","kind":"auto"}],"removed":[]}}
+        """#)
+        XCTAssertEqual(
+            diff.differenceSummary(source: "ideas", target: "main"),
+            "1\u{00A0}only\u{00A0}on\u{00A0}ideas\u{00A0}\u{00B7} 1\u{00A0}different\u{00A0}\u{00B7} 2\u{00A0}only\u{00A0}on\u{00A0}main\u{00A0}\u{00B7} 1\u{00A0}link\u{00A0}differs"
+        )
+        XCTAssertFalse(diff.differenceSummary(source: "ideas", target: "main").contains("forgotten"))
+        XCTAssertEqual(diff.to.commitId, "c13", "the source's last commit, which the target's log may already hold")
+    }
+
+    func testAStateRowCarriesTheRevisionWhenTheServerSendsIt() throws {
+        let row = try decode(MindStateMemory.self, #"{"id":"m1","title":"T","revision_id":"r7","committed_at":"2026-10-21T10:00:00Z"}"#)
+        XCTAssertEqual(row.revisionId, "r7")
+        XCTAssertNil(try decode(MindStateMemory.self, #"{"id":"m1","title":"T"}"#).revisionId)
+    }
+
     // MARK: Commits
 
     func testCommitLogDecodesAndClassifies() throws {

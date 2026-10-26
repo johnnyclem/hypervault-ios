@@ -47,7 +47,8 @@ struct MindMergeView: View {
                     .accessibilityLabel("into")
                 MindBranchPill(name: model.target)
             }
-            Text("Memories only one branch touched merge on their own. Links merge as sets and never conflict.")
+            // What the server does (lib/mind/merge.ts): the merge takes what the source changed since the two split.
+            Text("Merging takes what \(model.source) changed since it split from \(model.target). A memory only one branch touched merges on its own, one both changed is put to you, and links merge as sets and never conflict.")
                 .font(.hvCallout)
                 .foregroundStyle(Palette.textSecondary)
         }
@@ -57,9 +58,11 @@ struct MindMergeView: View {
     private var content: some View {
         switch model.phase {
         case .previewing:
-            HVLoadingState(message: "Reading what it would bring\u{2026}")
+            HVLoadingState(message: "Comparing the two\u{2026}")
         case .failed(let message):
             HVErrorState(message: message) { Task { await model.loadPreview() } }
+        case .upToDate:
+            HVEmptyState(symbol: "checkmark.circle", title: "Already up to date", message: "\(model.target) has everything that is on \(model.source).")
         case .ready(let diff):
             ready(diff)
         case .merging:
@@ -75,14 +78,18 @@ struct MindMergeView: View {
 
     private func ready(_ diff: MindStateDiff) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.l) {
-            if diff.isEmpty {
-                HVEmptyState(symbol: "checkmark.circle", title: "Already up to date", message: "\(model.target) has everything that is on \(model.source).")
-            } else {
-                Text("This would bring \(diff.summary).")
+            // How the two stand now. It is not a list of what the merge will do, which depends on where they
+            // split: a memory only the target has is not forgotten by the merge.
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
+                Text("How \(model.source) and \(model.target) differ")
                     .font(.hvHeadline)
                     .foregroundStyle(Palette.textPrimary)
-                MindStateDiffView(diff: diff)
+                    .accessibilityAddTraits(.isHeader)
+                Text(diff.differenceSummary(source: model.source, target: model.target))
+                    .font(.hvCallout)
+                    .foregroundStyle(Palette.textSecondary)
             }
+            MindStateDiffView(diff: diff, words: .branches(source: model.source, target: model.target))
             if let notice = model.notice {
                 Text(notice)
                     .font(.hvFootnote)

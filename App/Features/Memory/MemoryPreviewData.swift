@@ -73,7 +73,7 @@ enum MemoryPreviewData {
     """#
 
     static let stateDiff = #"""
-    {"from":{"ref":"main","commit_id":"c9"},"to":{"ref":"ideas","commit_id":"c13"},
+    {"from":{"ref":"main","commit_id":"c9"},"to":{"ref":"ideas","commit_id":"c14"},
      "memories":{
        "added":[{"id":"m20","title":"A second brain, but opinionated","tags":["ideas"]},{"id":"m21","title":"What if the graph dreamed?","tags":["ideas","dreams"]}],
        "removed":[{"id":"m7","title":"Reading list for the winter","tags":["reading"]}],

@@ -58,13 +58,13 @@ project to sign in against, what the server supports and its limits.
 - **Bearer auth on the session-only routes.** Most routes already accept a Supabase
   bearer token. `/api/keys`, `/api/invite/redeem`, `/api/onboarding`,
   `/api/artifacts/[slug]/source`, `/api/pair/*`, `/api/admin/*` and the private
-  `/a/[slug]` page read the web cookie only, until
-  [hypervault#180](https://github.com/johnnyclem/hypervault/pull/180) lands. Without it
-  the app still signs in, keeps, chats and browses, and those screens show the
-  server's own refusal. Where a route is cookie-only and a read is possible another way,
-  the app reads the same rows through Supabase with the person's own token (the keys
-  list, claimed addresses, pins and pages shared with you), exactly as the web's account
-  page does.
+  `/a/[slug]` page used to read the web cookie only; that is fixed by
+  [hypervault#180](https://github.com/johnnyclem/hypervault/pull/180), merged on 2026-10-26.
+  A deployment older than that still refuses them: the app signs in, keeps, chats and
+  browses, and those screens show the server's own sentence. Where a route is cookie-only
+  and a read is possible another way, the app reads the same rows through Supabase with
+  the person's own token (the keys list, claimed addresses, pins and pages shared with
+  you), exactly as the web's account page does.
 - **Sign-in redirects.** Add `hypervault://auth/callback` to the Supabase project's
   redirect allow-list. Sign in with Apple needs the Apple provider turned on in
   Supabase; email codes need the email provider. The sign-in screen offers only what

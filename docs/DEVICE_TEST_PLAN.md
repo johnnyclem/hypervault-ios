@@ -7,9 +7,10 @@ that finds problems fastest. Each line says what should happen.
 
 ## Before you start
 
-1. **Server.** Merge [hypervault#180](https://github.com/johnnyclem/hypervault/pull/180) (or point the app at
-   its Vercel preview in Settings > Advanced). Without it the keys, invite, pairing and admin screens show the
-   server's own refusal, which is correct but not what you want to test.
+1. **Server.** [hypervault#180](https://github.com/johnnyclem/hypervault/pull/180) is merged; make sure the
+   deployment you test against includes it (production deploys from `main`). On an older deployment the keys,
+   invite, pairing and admin screens show the server's own refusal, which is correct but not what you want to
+   test.
 2. **Supabase redirect.** Add `hypervault://auth/callback` to the project's redirect allow-list
    (Authentication > URL Configuration). Without it Google sign-in lands on the site URL instead of the app.
 3. **Apple sign-in** (optional). The production project had the Apple provider off when this was written, so the
@@ -66,7 +67,7 @@ Work through the You tab with a real approved account and a few kept things: Lib
 page, share it, edit its source), Memory (search, ask, graph, a branch and a merge), Chat (a conversation with
 a connected model, a room), Account & keys (Connect an agent, make and revoke a key), Logins, cards & keys
 (add one; its value is never shown again), Mail, Truth, Task boards, Tools (add an MCP server), Import (a
-ChatGPT export zip), Your address. Anything that says it needs the server to allow it is waiting on #180.
+ChatGPT export zip), Your address. Anything that shows the server's own refusal on a session-only route means the deployment predates #180.
 
 ## 6. Needs special hardware or settings
 

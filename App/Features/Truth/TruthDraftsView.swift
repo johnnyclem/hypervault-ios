@@ -87,6 +87,7 @@ struct TruthDraftsScreen: View {
                 } else {
                     ForEach(proposals) { proposal in
                         draftRow(proposal)
+                            .listRowBackground(Palette.surface)
                     }
                 }
             }

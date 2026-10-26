@@ -159,6 +159,7 @@ struct TruthScreen: View {
                 )
                 .frame(minHeight: 44)
             }
+            .listRowBackground(Palette.surface)
 
             Toggle(isOn: Binding(get: { overview.chatTruth }, set: { setCiting($0) })) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -169,6 +170,7 @@ struct TruthScreen: View {
                 }
             }
             .disabled(model.isCiteBusy)
+            .listRowBackground(Palette.surface)
         }
     }
 

@@ -46,6 +46,7 @@ struct TruthNoticesScreen: View {
                         }
                         .padding(.vertical, HV.Space.xxs)
                         .accessibilityElement(children: .combine)
+                        .listRowBackground(Palette.surface)
                     }
                 }
             }
@@ -190,6 +191,7 @@ struct TruthStaleScreen: View {
             .buttonStyle(.plain)
             .disabled(!canOpen(item))
         }
+        .listRowBackground(Palette.surface)
     }
 
     private func canOpen(_ item: TruthStaleItem) -> Bool {

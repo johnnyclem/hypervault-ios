@@ -211,7 +211,7 @@ struct TruthReviewScreen: View {
 
     private func actions(_ item: TruthDocketItem) -> some View {
         VStack(spacing: HV.Space.s) {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: HV.Space.xs)], spacing: HV.Space.xs) {
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: HV.Space.xs), GridItem(.flexible(), spacing: HV.Space.xs)], spacing: HV.Space.xs) {
                 actionButton(.refute, item)
                 actionButton(.deferral, item)
                 actionButton(.strike, item)

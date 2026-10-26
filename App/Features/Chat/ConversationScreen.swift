@@ -66,6 +66,10 @@ struct ChatConversationContent: View {
             .hvScreenBackground()
             .navigationTitle(model.title)
             .navigationBarTitleDisplayMode(.inline)
+            // A thread scrolls under the bar. Paper behind it keeps the title and the menu readable and
+            // stops the words and the blue bubbles showing through as a smear.
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(Palette.background, for: .navigationBar)
             .toolbar { toolbar }
             .sheet(isPresented: $showOptions) { ChatOptionsSheet(model: model) }
             .sheet(isPresented: $showVisibility) { ChatVisibilitySheet(model: model) }

@@ -16,6 +16,7 @@ struct ChatOptionsSheet: View {
                 memorySection
                 toolsSection
             }
+            .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .hvScreenBackground()
             .navigationTitle("Model and options")
@@ -70,32 +71,39 @@ struct ChatOptionsSheet: View {
                     .frame(minHeight: 44, alignment: .leading)
             }
         }
+        .hvListRow()
     }
 
+    /// A model to answer with. One that is not available is not a button: it keeps the reason in plain
+    /// sight, and only its badge is dimmed.
+    @ViewBuilder
     private func choiceRow(title: String, subtitle: String, symbol: String, selected: Bool, enabled: Bool, action: @escaping () -> Void) -> some View {
-        Button {
-            Haptics.select()
-            action()
-        } label: {
-            HStack(spacing: HV.Space.s) {
-                HVIconBadge(symbol: symbol, tint: selected ? Color.accentColor : Palette.textSecondary, size: 32)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(title).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(1)
-                    Text(subtitle).font(.hvCaption).foregroundStyle(Palette.textSecondary).lineLimit(3)
-                }
-                Spacer(minLength: 0)
-                if selected {
-                    Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)).foregroundStyle(Color.accentColor)
-                }
+        let label = HStack(spacing: HV.Space.s) {
+            HVIconBadge(symbol: symbol, tint: selected ? Color.accentColor : Palette.textSecondary, size: 32)
+                .opacity(enabled ? 1 : 0.5)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title).font(.hvBody).foregroundStyle(enabled ? Palette.textPrimary : Palette.textSecondary).lineLimit(2)
+                Text(subtitle).font(.hvCaption).foregroundStyle(Palette.textSecondary).lineLimit(4)
             }
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
+            Spacer(minLength: 0)
+            if selected {
+                Image(systemName: "checkmark").font(.hvCallout.weight(.bold)).foregroundStyle(Color.accentColor)
+            }
         }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
-        .opacity(enabled ? 1 : 0.5)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(selected ? .isSelected : [])
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
+
+        if enabled {
+            Button {
+                Haptics.select()
+                action()
+            } label: { label }
+                .buttonStyle(.plain)
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+        } else {
+            label.accessibilityElement(children: .combine)
+        }
     }
 
     // MARK: Memory
@@ -123,6 +131,7 @@ struct ChatOptionsSheet: View {
                 )
             }
         }
+        .hvListRow()
     }
 
     private var toolsSection: some View {
@@ -146,7 +155,7 @@ struct ChatOptionsSheet: View {
                                 .foregroundStyle(Palette.textSecondary)
                         }
                         Spacer()
-                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.textTertiary)
+                        Image(systemName: "chevron.right").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
                     }
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
@@ -157,9 +166,10 @@ struct ChatOptionsSheet: View {
             HVSectionHeader(title: "Tools")
         } footer: {
             if model.runsLocally {
-                Text("A model that answers on this iPhone or your network can't use tools. Choose a connected model for that.")
+                ChatFooter("A model that answers on this iPhone or your network can't use tools. Choose a connected model for that.")
             }
         }
+        .hvListRow()
     }
 
     private func toggle(_ title: String, detail: String, isOn: Binding<Bool>) -> some View {
@@ -196,7 +206,7 @@ struct ChatVisibilitySheet: View {
     var body: some View {
         NavigationStack {
             List {
-                Section(footer: Text("Chats start private. A link you share stays the same if you turn sharing off and on again.")) {
+                Section(footer: ChatFooter("Chats start private. A link you share stays the same if you turn sharing off and on again.")) {
                     ForEach(ChatVisibility.allCases, id: \.self) { visibility in
                         Button { choose(visibility) } label: {
                             HStack(spacing: HV.Space.s) {
@@ -208,7 +218,7 @@ struct ChatVisibilitySheet: View {
                                 if working == visibility {
                                     ProgressView()
                                 } else if current == visibility {
-                                    Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)).foregroundStyle(Color.accentColor)
+                                    Image(systemName: "checkmark").font(.hvCallout.weight(.bold)).foregroundStyle(Color.accentColor)
                                 }
                             }
                             .frame(minHeight: 44)
@@ -219,6 +229,7 @@ struct ChatVisibilitySheet: View {
                         .accessibilityAddTraits(current == visibility ? .isSelected : [])
                     }
                 }
+                .hvListRow()
                 if let url = model.shareURL, current.hasLink {
                     Section(header: HVSectionHeader(title: "Link")) {
                         Text(url.absoluteString)
@@ -235,8 +246,10 @@ struct ChatVisibilitySheet: View {
                             Label("Copy link", systemImage: "doc.on.doc").frame(minHeight: 44, alignment: .leading)
                         }
                     }
+                    .hvListRow()
                 }
             }
+            .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .hvScreenBackground()
             .navigationTitle("Who can read this")

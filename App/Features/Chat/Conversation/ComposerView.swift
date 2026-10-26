@@ -36,7 +36,7 @@ struct ChatComposerView: View {
 
     private var field: some View {
         VStack(alignment: .leading, spacing: 0) {
-            TextField("Message", text: $model.draft, axis: .vertical)
+            TextField("Message", text: $model.draft, prompt: Text("Message").foregroundStyle(Palette.textSecondary), axis: .vertical)
                 .font(.hvBody)
                 .lineLimit(1...8)
                 .focused(focus)
@@ -49,9 +49,9 @@ struct ChatComposerView: View {
             HStack(spacing: HV.Space.xs) {
                 Button(action: onOptions) {
                     HStack(spacing: 6) {
-                        Image(systemName: model.isOnDevice ? "iphone" : (model.runsLocally ? "desktopcomputer" : "cpu")).font(.system(size: 13, weight: .semibold))
+                        Image(systemName: model.isOnDevice ? "iphone" : (model.runsLocally ? "desktopcomputer" : "cpu")).font(.hvFootnote.weight(.semibold))
                         Text(model.modelName).lineLimit(1)
-                        Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .bold))
+                        Image(systemName: "chevron.up.chevron.down").font(.hvCaption.weight(.bold)).imageScale(.small)
                     }
                     .font(.hvFootnote.weight(.medium))
                     .foregroundStyle(Palette.textSecondary)
@@ -113,10 +113,10 @@ struct ChatComposerView: View {
             Button {
                 model.dismissNotice()
             } label: {
-                Image(systemName: "xmark").font(.system(size: 11, weight: .bold)).frame(width: 44, height: 28)
+                Image(systemName: "xmark").font(.hvCaption.weight(.bold)).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .foregroundStyle(Palette.textTertiary)
+            .foregroundStyle(Palette.textSecondary)
             .accessibilityLabel("Dismiss")
         }
         .padding(.leading, HV.Space.s)

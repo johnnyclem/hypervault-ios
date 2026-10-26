@@ -73,16 +73,19 @@ struct ChatUserBubble: View {
                     withAnimation(.easeOut(duration: 0.2)) { expanded.toggle() }
                 }
                 .font(.hvCaption.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(.white)
                 .frame(minHeight: 44, alignment: .leading)
             }
         }
         .padding(.horizontal, HV.Space.m)
         .padding(.vertical, HV.Space.s)
-        .background(Color.accentColor, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
-        .opacity(row.state == .sending ? 0.75 : 1)
+        // The deep gradient is the one fill white text reads on in both looks, and the words the person
+        // just wrote stay at full strength while the reply is on its way: the line under the bubble
+        // already says the model is working.
+        .background(Palette.softGradient, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("You said: \(row.text)")
+        .accessibilityValue(row.state == .sending ? "Sending" : "")
     }
 }
 
@@ -183,6 +186,7 @@ struct ChatReplyActions: View {
     @Environment(AppModel.self) private var app
     @State private var copied = false
     @State private var keeping = false
+    @ScaledMetric(relativeTo: .body) private var glyphSize: CGFloat = 16
 
     var body: some View {
         HStack(spacing: 0) {
@@ -238,9 +242,9 @@ struct ChatReplyActions: View {
     private func action(_ symbol: String, label: String, tint: Color?, selected: Bool = false, perform: @escaping () -> Void) -> some View {
         Button(action: perform) {
             Image(systemName: symbol)
-                .font(.system(size: 16, weight: .regular))
+                .font(.system(size: glyphSize, weight: .regular))
                 .foregroundStyle(tint ?? Palette.textSecondary)
-                .frame(width: 44, height: 44)
+                .frame(minWidth: 44, minHeight: 44)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -271,6 +275,7 @@ struct ChatKeptNoteView: View {
         }
         .padding(.horizontal, HV.Space.s)
         .padding(.vertical, typeSize.isAccessibilitySize ? HV.Space.xs : 0)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
     }
 
@@ -307,6 +312,8 @@ struct ChatGroundingView: View {
     let grounding: ChatGrounding
     var onOpenPage: (String) -> Void
     @State private var showAll = false
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .caption) private var glyphSize: CGFloat = 11
 
     private enum Chip: Identifiable {
         case page(ChatRecalledPage)
@@ -330,10 +337,7 @@ struct ChatGroundingView: View {
         if !grounding.isEmpty {
             VStack(alignment: .leading, spacing: HV.Space.xs) {
                 if !chips.isEmpty {
-                    Text("From your memory")
-                        .font(.hvCaption.weight(.semibold))
-                        .foregroundStyle(Palette.textTertiary)
-                        .textCase(.uppercase)
+                    HVSectionHeader(title: "From your memory")
                     ChatFlowLayout(spacing: HV.Space.xs) {
                         ForEach(showAll ? chips : Array(chips.prefix(5))) { chip in
                             chipView(chip)
@@ -380,18 +384,24 @@ struct ChatGroundingView: View {
         }
     }
 
+    /// One source. At large text sizes the title wraps over a few lines and the chip takes the whole
+    /// width, so nothing the reply leaned on is cut to an ellipsis.
     private func sourceChip(_ title: String, symbol: String) -> some View {
-        HStack(spacing: 5) {
-            Image(systemName: symbol).font(.system(size: 11, weight: .semibold))
-            Text(title).lineLimit(1)
+        let large = typeSize.isAccessibilitySize
+        return HStack(alignment: large ? .firstTextBaseline : .center, spacing: 5) {
+            Image(systemName: symbol).font(.system(size: glyphSize, weight: .semibold))
+            Text(title)
+                .lineLimit(large ? 4 : 1)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: large)
         }
         .font(.hvCaption.weight(.medium))
         .foregroundStyle(Palette.textSecondary)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .frame(maxWidth: 300, alignment: .leading)
-        .background(Palette.surfaceRaised, in: Capsule())
-        .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
+        .frame(maxWidth: large ? .infinity : 300, alignment: .leading)
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: large ? HV.Radius.m : 100, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: large ? HV.Radius.m : 100, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
     }
 }
 
@@ -411,7 +421,7 @@ struct ChatToolGroupView: View {
                 withAnimation(.easeOut(duration: 0.2)) { open.toggle() }
             } label: {
                 HStack(spacing: HV.Space.xs) {
-                    Image(systemName: "wrench.and.screwdriver").font(.system(size: 13, weight: .semibold))
+                    Image(systemName: "wrench.and.screwdriver").font(.hvFootnote.weight(.semibold))
                     Text(steps.count == 1 ? "Used a tool" : "Used \(steps.count) tools")
                         .font(.hvFootnote.weight(.medium))
                     if failures > 0 {
@@ -419,7 +429,7 @@ struct ChatToolGroupView: View {
                     }
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.hvCaption.weight(.bold))
                         .rotationEffect(.degrees(open ? 90 : 0))
                 }
                 .foregroundStyle(Palette.textSecondary)
@@ -514,7 +524,7 @@ struct ChatToolPickerView: View {
             ForEach(selection.options.prefix(12)) { option in
                 Button { onPick(option) } label: {
                     HStack(spacing: HV.Space.xs) {
-                        Image(systemName: "wrench.and.screwdriver").font(.system(size: 13))
+                        Image(systemName: "wrench.and.screwdriver").font(.hvFootnote)
                         Text(option.label).font(.hvFootnote.weight(.medium)).lineLimit(2).multilineTextAlignment(.leading)
                         Spacer(minLength: 0)
                     }

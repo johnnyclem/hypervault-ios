@@ -27,6 +27,8 @@ struct ChatRoomContent: View {
     private static let bottomID = "bottom"
     private static let pollSeconds: UInt64 = 4
 
+    private var palette: ChatRoomPalette { ChatRoomPalette(members: model.members) }
+
     init(roomID: String, env: AppEnvironment) {
         self.env = env
         _model = State(initialValue: ChatRoomModel(roomID: roomID, client: env.client))
@@ -40,6 +42,9 @@ struct ChatRoomContent: View {
             .hvScreenBackground()
             .navigationTitle(model.title)
             .navigationBarTitleDisplayMode(.inline)
+            // The thread scrolls under the bar; paper behind it keeps the title readable.
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(Palette.background, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
@@ -134,9 +139,9 @@ struct ChatRoomContent: View {
 
     private var roster: some View {
         ChatFlowLayout(spacing: 6) {
-            ForEach(Array(model.members.enumerated()), id: \.element.id) { index, member in
+            ForEach(model.members) { member in
                 HStack(spacing: 5) {
-                    Circle().fill(ChatRoomPalette.color(at: index)).frame(width: 8, height: 8)
+                    Circle().fill(palette.color(for: member)).frame(width: 8, height: 8)
                     Text("@\(member.handle)").font(.hvCaption.weight(.medium))
                     if let name = member.backend?.defaultModel, !name.isEmpty {
                         Text(name).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(1)
@@ -191,9 +196,10 @@ struct ChatRoomContent: View {
                 HStack(alignment: .top) {
                     Text(notice).font(.hvFootnote).foregroundStyle(Palette.textSecondary).frame(maxWidth: .infinity, alignment: .leading)
                     Button { model.dismissNotice() } label: {
-                        Image(systemName: "xmark").font(.system(size: 11, weight: .bold)).frame(width: 44, height: 28)
+                        Image(systemName: "xmark").font(.hvCaption.weight(.bold)).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .foregroundStyle(Palette.textSecondary)
                     .accessibilityLabel("Dismiss")
                 }
                 .padding(.leading, HV.Space.s)
@@ -201,7 +207,7 @@ struct ChatRoomContent: View {
             }
             VStack(alignment: .leading, spacing: 0) {
                 mentionChips
-                TextField("grok, take X. claude, review it after.", text: $model.draft, axis: .vertical)
+                TextField("Message", text: $model.draft, prompt: Text(model.composerPrompt).foregroundStyle(Palette.textSecondary), axis: .vertical)
                     .font(.hvBody)
                     .lineLimit(1...6)
                     .focused($focused)
@@ -244,16 +250,14 @@ struct ChatRoomContent: View {
     private var mentionChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: HV.Space.xs) {
-                ForEach(Array(model.members.enumerated()), id: \.element.id) { index, member in
+                ForEach(model.members) { member in
                     Button { model.mention(member.handle) } label: {
-                        Text("@\(member.handle)")
-                            .font(.hvFootnote.weight(.medium))
-                            .foregroundStyle(ChatRoomPalette.color(at: index))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(ChatRoomPalette.color(at: index).opacity(0.14), in: Capsule())
-                            .frame(minHeight: 44)
-                            .contentShape(Rectangle())
+                        ChatHandleChip(
+                            handle: member.handle, color: palette.color(for: member),
+                            font: .hvFootnote.weight(.medium), verticalPadding: 6
+                        )
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Mention \(member.handle)")
@@ -319,7 +323,7 @@ struct ChatRoomMessageView: View {
                     .textSelection(.enabled)
                     .padding(.horizontal, HV.Space.m)
                     .padding(.vertical, HV.Space.s)
-                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
+                    .background(Palette.softGradient, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("You said: \(message.content)")
@@ -328,13 +332,18 @@ struct ChatRoomMessageView: View {
         }
     }
 
-    private var tint: Color { message.failed ? Palette.danger : ChatRoomPalette.color(for: message.senderHandle, in: members) }
+    private var tint: Color { message.failed ? Palette.danger : ChatRoomPalette(members: members).color(forHandle: message.senderHandle) }
 
     private var agent: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                Circle().fill(tint).frame(width: 8, height: 8)
-                Text("@\(message.senderHandle ?? "agent")").font(.hvFootnote.weight(.semibold)).foregroundStyle(tint)
+                // A failed turn is marked by a sign as well as by red, so it does not rest on colour alone.
+                if message.failed {
+                    Image(systemName: "exclamationmark.triangle.fill").font(.hvCaption).foregroundStyle(tint.hvInk())
+                } else {
+                    Circle().fill(tint).frame(width: 8, height: 8)
+                }
+                Text("@\(message.senderHandle ?? "agent")").font(.hvFootnote.weight(.semibold)).foregroundStyle(tint.hvInk())
                 if let model = message.model, !model.isEmpty {
                     Text(model).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(1)
                 }
@@ -368,7 +377,7 @@ struct ChatRoomMessageView: View {
 
     private func toolLine(_ turn: ChatRoomToolTurn) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Image(systemName: "wrench.and.screwdriver").font(.system(size: 11))
+            Image(systemName: "wrench.and.screwdriver").font(.hvCaption)
             Text(turn.tool).font(.hvMono)
             Text(turn.summary).font(.hvCaption).foregroundStyle(turn.ok ? Palette.textSecondary : Palette.danger)
             if let slug = turn.slug {

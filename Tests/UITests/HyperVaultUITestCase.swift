@@ -197,8 +197,8 @@ class HyperVaultUITestCase: XCTestCase {
 
     /// Scrolls the screen up until `element` is on it, for rows below the fold of a long list.
     func reveal(_ element: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
-        for _ in 0..<8 where !(element.exists && element.isHittable) {
-            app.swipeUp()
+        for _ in 0..<6 where !(element.exists && element.isHittable) {
+            app.swipeUp(velocity: .fast)
         }
         require(element, what, timeout: 5, file: file, line: line)
     }

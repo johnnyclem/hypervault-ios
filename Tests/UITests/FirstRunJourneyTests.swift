@@ -1,7 +1,7 @@
 import XCTest
 
-/// Someone signed in who has kept nothing and connected no model: the canvas teaches, the connect sheet opens, Yours
-/// says it is empty.
+/// Someone signed in who has kept nothing and connected no model: the canvas teaches, the connect sheet opens, an
+/// example chip finds nothing, Yours says it is empty.
 @MainActor
 final class FirstRunJourneyTests: HyperVaultUITestCase {
     func testTheCanvasTeachesConnectOpensItsSheetAndYoursIsEmpty() {
@@ -15,16 +15,16 @@ final class FirstRunJourneyTests: HyperVaultUITestCase {
             require(element("canvas.connect"), "the Connect your AI button")
         }
 
-        step("An example chip answers that there is nothing yet") {
-            tap(button("Show my memories"), "the Show my memories chip")
-            require(text("HyperVault: No memories yet."), "the page's own answer")
-        }
-
         step("Connect your AI opens a sheet, and Cancel closes it") {
             tap(element("canvas.connect"), "the Connect your AI button")
             waitUntil("the Connect your AI title") { isShowingTitle("Connect your AI") }
             tap(button("Cancel"), "Cancel")
             requireGone(button("Cancel"), "the sheet")
+        }
+
+        step("An example chip answers that there is nothing yet") {
+            tap(button("Show my memories"), "the Show my memories chip")
+            require(text("HyperVault: No memories yet."), "the page's own answer")
         }
 
         step("Yours says it is empty") {

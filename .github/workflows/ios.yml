@@ -41,6 +41,11 @@ jobs:
           xcodebuild -version
           swift --version
 
+      # The first minutes after a build are when Spotlight indexes what it made, on a runner with three cores; the UI
+      # tests' first launches took a minute each until it was off.
+      - name: Keep Spotlight off the build
+        run: sudo mdutil -a -i off || true
+
       - name: Install tools
         run: brew install xcodegen xcbeautify
 
@@ -53,6 +58,10 @@ jobs:
           id=$(xcrun simctl list devices available iPhone -j | python3 scripts/pick_simulator.py)
           echo "Using simulator $id"
           echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      # Booted now, so it has settled by the time the build is done and the journeys start.
+      - name: Boot the simulator
+        run: xcrun simctl boot "${{ steps.sim.outputs.id }}" || true
 
       - name: Build
         id: build
@@ -73,6 +82,7 @@ jobs:
         id: uitests
         run: |
           set -o pipefail
+          xcrun simctl bootstatus "${{ steps.sim.outputs.id }}" -b > /dev/null
           xcodebuild test-without-building \
             -project HyperVault.xcodeproj -scheme HyperVault \
             -destination "id=${{ steps.sim.outputs.id }}" \

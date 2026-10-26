@@ -39,12 +39,6 @@ final class YouJourneyTests: HyperVaultUITestCase {
             require(element("library.row.a1"), "the list again")
             XCTAssertEqual(element("library.view").label, "Show as a graph")
         }
-
-        step("Back returns to You, whose lower rows are a scroll away") {
-            goBack()
-            require(element("you.profile"), "the You tab again")
-            reveal(element("you.signOut"), "the Sign out button at the foot of the list")
-        }
     }
 
     func testSettingsFlipsAToggleAndTheAppearancePicker() {

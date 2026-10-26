@@ -136,7 +136,7 @@ private struct ThinkingRow: View {
                     .frame(width: 7, height: 7)
                     .scaleEffect(phase ? 1 : 0.55)
                     // A reply can take minutes; with Reduce Motion on the dots hold still at full size.
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.6).repeatForever().delay(Double(index) * 0.15), value: phase)
+                    .animation(reduceMotion ? nil : Animation.easeInOut(duration: 0.6).repeatForever().delay(Double(index) * 0.15), value: phase)
             }
             Text(HVCopy.thinkingLine)
                 .font(.hvFootnote)

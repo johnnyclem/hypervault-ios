@@ -65,7 +65,7 @@ struct LaunchView: View {
             AuroraBackground()
             BrandMark(size: 92)
                 .scaleEffect(reduceMotion ? 1 : (breathe ? 1.04 : 0.98))
-                .animation(reduceMotion ? nil : .easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: breathe)
+                .animation(reduceMotion ? nil : Animation.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: breathe)
         }
         .onAppear { breathe = true }
         .accessibilityLabel("HyperVault is opening")

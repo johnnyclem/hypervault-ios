@@ -43,11 +43,11 @@ final class ToastCenter {
     private(set) var current: Toast?
     @ObservationIgnored private var dismissTask: Task<Void, Never>?
     @ObservationIgnored private let announcer: SpeechAnnouncer
-    @ObservationIgnored private let usesAssistiveTechnology: () -> Bool
+    @ObservationIgnored private let usesAssistiveTechnology: @MainActor () -> Bool
 
     init(
         announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared,
-        usesAssistiveTechnology: @escaping () -> Bool = { UIAccessibility.isVoiceOverRunning || UIAccessibility.isSwitchControlRunning }
+        usesAssistiveTechnology: @escaping @MainActor () -> Bool = { UIAccessibility.isVoiceOverRunning || UIAccessibility.isSwitchControlRunning }
     ) {
         self.announcer = announcer
         self.usesAssistiveTechnology = usesAssistiveTechnology

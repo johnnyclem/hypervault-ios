@@ -78,7 +78,7 @@ struct TruthReviewScreen: View {
                 Spacer()
             }
         case .failed(let message):
-            HVErrorState(message: message) { Task { await model.reload() } }
+            HVErrorState(message: message) { Task { await model.retry(preferring: preferring) } }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .loaded:
             ScrollView {

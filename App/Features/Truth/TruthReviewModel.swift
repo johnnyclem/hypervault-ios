@@ -45,11 +45,14 @@ final class TruthReviewModel {
     func start(preferring slug: String?) async {
         guard !started else { return }
         started = true
+        phase = .loading
         do {
             let list = try await client.send(.truthLedgers)
             ledgers = list.ledgers
             ledger = list.chooseForReview(preferring: slug)
         } catch {
+            // Not started after all: the next try (the button, or the screen coming back) begins again.
+            started = false
             phase = .failed(TruthModel.sentence(error))
             return
         }
@@ -60,6 +63,12 @@ final class TruthReviewModel {
         await roomList
         // Sitting down restarts the reminder clock.
         _ = try? await client.send(.startTruthReview())
+    }
+
+    /// "Try again" on the failed screen: from the top when the ledgers never
+    /// came, since there is nothing to reload until they have.
+    func retry(preferring slug: String?) async {
+        if ledger == nil { await start(preferring: slug) } else { await reload() }
     }
 
     func reload() async {

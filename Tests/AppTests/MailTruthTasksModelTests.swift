@@ -410,6 +410,54 @@ final class TruthReviewModelTests: XCTestCase {
         XCTAssertEqual(outcome.status, "promoted")
     }
 
+    func testTryAgainAfterTheLedgersFailedToLoadLoadsThem() async throws {
+        let asked = Tally()
+        let flaky = MockRoute(.get, "/api/truth/ledgers") { request in
+            if asked.record(request) == 1 {
+                return HTTPResponse(status: 500, data: Data(#"{"error":"The server had a problem. Try again in a moment."}"#.utf8))
+            }
+            return HTTPResponse(status: 200, data: Data(TruthPreviewData.ledgers.utf8))
+        }
+        let model = model([flaky] + TruthPreviewData.reviewRoutes)
+        await model.start(preferring: nil)
+        XCTAssertEqual(model.phase, .failed("The server had a problem. Try again in a moment."))
+        XCTAssertNil(model.ledger)
+
+        await model.retry(preferring: nil)
+        XCTAssertEqual(asked.count, 2, "the ledgers were asked for again")
+        XCTAssertEqual(model.phase, .loaded)
+        XCTAssertEqual(model.ledger?.slug, "team")
+        XCTAssertEqual(model.deck.total, 3)
+    }
+
+    func testTheScreenComingBackAfterAFailedFirstLoadStartsAgain() async throws {
+        let asked = Tally()
+        let flaky = MockRoute(.get, "/api/truth/ledgers") { request in
+            if asked.record(request) == 1 { return HTTPResponse(status: 500, data: Data(#"{"error":"Try again."}"#.utf8)) }
+            return HTTPResponse(status: 200, data: Data(TruthPreviewData.ledgers.utf8))
+        }
+        let model = model([flaky] + TruthPreviewData.reviewRoutes)
+        await model.start(preferring: nil)
+        await model.start(preferring: nil)
+        XCTAssertEqual(model.phase, .loaded)
+        XCTAssertEqual(model.ledger?.slug, "team")
+    }
+
+    func testTryAgainAfterTheDeckFailedReloadsTheDeckOnly() async throws {
+        let asked = Tally()
+        let flaky = MockRoute(.get, "/api/truth/review") { request in
+            if asked.record(request) == 1 { return HTTPResponse(status: 500, data: Data(#"{"error":"Something broke."}"#.utf8)) }
+            return HTTPResponse(status: 200, data: Data(TruthPreviewData.docket.utf8))
+        }
+        let model = model([flaky] + TruthPreviewData.reviewRoutes)
+        await model.start(preferring: nil)
+        XCTAssertEqual(model.phase, .failed("Something broke."))
+        XCTAssertNotNil(model.ledger)
+        await model.retry(preferring: nil)
+        XCTAssertEqual(model.phase, .loaded)
+        XCTAssertEqual(model.deck.total, 3)
+    }
+
     func testAMirrorLedgerOffersNothingToDecide() async throws {
         let model = model(TruthPreviewData.reviewRoutes)
         await model.start(preferring: "default")

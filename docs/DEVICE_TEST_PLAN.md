@@ -17,8 +17,12 @@ that finds problems fastest. Each line says what should happen.
 4. **Build.** `cp Config/Local.xcconfig.example Config/Local.xcconfig`, put your `DEVELOPMENT_TEAM` in it,
    `make open`, run the `HyperVault` scheme on a device. App Groups, Keychain sharing and Sign in with Apple
    need a paid team; see `project.yml` for what to remove with a free one.
-5. **Contract check** (no phone needed). `HV_LIVE_SERVER=https://hypervault.store swift test --filter LiveServerTests`
-   in `Packages/HyperVaultKit` reads the real launch path with no credentials.
+5. **Contract checks** (no phone needed), in `Packages/HyperVaultKit`:
+   - `HV_LIVE_SERVER=https://hypervault.store swift test --filter LiveServerTests` reads the real launch path
+     with no credentials (it has been run and passes).
+   - `HV_E2E_SERVER=https://hypervault.store HV_E2E_KEY=<an API key from your vault> swift test --filter LiveAuthenticatedTests`
+     reads about twenty authenticated endpoints with your own key (GET only, counts printed, never content) and
+     checks that the Kit keeps every row the server sent. It has not been run yet; start here.
 
 ## 1. First run
 

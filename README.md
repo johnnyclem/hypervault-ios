@@ -152,6 +152,10 @@ server change if you want the app to do more:
 - The app builds for the simulator in CI with 459 tests (screen state machines, link
   parsing, sign-in and access phases) and renders every screen in light and dark, and the
   main ones at the largest text sizes, to PNGs the workflow publishes.
+- The Kit's models decode the response shapes a real deployment sent for about twenty authenticated endpoints
+  (Yours, artifacts and groups, the connections graph, chat lists and settings, memories, Mind, dreams, digest,
+  jobs): field names, types, nulls and nesting were captured from production on 2026-10-26 and are pinned in
+  `ProductionShapeTests`, which counts every row because most models decode leniently.
 - A live contract check (`HV_LIVE_SERVER=https://hypervault.store swift test --filter LiveServerTests`, read-only,
   no credentials) passes against production: the real `/api/capabilities` answer decodes and names a Supabase
   project, the project offers Google and email sign-in (Apple was off when checked), an anonymous call gets a

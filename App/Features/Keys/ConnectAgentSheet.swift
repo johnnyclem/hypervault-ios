@@ -320,7 +320,14 @@ private struct ConnectClientScreen: View {
                     KeysCopyButton(title: "Copy key", text: fresh.key, isSecret: true) { model.markCopied() }
                 }
 
-                if let info { promptCard(info) }
+                if let info {
+                    promptCard(info)
+                } else {
+                    Text("This key works with any agent. Go back and pick its app to see the exact steps with this key filled in.")
+                        .font(.hvCallout)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 statusLine
             }
         } else if let existing = model.existingKey {

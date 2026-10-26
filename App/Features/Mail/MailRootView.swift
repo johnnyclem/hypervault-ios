@@ -206,6 +206,7 @@ struct MailInboxScreen: View {
                     NavigationLink(value: ref(for: thread.id)) {
                         MailThreadRow(thread: thread)
                     }
+                    .accessibilityIdentifier("mail.thread.\(thread.id)")
                     .hvListRow()
                     .swipeActions(edge: .leading, allowsFullSwipe: true) { leadingActions(thread) }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) { trailingActions(thread) }

@@ -103,6 +103,7 @@ struct TaskBoardsScreen: View {
                     NavigationLink(value: board) {
                         TaskBoardRowView(board: board, summary: model.summaries[board.project])
                     }
+                    .accessibilityIdentifier("taskboards.row.\(board.project)")
                     .hvListRow()
                     .task { await model.loadSummary(for: board) }
                 }

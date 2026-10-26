@@ -293,6 +293,7 @@ struct TaskBoardScreen: View {
             NavigationLink(value: TaskRef(id: task.id)) {
                 TaskRowBody(task: task, rollup: model.board?.rollup(of: task.id), parentTitle: row.parentTitle)
             }
+            .accessibilityIdentifier("taskboard.task.\(task.id)")
             .disabled(temporary)
         }
         .padding(.leading, CGFloat(min(row.depth, 3)) * HV.Space.l)

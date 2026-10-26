@@ -147,7 +147,7 @@ final class UITestWorldTests: XCTestCase {
         XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
         XCTAssertTrue(String(decoding: page, as: UTF8.self).contains("Fresh bread daily"))
 
-        let (rows, _) = try await session.data(from: UITestWorld.supabaseURL.appendingPathComponent("rest/v1/profiles"))
+        let (rows, _) = try await session.data(from: UITestWorld.supabaseURL.appendingPathComponent("rest/v1/notes"))
         XCTAssertEqual(String(decoding: rows, as: UTF8.self), "[]")
 
         do {

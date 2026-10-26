@@ -95,6 +95,7 @@ struct VaultItemsView: View {
                         NavigationLink(value: VaultDestination.secret(secret.name)) {
                             VaultRow(secret: secret)
                         }
+                        .accessibilityIdentifier("vault.row.\(secret.name)")
                     }
                 } footer: {
                     note

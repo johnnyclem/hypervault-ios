@@ -72,6 +72,7 @@ struct AdminScreen: View {
                     NavigationLink(value: AdminRoute.invite(invite.id)) {
                         AdminInviteRow(invite: invite)
                     }
+                    .accessibilityIdentifier("admin.invite.\(invite.id)")
                 }
             }
             .hvListRow()

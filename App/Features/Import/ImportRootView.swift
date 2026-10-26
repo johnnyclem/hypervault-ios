@@ -432,6 +432,7 @@ struct ImportSourceCard: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityIdentifier("import.source.\(platform.rawValue)")
     }
 }
 

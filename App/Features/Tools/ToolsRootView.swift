@@ -121,6 +121,7 @@ struct ToolsScreen: View {
                     NavigationLink(value: ToolsRoute.server(server.id)) {
                         ToolsServerRow(server: server, needsSignIn: model.needsSignIn.contains(server.id))
                     }
+                    .accessibilityIdentifier("tools.server.\(server.id)")
                 }
             }
             .hvListRow()

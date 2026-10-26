@@ -10,12 +10,14 @@ enum Scenario: String, CaseIterable {
     case signedInEmpty
     /// Signed in but not let in until the invite code is redeemed.
     case waitlisted
+    /// The same vault as `signedIn`, for a person the server knows as an admin.
+    case signedInAdmin
 
     /// What the first screen of the scenario shows, by accessibility identifier.
     var firstScreen: (identifier: String, description: String) {
         switch self {
         case .signedOut: return ("welcome.pages", "the welcome story")
-        case .signedIn, .signedInEmpty: return ("canvas.field", "the canvas")
+        case .signedIn, .signedInEmpty, .signedInAdmin: return ("canvas.field", "the canvas")
         case .waitlisted: return ("waitlist.code", "the waitlist")
         }
     }
@@ -40,7 +42,7 @@ class HyperVaultUITestCase: XCTestCase {
     /// where the rules of a journey are set: the first failure ends it, and a system alert that appears over the app
     /// (a permission, a save-password offer) is dismissed rather than left to swallow the next tap.
     @discardableResult
-    func launch(_ scenario: Scenario, file: StaticString = #filePath, line: UInt = #line) -> XCUIApplication {
+    func launch(_ scenario: Scenario, arguments extra: [String] = [], file: StaticString = #filePath, line: UInt = #line) -> XCUIApplication {
         continueAfterFailure = false
         _ = addUIInterruptionMonitor(withDescription: "System alert") { alert in
             for title in ["Not Now", "Don\u{2019}t Allow", "Don't Allow", "OK", "Cancel"] {
@@ -56,7 +58,7 @@ class HyperVaultUITestCase: XCTestCase {
         application.launchArguments = [
             "-HV_UITEST", "-HV_UITEST_SCENARIO", scenario.rawValue,
             "-AppleLanguages", "(en)", "-AppleLocale", "en_US",
-        ]
+        ] + extra
         application.launch()
         app = application
         let first = scenario.firstScreen
@@ -106,6 +108,12 @@ class HyperVaultUITestCase: XCTestCase {
     /// Static text whose label contains `fragment`.
     func text(containing fragment: String) -> XCUIElement {
         app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", fragment)).firstMatch
+    }
+
+    /// Anything on screen whose label contains `fragment`: a text, or a row or button that reads its texts as one. (Rows
+    /// that combine their words have no static texts of their own, so a journey that checks what a screen says asks this.)
+    func shows(_ fragment: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", fragment)).firstMatch
     }
 
     /// How many static texts carry exactly this label.
@@ -206,6 +214,15 @@ class HyperVaultUITestCase: XCTestCase {
     /// Opens a tab. What it shows is for the journey to wait for.
     func openTab(_ title: String, file: StaticString = #filePath, line: UInt = #line) {
         tap(tab(title), "the \(title) tab", file: file, line: line)
+    }
+
+    /// Opens a row of the You tab, scrolling to it first, and waits for the screen to name itself.
+    func openFromYou(_ id: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
+        openTab("You", file: file, line: line)
+        let row = element("you.\(id)")
+        reveal(row, "the \(id) row of the You tab", file: file, line: line)
+        tap(row, "the \(id) row", file: file, line: line)
+        waitUntil("the \(title) screen", file: file, line: line) { isShowingTitle(title) }
     }
 
     /// Goes back one screen with the navigation bar's back button.

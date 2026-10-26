@@ -50,14 +50,16 @@ enum UITestWorld {
             let own: [MockRoute] = [capabilitiesRoute(letIn: { false })]
             return signInRoutes + own + fallbackRoutes
         case .signedIn:
-            return sharedRoutes(letIn: { true }) + vaultRoutes + previewRoutes + fallbackRoutes
+            return sharedRoutes(letIn: { true }) + vaultRoutes + screenRoutes + previewRoutes + fallbackRoutes
+        case .signedInAdmin:
+            return sharedRoutes(letIn: { true }, admin: true) + vaultRoutes + screenRoutes + previewRoutes + fallbackRoutes
         case .signedInEmpty:
             return sharedRoutes(letIn: { true }) + emptyVaultRoutes + previewRoutes + fallbackRoutes
         case .waitlisted:
             // Signed in but not let in, until the invite code is redeemed: then the same vault as `signedIn`.
             let gate = UITestGate()
             let gated: [MockRoute] = [redeemRoute(gate: gate), yoursGateRoute(gate: gate)]
-            return gated + sharedRoutes(letIn: { gate.isOpen }) + vaultRoutes + previewRoutes + fallbackRoutes
+            return gated + sharedRoutes(letIn: { gate.isOpen }) + vaultRoutes + screenRoutes + previewRoutes + fallbackRoutes
         }
     }
 
@@ -68,7 +70,7 @@ enum UITestWorld {
         routes += KeysPreviewData.routes
         routes += MemoryPreviewData.routes
         routes += ChatPreviewData.routes
-        routes += MailPreviewData.routes
+        routes += MailPreviewData.threadRoutes
         routes += ToolsFixtures.routes
         routes += VaultPreviewData.routes
         return routes
@@ -112,9 +114,16 @@ enum UITestWorld {
                 "limits": .object([:]),
                 "providers": .array([]),
                 "domains": .array([
-                    .object(["domain": .string("vault.cool"), "tagline": .string("Your vault."), "featured": .bool(true), "available": .bool(true)]),
+                    .object(["domain": .string("vault.cool"), "tagline": .string("The legendary original. you.vault.cool"), "featured": .bool(true), "available": .bool(true)]),
+                    .object(["domain": .string("agentvault.cloud"), "tagline": .string("For agents with their heads in the cloud"), "available": .bool(true)]),
+                    .object(["domain": .string("cleon.wiki"), "tagline": .string("For knowledge bases and living documents"), "available": .bool(true)]),
+                    .object(["domain": .string("later.example"), "tagline": .string("Not open yet"), "available": .bool(false)]),
                 ]),
-                "themes": .array([]),
+                "themes": .array([
+                    .object(["id": .string("modern-dark"), "name": .string("Modern Dark"), "mode": .string("dark")]),
+                    .object(["id": .string("glassmorphism"), "name": .string("Glassmorphism"), "mode": .string("dark")]),
+                    .object(["id": .string("newsprint"), "name": .string("Newsprint"), "mode": .string("light")]),
+                ]),
             ]
             if letIn() {
                 body["user"] = .object(["id": .string(user.id), "email": .string(user.email ?? ""), "via": .string("bearer")])
@@ -150,7 +159,7 @@ enum UITestWorld {
 
     // MARK: Signed in, with things kept
 
-    private static func sharedRoutes(letIn: @escaping @Sendable () -> Bool) -> [MockRoute] {
+    private static func sharedRoutes(letIn: @escaping @Sendable () -> Bool, admin: Bool = false) -> [MockRoute] {
         let counter = UITestCounter()
         let own: [MockRoute] = [
             capabilitiesRoute(letIn: letIn),
@@ -160,7 +169,7 @@ enum UITestWorld {
             yoursCardRoute,
             artifactPageRoute,
         ]
-        return signInRoutes + own
+        return signInRoutes + own + adminRoutes(isAdmin: admin)
     }
 
     /// What a signed-in person with a few things kept, a connected model and some history sees.
@@ -172,6 +181,25 @@ enum UITestWorld {
             .json(.get, "/api/artifact-groups", artifactGroupsJSON),
             artifactDetailRoute,
         ]
+    }
+
+    /// Who has the Bakery page, and how it has changed: what its Share and History sheets list.
+    private static func versionsJSON(slug: String) -> JSONValue {
+        func version(_ id: String, parent: String?, message: String, kind: String, ago: TimeInterval, head: Bool) -> JSONValue {
+            .object([
+                "id": .string(id), "parent_version_id": parent.map(JSONValue.string) ?? .null, "title": .string("Bakery landing page"),
+                "message": .string(message), "author_kind": .string(kind), "author_key_prefix": .null, "content_hash": .string("h-\(id)"),
+                "is_jsx": .bool(false), "is_head": .bool(head), "created_at": .string(date(ago)),
+            ])
+        }
+        return .object([
+            "slug": .string(slug), "mutable": .bool(true),
+            "versions": .array([
+                version("v3", parent: "v2", message: "Open at seven on weekdays", kind: "user", ago: 7_200, head: true),
+                version("v2", parent: "v1", message: "Add the opening hours", kind: "user", ago: 90_000, head: false),
+                version("v1", parent: nil, message: "create", kind: "system", ago: 400_000, head: false),
+            ]),
+        ])
     }
 
     /// A person who has kept nothing and connected no model.
@@ -302,22 +330,31 @@ enum UITestWorld {
         }
     }
 
+    /// What Memory's Ask mode is told when it asks, and the memory it says it drew from.
+    static let askAnswer = "Your Lisbon notes say to book the Friday ferry across the Tagus and to bring both passports."
+    static let askSource = "Trip to Lisbon: ferry and passports"
+
     /// `POST /api/chat`: the connected model's reply, which says what it was told (short, so its title is all of it).
+    /// Memory's Ask mode is the one asker that turns recall on without anything else a chat turn sends (the smart-context
+    /// switch, tools), and it is answered from the memory it recalls.
     private static var chatRoute: MockRoute {
         MockRoute(.post, "/api/chat") { request in
-            let message = request.jsonBody?["message"] as? String ?? ""
+            let body = request.jsonBody
+            let message = body?["message"] as? String ?? ""
+            let asksMemory = body?["use_recall"] as? Bool == true && body?["use_smart_context"] == nil && body?["use_tools"] == nil
+            let conversation = body?["conversation_id"] as? String ?? "c-uitest"
             return reply(.object([
-                "conversation_id": .string("c-uitest"),
+                "conversation_id": .string(conversation),
                 "reply": .object([
                     "id": .string("r-uitest"),
                     "role": .string("assistant"),
-                    "content": .string("Noted: \(message)"),
+                    "content": .string(asksMemory ? askAnswer : "Noted: \(message)"),
                     "model": .string("claude-opus-4-8"),
                     "truncated": .bool(false),
                 ]),
                 "backend": .object(["id": .string("b1"), "name": .string("My Claude"), "provider": .string("anthropic")]),
                 "recalled": .array([]),
-                "recalled_memories": .array([]),
+                "recalled_memories": .array(asksMemory ? [.string(askSource)] : []),
                 "pulled": .array([]),
             ]))
         }
@@ -402,7 +439,7 @@ enum UITestWorld {
             case "feedback":
                 return reply(.object(["feedback": .null]))
             case "versions":
-                return reply(.object(["versions": .array([])]))
+                return reply(versionsJSON(slug: slug))
             default:
                 return reply(.object(["error": .string("Not found")]), status: 404)
             }
@@ -426,16 +463,16 @@ enum UITestWorld {
 
     // MARK: Helpers
 
-    fileprivate static func reply(_ value: JSONValue, status: Int = 200) -> HTTPResponse {
+    static func reply(_ value: JSONValue, status: Int = 200) -> HTTPResponse {
         reply(raw: value.jsonString(), status: status)
     }
 
-    fileprivate static func reply(raw text: String, status: Int = 200) -> HTTPResponse {
+    static func reply(raw text: String, status: Int = 200) -> HTTPResponse {
         HTTPResponse(status: status, headers: ["content-type": "application/json"], data: Data(text.utf8))
     }
 
     /// A timestamp this many seconds in the past, so "2 hr ago" is true whenever the test runs.
-    fileprivate static func date(_ secondsAgo: TimeInterval) -> String {
+    static func date(_ secondsAgo: TimeInterval) -> String {
         HVDate.format(Date().addingTimeInterval(-secondsAgo))
     }
 }
@@ -473,7 +510,7 @@ final class UITestCounter: @unchecked Sendable {
     }
 }
 
-private extension URLRequest {
+extension URLRequest {
     func queryValue(_ name: String) -> String? {
         guard let url, let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems else { return nil }
         return items.first { $0.name == name }?.value

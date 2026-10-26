@@ -13,13 +13,15 @@ enum UITestScenario: String, CaseIterable {
     case signedInEmpty
     /// Signed in but not let in, until the invite code `UITestWorld.inviteCode` is redeemed.
     case waitlisted
+    /// The same vault as `signedIn`, for a person the server knows as an admin (the You tab shows Admin).
+    case signedInAdmin
 
     var hasSession: Bool { self != .signedOut }
 }
 
 /// The UI-test mode: a debug build that, when launched with
 ///
-///     -HV_UITEST -HV_UITEST_SCENARIO <signedOut | signedIn | signedInEmpty | waitlisted>
+///     -HV_UITEST -HV_UITEST_SCENARIO <signedOut | signedIn | signedInEmpty | waitlisted | signedInAdmin>
 ///
 /// builds its `AppModel` on a canned server instead of the real one, so `HyperVaultUITests` can launch the whole app,
 /// tap and type through it, and never touch the network, the Keychain or anything a person left on the phone.
@@ -61,7 +63,7 @@ enum UITestHarness {
             // The key AuthService keeps its session under.
             seed["hypervault.session"] = data
         }
-        if scenario == .signedIn {
+        if scenario == .signedIn || scenario == .signedInAdmin {
             // Gives the canvas's Paste button something to paste, without the system asking whether the app may read it:
             // the app wrote it itself.
             UIPasteboard.general.string = UITestWorld.pasteText

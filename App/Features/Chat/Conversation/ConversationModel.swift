@@ -229,6 +229,21 @@ final class ChatConversationModel {
         if let value = await fetchedToolkit { hasToolkit = value.hasToolkit }
     }
 
+    /// Pull to refresh: the thread as the server has it now (it may have been
+    /// continued elsewhere). Left alone while something on this phone is unsaved.
+    func refresh() async {
+        guard !isWorking, let id = conversationID else { return }
+        let unsaved = rows.contains { row in
+            switch row.state {
+            case .waitingToSync, .notSaved, .failed, .sending, .streaming: return true
+            case .saved: return false
+            }
+        }
+        guard !unsaved, let detail = try? await client.send(.conversation(id: id)) else { return }
+        apply(detail)
+        isStale = false
+    }
+
     /// Replays on-device turns that could not be saved while offline.
     func syncOutbox() async {
         let report = await outbox.flush(client: client)

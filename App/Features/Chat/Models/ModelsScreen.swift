@@ -245,13 +245,13 @@ struct ChatBackendRow: View {
     private var detail: String {
         var parts = [ChatProviders.shortName(for: backend.provider, in: registry)]
         if let model = backend.defaultModel, !model.isEmpty { parts.append(model) }
-        if let hint = backend.keyHint, !hint.isEmpty { parts.append(hint) }
         return parts.joined(separator: " \u{00B7} ")
     }
 
     private var usage: String {
-        guard let last = backend.lastUsedAt else { return "Not used yet" }
-        return "Used \(ChatDates.relative(last))"
+        var parts = [backend.lastUsedAt.map { "Used \(ChatDates.relative($0))" } ?? "Not used yet"]
+        if let hint = backend.keyHint, !hint.isEmpty { parts.append(hint) }
+        return parts.joined(separator: " \u{00B7} ")
     }
 
     static func symbol(for provider: String) -> String {

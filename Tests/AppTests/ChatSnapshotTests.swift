@@ -29,6 +29,13 @@ final class ChatSnapshotTests: XCTestCase {
         )
     }
 
+    func testConversationWithAFormattedReply() throws {
+        try snapshot(
+            PreviewHost(routes: ChatPreviewData.routes) { ChatConversationContent(model: ChatPreviewData.conversationModel(firstTurnOnly: true)) },
+            named: "chat-formatted-reply"
+        )
+    }
+
     func testConversationWaitingForTheModel() throws {
         try snapshot(
             PreviewHost(routes: ChatPreviewData.routes) { ChatConversationContent(model: ChatPreviewData.conversationModel(working: true)) },

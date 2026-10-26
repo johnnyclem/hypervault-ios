@@ -25,9 +25,12 @@ struct ChatConversationContent: View {
     @State private var showOptions = false
     @State private var showVisibility = false
     @State private var confirmDelete = false
+    /// How many of the newest items are drawn; older ones wait behind a button.
+    @State private var windowSize = ChatConversationContent.pageSize
     @FocusState private var composerFocused: Bool
 
     private static let bottomID = "bottom"
+    private static let pageSize = 60
 
     init(conversationID: String?, env: AppEnvironment, onDevice: ChatOnDeviceSupport) {
         _model = State(
@@ -92,17 +95,21 @@ struct ChatConversationContent: View {
             HVErrorState(message: message) { Task { await model.retryLoad() } }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .ready:
-            thread
+            if model.rows.isEmpty && !model.isWorking {
+                emptyThread.frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                thread
+            }
         }
     }
 
     private var thread: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: HV.Space.m) {
+                VStack(alignment: .leading, spacing: HV.Space.m) {
                     if model.isStale { HVStaleBanner() }
-                    if model.rows.isEmpty { emptyThread }
-                    ForEach(items) { item in
+                    earlierButton
+                    ForEach(visibleItems) { item in
                         itemView(item)
                     }
                     if let started = model.workStarted, model.isWorking, !model.isStreaming, !model.isOnDevice {
@@ -122,9 +129,28 @@ struct ChatConversationContent: View {
             }
             .defaultScrollAnchor(.bottom)
             .scrollDismissesKeyboard(.interactively)
+            .refreshable { await model.refresh() }
             .onChange(of: model.rows.count) { scrollToBottom(proxy) }
             .onChange(of: model.isWorking) { scrollToBottom(proxy) }
             .onChange(of: composerFocused) { if composerFocused { scrollToBottom(proxy) } }
+        }
+    }
+
+    /// A thread is drawn from its newest items; imported histories can run to
+    /// thousands, and everything above the window is one tap away.
+    private var visibleItems: [ChatThreadItem] {
+        let all = items
+        return all.count > windowSize ? Array(all.suffix(windowSize)) : all
+    }
+
+    @ViewBuilder private var earlierButton: some View {
+        let hidden = items.count - windowSize
+        if hidden > 0 {
+            Button("Show \(min(hidden, Self.pageSize)) earlier") {
+                windowSize += Self.pageSize
+            }
+            .buttonStyle(.hvGhost)
+            .frame(maxWidth: .infinity, minHeight: 44)
         }
     }
 

@@ -232,16 +232,19 @@ struct ChatBackendFormSheet: View {
                          : "Checking the connection again before saving. This can take up to a minute.")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
+                        .padding(.horizontal, HV.Space.xs)
                     Button("Stop", action: stop).buttonStyle(.hvGhost)
                 } else if let errorText {
                     Text(errorText)
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.danger)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, HV.Space.xs)
                 } else if let problem {
                     Text(problem)
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
+                        .padding(.horizontal, HV.Space.xs)
                 }
             }
             .listRowBackground(Color.clear)

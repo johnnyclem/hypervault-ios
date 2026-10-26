@@ -161,7 +161,7 @@ enum ChatPreviewData {
 
     /// A conversation with a live turn in it: sources, a tool step, a reply with code.
     @MainActor
-    static func conversationModel(working: Bool = false, onDevice: Bool = false, empty: Bool = false) -> ChatConversationModel {
+    static func conversationModel(working: Bool = false, onDevice: Bool = false, empty: Bool = false, firstTurnOnly: Bool = false) -> ChatConversationModel {
         let env = AppEnvironment.preview(routes: routes)
         let model = ChatConversationModel(
             conversationID: nil, client: env.client, cache: env.cache, namespace: "preview",
@@ -184,6 +184,9 @@ enum ChatPreviewData {
             rows.append(ChatThreadRow(kind: .user, text: "Now turn the plan into a packing list, grouped by day.", state: .sending))
         }
         let backends = (try? HVCoding.decoder().decode(PreviewBackends.self, from: Data(backendsJSON.utf8)))?.backends ?? []
+        if firstTurnOnly {
+            rows = rows.filter { $0.id == "m0" || $0.id == "m3" }
+        }
         if empty {
             model.seed(rows: [], backends: backends, choice: .server("b1"))
             return model

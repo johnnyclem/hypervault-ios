@@ -50,15 +50,11 @@ struct ChatOptionsSheet: View {
             }
             if model.onDeviceUsable || !model.onDeviceStatus.isAvailable {
                 choiceRow(
-                    title: ChatOnDeviceModels.title, subtitle: ChatOnDeviceModels.subtitle, symbol: "iphone",
-                    selected: model.choice == .onDevice, enabled: model.onDeviceUsable
+                    title: ChatOnDeviceModels.title,
+                    subtitle: model.onDeviceUsable ? ChatOnDeviceModels.subtitle : model.onDeviceStatus.explanation,
+                    symbol: "iphone", selected: model.choice == .onDevice, enabled: model.onDeviceUsable
                 ) {
                     model.select(.onDevice)
-                }
-                if !model.onDeviceStatus.isAvailable {
-                    Text(model.onDeviceStatus.explanation)
-                        .font(.hvCaption)
-                        .foregroundStyle(Palette.textSecondary)
                 }
             }
             NavigationLink(value: ChatDestination.models) {
@@ -77,7 +73,7 @@ struct ChatOptionsSheet: View {
                 HVIconBadge(symbol: symbol, tint: selected ? Color.accentColor : Palette.textSecondary, size: 32)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(1)
-                    Text(subtitle).font(.hvCaption).foregroundStyle(Palette.textSecondary).lineLimit(1)
+                    Text(subtitle).font(.hvCaption).foregroundStyle(Palette.textSecondary).lineLimit(3)
                 }
                 Spacer(minLength: 0)
                 if selected {

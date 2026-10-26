@@ -21,6 +21,7 @@ struct ChatRoomContent: View {
     @State private var showRename = false
     @State private var renameText = ""
     @State private var confirmDelete = false
+    @State private var windowSize = 60
     @FocusState private var focused: Bool
 
     private static let bottomID = "bottom"
@@ -95,10 +96,15 @@ struct ChatRoomContent: View {
     private var thread: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: HV.Space.m) {
+                VStack(alignment: .leading, spacing: HV.Space.m) {
                     roster
                     if model.messages.isEmpty { emptyRoom }
-                    ForEach(model.messages) { message in
+                    if model.messages.count > windowSize {
+                        Button("Show \(min(model.messages.count - windowSize, 60)) earlier") { windowSize += 60 }
+                            .buttonStyle(.hvGhost)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    ForEach(model.messages.suffix(windowSize)) { message in
                         ChatRoomMessageView(message: message, members: model.members) { slug in
                             app.router.push(.artifact(slug: slug))
                         }

@@ -1,6 +1,33 @@
 import HyperVaultKit
 import SwiftUI
 
+/// Which agent keys may read one secret, as far as its page knows. A read that failed is a state of its own,
+/// not "none": a row of switches that all read off would say no agent can read the entry when the truth is
+/// that nobody knows yet.
+enum VaultGrantsPhase: Equatable {
+    case loading
+    case loaded(Set<String>)
+    case failed
+
+    /// The keys known to be allowed; empty while loading or after a failure.
+    var granted: Set<String> {
+        if case .loaded(let ids) = self { return ids }
+        return []
+    }
+
+    var isLoaded: Bool {
+        if case .loaded = self { return true }
+        return false
+    }
+
+    var hasFailed: Bool { self == .failed }
+}
+
+enum VaultGrantsCopy {
+    /// Said instead of the server's words, which can be a bare status line.
+    static let loadFailed = "Couldn't load which keys are allowed."
+}
+
 /// The saved logins, cards, contact info and keys. The list is metadata and a masked hint, never a value.
 /// It is not kept on disk: a username or a card's last four digits is not something to leave in a cache.
 @MainActor
@@ -102,6 +129,16 @@ final class VaultItemsModel {
     /// The keys allowed to read a secret.
     func grantedKeyIDs(for secret: VaultSecret) async throws -> Set<String> {
         Set(try await client.send(.secretGrants(name: secret.name)).grants.map(\.apiKeyId))
+    }
+
+    /// The same read as a phase the screen can show. The reason for a failure is dropped on purpose: it can be
+    /// a bare status line from a proxy, and the screen says its own plain sentence.
+    func grantsPhase(for secret: VaultSecret) async -> VaultGrantsPhase {
+        do {
+            return .loaded(try await grantedKeyIDs(for: secret))
+        } catch {
+            return .failed
+        }
     }
 
     func setGranted(_ granted: Bool, keyID: String, for secret: VaultSecret) async throws {

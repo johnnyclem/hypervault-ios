@@ -26,7 +26,7 @@ struct VaultItemsView: View {
         }
         .hvScreenBackground()
         .navigationTitle("Logins, cards & keys")
-        .navigationBarTitleDisplayMode(.large)
+        .keysLargeTitle()
         .navigationDestination(for: VaultDestination.self) { destination in
             switch destination {
             case .secret(let name):
@@ -75,20 +75,14 @@ struct VaultItemsView: View {
         @Bindable var model = model
         return List {
             Section {
-                VStack(alignment: .leading, spacing: HV.Space.s) {
-                    Text("Save a login, card or contact once. Agents you give a key, like Claude Code, Codex, Cursor, Gemini CLI or your own script, can use it, and only the ones you allow.")
-                        .font(.hvCallout)
-                        .foregroundStyle(Palette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
-                        Image(systemName: "lock.fill").accessibilityHidden(true)
-                        Text("Values are encrypted when you save them and never shown again.")
-                    }
-                    .font(.hvFootnote)
-                    .foregroundStyle(Palette.textTertiary)
-                }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
+                // One short sentence here. What else there is to know sits under the list, so at the largest
+                // text sizes the first screen is the filters and the entries, not a page of introduction.
+                Text("Save a login, card or contact once, and the agents you allow can use it.")
+                    .font(.hvCallout)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
 
                 filters(model)
                     .listRowBackground(Color.clear)
@@ -101,6 +95,8 @@ struct VaultItemsView: View {
                 Section {
                     empty(model)
                         .listRowBackground(Color.clear)
+                } footer: {
+                    privacyNote
                 }
             } else {
                 Section {
@@ -109,12 +105,25 @@ struct VaultItemsView: View {
                             VaultRow(secret: secret)
                         }
                     }
+                } footer: {
+                    privacyNote
                 }
+                .hvListRow()
             }
         }
         .scrollContentBackground(.hidden)
         .searchable(text: $model.query, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search")
         .refreshable { await model.load() }
+    }
+
+    /// Who can use what is saved, and that it cannot be read back: said once, under the entries.
+    private var privacyNote: some View {
+        VStack(alignment: .leading, spacing: HV.Space.xs) {
+            Text("Agents you give a key, like Claude Code, Codex, Cursor, Gemini CLI or your own script, can use what you allow.")
+            Label("Values are encrypted when you save them and never shown again.", systemImage: "lock.fill")
+        }
+        .font(.hvFootnote)
+        .foregroundStyle(Palette.textSecondary)
     }
 
     private func filters(_ model: VaultItemsModel) -> some View {
@@ -125,9 +134,11 @@ struct VaultItemsView: View {
                     chip(category.label, category: category, model: model)
                 }
             }
-            .padding(.horizontal, HV.Space.m)
             .padding(.vertical, HV.Space.xxs)
         }
+        // The row is inset like the cards below it. Letting the chips run past that edge means a chip that
+        // does not fit is cut by the screen, which says there are more, and not by an invisible line.
+        .scrollClipDisabled()
         .accessibilityElement(children: .contain)
     }
 
@@ -166,29 +177,44 @@ struct VaultItemsView: View {
 struct VaultRow: View {
     let secret: VaultSecret
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
+
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
+    private var tileSize: CGFloat { min(tile, 56) }
+    private let spacing = HV.Space.s + 2
+
     var body: some View {
-        HStack(spacing: HV.Space.s + 2) {
-            VaultTile(secret: secret)
+        HStack(spacing: spacing) {
+            VaultTile(secret: secret, size: tileSize)
             VStack(alignment: .leading, spacing: 2) {
                 Text(secret.name)
                     .font(.hvBody)
                     .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(1)
+                    .lineLimit(isLarge ? nil : 1)
                 Text(secret.subtitle)
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.textSecondary)
-                    .lineLimit(1)
+                    .lineLimit(isLarge ? nil : 1)
+                if isLarge { lastUsed }
             }
             Spacer(minLength: HV.Space.xs)
-            Text(secret.lastAccessedAt == nil ? AccountWords.neverUsed : AccountWords.agoLine(seconds: Date().timeIntervalSince(secret.lastAccessedAt ?? Date())))
-                .font(.hvCaption)
-                .foregroundStyle(Palette.textTertiary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            if !isLarge { lastUsed }
         }
         .contentShape(Rectangle())
+        // Every separator starts under the text. Left to itself the system takes a login's monogram, which is
+        // text, as the start of the row and draws that one line further left than the rest.
+        .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + tileSize + spacing }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(secret.name), \(secret.subtitle). \(AccountWords.lastUsedLine(secret.lastAccessedAt))")
+    }
+
+    private var lastUsed: some View {
+        Text(secret.lastAccessedAt == nil ? AccountWords.neverUsed : AccountWords.agoLine(seconds: Date().timeIntervalSince(secret.lastAccessedAt ?? Date())))
+            .font(.hvCaption)
+            .foregroundStyle(Palette.textTertiary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
     }
 }
 
@@ -208,8 +234,13 @@ enum VaultPreviewData {
     static let routes: [MockRoute] = [
         .json(.get, "/api/secrets", secretsJSON),
         .json(.get, "/rest/v1/api_keys", KeysPreviewData.keysJSON),
-        .json(.get, "/api/secrets/github.com/grants", #"{"grants":[{"id":"g1","api_key_id":"k1","created_at":"2026-10-24T10:00:00Z"}]}"#),
-    ]
+    ] + grantRoutes
+
+    /// Which keys may read each entry: Claude Code the first, nothing else. One route a name, so no entry in the
+    /// previews or the snapshots asks for a grants list the canned server does not have.
+    static let grantRoutes: [MockRoute] = ["github.com", "visa-4242", "amex-0005", "contact", "home", "stripe-restricted-key"].map { name in
+        MockRoute.json(.get, "/api/secrets/\(name)/grants", #"{"grants":[{"id":"g1","api_key_id":"k1","created_at":"2026-10-24T10:00:00Z"}]}"#)
+    }
 }
 
 #Preview("Vault") {

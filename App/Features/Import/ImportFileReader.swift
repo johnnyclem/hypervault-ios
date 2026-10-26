@@ -11,12 +11,17 @@ struct ImportReadResult: Sendable {
 }
 
 enum ImportFileReader {
+    /// Every copy and extracted file starts with this, so the ones left behind can be found.
+    static let temporaryPrefix = "hv-import-"
+
     /// Reads picked files: JSON and text as they are, a zip by looking
     /// through its JSON files for the ones that hold conversations. The work is
     /// done on a background thread; a big export is read from disk by the
     /// system as needed, not loaded into memory.
     static func read(_ urls: [URL], chosen: ImportPlatform?) async throws -> ImportReadResult {
         let work = Task.detached(priority: .userInitiated) { () throws -> ImportReadResult in
+            // Copies an earlier import never got to remove (the app was closed or killed part way).
+            PrivateTemporaryFiles.removeStale(prefix: temporaryPrefix)
             var result = ImportReadResult()
             do {
                 for url in urls {
@@ -59,7 +64,7 @@ enum ImportFileReader {
         var used = 0
         for entry in candidates {
             try Task.checkCancellation()
-            let out = FileManager.default.temporaryDirectory.appendingPathComponent("hv-import-\(UUID().uuidString).json")
+            let out = FileManager.default.temporaryDirectory.appendingPathComponent("\(temporaryPrefix)\(UUID().uuidString).json")
             do {
                 try archive.extract(entry, to: out, inflater: ImportZipInflater())
             } catch let error as ImportZipError {
@@ -81,6 +86,9 @@ enum ImportFileReader {
                 try? FileManager.default.removeItem(at: out)
             }
         }
+        // Everything wanted is out of the zip, which can be hundreds of megabytes of someone's history.
+        remove([copy])
+        result.temporaryFiles.removeAll { $0 == copy }
         let skippedImages = archive.entries.count - candidates.count
         var note = "Looked through \(candidates.count) JSON file\(candidates.count == 1 ? "" : "s") in \(name)"
         note += used == 0 ? " and found no conversations." : " and used \(used)."
@@ -112,7 +120,7 @@ enum ImportFileReader {
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
 
         let destination = FileManager.default.temporaryDirectory
-            .appendingPathComponent("hv-import-\(UUID().uuidString)-\(url.lastPathComponent)")
+            .appendingPathComponent("\(temporaryPrefix)\(UUID().uuidString)-\(url.lastPathComponent)")
         var coordinationError: NSError?
         var copyError: Error?
         NSFileCoordinator().coordinate(readingItemAt: url, options: .withoutChanges, error: &coordinationError) { readable in

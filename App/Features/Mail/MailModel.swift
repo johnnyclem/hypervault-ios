@@ -304,6 +304,8 @@ final class MailModel {
 /// Files made for the share sheet live in the temporary folder, under their own names.
 enum MailShareFile {
     static func write(_ data: Data, named name: String) throws -> URL {
+        // What an earlier export left behind, never shared or never cleared.
+        PrivateTemporaryFiles.removeStale(prefix: "hv-share-")
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("hv-share-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let url = folder.appendingPathComponent(name)

@@ -2,6 +2,37 @@ import HyperVaultKit
 import SwiftUI
 import UIKit
 
+/// Keeps the screen awake while at least one import is sending. Each run takes one hold and gives it back
+/// exactly once, when it ends however it ends, so a run that outlives its screen cannot leave the timer off,
+/// and a run that ends cannot switch it back on under a newer one.
+@MainActor
+enum ImportAwake {
+    private(set) static var holds = 0
+
+    static func hold() {
+        holds += 1
+        UIApplication.shared.isIdleTimerDisabled = true
+    }
+
+    static func release() {
+        holds = max(0, holds - 1)
+        if holds == 0 { UIApplication.shared.isIdleTimerDisabled = false }
+    }
+}
+
+/// What a screen would strand if it were dropped part way through an import: the run, and the temporary copies
+/// of an export that hold the person's whole history. The model holds this alone, so it goes when the model
+/// does: the run is cancelled and the copies are removed. A tab switch keeps the screen, and so the import.
+private final class ImportLeftovers {
+    var task: Task<Void, Never>?
+    var files: [URL] = []
+
+    deinit {
+        task?.cancel()
+        ImportFileReader.remove(files)
+    }
+}
+
 /// The Import screen's state, from "which service?" to "all in". Reading a
 /// file, sending it in parts and picking up after a failure all live here.
 @MainActor
@@ -32,12 +63,23 @@ final class ImportModel {
 
     @ObservationIgnored private let client: HVClient
     @ObservationIgnored private let limit: Int
-    @ObservationIgnored private var temporaryFiles: [URL] = []
-    @ObservationIgnored private var task: Task<Void, Never>?
+    @ObservationIgnored private let announcer: FeatureAnnouncer
+    @ObservationIgnored private let leftovers = ImportLeftovers()
 
-    init(client: HVClient, importBytes: Int) {
+    private var temporaryFiles: [URL] {
+        get { leftovers.files }
+        set { leftovers.files = newValue }
+    }
+
+    private var task: Task<Void, Never>? {
+        get { leftovers.task }
+        set { leftovers.task = newValue }
+    }
+
+    init(client: HVClient, importBytes: Int, announcer: FeatureAnnouncer = VoiceOverFeatureAnnouncer.shared) {
         self.client = client
         self.limit = importBytes
+        self.announcer = announcer
     }
 
     // MARK: Review
@@ -95,6 +137,8 @@ final class ImportModel {
         temporaryFiles = result.temporaryFiles
         let importable = documents.filter(\.isImportable)
         if importable.isEmpty {
+            // Nothing will be sent, so nothing is kept.
+            cleanUp()
             readError = ImportInspector.nothingFoundMessage
             plan = nil
             stage = documents.isEmpty ? .choose : .review
@@ -125,12 +169,15 @@ final class ImportModel {
         totals = ImportTotals()
         resumeAt = 0
         run(from: 0)
+        let count = conversationCount
+        announcer.announce("Importing \(count) conversation\(count == 1 ? "" : "s"). Keep HyperVault open.")
     }
 
     /// Picks up where a stopped import left off.
     func resume() {
         guard case .stopped = stage else { return }
         run(from: resumeAt)
+        announcer.announce("Continuing the import. Keep HyperVault open.")
     }
 
     func stop() {
@@ -141,12 +188,17 @@ final class ImportModel {
         guard let plan else { return }
         stage = .sending
         startedAt = startedAt ?? Date()
-        UIApplication.shared.isIdleTimerDisabled = true
+        ImportAwake.hold()
         let client = self.client
         let startingTotals = totals
+        // The run holds the model weakly: a screen that is gone stops it (see ImportLeftovers), and what ends
+        // it, with or without a model to tell, gives the screen back its sleep.
         task = Task { [weak self] in
             let grace = ToolsBackgroundGrace(name: "Import history")
-            defer { grace.end() }
+            defer {
+                grace.end()
+                ImportAwake.release()
+            }
             do {
                 let finished = try await ImportRunner.run(
                     plan: plan, start: start, totals: startingTotals,
@@ -166,15 +218,14 @@ final class ImportModel {
     }
 
     private func finish(_ finished: ImportTotals) {
-        UIApplication.shared.isIdleTimerDisabled = false
         totals = finished
         stage = .done
         Haptics.success()
         cleanUp()
+        announcer.announce("Import finished. \(finished.summary(platform: platform))")
     }
 
     private func halt(_ stop: ImportRunError) {
-        UIApplication.shared.isIdleTimerDisabled = false
         totals = stop.totals
         resumeAt = stop.resumeAt
         progress = ImportProgress(
@@ -182,11 +233,15 @@ final class ImportModel {
             conversationsTotal: plan?.conversationTotal ?? 0,
             batchesDone: stop.resumeAt, batchesTotal: plan?.items.count ?? 0, totals: stop.totals
         )
+        let total = plan?.conversationTotal ?? 0
+        let progressSentence = "\(stop.totals.imported) of \(total) conversations are in. You can continue it."
         if case .cancelled = stop.error {
             stage = .stopped("You stopped the import.")
+            announcer.announce("Import stopped. \(progressSentence)")
         } else {
             stage = .stopped(stop.userMessage)
             Haptics.failure()
+            announcer.announce("The import stopped. \(stop.userMessage) \(progressSentence)")
         }
     }
 
@@ -206,7 +261,6 @@ final class ImportModel {
     private func reset(keepSource: Bool) {
         task?.cancel()
         task = nil
-        UIApplication.shared.isIdleTimerDisabled = false
         cleanUp()
         documents = []
         notes = []

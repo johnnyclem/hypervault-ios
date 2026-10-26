@@ -5,6 +5,8 @@ import SwiftUI
 /// tab shows, and every stack resolves the same `Route`s.
 struct MainTabView: View {
     @Environment(AppModel.self) private var model
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         @Bindable var router = model.router
@@ -28,6 +30,10 @@ struct MainTabView: View {
             TabRoot(tab: .you) { YouRootView() }
                 .tabItem { Label(AppTab.you.title, systemImage: AppTab.you.symbol) }
                 .tag(AppTab.you)
+        }
+        .task { await env.flushOutbox(toasts: model.toasts) }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await env.flushOutbox(toasts: model.toasts) } }
         }
         .sheet(item: $router.sheet) { sheet in
             switch sheet {

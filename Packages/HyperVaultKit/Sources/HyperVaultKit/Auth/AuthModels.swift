@@ -87,6 +87,9 @@ public enum AuthError: Error, Sendable, Equatable {
     /// The provider or server turned the sign-in down; `message` is for people.
     case failed(String)
     case network(String)
+    /// The auth server could not take the request just now: it timed out, is down or is limiting
+    /// requests (`status` is 408, 429 or 5xx). Nothing was refused, so a session stays signed in.
+    case unavailable(status: Int)
     case notConfigured
 }
 
@@ -96,6 +99,10 @@ extension AuthError: LocalizedError {
         case .cancelled: return "Sign-in was cancelled."
         case .failed(let message): return message
         case .network: return "Network hiccup. Check your connection and try again."
+        case .unavailable(let status):
+            return status == 429
+                ? "Too many requests. Wait a moment and try again."
+                : "Your session could not be renewed right now. Try again in a moment."
         case .notConfigured: return "This server is not set up for sign-in yet."
         }
     }

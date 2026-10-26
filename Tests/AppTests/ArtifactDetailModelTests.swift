@@ -128,6 +128,35 @@ final class ArtifactDetailModelTests: XCTestCase {
         XCTAssertEqual(toasts.current?.message, "Only the owner can change that.")
     }
 
+    func testARefusedVisibilityChangeDoesNotUndoAnIconThatWentThrough() async {
+        // Who can open it is refused after a pause; the icon is set at once, in between.
+        let env = LibraryStaggeredTransport.environment(
+            routes: [
+                MockRoute(.patch, "/api/artifacts") { request in
+                    let text = String(decoding: request.httpBody ?? Data(), as: UTF8.self)
+                    if text.contains("visibility") { return HTTPResponse(status: 503, data: Data(#"{"error":"The database is missing artifact privacy."}"#.utf8)) }
+                    return HTTPResponse(status: 200, data: Data(#"{"artifact":{"id":"A1","slug":"pomo-1","title":"Pomodoro Timer","visibility":"private","icon":"P"},"message":"Icon set."}"#.utf8))
+                },
+                .json(.get, "/api/artifacts", artifacts),
+            ],
+            pause: { request in String(decoding: request.httpBody ?? Data(), as: UTF8.self).contains("visibility") ? 0.3 : 0 }
+        )
+        let loader = ArtifactPageLoader(baseURL: env.server.baseURL, tokens: StaticTokenProvider(), transport: MockTransport(routes: [page("pomo-1", body: "x")]))
+        let model = ArtifactDetailModel(slug: "pomo-1", env: env, loader: loader)
+        let toasts = ToastCenter()
+        await model.load()
+
+        let refused = Task { await model.setVisibility(.public, toasts: toasts) }
+        try? await Task.sleep(nanoseconds: 60_000_000)
+        XCTAssertEqual(model.visibility, .public, "shown at once")
+        let set = await model.setIcon("P", toasts: toasts)
+        await refused.value
+
+        XCTAssertTrue(set)
+        XCTAssertEqual(model.visibility, .private, "the refused change went back")
+        XCTAssertEqual(model.summary?.icon, ArtifactIcon.normalizedGlyph("P"), "the icon that went through stays")
+    }
+
     func testAThumbGivenTwiceIsTakenBack() async {
         let toasts = ToastCenter()
         let bodies = LibraryTestBox<[String]>([])

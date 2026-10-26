@@ -40,20 +40,7 @@ final class LibraryModelTests: XCTestCase {
 
     /// A model whose requests are answered after the pause `pause` names for each, so a slow refusal can land after a quick success.
     private func staggered(_ routes: [MockRoute], pause: @escaping @Sendable (URLRequest) -> TimeInterval) -> LibraryModel {
-        let server = ServerConfig(baseURL: URL(string: "https://preview.hypervault.test")!)
-        let transport = LibraryStaggeredTransport(MockTransport(routes: routes), pause: pause)
-        let env = AppEnvironment(
-            client: HVClient(baseURL: server.baseURL, transport: transport, tokens: StaticTokenProvider(), retry: .none),
-            auth: AuthService(
-                config: SupabaseConfig(url: URL(string: "https://preview.supabase.test")!, anonKey: "preview"),
-                transport: transport, store: InMemorySecureStore()
-            ),
-            capabilities: Capabilities(),
-            user: AuthUser(id: "preview-user", email: "sam@example.com", displayName: "Sam"),
-            server: server,
-            cache: DiskCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-staggered-\(UUID().uuidString)"))
-        )
-        return LibraryModel(env: env)
+        LibraryModel(env: LibraryStaggeredTransport.environment(routes: routes, pause: pause))
     }
 
     // MARK: Files
@@ -360,6 +347,24 @@ actor LibraryStaggeredTransport: HTTPTransport {
         let seconds = pause(request)
         if seconds > 0 { try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000)) }
         return try await inner.send(request)
+    }
+
+    /// An environment whose requests all go through this transport, without retries.
+    @MainActor
+    static func environment(routes: [MockRoute], pause: @escaping @Sendable (URLRequest) -> TimeInterval) -> AppEnvironment {
+        let server = ServerConfig(baseURL: URL(string: "https://preview.hypervault.test")!)
+        let transport = LibraryStaggeredTransport(MockTransport(routes: routes), pause: pause)
+        return AppEnvironment(
+            client: HVClient(baseURL: server.baseURL, transport: transport, tokens: StaticTokenProvider(), retry: .none),
+            auth: AuthService(
+                config: SupabaseConfig(url: URL(string: "https://preview.supabase.test")!, anonKey: "preview"),
+                transport: transport, store: InMemorySecureStore()
+            ),
+            capabilities: Capabilities(),
+            user: AuthUser(id: "preview-user", email: "sam@example.com", displayName: "Sam"),
+            server: server,
+            cache: DiskCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-staggered-\(UUID().uuidString)"))
+        )
     }
 }
 

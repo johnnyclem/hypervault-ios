@@ -146,7 +146,12 @@ public final class HVClient: Sendable {
         }
         let basePath = components.percentEncodedPath.hasSuffix("/") ? String(components.percentEncodedPath.dropLast()) : components.percentEncodedPath
         components.percentEncodedPath = basePath + Self.encodedPath(endpoint.path.hasPrefix("/") ? endpoint.path : "/" + endpoint.path)
-        if !endpoint.query.isEmpty { components.queryItems = endpoint.query }
+        if !endpoint.query.isEmpty {
+            components.queryItems = endpoint.query
+            // URLComponents leaves "+" alone in a query, and the server reads a "+" there as a space, so
+            // a search for "c++ notes" would arrive as "c   notes". Everything else it escapes already.
+            components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        }
         guard let url = components.url else { throw HVError.invalidRequest("Bad request address.") }
 
         var request = URLRequest(url: url, timeoutInterval: endpoint.timeout)

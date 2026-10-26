@@ -140,6 +140,24 @@ final class PullAndLinkTests: XCTestCase {
         XCTAssertNil(VaultLink.parse("ftp://hypervault.store/a/x", origin: origin))
     }
 
+    /// Every domain in the web's DOMAIN_PORTFOLIO (lib/domains.ts) is a HyperVault host, for the apex and any subdomain.
+    func testEveryPortfolioDomainIsOurs() {
+        let portfolio = [
+            "vault.cool", "agentvault.cloud", "cleon.wiki", "inkbound.ink", "claudedamnit.com", "cleon.casa", "cleon.city",
+            "tinderforai.com", "onlywizards.website", "hypervault.store", "ralphy.website", "permaclaw.com", "bo.dy",
+            "memory.baby", "memory.delivery", "smallchat.dev",
+        ]
+        for domain in portfolio {
+            XCTAssertEqual(VaultLink.parse("https://x.\(domain)/a/my-game", origin: nil), .artifact(slug: "my-game"), domain)
+            XCTAssertEqual(VaultLink.parse("https://\(domain)/g/site", origin: nil), .artifact(slug: "site"), domain)
+        }
+        XCTAssertEqual(
+            VaultLink.parse("https://x.smallchat.dev/vault/memory?open=7f1c2d3e-1111-2222-3333-444455556666", origin: nil),
+            .memory(id: "7f1c2d3e-1111-2222-3333-444455556666")
+        )
+        XCTAssertNil(VaultLink.parse("https://notsmallchat.dev/a/x", origin: nil), "a lookalike is not a subdomain")
+    }
+
     func testPasteStaging() {
         XCTAssertFalse(PasteStaging.shouldStage("a short sentence"))
         XCTAssertFalse(PasteStaging.shouldStage("https://example.com/" + String(repeating: "a", count: 300)), "a link is never staged")
@@ -147,6 +165,34 @@ final class PullAndLinkTests: XCTestCase {
         let lines = (1...4).map { "line number \($0) with enough words to count here and there" }.joined(separator: "\n")
         XCTAssertTrue(PasteStaging.shouldStage(lines), "several lines of real length")
         XCTAssertFalse(PasteStaging.shouldStage("a\nb\nc"), "short even over several lines")
+    }
+
+    /// The web counts lines with /\r\n|\r|\n/ (lib/canvas/paste.ts), so a Windows line break is one break.
+    func testPasteStagingCountsACRLFPairAsOneLineBreak() {
+        let hundred = String(repeating: "a", count: 100)
+        for separator in ["\n", "\r\n", "\r"] {
+            XCTAssertFalse(PasteStaging.shouldStage(hundred + separator + hundred), "two lines are not held back, joined by \(separator.debugDescription)")
+        }
+        let fifty = String(repeating: "x", count: 50)
+        for separator in ["\n", "\r\n", "\r"] {
+            XCTAssertTrue(PasteStaging.shouldStage([fifty, fifty, fifty].joined(separator: separator)), "three lines are, joined by \(separator.debugDescription)")
+        }
+        XCTAssertTrue(PasteStaging.shouldStage("\(hundred)\r\n\r\n\(hundred)"), "a blank line is a line")
+        // Only those three are line breaks; the Unicode separators are not.
+        for separator in ["\u{85}", "\u{2028}", "\u{2029}", "\u{0B}", "\u{0C}"] {
+            XCTAssertFalse(PasteStaging.shouldStage([hundred, hundred, hundred].joined(separator: separator)), "\(separator.debugDescription) is not a line break on the web")
+        }
+    }
+
+    func testPasteStagingMeasuresLengthTheWayTheWebDoes() {
+        // JavaScript's length counts UTF-16 units, so a CRLF is 2 and an emoji is 2.
+        let line = String(repeating: "x", count: 39)
+        XCTAssertEqual([line, line, line].joined(separator: "\r\n").utf16.count, 121)
+        XCTAssertTrue(PasteStaging.shouldStage([line, line, line].joined(separator: "\r\n")), "121 units on the web, so staged")
+        let tail = String(repeating: "x", count: 11)
+        let emoji = String(repeating: "\u{1F600}", count: 55) + "\n" + tail + "\n" + tail
+        XCTAssertEqual(emoji.utf16.count, 134)
+        XCTAssertTrue(PasteStaging.shouldStage(emoji))
     }
 }
 

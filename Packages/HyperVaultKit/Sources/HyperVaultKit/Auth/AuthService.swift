@@ -102,13 +102,30 @@ public actor AuthService: TokenProvider {
         broadcast()
     }
 
-    /// Re-reads the shared store. The share extension and the app keep one
-    /// session between them, so either may have rotated the tokens.
+    /// Picks up a session another process saved since this one was read. The app, the
+    /// widgets, the share extension and Shortcuts each run their own service over one
+    /// Keychain item, and any of them may have refreshed. It keeps what it has when the
+    /// store holds nothing newer, and never signs anyone out.
     public func reloadFromStore() async {
-        loaded = false
-        session = nil
         await loadIfNeeded()
+        await adoptStoredSession()
+    }
+
+    /// Takes up the stored session when another process saved a newer one for the same person,
+    /// and returns it. A missing or unreadable item says nothing, and an older one (a write that
+    /// did not take) must not replace a live session.
+    @discardableResult
+    private func adoptStoredSession() async -> AuthSession? {
+        guard let data = await store.get(Self.sessionKey),
+              let stored = try? HVCoding.decoder(.verbatim).decode(AuthSession.self, from: data)
+        else { return nil }
+        // `session` is read after the await: it may have changed while the store was being read.
+        guard let mine = session, stored.user.id == mine.user.id,
+              stored.refreshToken != mine.refreshToken, stored.expiresAt > mine.expiresAt
+        else { return nil }
+        session = stored
         broadcast()
+        return stored
     }
 
     // MARK: TokenProvider
@@ -120,11 +137,11 @@ public actor AuthService: TokenProvider {
         do {
             return try await refreshSession().accessToken
         } catch let error as AuthError {
-            // A refresh that failed on the network is not a sign-out: use the
-            // token while it still works, and let the caller see the failure after.
-            if case .network = error, !current.isExpiring(within: 0, now: now()) { return current.accessToken }
-            if case .network = error { throw HVError.transport("offline") }
-            return nil
+            // A refresh that could not be done is not a sign-out: use the token while it
+            // still works, and let the caller see the failure after.
+            guard let failure = Self.transientFailure(of: error) else { return nil }
+            if let latest = session, !latest.isExpiring(within: 0, now: now()) { return latest.accessToken }
+            throw failure
         }
     }
 
@@ -136,40 +153,101 @@ public actor AuthService: TokenProvider {
         do {
             return try await refreshSession().accessToken
         } catch let error as AuthError {
-            if case .network = error { throw HVError.transport("offline") }
+            if let failure = Self.transientFailure(of: error) { throw failure }
+            return nil
+        }
+    }
+
+    /// How a refresh that neither worked nor ended the session reaches the API client.
+    /// Nil for the errors that mean there is no session to use.
+    private static func transientFailure(of error: AuthError) -> HVError? {
+        switch error {
+        case .network:
+            return .transport("offline")
+        case .unavailable(let status):
+            return .api(APIFailure(status: status, message: error.errorDescription ?? ""))
+        case .cancelled, .failed, .notConfigured:
             return nil
         }
     }
 
     /// Exchanges the refresh token for a new session. Concurrent callers share one request.
+    /// The server refusing the refresh token ends the session (`.failed`); a server that is busy
+    /// or out of reach (`.unavailable`, `.network`) leaves it signed in.
     @discardableResult
     public func refreshSession() async throws -> AuthSession {
         await loadIfNeeded()
+        // From here to `refreshTask = task` there is no suspension point, so callers that arrive
+        // together all find the one task. Anything that waits on the store belongs inside it.
         if let refreshTask { return try await refreshTask.value }
-        guard let current = session else { throw AuthError.failed("Not signed in.") }
+        guard session != nil else { throw AuthError.failed("Not signed in.") }
 
-        let task = Task<AuthSession, Error> { [self] in
-            let response = try await request(
-                path: "auth/v1/token",
-                query: [URLQueryItem(name: "grant_type", value: "refresh_token")],
-                body: ["refresh_token": .string(current.refreshToken)]
-            )
-            return try makeSession(from: response.data)
-        }
+        let task = Task<AuthSession, Error> { [self] in try await renew() }
         refreshTask = task
         do {
             let fresh = try await task.value
             refreshTask = nil
-            await adopt(fresh)
             return fresh
         } catch let error as AuthError {
             refreshTask = nil
-            if case .failed = error { await clearSession() }
             throw error
         } catch {
             refreshTask = nil
             throw AuthError.network(error.localizedDescription)
         }
+    }
+
+    /// One refresh, run by `refreshSession`. A refresh token works once, and the widgets, the
+    /// share extension and Shortcuts refresh the same session from their own process, so what is
+    /// in memory may already be spent. The store is read before the request and again if the
+    /// server refuses it, and a session another process saved is used rather than overwritten.
+    private func renew() async throws -> AuthSession {
+        if let adopted = await adoptStoredSession(), !adopted.isExpiring(within: refreshMargin, now: now()) {
+            return adopted
+        }
+        guard let current = session else { throw AuthError.failed("Not signed in.") }
+
+        let response = try await send(
+            path: "auth/v1/token",
+            query: [URLQueryItem(name: "grant_type", value: "refresh_token")],
+            body: ["refresh_token": .string(current.refreshToken)]
+        )
+        let unreadable = AuthError.network("The sign-in service answered in a way the app could not read.")
+        if (200..<300).contains(response.status) {
+            guard let fresh = try? makeSession(from: response.data) else { throw unreadable }
+            await adopt(fresh)
+            return fresh
+        }
+        if Self.isRefreshTokenRefusal(response) {
+            // If another process refreshed while this request was out, its session is the live one
+            // and is not what was refused.
+            if let adopted = await adoptStoredSession() { return adopted }
+            // `session` is read again after the store was: a sign-in may have replaced it meanwhile.
+            if session?.refreshToken == current.refreshToken { await clearSession() }
+            throw AuthError.failed(Self.message(from: response))
+        }
+        if response.status == 408 || response.status == 429 || (500...599).contains(response.status) {
+            throw AuthError.unavailable(status: response.status)
+        }
+        // A proxy's page or an error that names no token is not the server refusing this one.
+        throw unreadable
+    }
+
+    /// Whether the server refused the refresh token itself (unknown, already used, expired, its
+    /// session gone, the person banned), as opposed to being busy, down or behind a proxy that
+    /// answered for it. Only this ends a session.
+    private static func isRefreshTokenRefusal(_ response: HTTPResponse) -> Bool {
+        guard (400..<500).contains(response.status), response.status != 408, response.status != 429,
+              let body = try? HVCoding.decoder(.verbatim).decode(JSONValue.self, from: response.data)
+        else { return false }
+        // GoTrue says it in `error` (OAuth style) or in `error_code` and `msg`.
+        let said = ["error", "error_code", "error_description", "msg", "message"]
+            .compactMap { body[$0]?.string?.lowercased() }
+        let refusals = [
+            "invalid_grant", "invalid refresh token", "refresh_token_not_found", "refresh_token_already_used",
+            "session_not_found", "session_expired", "user_not_found", "user_banned",
+        ]
+        return said.contains { text in refusals.contains { text.contains($0) } }
     }
 
     // MARK: Sign-in
@@ -297,7 +375,18 @@ public actor AuthService: TokenProvider {
 
     // MARK: Plumbing
 
+    /// A call whose answer must be a success; a refusal is `.failed` with the server's sentence.
     private func request(path: String, query: [URLQueryItem], body: [String: JSONValue]) async throws -> HTTPResponse {
+        let response = try await send(path: path, query: query, body: body)
+        guard (200..<300).contains(response.status) else {
+            throw AuthError.failed(Self.message(from: response))
+        }
+        return response
+    }
+
+    /// POSTs to the auth server and returns whatever status it answered. Only a call that got no
+    /// answer throws.
+    private func send(path: String, query: [URLQueryItem], body: [String: JSONValue]) async throws -> HTTPResponse {
         var components = URLComponents(url: config.url.appendingPathComponent(path), resolvingAgainstBaseURL: false)
         if !query.isEmpty { components?.queryItems = query }
         guard let url = components?.url else { throw AuthError.notConfigured }
@@ -309,18 +398,13 @@ public actor AuthService: TokenProvider {
         request.setValue("Bearer \(config.anonKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = try? HVCoding.encoder(.verbatim).encode(JSONValue.object(body))
 
-        let response: HTTPResponse
         do {
-            response = try await transport.send(request)
+            return try await transport.send(request)
         } catch let error as URLError where error.code == .cancelled {
             throw AuthError.cancelled
         } catch {
             throw AuthError.network(error.localizedDescription)
         }
-        guard (200..<300).contains(response.status) else {
-            throw AuthError.failed(Self.message(from: response))
-        }
-        return response
     }
 
     static func message(from response: HTTPResponse) -> String {

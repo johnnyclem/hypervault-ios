@@ -83,7 +83,7 @@ public enum VaultLink: Sendable, Equatable {
     static let vanityBases = [
         "hypervault.store", "vault.cool", "agentvault.cloud", "cleon.wiki", "inkbound.ink", "claudedamnit.com",
         "cleon.casa", "cleon.city", "tinderforai.com", "onlywizards.website", "ralphy.website", "permaclaw.com",
-        "bo.dy", "memory.baby", "memory.delivery",
+        "bo.dy", "memory.baby", "memory.delivery", "smallchat.dev",
     ]
 }
 
@@ -98,10 +98,15 @@ public enum PasteStaging {
     /// into it (a message). A link is never staged.
     public static func shouldStage(_ text: String) -> Bool {
         let pasted = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard pasted.count >= multilinePasteChars else { return false }
+        // The web measures with JavaScript's `length`, which counts UTF-16 units: a CRLF is two.
+        let length = pasted.utf16.count
+        guard length >= multilinePasteChars else { return false }
         if pasted.range(of: #"^(?:[a-z][a-z0-9+.-]*://|www\.)\S+$"#, options: [.regularExpression, .caseInsensitive]) != nil { return false }
-        if pasted.count >= longPasteChars { return true }
-        let lines = pasted.components(separatedBy: CharacterSet.newlines).count
+        if length >= longPasteChars { return true }
+        // Lines are split on `\r\n`, `\r` and `\n` alone, as the web does. Swift reads "\r\n" as one
+        // Character, so a CRLF is one break; `CharacterSet.newlines` would split it in two and
+        // would also count U+0085, U+2028, U+2029, VT and FF.
+        let lines = pasted.split(omittingEmptySubsequences: false) { $0 == "\n" || $0 == "\r\n" || $0 == "\r" }.count
         return lines >= multilinePasteLines
     }
 }

@@ -71,7 +71,7 @@ struct ImportGuide {
                 steps: [
                     "Open the chat in the app and copy the conversation.",
                     "Paste it below.",
-                    "Lines that start with a speaker label are enough: User: and Assistant:, or You:, ChatGPT:, Claude:, Gemini: or Grok:.",
+                    "Start each message with who said it, like “User:” and “Assistant:”, or “You:” and “Claude:”.",
                 ],
                 footnote: "Use this for apps that cannot export."
             )

@@ -171,7 +171,7 @@ struct ToolsCompileSheet: View {
             Text(text).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .hvCard(padding: HV.Space.s)
+        .hvCard()
     }
 
     private func collisions(_ result: McpCompileResult) -> some View {
@@ -189,7 +189,7 @@ struct ToolsCompileSheet: View {
         } label: {
             Text("Which tools look alike").font(.hvCallout)
         }
-        .hvCard(padding: HV.Space.s)
+        .hvCard()
     }
 
     // MARK: Trouble

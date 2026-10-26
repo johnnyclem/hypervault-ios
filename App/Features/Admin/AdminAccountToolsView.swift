@@ -19,8 +19,10 @@ struct AdminAccountToolsView: View {
         var id: Int { self == .revoke ? 0 : 1 }
     }
 
-    init(client: HVClient, ownID: String, dashboard: URL) {
-        _model = State(initialValue: AdminAccountModel(client: client, ownID: ownID))
+    init(client: HVClient, ownID: String, dashboard: URL, accountID: String = "") {
+        let model = AdminAccountModel(client: client, ownID: ownID)
+        model.idText = accountID
+        _model = State(initialValue: model)
         self.dashboard = dashboard
     }
 
@@ -220,9 +222,15 @@ struct AdminDeleteAccountSheet: View {
     /// Returns whether the account was deleted.
     var onDelete: () async -> Bool
 
-    @State private var typed = ""
+    @State private var typed: String
     @State private var isWorking = false
     @FocusState private var focused: Bool
+
+    init(accountID: String, typed: String = "", onDelete: @escaping () async -> Bool) {
+        self.accountID = accountID
+        self.onDelete = onDelete
+        _typed = State(initialValue: typed)
+    }
 
     private var matches: Bool { typed.trimmingCharacters(in: .whitespaces) == "DELETE" }
 
@@ -313,9 +321,11 @@ struct AdminDestructiveButtonStyle: ButtonStyle {
 
 struct AdminAccountsPreview: View {
     @Environment(AppEnvironment.self) private var env
+    /// An account ID already pasted, so the actions below it are on screen.
+    var accountID = ""
 
     var body: some View {
-        AdminAccountToolsView(client: env.client, ownID: env.user.id, dashboard: env.webURL("admin"))
+        AdminAccountToolsView(client: env.client, ownID: env.user.id, dashboard: env.webURL("admin"), accountID: accountID)
     }
 }
 #endif

@@ -192,21 +192,37 @@ struct ToolsStep: View {
 struct ToolsServerRow: View {
     let server: McpServer
     var needsSignIn = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle) {
-            HStack(spacing: HV.Space.xs) {
-                if let tag { HVTag(text: tag.text, tint: tag.tint) }
-                if server.hasAuth {
-                    Image(systemName: server.secretBacked ? "lock.shield.fill" : "key.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.textTertiary)
-                        .accessibilityLabel(server.secretBacked ? "Sign-in kept in the saved-secrets vault" : "Needs a sign-in")
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                // The tag and the key take the room the name needs, so at these sizes they sit under it,
+                // lined up with the name.
+                VStack(alignment: .leading, spacing: HV.Space.xs) {
+                    HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle)
+                    HStack(spacing: HV.Space.xs) { markers }
+                        .padding(.leading, 36 + HV.Space.s + 2)
+                }
+            } else {
+                HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle) {
+                    HStack(spacing: HV.Space.xs) { markers }
                 }
             }
         }
         .frame(minHeight: 44)
         .opacity(server.enabled ? 1 : 0.65)
+    }
+
+    @ViewBuilder
+    private var markers: some View {
+        if let tag { HVTag(text: tag.text, tint: tag.tint) }
+        if server.hasAuth {
+            Image(systemName: server.secretBacked ? "lock.shield.fill" : "key.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(Palette.textTertiary)
+                .accessibilityLabel(server.secretBacked ? "Sign-in kept in the saved-secrets vault" : "Needs a sign-in")
+        }
     }
 
     private var symbol: String {

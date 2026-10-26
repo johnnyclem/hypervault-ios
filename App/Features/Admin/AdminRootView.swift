@@ -120,15 +120,9 @@ struct AdminScreen: View {
 
     private var mintForm: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            HStack {
-                Text("Uses").font(.hvBody)
-                Spacer()
-                TextField("1", text: $model.usesText)
+            HVLabeledField(title: "Uses", footnote: "How many people can join with this code.") {
+                TextField("How many people can use the code", text: $model.usesText, prompt: Text(verbatim: "1"))
                     .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 90)
-                    .hvFieldChrome()
-                    .accessibilityLabel("How many people can use the code")
             }
             HVLabeledField(title: "Note (optional)") {
                 TextField("Note", text: $model.note, prompt: Text(verbatim: "Launch batch"))

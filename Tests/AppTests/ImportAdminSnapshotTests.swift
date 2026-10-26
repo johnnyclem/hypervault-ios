@@ -66,12 +66,29 @@ final class AdminSnapshotTests: XCTestCase {
         try snapshot(PreviewHost { AdminAccountsPreview() }, named: "admin-accounts")
     }
 
+    func testAccountToolsWithAnAccount() throws {
+        try snapshot(
+            PreviewHost { AdminAccountsPreview(accountID: "3f1c1a2e-0000-4000-8000-000000000001") },
+            named: "admin-accounts-actions",
+            size: CGSize(width: 393, height: 1500)
+        )
+    }
+
     func testDeleteAccountSheet() throws {
         try snapshot(
             PreviewHost(embedInNavigation: false) {
                 AdminDeleteAccountSheet(accountID: "3f1c1a2e-0000-4000-8000-000000000001") { false }
             },
             named: "admin-delete"
+        )
+    }
+
+    func testDeleteAccountSheetOnceTheWordIsTyped() throws {
+        try snapshot(
+            PreviewHost(embedInNavigation: false) {
+                AdminDeleteAccountSheet(accountID: "3f1c1a2e-0000-4000-8000-000000000001", typed: "DELETE") { false }
+            },
+            named: "admin-delete-armed"
         )
     }
 }

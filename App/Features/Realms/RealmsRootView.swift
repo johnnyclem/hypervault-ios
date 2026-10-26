@@ -14,6 +14,7 @@ struct RealmsRootView: View {
     @State private var model: RealmsModel?
     @State private var webPage: KeysWebPage?
     @State private var claiming = false
+    @State private var showsPlans = false
 
     var body: some View {
         Group {
@@ -25,7 +26,7 @@ struct RealmsRootView: View {
         }
         .hvScreenBackground()
         .navigationTitle("Your address")
-        .navigationBarTitleDisplayMode(.large)
+        .keysLargeTitle()
         .navigationDestination(for: RealmsDestination.self) { destination in
             if let model {
                 switch destination {
@@ -79,9 +80,7 @@ struct RealmsRootView: View {
 
             Section(header: HVSectionHeader(title: "Your addresses", detail: model.claims.isEmpty ? nil : "\(model.claims.count) of \(maxClaims)")) {
                 if model.claims.isEmpty {
-                    Text(RealmPlanCopy.noAddressLine)
-                        .font(.hvFootnote)
-                        .foregroundStyle(Palette.textSecondary)
+                    noAddresses
                 } else {
                     ForEach(model.claims) { claim in
                         NavigationLink(value: RealmsDestination.realm(claim.id)) {
@@ -90,11 +89,24 @@ struct RealmsRootView: View {
                     }
                 }
             }
+            .hvListRow()
 
             planSection(model)
         }
         .scrollContentBackground(.hidden)
         .refreshable { await model.load() }
+    }
+
+    /// The same shape as "No keys yet" on Account & keys: what is missing, then what to do about it.
+    private var noAddresses: some View {
+        VStack(alignment: .leading, spacing: HV.Space.xs) {
+            Text(RealmPlanCopy.noAddressTitle).font(.hvHeadline)
+            Text(RealmPlanCopy.noAddressDetail)
+                .font(.hvFootnote)
+                .foregroundStyle(Palette.textSecondary)
+        }
+        .padding(.vertical, HV.Space.xs)
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
@@ -123,7 +135,27 @@ struct RealmsRootView: View {
             }
             .accessibilityElement(children: .combine)
 
-            DisclosureGroup("What Pro includes") {
+            // Not a DisclosureGroup: its chevron is drawn bold in the primary colour, heavier than the muted
+            // ones on every other row. This is the same row with the same quiet chevron.
+            Button {
+                withAnimation(.easeOut(duration: 0.2)) { showsPlans.toggle() }
+            } label: {
+                HStack {
+                    Text("What Pro includes").font(.hvBody).foregroundStyle(Palette.textPrimary)
+                    Spacer(minLength: HV.Space.xs)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Palette.textTertiary)
+                        .rotationEffect(.degrees(showsPlans ? 90 : 0))
+                        .accessibilityHidden(true)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(showsPlans ? "Expanded" : "Collapsed")
+            .accessibilityHint(showsPlans ? "Hides the plans" : "Shows what Free and Pro include")
+
+            if showsPlans {
                 VStack(alignment: .leading, spacing: HV.Space.m) {
                     planColumn(title: "Free", price: RealmPlanCopy.freePrice, features: RealmPlanCopy.freeFeatures, tint: Palette.textSecondary)
                     planColumn(title: "Pro", price: RealmPlanCopy.proPrice, features: RealmPlanCopy.proFeatures, tint: Palette.blue)
@@ -135,10 +167,11 @@ struct RealmsRootView: View {
                 Button {
                     webPage = KeysWebPage(env.webURL("/upgrade"))
                 } label: {
-                    HVRow(symbol: "safari", tint: Palette.blue, title: "See plans on the web", subtitle: RealmPlanCopy.upgradeDetail)
+                    HVRow(symbol: "safari", tint: Palette.blue, title: "See plans on the web", subtitle: RealmPlanCopy.upgradeDetail) { KeysChevron() }
                 }
             }
         }
+        .hvListRow()
     }
 
     private func planColumn(title: String, price: String, features: [String], tint: Color) -> some View {
@@ -164,20 +197,25 @@ struct RealmRow: View {
     let isPro: Bool
 
     @Environment(AppEnvironment.self) private var env
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
+
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
         HStack(spacing: HV.Space.s + 2) {
-            HVIconBadge(symbol: "globe", tint: Palette.blue)
+            HVIconBadge(symbol: "globe", tint: Palette.blue, size: min(tile, 56))
             VStack(alignment: .leading, spacing: 2) {
                 Text(claim.host)
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                Text(subtitle).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(1)
+                    .lineLimit(isLarge ? nil : 1)
+                    .minimumScaleFactor(isLarge ? 1 : 0.75)
+                Text(subtitle).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(isLarge ? nil : 2)
+                if isLarge, isPro { HVTag(text: "Pro", tint: Palette.blue).padding(.top, 2) }
             }
             Spacer(minLength: HV.Space.xs)
-            if isPro { HVTag(text: "Pro", tint: Palette.blue) }
+            if !isLarge, isPro { HVTag(text: "Pro", tint: Palette.blue) }
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
@@ -185,7 +223,7 @@ struct RealmRow: View {
 
     private var subtitle: String {
         let look = claim.theme.flatMap { id in env.capabilities.themes.first { $0.id == id }?.name } ?? "Default look"
-        return claim.defaultArtifactSlug == nil ? look : "\(look) · opens a page"
+        return claim.defaultArtifactSlug == nil ? look : "\(look) \u{00B7} opens a page"
     }
 }
 

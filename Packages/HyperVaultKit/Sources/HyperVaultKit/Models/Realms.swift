@@ -287,6 +287,7 @@ public enum RealmPlanCopy {
     public static let pickLine = "Choose a base domain from the HyperVault portfolio, pick a name, and it's live immediately."
     public static let domainLine = "Every claimed address serves your whole vault. Visitors see the realm's look; you still get your dashboard."
     public static let appearanceLine = "Each realm can wear its own look, and open straight to an artifact you pick."
-    public static let noAddressLine = "No address claimed yet."
+    public static let noAddressTitle = "No address yet"
+    public static let noAddressDetail = "Claim one and your whole vault is served from it, like you.vault.cool."
     public static let upgradeDetail = "Pro gets you an address of your own, like you.vault.cool."
 }

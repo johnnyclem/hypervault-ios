@@ -1,0 +1,77 @@
+name: iOS
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The Kit is Foundation-only, so its tests run on Linux in seconds.
+  kit:
+    name: HyperVaultKit tests (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        working-directory: Packages/HyperVaultKit
+        run: swift test
+
+  # The app, its extensions and its tests, on a simulator.
+  app:
+    name: App build and tests (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pick the newest Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$latest" ]; then sudo xcode-select -s "$latest/Contents/Developer"; fi
+          xcodebuild -version
+          swift --version
+
+      - name: Install tools
+        run: brew install xcodegen xcbeautify
+
+      - name: Generate the project
+        run: xcodegen generate
+
+      - name: Pick a simulator
+        id: sim
+        run: |
+          id=$(xcrun simctl list devices available iPhone -j | python3 scripts/pick_simulator.py)
+          echo "Using simulator $id"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project HyperVault.xcodeproj -scheme HyperVault \
+            -destination "id=${{ steps.sim.outputs.id }}" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build.log | xcbeautify --renderer github-actions
+
+      - name: Test
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -project HyperVault.xcodeproj -scheme HyperVault \
+            -destination "id=${{ steps.sim.outputs.id }}" \
+            -derivedDataPath build \
+            -resultBundlePath build/tests.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee test.log | xcbeautify --renderer github-actions
+
+      - name: Summarise failures
+        if: failure()
+        run: |
+          echo "---- errors ----"
+          grep -hE "error:|\*\* (BUILD|TEST) FAILED|Test Case .* failed" build.log test.log 2>/dev/null | sort -u | head -80

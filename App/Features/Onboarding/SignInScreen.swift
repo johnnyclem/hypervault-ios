@@ -1,0 +1,245 @@
+import AuthenticationServices
+import HyperVaultKit
+import SwiftUI
+
+/// The way in. Offers whatever the server's sign-in settings allow.
+struct SignInScreen: View {
+    @Environment(AppModel.self) private var model
+    var onBack: (() -> Void)?
+
+    var body: some View {
+        if let auth = model.auth {
+            SignInContent(auth: auth, providers: model.providers, onBack: onBack)
+        } else {
+            LaunchView()
+        }
+    }
+}
+
+struct SignInContent: View {
+    let providers: AuthProviders
+    var onBack: (() -> Void)?
+
+    @Environment(\.colorScheme) private var scheme
+    @State private var controller: SignInController
+    @State private var nonce = AuthNonce.make()
+    @State private var showEmail = false
+
+    init(auth: AuthService, providers: AuthProviders, onBack: (() -> Void)?) {
+        _controller = State(initialValue: SignInController(auth: auth))
+        self.providers = providers
+        self.onBack = onBack
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                if let onBack {
+                    Button(action: onBack) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .semibold))
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel("Back")
+                }
+                Spacer()
+            }
+            .padding(.horizontal, HV.Space.xs)
+            .frame(height: 44)
+
+            Spacer(minLength: HV.Space.l)
+
+            VStack(spacing: HV.Space.l) {
+                BrandMark(size: 84)
+                VStack(spacing: HV.Space.xs) {
+                    Text("Welcome to HyperVault")
+                        .font(.hvHero)
+                        .multilineTextAlignment(.center)
+                    Text("Keep what your AI just made. Only you can open it.")
+                        .font(.hvBody)
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .padding(.horizontal, HV.Space.xl)
+
+            Spacer(minLength: HV.Space.l)
+
+            VStack(spacing: HV.Space.s + 2) {
+                if providers.apple { appleButton }
+                if providers.google { googleButton }
+                if providers.email { emailButton }
+                if !providers.apple && !providers.google && !providers.email {
+                    Text("Sign-in is not available on this server right now.")
+                        .font(.hvCallout)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+
+                if let message = controller.message {
+                    Text(message)
+                        .font(.hvFootnote)
+                        .foregroundStyle(Palette.danger)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, HV.Space.xs)
+                        .transition(.opacity)
+                }
+
+                Text("Only you can open what you keep.")
+                    .font(.hvCaption)
+                    .foregroundStyle(Palette.textTertiary)
+                    .padding(.top, HV.Space.s)
+            }
+            .padding(.horizontal, HV.Space.l)
+            .padding(.bottom, HV.Space.l)
+            .hvReadableWidth()
+            .animation(.easeOut(duration: 0.2), value: controller.message)
+        }
+        .sheet(isPresented: $showEmail) {
+            EmailCodeSheet(controller: controller)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+    }
+
+    private var appleButton: some View {
+        SignInWithAppleButton(.continue) { request in
+            request.requestedScopes = [.fullName, .email]
+            request.nonce = nonce.hashed
+        } onCompletion: { result in
+            let raw = nonce.raw
+            Task { await controller.handleApple(result, rawNonce: raw) }
+        }
+        .signInWithAppleButtonStyle(scheme == .dark ? .white : .black)
+        .frame(height: 52)
+        .clipShape(Capsule())
+        .disabled(controller.isWorking)
+        .opacity(controller.work == .apple ? 0.6 : 1)
+    }
+
+    private var googleButton: some View {
+        Button {
+            Task { await controller.signInWithGoogle() }
+        } label: {
+            HStack(spacing: HV.Space.s) {
+                if controller.work == .google {
+                    ProgressView()
+                } else {
+                    Text("G")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(Palette.brandGradient)
+                }
+                Text("Continue with Google")
+            }
+        }
+        .buttonStyle(.hvSecondary)
+        .disabled(controller.isWorking)
+    }
+
+    private var emailButton: some View {
+        Button {
+            showEmail = true
+        } label: {
+            HStack(spacing: HV.Space.s) {
+                Image(systemName: "envelope")
+                Text("Continue with email")
+            }
+        }
+        .buttonStyle(.hvSecondary)
+        .disabled(controller.isWorking)
+    }
+}
+
+/// Email, then the six digits that arrive in it.
+struct EmailCodeSheet: View {
+    let controller: SignInController
+    @Environment(\.dismiss) private var dismiss
+    @State private var email = ""
+    @State private var code = ""
+    @FocusState private var focus: Field?
+
+    private enum Field { case email, code }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: HV.Space.l) {
+            HVSheetHeader(
+                title: controller.emailSentTo == nil ? "Sign in with email" : "Check your email",
+                subtitle: controller.emailSentTo.map { "We sent a six-digit code to \($0)." }
+                    ?? "We'll email you a code. A new address becomes a new account.",
+                onClose: { dismiss() }
+            )
+
+            if controller.emailSentTo == nil {
+                TextField("you@example.com", text: $email)
+                    .textContentType(.emailAddress)
+                    .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .focused($focus, equals: .email)
+                    .submitLabel(.send)
+                    .onSubmit { send() }
+                    .hvFieldChrome(isFocused: focus == .email)
+
+                Button {
+                    send()
+                } label: {
+                    if controller.work == .emailSend { ProgressView().tint(.white) } else { Text("Send me a code") }
+                }
+                .buttonStyle(.hvPrimary)
+                .disabled(email.isEmpty || controller.isWorking)
+            } else {
+                TextField("123456", text: $code)
+                    .textContentType(.oneTimeCode)
+                    .keyboardType(.numberPad)
+                    .font(.system(.title2, design: .monospaced, weight: .semibold))
+                    .multilineTextAlignment(.center)
+                    .focused($focus, equals: .code)
+                    .hvFieldChrome(isFocused: focus == .code)
+                    .onChange(of: code) { _, newValue in
+                        let digits = newValue.filter(\.isNumber)
+                        if digits != newValue { code = digits }
+                        if digits.count == 6 { verify() }
+                    }
+
+                Button {
+                    verify()
+                } label: {
+                    if controller.work == .emailVerify { ProgressView().tint(.white) } else { Text("Sign in") }
+                }
+                .buttonStyle(.hvPrimary)
+                .disabled(code.count < 6 || controller.isWorking)
+
+                HStack {
+                    Button("Use a different email") {
+                        code = ""
+                        controller.resetEmail()
+                    }
+                    Spacer()
+                    Button("Send again") {
+                        Task { _ = await controller.sendEmailCode(controller.emailSentTo ?? email) }
+                    }
+                }
+                .buttonStyle(.hvGhost)
+            }
+
+            if let message = controller.message {
+                Text(message).font(.hvFootnote).foregroundStyle(Palette.danger)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(HV.Space.l)
+        .task { focus = controller.emailSentTo == nil ? .email : .code }
+        .onChange(of: controller.emailSentTo) { _, sent in
+            focus = sent == nil ? .email : .code
+        }
+    }
+
+    private func send() {
+        guard !email.isEmpty else { return }
+        Task { _ = await controller.sendEmailCode(email) }
+    }
+
+    private func verify() {
+        guard code.count == 6 else { return }
+        Task { await controller.verifyEmailCode(code) }
+    }
+}

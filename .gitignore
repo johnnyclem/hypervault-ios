@@ -60,3 +60,14 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# HyperVault
+HyperVault.xcodeproj/
+Config/Generated/
+Config/Local.xcconfig
+Packages/HyperVaultKit/.build/
+Packages/HyperVaultKit/.swiftpm/
+.build/
+build/
+DerivedData/
+*.xcresult

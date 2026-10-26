@@ -48,53 +48,65 @@ struct SignInContent: View {
             .padding(.horizontal, HV.Space.xs)
             .frame(height: 44)
 
-            Spacer(minLength: HV.Space.l)
+            // The way in scrolls when its words need more room than the screen has (a large text size, a small phone):
+            // without it the words and the buttons were cut short ("Welcome...", "Continue with e..."). When they fit,
+            // it is the same page as before, the mark and the words in the middle and the buttons at the foot.
+            GeometryReader { proxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        Spacer(minLength: HV.Space.l)
 
-            VStack(spacing: HV.Space.l) {
-                BrandMark(size: 84)
-                VStack(spacing: HV.Space.xs) {
-                    Text("Welcome to HyperVault")
-                        .font(.hvHero)
-                        .multilineTextAlignment(.center)
-                    Text("Keep what your AI just made. Only you can open it.")
-                        .font(.hvBody)
-                        .foregroundStyle(Palette.textSecondary)
-                        .multilineTextAlignment(.center)
+                        VStack(spacing: HV.Space.l) {
+                            BrandMark(size: 84)
+                            VStack(spacing: HV.Space.xs) {
+                                Text("Welcome to HyperVault")
+                                    .font(.hvHero)
+                                    .multilineTextAlignment(.center)
+                                Text("Keep what your AI just made. Only you can open it.")
+                                    .font(.hvBody)
+                                    .foregroundStyle(Palette.textSecondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                        }
+                        .padding(.horizontal, HV.Space.xl)
+
+                        Spacer(minLength: HV.Space.l)
+
+                        VStack(spacing: HV.Space.s + 2) {
+                            if providers.apple { appleButton }
+                            if providers.google { googleButton }
+                            if providers.email { emailButton }
+                            if !providers.apple && !providers.google && !providers.email {
+                                Text("Sign-in is not available on this server right now.")
+                                    .font(.hvCallout)
+                                    .foregroundStyle(Palette.textSecondary)
+                                    .accessibilityIdentifier("signin.unavailable")
+                            }
+
+                            if let message = controller.message {
+                                Text(message)
+                                    .font(.hvFootnote)
+                                    .foregroundStyle(Palette.danger)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.top, HV.Space.xs)
+                                    .transition(.opacity)
+                            }
+
+                            Text("Only you can open what you keep.")
+                                .font(.hvCaption)
+                                .foregroundStyle(Palette.textTertiary)
+                                .multilineTextAlignment(.center)
+                                .padding(.top, HV.Space.s)
+                        }
+                        .padding(.horizontal, HV.Space.l)
+                        .padding(.bottom, HV.Space.l)
+                        .hvReadableWidth()
+                        .animation(.easeOut(duration: 0.2), value: controller.message)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height)
                 }
+                .scrollBounceBehavior(.basedOnSize)
             }
-            .padding(.horizontal, HV.Space.xl)
-
-            Spacer(minLength: HV.Space.l)
-
-            VStack(spacing: HV.Space.s + 2) {
-                if providers.apple { appleButton }
-                if providers.google { googleButton }
-                if providers.email { emailButton }
-                if !providers.apple && !providers.google && !providers.email {
-                    Text("Sign-in is not available on this server right now.")
-                        .font(.hvCallout)
-                        .foregroundStyle(Palette.textSecondary)
-                        .accessibilityIdentifier("signin.unavailable")
-                }
-
-                if let message = controller.message {
-                    Text(message)
-                        .font(.hvFootnote)
-                        .foregroundStyle(Palette.danger)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, HV.Space.xs)
-                        .transition(.opacity)
-                }
-
-                Text("Only you can open what you keep.")
-                    .font(.hvCaption)
-                    .foregroundStyle(Palette.textTertiary)
-                    .padding(.top, HV.Space.s)
-            }
-            .padding(.horizontal, HV.Space.l)
-            .padding(.bottom, HV.Space.l)
-            .hvReadableWidth()
-            .animation(.easeOut(duration: 0.2), value: controller.message)
         }
         .sheet(isPresented: $showEmail) {
             EmailCodeSheet(controller: controller)

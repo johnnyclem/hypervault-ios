@@ -72,6 +72,7 @@ struct ArtifactShareSheet: View {
     let detail: ArtifactDetailModel
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(AppModel.self) private var app
     @State private var model: ArtifactShareModel
     @State private var host: String?
@@ -128,12 +129,14 @@ struct ArtifactShareSheet: View {
             HVSectionHeader(title: "Link").artifactCardCaption()
             VStack(alignment: .leading, spacing: HV.Space.xs) {
                 // Cut in the middle rather than wrapped: at an accessibility size a long address broken into pieces of
-                // eight characters, with a hyphen drawn at each break, is harder to read than one with its middle left out
-                // (the whole of it is what the buttons below copy and share, and what a long press selects).
+                // eight characters, with a hyphen drawn at each break ("hy-/perva"), is harder to read than one on a
+                // single line, shrunk a little, with its middle left out (the whole of it is what the buttons below copy and
+                // share, and what a long press selects).
                 Text(url.absoluteString)
                     .font(.hvMono)
                     .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(3)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 1 : 3)
+                    .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 0.5 : 1)
                     .truncationMode(.middle)
                     .textSelection(.enabled)
                 if let line = linkLine {

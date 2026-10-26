@@ -105,7 +105,14 @@ struct YouRootView: View {
                 Text(env.user.displayName ?? env.user.firstName ?? "You")
                     .font(.hvTitle3)
                 if let email = env.user.email {
-                    Text(email).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
+                    // An address is one word: on a line of its own it shrinks a little, and when it still does not fit its
+                    // middle is left out, rather than wrapping at a dot with a hyphen ("sam@example.-/com").
+                    Text(email)
+                        .font(.hvFootnote)
+                        .foregroundStyle(Palette.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .truncationMode(.middle)
                 }
             }
             if !dynamicTypeSize.isAccessibilitySize { Spacer() }

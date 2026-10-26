@@ -105,19 +105,27 @@ struct KeyDetailView: View {
 
     private func header(_ key: AgentKey, status: AgentSetupStatus?) -> some View {
         let tag = status.map { HVTag(text: $0.complete ? "Agent connected" : "Setup pending", tint: $0.complete ? Palette.success : Palette.warning) }
-        return HStack(alignment: dynamicTypeSize.isAccessibilitySize ? .top : .center, spacing: HV.Space.m) {
+        // Beside the name while it fits. At accessibility sizes the badge would leave the name a narrow column, so it goes
+        // above it, and the tag goes under the name, where it can have the width.
+        let stacked = dynamicTypeSize.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: HV.Space.s))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: HV.Space.m))
+        return layout {
             HVIconBadge(symbol: key.isPaired ? "link" : "key.horizontal", tint: status?.complete == true ? Palette.mint : Palette.amber, size: 48)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(key.displayName ?? "Untitled key").font(.hvTitle3)
                 if key.isPaired {
                     Text("Made by approving an AI tool").font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                 }
-                // Beside the name while it fits; under it at accessibility sizes, where the name needs the width.
-                if dynamicTypeSize.isAccessibilitySize, let tag { tag }
+                if stacked, let tag { tag }
             }
-            Spacer(minLength: 0)
-            if !dynamicTypeSize.isAccessibilitySize, let tag { tag }
+            if !stacked {
+                Spacer(minLength: 0)
+                if let tag { tag }
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 

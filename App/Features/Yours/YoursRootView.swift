@@ -115,6 +115,7 @@ struct YoursListView: View {
     let baseURL: URL
     let onSelect: (KeptItem) -> Void
     let onPull: (KeptItem) -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         List {
@@ -192,10 +193,17 @@ struct YoursListView: View {
     }
 
     private func row(_ item: KeptItem) -> some View {
-        Button { onSelect(item) } label: {
-            HVRow(symbol: item.kind.symbol, tint: item.kind.tint, title: item.name, subtitle: subtitle(for: item)) {
-                if let when = item.lastOpenedAt ?? item.updatedAt {
-                    Text(HVCopy.ago(since: when)).font(.hvCaption).foregroundStyle(Palette.textTertiary)
+        let ago = (item.lastOpenedAt ?? item.updatedAt).map { HVCopy.ago(since: $0) }
+        // At an accessibility size the time beside the words would leave the name a sliver ("land-/ing", "30 / min ago"),
+        // so it follows the line under the name instead, as the Library's rows do.
+        let stacksTime = dynamicTypeSize.isAccessibilitySize
+        return Button { onSelect(item) } label: {
+            HVRow(
+                symbol: item.kind.symbol, tint: item.kind.tint, title: item.name,
+                subtitle: stacksTime ? [subtitle(for: item), ago].compactMap { $0 }.joined(separator: " \u{00B7} ") : subtitle(for: item)
+            ) {
+                if !stacksTime, let ago {
+                    Text(ago).font(.hvCaption).foregroundStyle(Palette.textTertiary)
                 }
             }
         }

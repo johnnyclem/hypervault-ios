@@ -185,13 +185,17 @@ struct HVChip: View {
 struct HVTag: View {
     let text: String
     var tint: Color = Palette.textSecondary
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
+        // One line at its own width, except at an accessibility size, where "Agent connected" is wider than the screen:
+        // a tag that will not wrap pushes the row it is in past the edges, and the row is cut off on both sides.
+        let wraps = dynamicTypeSize.isAccessibilitySize
         Text(text)
             .font(.system(.caption2, design: .rounded, weight: .semibold))
             .foregroundStyle(tint.hvInk())
-            .lineLimit(1)
-            .fixedSize()
+            .lineLimit(wraps ? nil : 1)
+            .fixedSize(horizontal: !wraps, vertical: true)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(tint.opacity(0.14), in: Capsule())

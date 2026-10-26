@@ -435,6 +435,7 @@ final class ChatConversationModel {
         }
         knownServerMessages += 2 + 2 * turn.tools.turns.count
         toolNotice = turn.tools.notice
+        AccessibilityNotification.Announcement("Reply received").post()
         Task { [cache, namespace, id = turn.conversationID] in
             await cache.remove(key: "chat.conversation.\(id)", namespace: namespace)
         }
@@ -523,6 +524,7 @@ final class ChatConversationModel {
             rows[index].state = .notSaved(message)
             setState(.notSaved(message), for: userRowID)
         }
+        AccessibilityNotification.Announcement("Reply received").post()
         if !outcome.usedMemory {
             notice = "You're offline, so this reply didn't use your memories. It will be saved when you're back."
         }

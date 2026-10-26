@@ -55,6 +55,7 @@ struct ChatComposerView: View {
                     }
                     .font(.hvFootnote.weight(.medium))
                     .foregroundStyle(Palette.textSecondary)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(Palette.surfaceRaised, in: Capsule())

@@ -252,8 +252,29 @@ struct ChatReplyActions: View {
 struct ChatKeptNoteView: View {
     let note: ChatKeptNote
     var onOpen: (String) -> Void
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
+        Group {
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: HV.Space.xs) {
+                    message
+                    HStack(spacing: HV.Space.xs) { actions }
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
+                    message
+                    Spacer(minLength: HV.Space.xs)
+                    actions
+                }
+            }
+        }
+        .padding(.horizontal, HV.Space.s)
+        .padding(.vertical, typeSize.isAccessibilitySize ? HV.Space.xs : 0)
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+    }
+
+    private var message: some View {
         HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(Palette.mint).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
@@ -262,19 +283,19 @@ struct ChatKeptNoteView: View {
                     Text(HVCopy.onlyYouLine).font(.hvCaption).foregroundStyle(Palette.textSecondary)
                 }
             }
-            Spacer(minLength: HV.Space.xs)
-            if let slug = note.slug {
-                Button("Open") { onOpen(slug) }.buttonStyle(.hvGhost)
-            }
-            if let url = note.url {
-                ShareLink(item: url) {
-                    Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44)
-                }
-                .accessibilityLabel("Share link")
-            }
         }
-        .padding(.horizontal, HV.Space.s)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+    }
+
+    @ViewBuilder private var actions: some View {
+        if let slug = note.slug {
+            Button("Open") { onOpen(slug) }.buttonStyle(.hvGhost)
+        }
+        if let url = note.url {
+            ShareLink(item: url) {
+                Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("Share link")
+        }
     }
 }
 
@@ -368,7 +389,7 @@ struct ChatGroundingView: View {
         .foregroundStyle(Palette.textSecondary)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .frame(maxWidth: 240, alignment: .leading)
+        .frame(maxWidth: 300, alignment: .leading)
         .background(Palette.surfaceRaised, in: Capsule())
         .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
     }

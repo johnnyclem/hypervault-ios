@@ -164,6 +164,19 @@ final class ChatModelTests: XCTestCase {
         XCTAssertNotNil(model.notice)
     }
 
+    func testConsecutiveToolStepsFoldIntoOneGroup() {
+        func step() -> ChatThreadRow { ChatThreadRow(kind: .tool, toolTurn: ChatToolTurn(intent: "x")) }
+        let rows = [
+            ChatThreadRow(id: "u", kind: .user, text: "hi"), step(), step(),
+            ChatThreadRow(id: "a", kind: .assistant, text: "done"), step(),
+        ]
+        let items = ChatThreadItem.items(from: rows)
+        XCTAssertEqual(items.count, 4)
+        guard case .tools(let first) = items[1], case .tools(let last) = items[3] else { return XCTFail("\(items)") }
+        XCTAssertEqual(first.count, 2)
+        XCTAssertEqual(last.count, 1)
+    }
+
     func testDateBuckets() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current

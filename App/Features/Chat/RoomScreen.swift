@@ -147,6 +147,12 @@ struct ChatRoomContent: View {
                 .background(Palette.surfaceRaised, in: Capsule())
                 .accessibilityElement(children: .combine)
             }
+            if !model.pending.isEmpty {
+                Text("\(model.budget) turn\(model.budget == 1 ? "" : "s") left in this round")
+                    .font(.hvCaption)
+                    .foregroundStyle(Palette.textTertiary)
+                    .padding(.vertical, 5)
+            }
         }
     }
 

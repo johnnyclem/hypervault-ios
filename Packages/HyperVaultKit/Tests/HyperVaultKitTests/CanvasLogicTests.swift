@@ -166,6 +166,34 @@ final class PullAndLinkTests: XCTestCase {
         XCTAssertTrue(PasteStaging.shouldStage(lines), "several lines of real length")
         XCTAssertFalse(PasteStaging.shouldStage("a\nb\nc"), "short even over several lines")
     }
+
+    /// The web counts lines with /\r\n|\r|\n/ (lib/canvas/paste.ts), so a Windows line break is one break.
+    func testPasteStagingCountsACRLFPairAsOneLineBreak() {
+        let hundred = String(repeating: "a", count: 100)
+        for separator in ["\n", "\r\n", "\r"] {
+            XCTAssertFalse(PasteStaging.shouldStage(hundred + separator + hundred), "two lines are not held back, joined by \(separator.debugDescription)")
+        }
+        let fifty = String(repeating: "x", count: 50)
+        for separator in ["\n", "\r\n", "\r"] {
+            XCTAssertTrue(PasteStaging.shouldStage([fifty, fifty, fifty].joined(separator: separator)), "three lines are, joined by \(separator.debugDescription)")
+        }
+        XCTAssertTrue(PasteStaging.shouldStage("\(hundred)\r\n\r\n\(hundred)"), "a blank line is a line")
+        // Only those three are line breaks; the Unicode separators are not.
+        for separator in ["\u{85}", "\u{2028}", "\u{2029}", "\u{0B}", "\u{0C}"] {
+            XCTAssertFalse(PasteStaging.shouldStage([hundred, hundred, hundred].joined(separator: separator)), "\(separator.debugDescription) is not a line break on the web")
+        }
+    }
+
+    func testPasteStagingMeasuresLengthTheWayTheWebDoes() {
+        // JavaScript's length counts UTF-16 units, so a CRLF is 2 and an emoji is 2.
+        let line = String(repeating: "x", count: 39)
+        XCTAssertEqual([line, line, line].joined(separator: "\r\n").utf16.count, 121)
+        XCTAssertTrue(PasteStaging.shouldStage([line, line, line].joined(separator: "\r\n")), "121 units on the web, so staged")
+        let tail = String(repeating: "x", count: 11)
+        let emoji = String(repeating: "\u{1F600}", count: 55) + "\n" + tail + "\n" + tail
+        XCTAssertEqual(emoji.utf16.count, 134)
+        XCTAssertTrue(PasteStaging.shouldStage(emoji))
+    }
 }
 
 final class ThinkingAndArtifactTests: XCTestCase {

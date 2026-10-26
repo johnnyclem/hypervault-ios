@@ -36,6 +36,7 @@ struct MailSettingsView: View {
                 Section {
                     Toggle("Agents can see my replies", isOn: Binding(get: { seesReplies }, set: { change(to: $0) }))
                         .disabled(isBusy)
+                        .hvListRow()
                 } footer: {
                     Text("When this is off, what you write is marked Not shared with agents. Mail already written does not change.")
                 }
@@ -51,6 +52,7 @@ struct MailSettingsView: View {
                         }
                     }
                     .disabled(isExporting)
+                    .hvListRow()
                 } footer: {
                     Text("Releasing an address deletes its mailbox, so keep a copy first. You get every message, as a file.")
                 }
@@ -58,6 +60,7 @@ struct MailSettingsView: View {
                 if let errorMessage {
                     Section {
                         Text(errorMessage).font(.hvFootnote).foregroundStyle(Palette.danger)
+                            .hvListRow()
                     }
                 }
             }

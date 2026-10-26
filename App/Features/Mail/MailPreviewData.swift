@@ -14,13 +14,14 @@ enum MailPreviewData {
 
     static func message(
         _ id: String, thread: String, subject: String, minutesAgo: Double, unread: Bool = false,
-        agent: String? = "Claude Code", text: String? = nil, folder: String = "inbox", attachments: String = "[]"
+        agent: String? = "Claude Code", text: String? = nil, folder: String = "inbox", attachments: String = "[]",
+        from: String = "ana@vault.cool"
     ) -> String {
         let author = agent.map { #"{"type":"key","name":"\#($0)","key_id":"22222222-2222-4222-8222-222222222222"}"# }
             ?? #"{"type":"owner","name":"","key_id":null}"#
         let body = text.map { #","in_reply_to":null,"text":\#(quoted($0)),"attachments":\#(attachments)"# } ?? ""
         return """
-        {"id":"\(id)","thread_id":"\(thread)","folder":"\(folder)","from":"ana@vault.cool","to":["owner"],"cc":[],
+        {"id":"\(id)","thread_id":"\(thread)","folder":"\(folder)","from":"\(from)","to":["owner"],"cc":[],
          "subject":\(quoted(subject)),"unread":\(unread),"labels":["from-agent"],"created_at":"\(stamp(minutesAgo))",
          "attachment_count":0,"author":\(author),"agent_visible":true,"message_id":"<\(id)@vault.cool>"\(body)}
         """
@@ -42,7 +43,7 @@ enum MailPreviewData {
             message("m1", thread: threadID, subject: "Re: Weekly plan", minutesAgo: 12, unread: true, text: "Here is the plan."),
             message("m2", thread: "22222222-2222-4222-8222-222222222222", subject: "Found three broken links in the garden notes", minutesAgo: 190, unread: true, agent: "Gemini"),
             message("m3", thread: "33333333-3333-4333-8333-333333333333", subject: "Receipts for October", minutesAgo: 60 * 30, agent: "Claude Code"),
-            message("m4", thread: "44444444-4444-4444-8444-444444444444", subject: "Quick note to myself", minutesAgo: 60 * 24 * 4, agent: "Grok"),
+            message("m4", thread: "44444444-4444-4444-8444-444444444444", subject: "Ideas for the studio shelves", minutesAgo: 60 * 24 * 4, agent: "Grok"),
         ]
         return #"{"box":"inbox","messages":[\#(rows.joined(separator: ","))],"next_cursor":null}"#
     }
@@ -90,7 +91,7 @@ enum MailPreviewData {
 
     static var heldRoutes: [MockRoute] {
         [
-            .json(.get, "/api/mail/owner/held", #"{"count":1,"messages":[\#(message("h1", thread: "55555555-5555-4555-8555-555555555555", subject: "Invoice from a vendor", minutesAgo: 90, agent: "Vendor bot", text: "Please find the invoice attached."))],"next_cursor":null}"#),
+            .json(.get, "/api/mail/owner/held", #"{"count":1,"messages":[\#(message("h1", thread: "55555555-5555-4555-8555-555555555555", subject: "Invoice from a vendor", minutesAgo: 90, agent: "Vendor bot", text: "The invoice for October is 240 euros, due in 14 days.", from: "billing@northwind.example"))],"next_cursor":null}"#),
         ]
     }
 }

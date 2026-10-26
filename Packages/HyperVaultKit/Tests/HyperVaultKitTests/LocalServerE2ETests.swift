@@ -152,6 +152,22 @@ class LocalE2ECase: XCTestCase {
         return (client(token), token)
     }
 
+    /// A person who did not exist a moment ago: signs up with an emailed code against the stand-in's auth server
+    /// (the Kit's own `AuthService`), and is let in by the administrator. For tests whose effects pile up
+    /// on an account (claimed addresses, dismissed cards) and so cannot be repeated on the same one.
+    func freshMember(_ label: String = "fresh") async throws -> (client: HVClient, token: String, userID: String, email: String) {
+        guard let url = env.supabaseURL, let anon = env.anonKey else {
+            throw XCTSkip("Set HV_E2E_SUPABASE_URL and HV_E2E_ANON_KEY to sign a new person up.")
+        }
+        let (admin, _) = try admin()
+        let auth = AuthService(config: SupabaseConfig(url: url, anonKey: anon), transport: URLSessionTransport(), store: InMemorySecureStore())
+        let email = "\(unique(label))@e2e.test"
+        try await auth.requestEmailCode(email: email)
+        let session = try await auth.verifyEmailCode(email: email, code: "424242")
+        _ = try await admin.send(.changeAccount(id: session.user.id, .approve))
+        return (client(session.accessToken), session.accessToken, session.user.id, email)
+    }
+
     /// The stand-in's REST API with the service role, for arranging what the Kit has no call to create.
     func restAsService() throws -> AccountRest {
         guard let url = env.supabaseURL, let anon = env.anonKey, let service = env.serviceKey else {
@@ -159,6 +175,34 @@ class LocalE2ECase: XCTestCase {
         }
         let api = HVClient(baseURL: url, transport: URLSessionTransport(), tokens: LocalStaticToken(token: service), retry: .none)
         return AccountRest(client: api, anonKey: anon)
+    }
+
+    /// Writes rows the Kit has no call for (a queue the server fills on a schedule, a message that arrives from
+    /// outside) through the stand-in's REST API as its service role, and returns the rows as stored.
+    @discardableResult
+    func arrange(_ table: String, _ rows: JSONValue, upsert: String? = nil) async throws -> [JSONValue] {
+        guard let url = env.supabaseURL, let anon = env.anonKey, let service = env.serviceKey else {
+            throw XCTSkip("Set HV_E2E_SUPABASE_URL, HV_E2E_ANON_KEY and HV_E2E_SERVICE_KEY for the tests that arrange data.")
+        }
+        let api = HVClient(baseURL: url, transport: URLSessionTransport(), tokens: LocalStaticToken(token: service), retry: .none)
+        var headers = ["apikey": anon, "Prefer": "return=representation"]
+        var query: [URLQueryItem] = []
+        if let upsert {
+            headers["Prefer"] = "return=representation,resolution=merge-duplicates"
+            query = [URLQueryItem(name: "on_conflict", value: upsert)]
+        }
+        let result = try await api.send(Endpoint<JSONValue>(.post, "/rest/v1/\(table)", query: query, body: .jsonValue(rows), keys: .verbatim, headers: headers))
+        return result.array ?? []
+    }
+
+    /// Reads rows as the service role.
+    func inspect(_ table: String, _ filters: [URLQueryItem] = [], select: String = "*") async throws -> [JSONValue] {
+        guard let url = env.supabaseURL, let anon = env.anonKey, let service = env.serviceKey else {
+            throw XCTSkip("Set HV_E2E_SUPABASE_URL, HV_E2E_ANON_KEY and HV_E2E_SERVICE_KEY for the tests that inspect rows.")
+        }
+        let api = HVClient(baseURL: url, transport: URLSessionTransport(), tokens: LocalStaticToken(token: service), retry: .none)
+        let result = try await api.send(Endpoint<JSONValue>(.get, "/rest/v1/\(table)", query: [URLQueryItem(name: "select", value: select)] + filters, keys: .verbatim, headers: ["apikey": anon]))
+        return result.array ?? []
     }
 
     func rest(token: String) throws -> AccountRest {

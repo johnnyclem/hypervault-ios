@@ -45,6 +45,8 @@ final class TabsJourneyTests: HyperVaultUITestCase {
             tap(element("yours.row.a1"), "the Bakery landing page row")
             waitUntil("the page's title in the navigation bar") { isShowingTitle("Bakery landing page") }
             require(app.webViews.firstMatch, "the page's web view")
+            // The page came through the app's own loader from the canned server, and the web view drew it.
+            require(named("Fresh bread daily", in: app.webViews.staticTexts), "the page's heading in its web view", timeout: 40)
             require(element("artifact.share"), "the Share action")
             require(element("artifact.source"), "the Source action")
             XCTAssertFalse(text("You're offline").exists, "The page should have loaded from the canned server.")
@@ -54,6 +56,7 @@ final class TabsJourneyTests: HyperVaultUITestCase {
         step("Source opens as a sheet over the page") {
             tap(element("artifact.source"), "Source")
             require(button("Copy source"), "the source sheet's Copy source button, which shows once the source has loaded")
+            attachScreenshot("The source sheet over the page")
             tap(button("Done"), "Done")
             requireGone(button("Copy source"), "the source sheet")
         }

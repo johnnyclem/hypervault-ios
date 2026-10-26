@@ -15,6 +15,7 @@ struct RoomScreen: View {
 struct ChatRoomContent: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     private let env: AppEnvironment
     @State private var model: ChatRoomModel
     @State private var showMembers = false
@@ -45,6 +46,7 @@ struct ChatRoomContent: View {
             // The thread scrolls under the bar; paper behind it keeps the title readable.
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(Palette.background, for: .navigationBar)
+            .toolbarColorScheme(colorScheme, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {

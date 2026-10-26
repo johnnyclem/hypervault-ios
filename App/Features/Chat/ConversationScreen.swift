@@ -19,6 +19,7 @@ struct ChatConversationContent: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var model: ChatConversationModel
     @State private var speech = ChatSpeechController()
@@ -70,6 +71,9 @@ struct ChatConversationContent: View {
             // stops the words and the blue bubbles showing through as a smear.
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(Palette.background, for: .navigationBar)
+            // Said outright: left to itself the bar guesses its text colour from the paper behind it,
+            // and a light page can come out with a white title.
+            .toolbarColorScheme(colorScheme, for: .navigationBar)
             .toolbar { toolbar }
             .sheet(isPresented: $showOptions) { ChatOptionsSheet(model: model) }
             .sheet(isPresented: $showVisibility) { ChatVisibilitySheet(model: model) }

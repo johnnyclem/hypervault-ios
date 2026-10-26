@@ -51,7 +51,7 @@ private struct MessageRow: View {
     }
 
     private var bubble: some View {
-        Text(markdown(message.content))
+        Text(ThreadMessage.rendered(message.content))
             .font(.hvBody)
             .foregroundStyle(message.role == .user ? Color.white : (message.isLocal ? Palette.textSecondary : Palette.textPrimary))
             .textSelection(.enabled)
@@ -59,6 +59,7 @@ private struct MessageRow: View {
             .padding(.vertical, HV.Space.s + 2)
             .background(background)
             .frame(maxWidth: 520, alignment: message.role == .user ? .trailing : .leading)
+            .accessibilityLabel(message.spokenLine)
     }
 
     @ViewBuilder
@@ -120,12 +121,6 @@ private struct MessageRow: View {
             }
         }
         .frame(maxWidth: 420)
-    }
-
-    /// Inline markdown only (bold, italic, code, links); block structure is left as written.
-    private func markdown(_ text: String) -> AttributedString {
-        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        return (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
     }
 }
 

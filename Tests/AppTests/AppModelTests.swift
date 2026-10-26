@@ -230,12 +230,62 @@ final class AppModelTests: XCTestCase {
 
     func testASessionThatEndedWhileTheAppWasClosedIsCleanedUpAtTheNextLaunch() async throws {
         SharedConfig.defaults.set("u9", forKey: PrefKey.sessionUser)
-        OutboxStore.add(OutboxItem(content: "what the last account left"))
+        SharedConfig.defaults.set("u9", forKey: PrefKey.approvedUser)
+        SharedConfig.defaults.set(Data("[]".utf8), forKey: SharedConfig.widgetRecentKey)
         let app = model(routes: [capabilitiesRoute(approved: true)] + authRoutes)
         await app.start()
         await settle(app, to: .signedOut)
+        XCTAssertNil(SharedConfig.defaults.object(forKey: SharedConfig.widgetRecentKey), "the widget's names")
+        XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.approvedUser), "the approval")
+        XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.sessionUser), "nothing is left for the marker to guard")
+    }
+
+    /// The share sheet and Siri say a note shared after the session ended "will be kept as soon as you sign in".
+    func testWhatWasSharedAfterTheSessionEndedIsStillThereAtTheNextLaunch() async {
+        SharedConfig.defaults.set("u1", forKey: PrefKey.sessionUser)
+        SharedConfig.defaults.set(Data("[]".utf8), forKey: SharedConfig.widgetRecentKey)
+        OutboxStore.add(OutboxItem(content: "shared from Safari after the session died"))
+        let app = model(routes: [capabilitiesRoute(approved: true)] + authRoutes)
+        await app.start()
+        await settle(app, to: .signedOut)
+
+        XCTAssertEqual(OutboxStore.load().map(\.content), ["shared from Safari after the session died"])
+        XCTAssertEqual(SharedConfig.defaults.string(forKey: PrefKey.sessionUser), "u1", "whose it is stays known")
+        XCTAssertNil(SharedConfig.defaults.object(forKey: SharedConfig.widgetRecentKey), "what the account showed still goes")
+    }
+
+    func testWhatWasSharedWhileSignedOutIsKeptWhenTheSamePersonSignsBackIn() async throws {
+        SharedConfig.defaults.set("u1", forKey: PrefKey.sessionUser)
+        OutboxStore.add(OutboxItem(content: "shared while signed out"))
+        let token = #"{"access_token":"A2","refresh_token":"R2","expires_in":3600,"user":{"id":"u1","email":"sam@example.com"}}"#
+        let routes = [capabilitiesRoute(approved: true), .json(.post, "/auth/v1/token", token)] + authRoutes
+        // The phone is closed and opened again between the share and the sign-in, and again before it.
+        let firstLaunch = model(routes: routes)
+        await firstLaunch.start()
+        await settle(firstLaunch, to: .signedOut)
+        let secondLaunch = model(routes: routes)
+        await secondLaunch.start()
+        await settle(secondLaunch, to: .signedOut)
+
+        try await secondLaunch.auth?.signIn(withIDToken: "apple-token", provider: "apple", nonce: nil)
+        await settle(secondLaunch, to: .ready)
+        XCTAssertEqual(OutboxStore.load().map(\.content), ["shared while signed out"])
+        XCTAssertEqual(SharedConfig.defaults.string(forKey: PrefKey.sessionUser), "u1")
+    }
+
+    func testWhatTheLastPersonLeftIsNotKeptIntoSomeoneElsesVault() async throws {
+        SharedConfig.defaults.set("u9", forKey: PrefKey.sessionUser)
+        OutboxStore.add(OutboxItem(content: "what the last account left"))
+        let token = #"{"access_token":"A2","refresh_token":"R2","expires_in":3600,"user":{"id":"u1","email":"sam@example.com"}}"#
+        let app = model(routes: [capabilitiesRoute(approved: true), .json(.post, "/auth/v1/token", token)] + authRoutes)
+        await app.start()
+        await settle(app, to: .signedOut)
+        XCTAssertEqual(OutboxStore.count, 1)
+
+        try await app.auth?.signIn(withIDToken: "apple-token", provider: "apple", nonce: nil)
+        await settle(app, to: .ready)
         XCTAssertEqual(OutboxStore.count, 0)
-        XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.sessionUser))
+        XCTAssertEqual(SharedConfig.defaults.string(forKey: PrefKey.sessionUser), "u1")
     }
 
     func testLaunchingWithNobodySignedInKeepsWhatIsWaiting() async {

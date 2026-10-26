@@ -169,6 +169,40 @@ And one snapshot test per main screen in `Tests/AppTests/<Feature>SnapshotTests.
 publishes the PNGs to a `snapshots-<branch>` branch, which is how a screen is
 looked at before anyone opens Xcode.
 
+## Journeys: UI tests of the whole app
+
+A snapshot draws one screen. A journey launches the real app on the simulator and walks its navigation with taps
+and typing, which is what catches a crash on launch, a tab that does nothing, a sheet that never presents or a control
+nothing can reach. They live in `Tests/UITests` (the `HyperVaultUITests` target, part of the `HyperVault` scheme).
+
+**The UI-test mode.** A debug build launched with `-HV_UITEST -HV_UITEST_SCENARIO <name>` builds its `AppModel` on a
+canned server instead of the real one (`App/Core/UITestHarness.swift`, one call in `HyperVaultApp`, compiled out of
+release builds). The scenarios are `signedOut` (the welcome story and the way in), `signedIn` (a few things kept, memories,
+chats, a connected model), `signedInEmpty` (the first run) and `waitlisted`. The network is a `MockTransport` over the routes in
+`App/Core/UITestWorld.swift`, the secure store is in memory, the cache and the shared defaults are scratch, and the
+canned hosts end in `.invalid`; anything that builds its own `URLSession` request is answered or refused by
+`UITestURLProtocol`. A run never reaches a real server, the Keychain or anything a person left on the phone.
+
+**Adding a journey.**
+
+1. Give the control an identifier: `.accessibilityIdentifier("storey.thing")` (`canvas.send`, `yours.row.<id>`,
+   `welcome.continue`). A plain-text button or a title is found by its real label instead, which also tests what
+   VoiceOver reads. Put the identifier on the control itself (the button, the field, a row that combines its words),
+   not on a container.
+2. If the screen reads a route the scenarios do not answer, add it to `UITestWorld` in the shape the real route sends
+   (`UITestWorldTests` decodes the canned answers through the Kit's own endpoints, so a route that drifts fails there
+   in seconds), or reuse the screen's `*PreviewData.routes`.
+3. Write the journey in `Tests/UITests`, subclassing `HyperVaultUITestCase`: `launch(.signedIn)`, then `step("...") { }`
+   blocks that `tap`, `enter`, `require` an element or `waitUntil` something holds. Every wait is long because CI
+   simulators are slow, every failure says what was missing, and each step keeps a screenshot with the result. Wait
+   for the right element rather than sleeping, and fix a flaky journey at its cause (an identifier, a better wait),
+   never by skipping it.
+
+**Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
+any iPhone simulator; `make test-unit` runs the rest. CI quiets a clone of its simulator first
+(`scripts/prepare_ui_simulator.sh`: no keyboard introduction, no autocorrect, Reduce Motion on), publishes the step
+screenshots next to the snapshots (the `ui/` folder), and uploads the `.xcresult` when a journey fails.
+
 ## Definition of done
 
 - Every behaviour the web has for the feature that makes sense on a phone is
@@ -177,3 +211,4 @@ looked at before anyone opens Xcode.
   its tests pass in CI, snapshots look right in light and dark.
 - No hard-coded colours, no force-unwraps of server data, no secrets in logs,
   every list has its loading, empty and error states.
+- A new tab, sheet or main control can be reached in a journey (an identifier, and a step if it is a new place).

@@ -106,6 +106,34 @@ on a macOS simulator. The app's snapshot tests render screens in light and dark 
 workflow publishes the PNGs to a `snapshots-<branch>` branch, so a screen can be looked
 at without opening Xcode.
 
+### How it is tested
+
+Four layers, each catching what the one below cannot see:
+
+- **The Kit's unit tests** (`make test-kit`, Linux and macOS): the API client, auth, every model and rule.
+- **The app's unit tests** (`make test-unit`): screen state machines, link parsing, the sign-in and access phases.
+- **Snapshot renders**: every screen drawn in light and dark to PNGs, published by CI.
+- **UI tests** (`make test-ui`, the `HyperVaultUITests` target): the whole app launched on a simulator and driven
+  through its main journeys with taps and typing, so a crash on launch, a broken navigation stack, a sheet that never
+  presents or a control nothing can reach fails CI.
+
+The UI tests need no server. A debug build launched with `-HV_UITEST -HV_UITEST_SCENARIO <signedOut | signedIn |
+signedInEmpty | waitlisted>` builds its model on a canned server inside the app (`App/Core/UITestHarness.swift` and
+`UITestWorld.swift`, compiled out of release builds), with an in-memory secure store and scratch defaults, so a run never
+touches the network, the Keychain or the phone's own state. To run them locally:
+
+```sh
+make test-ui
+# or, on a simulator you choose:
+xcodebuild -project HyperVault.xcodeproj -scheme HyperVault -destination 'platform=iOS Simulator,name=iPhone 17' \
+  CODE_SIGNING_ALLOWED=NO -only-testing:HyperVaultUITests test
+```
+
+To add a journey, give the controls identifiers (`.accessibilityIdentifier("canvas.send")`), teach `UITestWorld` any
+route the screen needs, and write steps in `Tests/UITests`; [docs/FEATURE_GUIDE.md](docs/FEATURE_GUIDE.md) has the
+details. Each step keeps a screenshot with the result, and CI publishes them next to the snapshots (the `ui/` folder
+of the `snapshots-<branch>` branch).
+
 ### Server gaps the app works around
 
 Found while building against the real routes. None block the app, and each is a small
@@ -152,6 +180,10 @@ server change if you want the app to do more:
 - The app builds for the simulator in CI with 459 tests (screen state machines, link
   parsing, sign-in and access phases) and renders every screen in light and dark, and the
   main ones at the largest text sizes, to PNGs the workflow publishes.
+- CI also launches the whole app and drives it: UI tests walk the welcome story, sign-in, the canvas (keep, ask,
+  show, hide), Yours, Memory, Chat, the Library, Settings, Account & keys, the first run and the waitlist, on a
+  canned server inside the app. They do not cover a real sign-in, a real server, or anything that needs a device
+  (Face ID, dictation, the scanner, widgets, the share extension).
 - The Kit's models decode the response shapes a real deployment sent for about twenty authenticated endpoints
   (Yours, artifacts and groups, the connections graph, chat lists and settings, memories, Mind, dreams, digest,
   jobs): field names, types, nulls and nesting were captured from production on 2026-10-26 and are pinned in

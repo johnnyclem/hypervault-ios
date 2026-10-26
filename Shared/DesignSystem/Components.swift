@@ -182,6 +182,8 @@ struct HVTag: View {
         Text(text)
             .font(.system(.caption2, design: .rounded, weight: .semibold))
             .foregroundStyle(tint.hvInk())
+            .lineLimit(1)
+            .fixedSize()
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(tint.opacity(0.14), in: Capsule())
@@ -321,6 +323,8 @@ struct HVSheetHeader: View {
 struct HVLabeledField<Field: View>: View {
     let title: String
     var footnote: String?
+    /// Pass the field's focus so its border shows the ring a bare `hvFieldChrome` would.
+    var isFocused = false
     @ViewBuilder var field: () -> Field
 
     var body: some View {
@@ -328,7 +332,7 @@ struct HVLabeledField<Field: View>: View {
             Text(title)
                 .font(.system(.footnote, design: .rounded, weight: .medium))
                 .foregroundStyle(Palette.textSecondary)
-            field().hvFieldChrome()
+            field().hvFieldChrome(isFocused: isFocused)
             if let footnote {
                 Text(footnote).font(.hvCaption).foregroundStyle(Palette.textSecondary)
             }
@@ -345,3 +349,12 @@ extension View {
             .listRowSeparatorTint(Palette.hairline)
     }
 }
+
+extension Text {
+    /// A field's hint in the tertiary grey. The system's own placeholder is under 2:1 on raised paper, so
+    /// a field that has a label above it passes this as its `prompt:`.
+    static func hvPrompt(_ text: String) -> Text {
+        Text(text).foregroundStyle(Palette.textTertiary)
+    }
+}
+

@@ -86,7 +86,7 @@ enum Palette {
 
     static let success = mint
     static let warning = amber
-    static let danger = Color(light: Color(hex: 0xDC2626), dark: Color(hex: 0xEF4444))
+    static let danger = Color(light: Color(hex: 0xDC2626), dark: Color(hex: 0xF87171))
 
     /// The mark's gradient, violet through blue to cyan. Bright in both looks; it is for the mark and for
     /// decoration, never behind text.

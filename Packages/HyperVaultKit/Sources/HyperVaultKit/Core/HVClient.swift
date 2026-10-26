@@ -82,7 +82,7 @@ public final class HVClient: Sendable {
                 let request = try makeRequest(endpoint, token: token)
                 let response = try await transport.send(request)
 
-                if response.status == 401, endpoint.auth != .none, !refreshed, let tokens {
+                if response.status == 401, endpoint.auth != .none, !refreshed, let tokens, !Self.isToolSignInChallenge(response) {
                     refreshed = true
                     let fresh = try await tokens.refreshAfterUnauthorized(rejected: token)
                     guard let fresh else { throw HVError.unauthorized }
@@ -92,7 +92,7 @@ public final class HVClient: Sendable {
                 if (200..<300).contains(response.status) { return response }
 
                 let failure = Self.failure(from: response)
-                if endpoint.idempotent, attempt < retry.maxAttempts, Self.isTransient(status: response.status) {
+                if endpoint.idempotent, attempt < retry.maxAttempts, Self.isTransient(status: response.status), failure.code == nil {
                     await sleep(delay(attempt: attempt, retryAfter: failure.retryAfter))
                     continue
                 }
@@ -216,6 +216,15 @@ public final class HVClient: Sendable {
         }
     }
 
+    /// A 401 that says a connected tool's own sign-in ended (`auth_required: true` in the body) is not about
+    /// this person's session, so refreshing their token would change nothing and only cost a round trip.
+    static func isToolSignInChallenge(_ response: HTTPResponse) -> Bool {
+        failure(from: response).body?["auth_required"]?.bool == true
+    }
+
+    /// A busy or restarting server: 429 and the gateway statuses. An answer that names its own machine code
+    /// is the route's decision (`503 mail_unavailable`: the mail tables are not there), not a passing
+    /// condition, so `sendRaw` does not wait and ask again.
     static func isTransient(status: Int) -> Bool {
         status == 429 || status == 502 || status == 503 || status == 504
     }

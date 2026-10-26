@@ -289,3 +289,41 @@ final class SourcePromptTests: XCTestCase {
         XCTAssertNil(KeepRequest(content: "x", sourcePrompt: "   ").sourcePrompt)
     }
 }
+
+final class PermanentRefusalTests: XCTestCase {
+    private func client(_ transport: MockTransport, tokens: FakeTokens) -> HVClient {
+        HVClient(baseURL: URL(string: "https://hv.test")!, transport: transport, tokens: tokens,
+                 retry: RetryPolicy(maxAttempts: 3, baseDelay: 0, maxDelay: 0), sleep: { _ in })
+    }
+
+    func testAnAnswerThatNamesItsOwnCodeIsNotRetried() async {
+        let transport = MockTransport()
+        let counter = Counter()
+        await transport.add(MockRoute(.get, "/api/mail") { _ in
+            counter.bump()
+            return HTTPResponse(status: 503, data: Data(#"{"error":"mail_unavailable: not set up","code":"mail_unavailable"}"#.utf8))
+        })
+        do {
+            let _: NoContent = try await client(transport, tokens: FakeTokens(token: "t")).send(Endpoint(.get, "/api/mail"))
+            XCTFail("expected failure")
+        } catch {
+            XCTAssertEqual((error as? HVError)?.code, "mail_unavailable")
+        }
+        XCTAssertEqual(counter.value, 1)
+    }
+
+    func testAToolsOwnSignInChallengeDoesNotRefreshThePersonsToken() async {
+        let transport = MockTransport(routes: [
+            .json(.post, "/api/mcp-servers/1/refresh", #"{"error":"Authorization expired","auth_required":true}"#, status: 401),
+        ])
+        let tokens = FakeTokens(token: "good", next: "fresh")
+        do {
+            let _: NoContent = try await client(transport, tokens: tokens).send(Endpoint(.post, "/api/mcp-servers/1/refresh"))
+            XCTFail("expected failure")
+        } catch {
+            XCTAssertEqual((error as? HVError)?.status, 401)
+        }
+        let refreshes = await tokens.refreshCalls
+        XCTAssertEqual(refreshes, 0)
+    }
+}

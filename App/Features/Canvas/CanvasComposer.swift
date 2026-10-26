@@ -7,6 +7,7 @@ struct CanvasComposer: View {
     @Bindable var model: CanvasModel
     var onNewThread: () -> Void
     var onCopyStarter: () -> Void
+    var isDictating = false
     var onDictate: (() -> Void)?
     var onScan: (() -> Void)?
 
@@ -69,7 +70,10 @@ struct CanvasComposer: View {
 
     @ViewBuilder
     private var trailing: some View {
-        if model.canSend {
+        if isDictating, let onDictate {
+            // While listening the field fills with words; stopping must stay one tap away.
+            micButton(onDictate)
+        } else if model.canSend {
             Button {
                 Task { await model.send() }
             } label: {
@@ -84,14 +88,19 @@ struct CanvasComposer: View {
         } else if model.isBusy {
             ProgressView().frame(width: 38, height: 38)
         } else if let onDictate {
-            Button(action: onDictate) {
-                Image(systemName: "mic")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Palette.textSecondary)
-                    .frame(width: 38, height: 38)
-            }
-            .accessibilityLabel("Dictate")
+            micButton(onDictate)
         }
+    }
+
+    private func micButton(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: isDictating ? "waveform" : "mic")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(isDictating ? Color.accentColor : Palette.textSecondary)
+                .symbolEffect(.variableColor.iterative, isActive: isDictating)
+                .frame(width: 38, height: 38)
+        }
+        .accessibilityLabel(isDictating ? "Stop dictating" : "Dictate")
     }
 }
 

@@ -34,6 +34,7 @@ final class AppModel {
 
     let toasts = ToastCenter()
     let router = AppRouter()
+    let lock = AppLock()
 
     /// An invite code that arrived in a link before anyone was signed in.
     var pendingInviteCode: String?
@@ -181,6 +182,7 @@ final class AppModel {
         let namespace = env?.user.id
         await auth?.signOut()
         if let namespace { await cache.clear(namespace: namespace) }
+        SpotlightIndexer.clear()
         SharedConfig.defaults.removeObject(forKey: PrefKey.approvedUser)
         router.sheet = nil
         router.popToRoot(.canvas)

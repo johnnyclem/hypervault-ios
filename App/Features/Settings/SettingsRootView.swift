@@ -11,6 +11,7 @@ struct SettingsRootView: View {
     @AppStorage(PrefKey.accent) private var accent = AccentChoice.blue
     @AppStorage(PrefKey.haptics) private var haptics = true
     @AppStorage(PrefKey.biometricLock) private var biometricLock = false
+    @AppStorage(SpotlightIndexer.preferenceKey) private var spotlight = true
 
     @State private var serverText = ""
     @State private var isChangingServer = false
@@ -41,8 +42,20 @@ struct SettingsRootView: View {
                 Toggle("Haptics", isOn: $haptics)
             }
 
-            Section(header: Text("Security"), footer: Text("Ask for Face ID or your passcode when you open HyperVault. Your saved logins, cards and keys never leave the server, so there is nothing on this phone to unlock them.")) {
-                Toggle("Lock with Face ID", isOn: $biometricLock)
+            Section(header: Text("Search"), footer: Text("Find your pages and memories from your Home Screen. Names and short summaries are kept on this phone for search; keys are never included.")) {
+                Toggle("Show in Spotlight", isOn: $spotlight)
+                    .onChange(of: spotlight) { _, on in if !on { SpotlightIndexer.clear() } }
+            }
+
+            Section(header: Text("Security"), footer: Text("Ask for \(model.lock.methodName) when you open HyperVault, and blank the app switcher. Your saved logins, cards and keys never leave the server, so there is nothing on this phone to unlock them.")) {
+                Toggle("Lock with \(model.lock.methodName)", isOn: Binding(
+                    get: { biometricLock },
+                    set: { wanted in
+                        Task {
+                            if await model.lock.confirmChange() { biometricLock = wanted }
+                        }
+                    }
+                ))
             }
 
             Section(header: Text("Account")) {

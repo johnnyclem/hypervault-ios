@@ -31,6 +31,7 @@ struct MainTabView: View {
                 .tabItem { Label(AppTab.you.title, systemImage: AppTab.you.symbol) }
                 .tag(AppTab.you)
         }
+        .adaptiveTabStyle()
         .task { await env.flushOutbox(toasts: model.toasts) }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await env.flushOutbox(toasts: model.toasts) } }
@@ -109,5 +110,17 @@ struct InviteLinkSheet: View {
         }
         .padding(HV.Space.xl)
         .presentationDetents([.medium])
+    }
+}
+
+extension View {
+    /// Tabs along the bottom on a phone and a sidebar on iPad, where the system offers it.
+    @ViewBuilder
+    func adaptiveTabStyle() -> some View {
+        if #available(iOS 18.0, *) {
+            tabViewStyle(.sidebarAdaptable)
+        } else {
+            self
+        }
     }
 }

@@ -21,6 +21,11 @@ struct CanvasScreen: View {
     @State private var model: CanvasModel
     @State private var showYours = false
     @State private var starterCopied = false
+    @State private var dictation = DictationController()
+    @State private var dictationBase = ""
+    @State private var showScanner = false
+    @State private var celebrating = false
+    @AppStorage("hv.firstKeepCelebrated") private var celebrated = false
 
     init(client: HVClient, origin: URL, userName: String?, avatarName: String, avatarURL: URL?) {
         self.init(model: CanvasModel(client: client, origin: origin), origin: origin, userName: userName, avatarName: avatarName, avatarURL: avatarURL)
@@ -44,8 +49,26 @@ struct CanvasScreen: View {
             CanvasComposer(
                 model: model,
                 onNewThread: { model.startNewThread() },
-                onCopyStarter: copyStarter
+                onCopyStarter: copyStarter,
+                isDictating: dictation.isListening,
+                onDictate: dictation.isAvailable ? toggleDictation : nil,
+                onScan: DocumentScanner.isSupported ? { showScanner = true } : nil
             )
+        }
+        .fullScreenCover(isPresented: $showScanner) {
+            DocumentScanner(
+                onText: { text in
+                    showScanner = false
+                    if !text.isEmpty { model.stagePaste(text) }
+                },
+                onCancel: { showScanner = false }
+            )
+            .ignoresSafeArea()
+        }
+        .onChange(of: dictation.transcript) { _, transcript in
+            guard dictation.isListening || !transcript.isEmpty else { return }
+            let separator = dictationBase.isEmpty || dictationBase.hasSuffix(" ") ? "" : " "
+            model.draft = dictationBase + separator + transcript
         }
         .toolbar { toolbarContent }
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -81,6 +104,19 @@ struct CanvasScreen: View {
             }
         }
         .sensoryFeedback(.success, trigger: keptKey)
+        .overlay {
+            if celebrating { ConfettiBurst().transition(.opacity) }
+        }
+        .onChange(of: keptKey) { _, key in
+            // The first thing anyone keeps is worth a moment.
+            guard key != nil, !celebrated else { return }
+            celebrated = true
+            celebrating = true
+            Task {
+                try? await Task.sleep(nanoseconds: 2_200_000_000)
+                withAnimation { celebrating = false }
+            }
+        }
     }
 
     /// Changes when a keep lands, which is when the screen taps back.
@@ -158,6 +194,11 @@ struct CanvasScreen: View {
         case .key:
             app.router.open(.route(.vaultItems))
         }
+    }
+
+    private func toggleDictation() {
+        if !dictation.isListening { dictationBase = model.draft }
+        Task { await dictation.toggle() }
     }
 
     private func copyStarter() {

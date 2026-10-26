@@ -47,6 +47,7 @@ final class CanvasModel: CanvasCommandHost {
     private(set) var notice: KeepNotice?
     private(set) var chatError: String?
     private(set) var backends: [CanvasBackend] = []
+    /// A read of the list of models has been answered, so an empty list means none is connected.
     private(set) var backendsLoaded = false
     private(set) var triedWithoutModel = false
     private(set) var isAsking = false
@@ -65,6 +66,8 @@ final class CanvasModel: CanvasCommandHost {
     @ObservationIgnored private var localKeys = 0
     @ObservationIgnored private var question = 0
     @ObservationIgnored private var keepInFlight = false
+    /// Why the last read of the models failed, until one succeeds.
+    @ObservationIgnored private var backendsFailure: Error?
 
     init(client: HVClient, origin: URL?) {
         self.client = client
@@ -75,7 +78,9 @@ final class CanvasModel: CanvasCommandHost {
 
     var hasModel: Bool { !backends.isEmpty }
     var needsModel: Bool { triedWithoutModel && backendsLoaded && backends.isEmpty }
-    var isEmpty: Bool { cards.isEmpty && messages.isEmpty }
+    /// The opening page: nothing on it and nothing said, as the web's `quiet`. A reply on its way, a
+    /// turn that failed and the word that nothing is connected are all things to show, so they end it.
+    var isQuiet: Bool { cards.isEmpty && messages.isEmpty && !isBusy && chatError == nil && !needsModel }
     var canSend: Bool { !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isBusy }
 
     private func localKey() -> String {
@@ -88,12 +93,19 @@ final class CanvasModel: CanvasCommandHost {
     func loadBackends() async {
         do {
             backends = try await client.send(.canvasBackends)
+            backendsFailure = nil
+            backendsLoaded = true
+            if hasModel { triedWithoutModel = false }
+        } catch is CancellationError {
+            return
+        } catch HVError.cancelled {
+            // The screen went away or came back mid-read; the list there was is still the best there is.
+            return
         } catch {
-            // Without a list the canvas still keeps and shows; asking will say so.
-            backends = []
+            // A failed read does not say that nothing is connected. The canvas still keeps and shows;
+            // asking reads the list again and says what went wrong.
+            backendsFailure = error
         }
-        backendsLoaded = true
-        if hasModel { triedWithoutModel = false }
     }
 
     // MARK: Sending
@@ -117,23 +129,31 @@ final class CanvasModel: CanvasCommandHost {
     }
 
     private func chat(_ text: String) async {
-        guard let backend = backends.first else {
-            triedWithoutModel = true
-            return
-        }
         let sentFrom = thread
-        let userKey = localKey()
         sending = true
-        isBusy = true
         chatError = nil
-        messages.append(ThreadMessage(id: userKey, role: .user, content: text))
-        draft = ""
         defer {
             if thread == sentFrom {
                 sending = false
                 isBusy = false
             }
         }
+        // The list may be old: a model may have been connected since it was read, or the read may
+        // have failed. Only a list that is read and still empty says that nothing can answer.
+        if backends.isEmpty { await loadBackends() }
+        guard thread == sentFrom else { return }
+        guard let backend = backends.first else {
+            if let failure = backendsFailure {
+                chatError = Self.chatLine(for: failure)
+            } else {
+                triedWithoutModel = true
+            }
+            return
+        }
+        let userKey = localKey()
+        isBusy = true
+        messages.append(ThreadMessage(id: userKey, role: .user, content: text))
+        draft = ""
         do {
             let turn = try await client.send(.canvasChat(
                 backendId: backend.id,
@@ -163,18 +183,18 @@ final class CanvasModel: CanvasCommandHost {
             messages.removeAll { $0.id == userKey }
             draft = text
         }
-        if let hv = error as? HVError {
-            if hv.isOffline {
-                chatError = HVCopy.chatOfflineLine
-            } else if case .cancelled = hv {
-                chatError = nil
-            } else {
-                chatError = hv.userMessage
-            }
-        } else {
-            chatError = HVCopy.chatFailedLine
-        }
-        Haptics.failure()
+        chatError = Self.chatLine(for: error)
+        if chatError != nil { Haptics.failure() }
+    }
+
+    /// What a turn that did not get through says: the network in its own line, the server in its own
+    /// words, anything else in the page's. A cancelled request says nothing; nothing went wrong.
+    private static func chatLine(for error: Error) -> String? {
+        if error is CancellationError { return nil }
+        guard let hv = error as? HVError else { return HVCopy.chatFailedLine }
+        if hv.isOffline { return HVCopy.chatOfflineLine }
+        if case .cancelled = hv { return nil }
+        return hv.userMessage
     }
 
     // MARK: Thread

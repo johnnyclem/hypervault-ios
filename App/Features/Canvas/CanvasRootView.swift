@@ -42,7 +42,7 @@ struct CanvasScreen: View {
 
     var body: some View {
         ZStack {
-            AuroraBackground(intensity: model.isEmpty ? 1 : 0.55)
+            AuroraBackground(intensity: model.isQuiet ? 1 : 0.55)
             content
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -92,6 +92,10 @@ struct CanvasScreen: View {
             app.router.canvasPull = nil
             model.addCard(for: item)
         }
+        .onChange(of: app.router.sheet) { _, sheet in
+            // Connecting a model happens in a sheet over the page: on its way out, look again for one.
+            if sheet == nil, !model.hasModel { Task { await model.loadBackends() } }
+        }
         .onChange(of: app.router.canvasAsk) { _, asks in
             guard asks else { return }
             app.router.canvasAsk = false
@@ -127,7 +131,7 @@ struct CanvasScreen: View {
 
     @ViewBuilder
     private var content: some View {
-        if model.isEmpty {
+        if model.isQuiet {
             ScrollView {
                 CanvasHints(model: model, userName: userName, onCopyStarter: copyStarter, starterCopied: starterCopied)
                     .padding(.top, HV.Space.xxl)

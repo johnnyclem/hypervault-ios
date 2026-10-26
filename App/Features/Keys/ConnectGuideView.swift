@@ -152,6 +152,7 @@ struct ConnectGuideView: View {
                     Spacer(minLength: HV.Space.xs)
                     KeysChevron(isOpen: isOpen)
                 }
+                .frame(minHeight: 44)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -184,6 +185,7 @@ struct ConnectGuideView: View {
                         .font(.hvCaption)
                         .lineLimit(2)
                         .truncationMode(.middle)
+                        .frame(minHeight: 44, alignment: .leading)
                 } else {
                     Text(source).font(.hvCaption).foregroundStyle(Palette.textSecondary)
                 }

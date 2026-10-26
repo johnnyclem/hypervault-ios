@@ -205,13 +205,17 @@ canned hosts end in `.invalid`; anything that builds its own `URLSession` reques
    for the right element rather than sleeping, and fix a flaky journey at its cause (an identifier, a better wait),
    never by skipping it.
 
-**The layout sweep.** `LayoutSweepTests` launches the app in the dark appearance (the
-`-pref.appearance dark` launch argument, which is what Settings stores; `-AppleInterfaceStyle Dark` and the device's
-`appearance` did nothing on CI) and with
-`-UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityXXXL`, visits the main screens, and for each keeps a
-screenshot and a text note (`LayoutReport`: controls under 44 points, anything drawn off the screen) beside it. It
-asserts only that the screen's key control can be tapped. The point is to look: fetch `ui-snapshots-<branch>` after a
-run and read the screenshots. A new screen belongs in the sweep when it has a layout of its own.
+**The layout sweep.** `LayoutSweepTests` and `LayoutSweepScreensTests` launch the app in the dark appearance and at the
+largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the You tab
+opens (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
+anything drawn off the screen) beside it. Dark is the app's own Appearance preference given as a launch argument
+(`-pref.appearance dark`, which is what Settings stores); `-AppleInterfaceStyle Dark` and the device's `appearance` left
+the app light on CI. So that a sweep of the dark never looks at light screens, each dark screenshot is first checked: the
+brightness of a strip down the left edge of the picture, which is the page's own background on every screen, must be low.
+The large text size is the system's own `-UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityXXXL`. Beyond
+that the sweep asserts only that the screen's key control can be tapped (a row is scrolled until its middle is clear of the
+tab bar first). The point is to look: fetch `ui-snapshots-<branch>` after a run and read the screenshots. A new screen belongs
+in the sweep when it has a layout of its own.
 
 **Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
 any iPhone simulator; `make test-unit` runs the rest. CI runs six UI jobs beside the unit tests (the journeys; the

@@ -134,8 +134,9 @@ state. They cover:
   for an admin, Admin (minting an invite code, switching it off, Accounts & waitlist); and a memory in full, Memory's Ask
   mode, a conversation and a room that take a message and answer it, a page from the Library with its Share, History
   and Details sheets;
-- a **layout sweep**: the main screens launched in the dark appearance and at the largest accessibility text size, a
-  screenshot of each, and a note of every control under 44 points or drawn off the screen.
+- a **layout sweep**: the main screens and every screen the You tab opens, launched in the dark appearance (the app's own
+  Appearance preference as a launch argument, and each dark screenshot is checked to be dark before it is kept) and at the
+  largest accessibility text size, a screenshot of each, and a note of every control under 44 points or drawn off the screen.
 
 They do not cover: a real sign-in (Google, Apple, a real email code), a real server, a real model, mail provider or
 payment (the app opens the web for those); anything that needs a device (Face ID and the biometric lock, dictation,

@@ -399,6 +399,10 @@ struct TaskRowBody: View {
             }
         }
         .padding(.vertical, HV.Space.xxs)
+        // A task with only a title is a line of text: 20 points to tap. The row is at least a finger tall, and all of
+        // it opens the task.
+        .frame(minHeight: 44, alignment: .leading)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 

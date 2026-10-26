@@ -89,26 +89,6 @@ extension View {
     }
 }
 
-/// A choice between a few options. A segmented control stays at its small size however large the text is set,
-/// so at the largest sizes the choice becomes a menu whose words can be read.
-struct TruthChoicePicker<Selection: Hashable, Content: View>: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    let title: String
-    @Binding var selection: Selection
-    @ViewBuilder var content: () -> Content
-
-    var body: some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            Picker(title, selection: $selection, content: content)
-                .pickerStyle(.menu)
-                .frame(minHeight: 44)
-        } else {
-            Picker(title, selection: $selection, content: content)
-                .pickerStyle(.segmented)
-        }
-    }
-}
-
 /// The hint inside an empty field. The system's own is too faint to read; this is the quietest grey that
 /// still passes, so it reads as a hint beside the typed text and not as a value.
 func truthPrompt(_ text: String) -> Text {

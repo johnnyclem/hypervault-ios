@@ -56,7 +56,7 @@ struct TruthAssertView: View {
 
     private var form: some View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
-            TruthChoicePicker(title: "Kind", selection: $draft.type) {
+            FeatureChoicePicker(title: "Kind", selection: $draft.type) {
                 Text("UV: I believe this").tag(TruthEntryType.uv)
                 Text("TB: I stand behind this").tag(TruthEntryType.tb)
             }
@@ -208,7 +208,7 @@ struct TruthNewLedgerView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.m) {
                     if !hostedOnly {
-                        TruthChoicePicker(title: "Kind", selection: $kind) {
+                        FeatureChoicePicker(title: "Kind", selection: $kind) {
                             Text("Hosted").tag(TruthLedgerKind.hosted)
                             Text("Mirror").tag(TruthLedgerKind.mirror)
                         }

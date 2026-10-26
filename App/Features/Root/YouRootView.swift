@@ -8,6 +8,9 @@ struct YouRootView: View {
     @Environment(AppModel.self) private var model
     @Environment(AppEnvironment.self) private var env
 
+    @State private var waiting = 0
+    @State private var confirmSignOut = false
+
     var body: some View {
         List {
             Section {
@@ -44,7 +47,13 @@ struct YouRootView: View {
 
             Section {
                 Button(role: .destructive) {
-                    Task { await model.signOut() }
+                    // Signing out clears what is still waiting to be kept, so say so first rather than lose it quietly.
+                    waiting = OutboxStore.count
+                    if waiting > 0 {
+                        confirmSignOut = true
+                    } else {
+                        Task { await model.signOut() }
+                    }
                 } label: {
                     Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
                 }
@@ -60,6 +69,15 @@ struct YouRootView: View {
         .hvScreenBackground()
         .navigationTitle("You")
         .task { await env.probeAdmin() }
+        .confirmationDialog("Sign out?", isPresented: $confirmSignOut, titleVisibility: .visible) {
+            Button("Sign out and discard", role: .destructive) {
+                Task { await model.signOut() }
+            }
+        } message: {
+            Text(waiting == 1
+                ? "One thing you shared is still waiting to be kept. Signing out discards it."
+                : "\(waiting) things you shared are still waiting to be kept. Signing out discards them.")
+        }
     }
 
     private func link(_ route: Route, symbol: String, tint: Color, title: String, subtitle: String) -> some View {

@@ -11,6 +11,17 @@ final class AppModelTests: XCTestCase {
      "features":{},"limits":{},"providers":[],"domains":[],"themes":[]%@}
     """
 
+
+    override func setUp() {
+        super.setUp()
+        SharedState.begin()
+    }
+
+    override func tearDown() {
+        SharedState.end()
+        super.tearDown()
+    }
+
     private func scratch() -> URL {
         FileManager.default.temporaryDirectory.appendingPathComponent("hv-model-\(UUID().uuidString)")
     }
@@ -27,6 +38,11 @@ final class AppModelTests: XCTestCase {
         }
     }
 
+    /// What a signed-in session needs from the auth server, whatever the gate says.
+    private var authRoutes: [MockRoute] {
+        [.json(.get, "/auth/v1/settings", "{}"), .json(.post, "/auth/v1/logout", "", status: 204)]
+    }
+
     private func storedSession() async throws -> InMemorySecureStore {
         let store = InMemorySecureStore()
         let session = AuthSession(
@@ -39,17 +55,20 @@ final class AppModelTests: XCTestCase {
     }
 
     private func model(routes: [MockRoute], store: SecureStore = InMemorySecureStore()) -> AppModel {
-        AppModel(
-            secureStore: store,
-            server: ServerConfig(baseURL: URL(string: "https://hv.test")!),
-            transport: MockTransport(routes: routes),
-            cacheDirectory: scratch()
-        )
+        model(transport: MockTransport(routes: routes), store: store)
+    }
+
+    private func model(
+        transport: HTTPTransport,
+        store: SecureStore = InMemorySecureStore(),
+        server: ServerConfig = ServerConfig(baseURL: URL(string: "https://hv.test")!)
+    ) -> AppModel {
+        AppModel(secureStore: store, server: server, transport: transport, cacheDirectory: scratch())
     }
 
     /// Waits for the model to reach a phase; the state machine settles on its own tasks.
     private func settle(_ model: AppModel, to phase: AppModel.Phase, file: StaticString = #filePath, line: UInt = #line) async {
-        for _ in 0..<100 {
+        for _ in 0..<200 {
             if model.phase == phase { return }
             try? await Task.sleep(nanoseconds: 30_000_000)
         }
@@ -137,6 +156,90 @@ final class AppModelTests: XCTestCase {
         app.handle(url: URL(string: "https://hypervault.store/login?invite=HV-AB12-CD34")!)
         XCTAssertEqual(app.pendingInviteCode, "HV-AB12-CD34")
     }
+
+    // MARK: What an account leaves on the phone
+
+    /// Puts the things a signed-in person leaves behind in place, and returns the cache they were filed in.
+    private func leaveTraces(of app: AppModel) async throws -> DiskCache {
+        let cache = try XCTUnwrap(app.env?.cache)
+        await cache.store("kept", key: "yours", namespace: "u1")
+        OutboxStore.add(OutboxItem(content: "a pasted secret"))
+        SharedConfig.defaults.set(Data("[]".utf8), forKey: SharedConfig.widgetRecentKey)
+        app.router.push(.memory(id: "m1"), on: .yours)
+        app.router.sheet = .connectAgent
+        app.router.canvasDraft = "half a thought"
+        app.router.tab = .yours
+        return cache
+    }
+
+    private func assertTracesGone(of app: AppModel, in cache: DiskCache, file: StaticString = #filePath, line: UInt = #line) async {
+        let cached = await cache.entry(String.self, key: "yours", namespace: "u1")
+        XCTAssertNil(cached, "the cache", file: file, line: line)
+        XCTAssertEqual(OutboxStore.count, 0, "the outbox", file: file, line: line)
+        XCTAssertNil(SharedConfig.defaults.object(forKey: SharedConfig.widgetRecentKey), "the widget's names", file: file, line: line)
+        XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.approvedUser), "the approval", file: file, line: line)
+        XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.sessionUser), "the marker", file: file, line: line)
+        XCTAssertEqual(app.router.path(for: .yours).wrappedValue.count, 0, "the pushed screens", file: file, line: line)
+        XCTAssertNil(app.router.sheet, "the sheet", file: file, line: line)
+        XCTAssertNil(app.router.canvasDraft, "the draft", file: file, line: line)
+        XCTAssertEqual(app.router.tab, .canvas, "the tab", file: file, line: line)
+    }
+
+    func testSigningOutTakesWhatTheAccountLeftOffThePhone() async throws {
+        let app = model(routes: [capabilitiesRoute(approved: true)] + authRoutes, store: try await storedSession())
+        await app.start()
+        await settle(app, to: .ready)
+        let cache = try await leaveTraces(of: app)
+        XCTAssertEqual(SharedConfig.defaults.string(forKey: PrefKey.sessionUser), "u1")
+
+        await app.signOut()
+        await settle(app, to: .signedOut)
+        await assertTracesGone(of: app, in: cache)
+    }
+
+    func testASessionThatEndsByItselfLeavesNothingBehindEither() async throws {
+        let app = model(routes: [capabilitiesRoute(approved: true)] + authRoutes, store: try await storedSession())
+        await app.start()
+        await settle(app, to: .ready)
+        let cache = try await leaveTraces(of: app)
+
+        // The auth service ends the session on its own when the server refuses a refresh; the app is only told.
+        await app.auth?.signOut()
+        await settle(app, to: .signedOut)
+        await assertTracesGone(of: app, in: cache)
+    }
+
+    func testASessionThatEndedWhileTheAppWasClosedIsCleanedUpAtTheNextLaunch() async throws {
+        SharedConfig.defaults.set("u9", forKey: PrefKey.sessionUser)
+        OutboxStore.add(OutboxItem(content: "what the last account left"))
+        let app = model(routes: [capabilitiesRoute(approved: true)] + authRoutes)
+        await app.start()
+        await settle(app, to: .signedOut)
+        XCTAssertEqual(OutboxStore.count, 0)
+        XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.sessionUser))
+    }
+
+    func testLaunchingWithNobodySignedInKeepsWhatIsWaiting() async {
+        OutboxStore.add(OutboxItem(content: "shared before anyone signed in"))
+        let app = model(routes: [capabilitiesRoute(approved: true)] + authRoutes)
+        await app.start()
+        await settle(app, to: .signedOut)
+        XCTAssertEqual(OutboxStore.load().map(\.content), ["shared before anyone signed in"])
+    }
+
+    func testALinkReceivedBeforeSignInSurvivesTheCleanupAndIsFollowedAfter() async throws {
+        SharedConfig.defaults.set("u9", forKey: PrefKey.sessionUser)
+        let token = #"{"access_token":"A2","refresh_token":"R2","expires_in":3600,"user":{"id":"u1","email":"sam@example.com"}}"#
+        let app = model(routes: [capabilitiesRoute(approved: true), .json(.post, "/auth/v1/token", token)] + authRoutes)
+        app.handle(url: URL(string: "hypervault://tab/memory")!)
+        await app.start()
+        await settle(app, to: .signedOut)
+
+        try await app.auth?.signIn(withIDToken: "apple-token", provider: "apple", nonce: nil)
+        await settle(app, to: .ready)
+        XCTAssertEqual(app.router.tab, .memory)
+    }
+
 }
 
 /// A flag the mock routes can flip from any thread.

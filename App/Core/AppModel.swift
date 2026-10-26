@@ -10,6 +10,9 @@ enum PrefKey {
     static let onboarded = "pref.onboarded.v1"
     static let onDeviceChat = "pref.onDeviceChat"
     static let approvedUser = "hv.approvedUser"
+    /// Whose traces are on this phone: set when someone signs in, removed once everything they left is gone. It
+    /// outlives the process, so a session that ended while the app was closed is still cleaned up at the next launch.
+    static let sessionUser = "hv.sessionUser"
 }
 
 /// The app's root state: where launch has got to, and the signed-in
@@ -81,7 +84,9 @@ final class AppModel {
 
     /// Points the app at a different deployment and starts over.
     func changeServer(to newServer: ServerConfig) async {
+        let namespace = sessionUserID
         await auth?.signOut()
+        await wipeLocalState(namespace: namespace)
         await cache.clearAll()
         env = nil
         auth = nil
@@ -138,11 +143,17 @@ final class AppModel {
         case .unknown:
             break
         case .signedOut:
+            // The session ended, by the person or by itself (a refresh the server refused). Whatever the account left
+            // goes either way, but only if someone really was signed in: a launch with no session has nothing to wipe,
+            // and what waits in the outbox then belongs to no one yet.
+                if let namespace = sessionUserID { await wipeLocalState(namespace: namespace) }
             env = nil
             phase = .signedOut
         case .signedIn(let user):
             // A token refresh republishes the same person: nothing to rebuild.
             if case .ready = phase, env?.user.id == user.id { return }
+            if let previous = sessionUserID, previous != user.id { await wipeLocalState(namespace: previous) }
+            SharedConfig.defaults.set(user.id, forKey: PrefKey.sessionUser)
             await resolveAccess(for: user)
         }
     }
@@ -178,6 +189,8 @@ final class AppModel {
     private func activate(user: AuthUser, client: HVClient, auth: AuthService, capabilities: Capabilities) {
         env = AppEnvironment(client: client, auth: auth, capabilities: capabilities, user: user, server: server, cache: cache)
         phase = .ready
+        // Widgets that were waiting for someone to sign in, or showing the last account, read the new one now.
+        WidgetRefresh.reload()
         if let link = pendingLink {
             pendingLink = nil
             router.open(link)
@@ -187,14 +200,29 @@ final class AppModel {
     // MARK: Account
 
     func signOut() async {
-        let namespace = env?.user.id
+        let namespace = sessionUserID
         await auth?.signOut()
+        await wipeLocalState(namespace: namespace)
+    }
+
+    private var sessionUserID: String? {
+        SharedConfig.defaults.string(forKey: PrefKey.sessionUser)
+    }
+
+    /// Takes everything the account left on this phone off it: its cache, what was waiting to be kept, the names the
+    /// widgets and Spotlight hold, and where the person was in the app. Every way a session can end comes through here
+    /// (signing out, a refresh the server refused, a switch of server), so none leaves anything for the next person to
+    /// see, or to have kept into their own vault. A link that arrived before sign-in is not the account's and stays.
+    private func wipeLocalState(namespace: String?) async {
         if let namespace { await cache.clear(namespace: namespace) }
+        OutboxStore.save([])
         SpotlightIndexer.clear()
-        SharedConfig.defaults.removeObject(forKey: PrefKey.approvedUser)
-        router.sheet = nil
-        router.popToRoot(.canvas)
-        router.tab = .canvas
+        SharedConfig.forgetWidgetCache()
+        WidgetRefresh.reload()
+        for key in [PrefKey.approvedUser, PrefKey.sessionUser] {
+            SharedConfig.defaults.removeObject(forKey: key)
+        }
+        router.reset()
     }
 
     /// Redeems an invite code for the signed-in, waitlisted person.

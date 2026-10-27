@@ -204,9 +204,9 @@ server change if you want the app to do more:
 
 ## What has and has not been tested
 
-- The Kit (API client, auth, every model and rule) has about 750 unit tests, run on Linux and
+- The Kit (API client, auth, every model and rule) has about 860 unit tests, run on Linux and
   macOS in CI. Fixtures follow the routes' real output.
-- The app builds for the simulator in CI with 468 tests (screen state machines, link
+- The app builds for the simulator in CI with 482 tests (screen state machines, link
   parsing, sign-in and access phases) and renders every screen in light and dark, and the
   main ones at the largest text sizes, to PNGs the workflow publishes.
 - CI also launches the whole app and drives it: UI tests walk the welcome story, sign-in, the canvas (keep, ask,

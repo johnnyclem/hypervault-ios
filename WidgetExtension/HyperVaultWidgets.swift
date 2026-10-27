@@ -159,7 +159,7 @@ struct KeepWidget: Widget {
             KeepWidgetView()
         }
         .configurationDisplayName("Keep")
-        .description("Open the canvas, ready to keep something.")
+        .description("Open HyperVault, ready to keep something.")
         .supportedFamilies([.systemSmall, .accessoryCircular, .accessoryInline])
     }
 }

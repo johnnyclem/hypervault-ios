@@ -13,6 +13,8 @@ extension UITestWorld {
     static var screenRoutes: [MockRoute] {
         var routes: [MockRoute] = []
         routes += keysRoutes(UITestKeys())
+        // Before the addresses: this answers the profile row, which carries the website's theme as well as the plan.
+        routes += dashboardThemeRoutes(UITestDashboardTheme())
         routes += realmsRoutes
         routes += roomRoutes(UITestRoom())
         routes += truthRoutes
@@ -79,7 +81,6 @@ extension UITestWorld {
     /// A Pro plan with two addresses claimed, one with a look and a home page and one with neither.
     private static var realmsRoutes: [MockRoute] {
         [
-            .json(.get, "/rest/v1/profiles", #"[{"plan":"pro","vanity_subdomain":"nova"}]"#),
             MockRoute(.get, "/rest/v1/domain_claims") { _ in
                 reply(.array([
                     .object([
@@ -93,6 +94,30 @@ extension UITestWorld {
                 ]))
             },
             .json(.get, "/api/claim-domain", #"{"available":true}"#),
+        ]
+    }
+
+    // MARK: The website's theme
+
+    /// The person's profile row, a Pro plan with the website wearing Glassmorphism, and the route that changes the theme. The
+    /// themes it takes are the three the canned capabilities list.
+    private static func dashboardThemeRoutes(_ theme: UITestDashboardTheme) -> [MockRoute] {
+        let known: Set<String> = ["modern-dark", "glassmorphism", "newsprint"]
+        return [
+            MockRoute(.get, "/rest/v1/profiles") { _ in
+                reply(.array([.object([
+                    "plan": .string("pro"), "vanity_subdomain": .string("nova"),
+                    "theme": theme.current.map(JSONValue.string) ?? .null,
+                ])]))
+            },
+            MockRoute(.patch, "/api/dashboard-theme") { request in
+                let next = body(request)["theme"]?.string
+                if let next, !known.contains(next) {
+                    return reply(.object(["error": .string("Unknown theme. Pick one of: modern-dark, glassmorphism, newsprint - or null for the HyperVault default.")]), status: 400)
+                }
+                theme.set(next)
+                return reply(.object(["theme": next.map(JSONValue.string) ?? .null, "message": .string("Your dashboard now wears \(next ?? "the stock look").")]))
+            },
         ]
     }
 
@@ -225,6 +250,24 @@ extension UITestWorld {
 }
 
 // MARK: - What changes while a journey plays
+
+/// The theme the person's website dashboard wears (`profiles.theme`).
+final class UITestDashboardTheme: @unchecked Sendable {
+    private let lock = NSLock()
+    private var theme: String? = "glassmorphism"
+
+    var current: String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return theme
+    }
+
+    func set(_ next: String?) {
+        lock.lock()
+        theme = next
+        lock.unlock()
+    }
+}
 
 /// The keys a person has. Made from the Connect sheet, revoked from Account & keys.
 final class UITestKeys: @unchecked Sendable {

@@ -85,6 +85,34 @@ final class UITestScreensTests: XCTestCase {
         XCTAssertTrue(caps.themes.contains { $0.id == "glassmorphism" })
     }
 
+    func testTheWebsiteWearsAThemeAndTakesAnother() async throws {
+        let net = transport()
+        let profiles = rest(net)
+        let before = try await profiles.dashboardTheme(userID: UITestWorld.user.id)
+        XCTAssertEqual(before, "glassmorphism")
+
+        let saved = try await client(net).send(.setDashboardTheme("newsprint"))
+        XCTAssertEqual(saved.theme, "newsprint")
+        let after = try await profiles.dashboardTheme(userID: UITestWorld.user.id)
+        XCTAssertEqual(after, "newsprint", "the profile holds what the server agreed to")
+        let plan = try await profiles.profile(userID: UITestWorld.user.id)
+        XCTAssertEqual(plan?.isPro, true, "the plan is still read from the same row")
+
+        let stock = try await client(net).send(.setDashboardTheme(nil))
+        XCTAssertNil(stock.theme)
+        let none = try await profiles.dashboardTheme(userID: UITestWorld.user.id)
+        XCTAssertNil(none)
+    }
+
+    func testAnUnknownThemeIsRefusedWithTheServersSentence() async {
+        do {
+            _ = try await client(transport()).send(.setDashboardTheme("not-a-theme"))
+            XCTFail("The canned server refuses a theme it does not list.")
+        } catch {
+            XCTAssertEqual((error as? HVError)?.failure?.status, 400)
+        }
+    }
+
     // MARK: Rooms and chat
 
     func testARoomTakesAMessageAndAnswersIt() async throws {

@@ -5,7 +5,7 @@ import SwiftUI
 /// Everything a SwiftUI preview or a snapshot test needs to stand a screen up
 /// without a network: an environment whose client answers from canned routes.
 ///
-///     #Preview { PreviewHost(routes: [.json(.get, "/api/yours", yoursJSON)]) { YoursRootView() } }
+///     #Preview { PreviewHost(routes: [.json(.get, "/api/yours", yoursJSON)]) { YoursSheet(onPull: { _ in }, onNew: {}, onLibrary: {}) } }
 extension AppEnvironment {
     @MainActor
     static func preview(

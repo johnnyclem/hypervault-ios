@@ -145,7 +145,7 @@ struct ChatOptionsSheet: View {
             } else {
                 Button {
                     dismiss()
-                    app.router.open(.route(.tools))
+                    app.router.push(.tools)
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 1) {

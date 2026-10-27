@@ -166,7 +166,7 @@ struct MailThreadScreen: View {
     // MARK: Actions
 
     private func openAttachment(_ slug: String) {
-        app.router.open(.route(.artifact(slug: slug)))
+        app.router.push(.artifact(slug: slug))
     }
 
     private func loadOlder() {

@@ -5,9 +5,9 @@ private enum RealmsDestination: Hashable {
     case realm(String)
 }
 
-/// Your address: claim you.vault.cool (or another address from the portfolio), give each one a look and a
+/// Domain, a pane of the You tab: claim you.vault.cool (or another address from the portfolio), give each one a look and a
 /// home page, and see what Pro includes. Payment happens on the web: the upgrade page opens in Safari. The
-/// native version of the web's Domain and Appearance panes and /upgrade.
+/// native version of the web's Domain pane and /upgrade, and of the look each address wears.
 struct RealmsRootView: View {
     @Environment(AppEnvironment.self) private var env
 
@@ -25,7 +25,7 @@ struct RealmsRootView: View {
             }
         }
         .hvScreenBackground()
-        .navigationTitle("Your address")
+        .navigationTitle(AccountPane.domain.label)
         .keysLargeTitle()
         .navigationDestination(for: RealmsDestination.self) { destination in
             if let model {

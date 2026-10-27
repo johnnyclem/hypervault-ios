@@ -226,8 +226,8 @@ struct TruthEntryScreen: View {
 
     private func openAction(_ context: TruthRippleContext) -> (() -> Void)? {
         guard let item = context.item else { return nil }
-        if item.isMemory { return { app.router.open(.route(.memory(id: item.id))) } }
-        if let slug = item.slug { return { app.router.open(.route(.artifact(slug: slug))) } }
+        if item.isMemory { return { app.router.push(.memory(id: item.id)) } }
+        if let slug = item.slug { return { app.router.push(.artifact(slug: slug)) } }
         return nil
     }
 

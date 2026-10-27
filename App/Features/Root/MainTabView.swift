@@ -1,8 +1,9 @@
 import HyperVaultKit
 import SwiftUI
 
-/// The five tabs. Each has its own navigation stack, kept alive while another
-/// tab shows, and every stack resolves the same `Route`s.
+/// The four tabs, in the order of the web's dock: Home, Chat, Memory, You. Each has its own navigation stack, kept alive
+/// while another tab shows, and every stack resolves the same `Route`s. The You tab is a split view of its own, so its
+/// stack is the one inside its detail column.
 struct MainTabView: View {
     @Environment(AppModel.self) private var model
     @Environment(AppEnvironment.self) private var env
@@ -15,23 +16,19 @@ struct MainTabView: View {
                 .tabItem { Label(AppTab.canvas.title, systemImage: AppTab.canvas.symbol) }
                 .tag(AppTab.canvas)
 
-            TabRoot(tab: .yours) { YoursRootView() }
-                .tabItem { Label(AppTab.yours.title, systemImage: AppTab.yours.symbol) }
-                .tag(AppTab.yours)
+            TabRoot(tab: .chat) { ChatRootView() }
+                .tabItem { Label(AppTab.chat.title, systemImage: AppTab.chat.symbol) }
+                .tag(AppTab.chat)
 
             TabRoot(tab: .memory) { MemoryRootView() }
                 .tabItem { Label(AppTab.memory.title, systemImage: AppTab.memory.symbol) }
                 .tag(AppTab.memory)
 
-            TabRoot(tab: .chat) { ChatRootView() }
-                .tabItem { Label(AppTab.chat.title, systemImage: AppTab.chat.symbol) }
-                .tag(AppTab.chat)
-
-            TabRoot(tab: .you) { YouRootView() }
+            YouTabView()
                 .tabItem { Label(AppTab.you.title, systemImage: AppTab.you.symbol) }
                 .tag(AppTab.you)
         }
-        .adaptiveTabStyle()
+        .tabBarWithoutSidebar()
         // Whatever Siri or the share sheet left waiting is kept once the person is in, not while the lock is up.
         .task(id: model.lock.isLocked) {
             guard !model.lock.isLocked else { return }
@@ -52,6 +49,8 @@ struct MainTabView: View {
                 InviteLinkSheet()
             case .connectAgent:
                 ConnectAgentSheet()
+            case .account:
+                AccountMenuSheet()
             }
         }
     }
@@ -86,13 +85,10 @@ struct RouteDestination: View {
         case .room(let id): RoomScreen(roomID: id)
         case .mailThread(let id): MailThreadView(id: id)
         case .library: LibraryRootView()
-        case .agentsAndKeys: AgentsAndKeysView()
-        case .vaultItems: VaultItemsView()
         case .mail: MailRootView()
         case .truth: TruthRootView()
         case .truthReview: TruthReviewView()
         case .tools: ToolsRootView()
-        case .realms: RealmsRootView()
         case .importHistory: ImportRootView()
         case .dreams: DreamsRootView()
         case .digest: DigestRootView()
@@ -100,7 +96,6 @@ struct RouteDestination: View {
         case .taskBoard(let slug, let project, let title):
             TaskBoardView(listing: TaskBoardListing(slug: slug, project: project, title: title))
         case .admin: AdminRootView()
-        case .settings: SettingsRootView()
         }
     }
 }
@@ -126,11 +121,12 @@ struct InviteLinkSheet: View {
 }
 
 extension View {
-    /// Tabs along the bottom on a phone and a sidebar on iPad, where the system offers it.
+    /// The tab bar alone, on a phone and on an iPad: no sidebar made of the tabs. The You tab is a split view with a list
+    /// of its own, and a second sidebar beside it would leave the panes a sliver.
     @ViewBuilder
-    func adaptiveTabStyle() -> some View {
+    func tabBarWithoutSidebar() -> some View {
         if #available(iOS 18.0, *) {
-            tabViewStyle(.sidebarAdaptable)
+            tabViewStyle(.tabBarOnly)
         } else {
             self
         }

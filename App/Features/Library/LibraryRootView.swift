@@ -254,7 +254,7 @@ struct LibraryScreen: View {
                     // open did not open anything on iOS 26 (the UI tests tapped the row and nothing came of it).
                     Button {
                         model.stampOpen(item)
-                        app.router.push(route(for: item))
+                        open(item)
                     } label: {
                         LibraryItemRow(item: item, showsChevron: true)
                     }
@@ -270,11 +270,12 @@ struct LibraryScreen: View {
         }
     }
 
-    private func route(for item: KeptItem) -> Route {
+    /// A key opens the Vault pane of the You tab; everything else is pushed on this screen's stack.
+    private func open(_ item: KeptItem) {
         switch item.kind {
-        case .memory: return .memory(id: item.id)
-        case .key: return .vaultItems
-        case .page, .file, .group: return item.slug.map { .artifact(slug: $0) } ?? .library
+        case .memory: app.router.push(.memory(id: item.id))
+        case .key: app.router.open(.account(.vault))
+        case .page, .file, .group: app.router.push(item.slug.map { .artifact(slug: $0) } ?? .library)
         }
     }
 

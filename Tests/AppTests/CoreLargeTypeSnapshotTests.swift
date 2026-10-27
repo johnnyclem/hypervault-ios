@@ -19,7 +19,9 @@ final class CoreLargeTypeSnapshotTests: XCTestCase {
 
     func testYoursAtTheLargestType() throws {
         try snapshot(
-            PreviewHost(routes: [.json(.get, "/api/yours", Fixtures.yours)]) { YoursRootView().environment(\.dynamicTypeSize, .accessibility3) },
+            PreviewHost(routes: [.json(.get, "/api/yours", Fixtures.yours)], embedInNavigation: false) {
+                YoursSheet(onPull: { _ in }, onNew: {}, onLibrary: {}).environment(\.dynamicTypeSize, .accessibility3)
+            },
             named: "yours-large", schemes: [.light]
         )
     }
@@ -30,7 +32,7 @@ final class CoreLargeTypeSnapshotTests: XCTestCase {
 
     func testSettingsAtTheLargestType() throws {
         try snapshot(
-            PreviewHost { SettingsRootView().environment(\.dynamicTypeSize, .accessibility3) },
+            PreviewHost { GeneralPane().environment(\.dynamicTypeSize, .accessibility3) },
             named: "settings-large", schemes: [.light]
         )
     }

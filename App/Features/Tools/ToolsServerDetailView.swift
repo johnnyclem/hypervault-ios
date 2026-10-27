@@ -192,7 +192,7 @@ struct ToolsServerDetailView: View {
         if server.authType == .headers {
             if server.secretBacked {
                 Button {
-                    app.router.push(.vaultItems)
+                    app.router.open(.account(.vault))
                 } label: {
                     Label("Change the key in Logins, cards & keys", systemImage: "lock.rectangle.stack")
                 }

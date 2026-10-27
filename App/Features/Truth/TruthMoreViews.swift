@@ -268,9 +268,9 @@ struct TruthStaleScreen: View {
     private func open(_ item: TruthStaleItem) {
         guard let context = item.item else { return }
         if context.isMemory {
-            app.router.open(.route(.memory(id: context.id)))
+            app.router.push(.memory(id: context.id))
         } else if let slug = context.slug {
-            app.router.open(.route(.artifact(slug: slug)))
+            app.router.push(.artifact(slug: slug))
         }
     }
 

@@ -171,6 +171,24 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(app.router.tab, .memory)
     }
 
+    func testALinkToAPaneOfTheYouPageOpenedBeforeSignInIsFollowedAfter() async throws {
+        let app = model(routes: [capabilitiesRoute(approved: true), .json(.get, "/auth/v1/settings", "{}")], store: try await storedSession())
+        app.handle(url: URL(string: "https://hypervault.store/vault/account?tab=keys")!)
+        await app.start()
+        await settle(app, to: .ready)
+        XCTAssertEqual(app.router.tab, .you)
+        XCTAssertEqual(app.router.accountPane, .keys)
+    }
+
+    func testTheLinkAWidgetCarriesOpensTheYoursPanelAfterSignIn() async throws {
+        let app = model(routes: [capabilitiesRoute(approved: true), .json(.get, "/auth/v1/settings", "{}")], store: try await storedSession())
+        app.handle(url: URL(string: "hypervault://tab/yours")!)
+        await app.start()
+        await settle(app, to: .ready)
+        XCTAssertEqual(app.router.tab, .canvas)
+        XCTAssertTrue(app.router.yoursPanel)
+    }
+
     // MARK: A reinstall
 
     /// Preferences of a phone of their own, to stand for the app's: the Keychain survives an uninstall, these do not.
@@ -230,10 +248,14 @@ final class AppModelTests: XCTestCase {
         await cache.store("kept", key: "yours", namespace: "u1")
         OutboxStore.add(OutboxItem(content: "a pasted secret"))
         SharedConfig.defaults.set(Data("[]".utf8), forKey: SharedConfig.widgetRecentKey)
-        app.router.push(.memory(id: "m1"), on: .yours)
+        app.router.push(.memory(id: "m1"), on: .memory)
+        app.router.open(.account(.keys))
+        app.router.push(.importHistory, on: .you)
+        app.router.yoursPanel = true
+        app.router.groupChats = true
         app.router.sheet = .connectAgent
         app.router.canvasDraft = "half a thought"
-        app.router.tab = .yours
+        app.router.tab = .memory
         return cache
     }
 
@@ -244,7 +266,11 @@ final class AppModelTests: XCTestCase {
         XCTAssertNil(SharedConfig.defaults.object(forKey: SharedConfig.widgetRecentKey), "the widget's names", file: file, line: line)
         XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.approvedUser), "the approval", file: file, line: line)
         XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.sessionUser), "the marker", file: file, line: line)
-        XCTAssertEqual(app.router.path(for: .yours).wrappedValue.count, 0, "the pushed screens", file: file, line: line)
+        XCTAssertEqual(app.router.path(for: .memory).wrappedValue.count, 0, "the pushed screens", file: file, line: line)
+        XCTAssertEqual(app.router.path(for: .you).wrappedValue.count, 0, "the screens pushed in a pane", file: file, line: line)
+        XCTAssertEqual(app.router.accountPane, .vault, "the pane", file: file, line: line)
+        XCTAssertFalse(app.router.yoursPanel, "the panel waiting to open", file: file, line: line)
+        XCTAssertFalse(app.router.groupChats, "the group chats waiting to show", file: file, line: line)
         XCTAssertNil(app.router.sheet, "the sheet", file: file, line: line)
         XCTAssertNil(app.router.canvasDraft, "the draft", file: file, line: line)
         XCTAssertEqual(app.router.tab, .canvas, "the tab", file: file, line: line)

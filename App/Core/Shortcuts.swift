@@ -56,7 +56,7 @@ struct KeepTextIntent: AppIntent {
 }
 
 struct OpenCanvasIntent: AppIntent {
-    static let title: LocalizedStringResource = "Open the canvas"
+    static let title: LocalizedStringResource = "Open Home"
     static let description = IntentDescription("Opens HyperVault, ready to keep or ask.")
     static let openAppWhenRun = true
 
@@ -88,7 +88,7 @@ struct HyperVaultShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: OpenCanvasIntent(),
             phrases: ["Open \(.applicationName)"],
-            shortTitle: "Open canvas",
+            shortTitle: "Open Home",
             systemImageName: "sparkles"
         )
     }

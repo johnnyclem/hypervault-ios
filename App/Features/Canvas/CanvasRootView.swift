@@ -1,8 +1,8 @@
 import HyperVaultKit
 import SwiftUI
 
-/// The first tab: a quiet page with a field. Everything a person has is behind the avatar or
-/// the Yours icon and appears only when asked for.
+/// Home, the first tab: a quiet page with a field. Everything a person has is behind the avatar (the Account menu)
+/// or the panel icon (Yours) and appears only when asked for.
 struct CanvasRootView: View {
     @Environment(AppEnvironment.self) private var env
 
@@ -87,6 +87,10 @@ struct CanvasScreen: View {
             }, onNew: {
                 showYours = false
                 model.ask()
+            }, onLibrary: {
+                // The panel closes as the Library opens, so the Library is not pushed under it.
+                showYours = false
+                app.router.open(.route(.library))
             })
         }
         .task {
@@ -94,19 +98,14 @@ struct CanvasScreen: View {
             takeRouterDraft()
         }
         .onChange(of: app.router.canvasDraft) { _, _ in takeRouterDraft() }
-        .onChange(of: app.router.canvasPull) { _, item in
-            guard let item else { return }
-            app.router.canvasPull = nil
-            model.pullItem(item)
+        .onChange(of: app.router.yoursPanel, initial: true) { _, wanted in
+            guard wanted else { return }
+            app.router.yoursPanel = false
+            showYours = true
         }
         .onChange(of: app.router.sheet) { _, sheet in
             // Connecting a model happens in a sheet over the page: on its way out, look again for one.
             if sheet == nil, !model.hasModel { Task { await model.loadBackends() } }
-        }
-        .onChange(of: app.router.canvasAsk) { _, asks in
-            guard asks else { return }
-            app.router.canvasAsk = false
-            model.ask()
         }
         .onChange(of: model.wantsYours) { _, wants in
             if wants {
@@ -184,7 +183,7 @@ struct CanvasScreen: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             Button {
-                app.router.tab = .you
+                app.router.sheet = .account
             } label: {
                 HVAvatar(name: avatarName, imageURL: avatarURL, size: 32)
             }
@@ -197,7 +196,7 @@ struct CanvasScreen: View {
             } label: {
                 Image(systemName: "square.stack.3d.up")
             }
-            .accessibilityLabel("Open Yours")
+            .accessibilityLabel("Open panel")
             .accessibilityIdentifier("canvas.yours")
         }
     }
@@ -212,7 +211,7 @@ struct CanvasScreen: View {
         case .memory:
             if let id = card.ref?.id { app.router.open(.route(.memory(id: id))) }
         case .key:
-            app.router.open(.route(.vaultItems))
+            app.router.open(.account(.vault))
         }
     }
 

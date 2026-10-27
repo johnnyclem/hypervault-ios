@@ -32,10 +32,10 @@ final class OnboardingSnapshotTests: XCTestCase {
     }
 
     func testSettings() throws {
-        try snapshot(PreviewHost { SettingsRootView() }, named: "settings")
+        try snapshot(PreviewHost { GeneralPane() }, named: "settings")
     }
 
     func testYouTab() throws {
-        try snapshot(PreviewHost { YouRootView() }, named: "you")
+        try snapshot(PreviewHost(embedInNavigation: false) { YouTabView() }, named: "you")
     }
 }

@@ -22,18 +22,18 @@ final class CoreLargeTypeSnapshotTests: XCTestCase {
             PreviewHost(routes: [.json(.get, "/api/yours", Fixtures.yours)], embedInNavigation: false) {
                 YoursSheet(onPull: { _ in }, onNew: {}, onLibrary: {}).environment(\.dynamicTypeSize, .accessibility3)
             },
-            named: "yours-large", schemes: [.light]
+            named: "yours-large"
         )
     }
 
     func testLockScreenAtTheLargestType() throws {
-        try snapshot(LockScreen(lock: AppLock()).environment(\.dynamicTypeSize, .accessibility5), named: "lock-large", schemes: [.light])
+        try snapshot(LockScreen(lock: AppLock()).environment(\.dynamicTypeSize, .accessibility5), named: "lock-large")
     }
 
     func testSettingsAtTheLargestType() throws {
         try snapshot(
             PreviewHost { GeneralPane().environment(\.dynamicTypeSize, .accessibility3) },
-            named: "settings-large", schemes: [.light]
+            named: "settings-large"
         )
     }
 }

@@ -92,6 +92,8 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
         step("The review docket lists what waits on a decision") {
             goBack()
+            // The ledger comes back scrolled to where it was left, which can be past the row.
+            reveal(element("truth.review"), "the review row")
             tap(element("truth.review"), "the review row")
             waitUntil("the Review title") { isShowingTitle("Review") }
             require(shows("Retries are idempotent across regions."), "the nominated claim on the docket")

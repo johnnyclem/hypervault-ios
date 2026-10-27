@@ -26,12 +26,12 @@ Only a phone can do these, so the app does them:
 - **Widgets**: Yours on the Home Screen and Lock Screen; a one-tap Keep widget. Their links (`hypervault://tab/yours`, `tab/canvas`) keep working for good.
 - **Siri and Shortcuts**: "Keep this in HyperVault".
 - **Dictation** (on device where supported) and **page scanning** into the canvas.
-- **Haptics**, a first-keep celebration, light and dark. On an iPad the tab bar stays a tab bar, so that the You tab's list of panes is the only sidebar.
+- **Haptics**, a first-keep celebration, and the web's own dark look. On an iPad the tab bar stays a tab bar, so that the You tab's list of panes is the only sidebar.
 
 ## Run it
 
 You need a current Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen). CI builds with
-the newest Xcode on GitHub's macOS runner (26.x when this was written); the deployment target is iOS 17.
+the newest Xcode on GitHub's macOS runner (26.x when this was written); the deployment target is iOS 26.
 
 ```sh
 brew install xcodegen
@@ -108,12 +108,15 @@ Tests/AppTests/          App tests and snapshot renders.
   cases.
 - **Read cache, never a second source of truth.** Lists load from a per-user disk
   cache first and refresh behind it; sign-out wipes it.
+- **Design tokens come from the web.** The stock colours and radii are in `docs/brand/tokens.json`, a copy of the web
+  repo's file. `scripts/gen_tokens.py` (`make tokens`) turns it into the colour catalog and `HVTokens` under
+  `Shared/DesignSystem`, and CI fails when they drift from it.
 - **Adding a feature** is described in [docs/FEATURE_GUIDE.md](docs/FEATURE_GUIDE.md).
 
 ### CI and looking at screens
 
 `.github/workflows/ios.yml` runs the Kit's tests on Linux and builds and tests the app
-on a macOS simulator. The app's snapshot tests render screens in light and dark and the
+on a macOS simulator. The app's snapshot tests render screens in the dark and the
 workflow publishes the PNGs to a `snapshots-<branch>` branch, so a screen can be looked
 at without opening Xcode. Twelve more jobs run the UI tests beside them (the journeys; the tabs and the You journeys; the
 screens of the You panes and the Account menu, and the content and account journeys, in two; the journeys that write, in three; the layout
@@ -128,7 +131,7 @@ Four layers, each catching what the one below cannot see:
 
 - **The Kit's unit tests** (`make test-kit`, Linux and macOS): the API client, auth, every model and rule.
 - **The app's unit tests** (`make test-unit`): screen state machines, link parsing, the sign-in and access phases.
-- **Snapshot renders**: every screen drawn in light and dark to PNGs, published by CI.
+- **Snapshot renders**: every screen drawn to PNGs in the dark, which is the only look the app has, published by CI.
 - **UI tests** (`make test-ui`, the `HyperVaultUITests` target): the whole app launched on a simulator and driven
   through its main journeys with taps and typing, so a crash on launch, a broken navigation stack, a sheet that never
   presents or a control nothing can reach fails CI.
@@ -163,8 +166,8 @@ state. They cover:
   answers in the shape of the real routes. Each journey checks what the screen shows and also what the app sent: every
   request that is not a read is noted (method, path, the names and values of the body's fields, never a secret's value)
   and shown through a hidden accessibility element, `uitest.writes` (`App/Core/UITestWrites.swift`, debug builds only);
-- a **layout sweep**: the main screens and every screen the You panes and the Account menu open, launched in the dark appearance (the app's own
-  Appearance preference as a launch argument, and each dark screenshot is checked to be dark before it is kept) and at the
+- a **layout sweep**: the main screens and every screen the You panes and the Account menu open, launched dark (the app is dark whatever the
+  phone is set to, and each dark screenshot is checked to be dark before it is kept) and at the
   largest accessibility text size, a screenshot of each, and a note of every control under 44 points or drawn off the screen.
 
 They do not cover: a real sign-in (Google, Apple, a real email code), a real server, a real model, mail provider or
@@ -225,8 +228,8 @@ server change if you want the app to do more:
   with no price and no Upgrade button.
 - **The Appearance pane is the website's theme.** It reads `profiles.theme` and sets it with `PATCH /api/dashboard-theme`;
   it says so, and the app itself keeps one look.
-- **The web's 37 style themes** are CSS looks for web pages and are not ported; the app
-  has system light and dark and five accents.
+- **The web's 38 style themes** are CSS looks for web pages and are not ported; the app
+  has the web's stock look, which is dark only, with one accent (the web's `primary`).
 - **Models on your own network** (Ollama, LM Studio) are called by the phone directly,
   because the server refuses private addresses. They stream, take no tools and need the
   local network permission.
@@ -238,12 +241,12 @@ server change if you want the app to do more:
 - The Kit (API client, auth, every model and rule) has about 880 unit tests, run on Linux and
   macOS in CI. Fixtures follow the routes' real output.
 - The app builds for the simulator in CI with 504 tests (screen state machines, link
-  parsing, sign-in and access phases) and renders every screen in light and dark, and the
+  parsing, sign-in and access phases) and renders every screen in the dark, and the
   main ones at the largest text sizes, to PNGs the workflow publishes.
 - CI also launches the whole app and drives it: UI tests walk the welcome story, sign-in, the canvas (keep, ask,
   show, hide), Yours, the Account menu, Memory, Chat, the Library, the You panes, every screen they open, the first run and the
   waitlist, and create, edit and delete through the screens (sign-out, memories, vault entries, boards, mail, pages),
-  checking what the app sent, on a canned server inside the app, and sweep the main screens in the dark appearance and at the largest
+  checking what the app sent, on a canned server inside the app, and sweep the main screens in the dark and at the largest
   accessibility text size. They do not cover a real sign-in, a real server, or anything that needs a device
   (Face ID, dictation, the scanner, widgets, the share extension); "How it is tested" lists the rest.
 - The Kit's models decode the response shapes a real deployment sent for about twenty authenticated endpoints

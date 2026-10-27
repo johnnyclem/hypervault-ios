@@ -59,7 +59,7 @@ struct ConnectGuideView: View {
             ForEach(Array(guide.steps.enumerated()), id: \.offset) { index, step in
                 HStack(alignment: .firstTextBaseline, spacing: HV.Space.s) {
                     Text("\(index + 1)")
-                        .font(.system(.footnote, design: .rounded, weight: .bold))
+                        .font(.system(.footnote, weight: .bold))
                         .foregroundStyle(Palette.blue)
                         .frame(width: 26, height: 26)
                         .background(Palette.blue.opacity(0.14), in: Circle())
@@ -195,7 +195,7 @@ struct ConnectGuideView: View {
 
     private func sectionTitle(_ title: String) -> some View {
         Text(title)
-            .font(.system(.footnote, design: .rounded, weight: .semibold))
+            .font(.system(.footnote, weight: .semibold))
             .foregroundStyle(Palette.textSecondary)
             .textCase(.uppercase)
             .tracking(0.6)

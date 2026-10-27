@@ -108,7 +108,7 @@ struct ToastHost: View {
                 HStack(spacing: HV.Space.s) {
                     Image(systemName: toast.symbol).foregroundStyle(toast.tint)
                     Text(toast.message)
-                        .font(.system(.subheadline, design: .rounded, weight: .medium))
+                        .font(.system(.subheadline, weight: .medium))
                         .foregroundStyle(Palette.textPrimary)
                         .multilineTextAlignment(.leading)
                         .lineLimit(3)

@@ -8,6 +8,8 @@ final class ShareViewController: UIViewController {
         view.backgroundColor = .clear
         let host = UIHostingController(rootView: ShareView(context: extensionContext))
         host.view.backgroundColor = .clear
+        // The stock look is dark only. The sheet is the host app's, so it takes that app's style unless told otherwise.
+        host.overrideUserInterfaceStyle = .dark
         addChild(host)
         view.addSubview(host.view)
         host.view.translatesAutoresizingMaskIntoConstraints = false

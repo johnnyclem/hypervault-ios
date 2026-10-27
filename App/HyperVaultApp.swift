@@ -4,15 +4,20 @@ import SwiftUI
 @main
 struct HyperVaultApp: App {
     @State private var model = HyperVaultApp.makeModel()
-    @AppStorage(PrefKey.appearance) private var appearance = AppearanceChoice.system
-    @AppStorage(PrefKey.accent) private var accent = AccentChoice.blue
+
+    init() {
+        RetiredPreferences.remove()
+        HVTabBarStyle.install()
+    }
 
     var body: some Scene {
         WindowGroup {
+            // The stock look is dark and has one accent, the web's primary (Info.plist declares the dark style, so the
+            // launch screen, alerts and keyboard are dark from the first frame). The tint is set outright: a
+            // Toggle with none draws system green.
             RootView()
                 .environment(model)
-                .tint(accent.color)
-                .preferredColorScheme(appearance.colorScheme)
+                .tint(HVColor.primary)
                 #if DEBUG
                 .overlay(alignment: .topLeading) { UITestWritesBeacon() }
                 #endif

@@ -5,15 +5,15 @@ import XCTest
 /// is looked at (a screenshot, a note of what its tree says about the layout, a check that its key control can be tapped).
 @MainActor
 class LayoutSweepCase: HyperVaultUITestCase {
-    /// How a sweep launches the app. Dark is what Settings' Appearance choice stores (`pref.appearance`), given as a launch
-    /// argument: neither `-AppleInterfaceStyle Dark` nor the device's `appearance` turned the app dark on CI. The large
-    /// text size is the system's own launch argument.
+    /// How a sweep launches the app. The app is dark whatever the phone is set to (Info.plist declares
+    /// `UIUserInterfaceStyle = Dark`), so the dark sweep needs no argument: it is the one that proves, screen by screen,
+    /// that the declaration reaches every screen. The large text size is the system's own launch argument.
     struct Mode {
         let name: String
         let arguments: [String]
     }
 
-    static let dark = Mode(name: "dark", arguments: ["-pref.appearance", "dark"])
+    static let dark = Mode(name: "dark", arguments: [])
     static let large = Mode(
         name: "large", arguments: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
     )
@@ -47,7 +47,7 @@ class LayoutSweepCase: HyperVaultUITestCase {
         return brightness.sorted()[samples / 2]
     }
 
-    /// Fails when a screen of the dark sweep is drawn light (the app's dark preference never reached it, say).
+    /// Fails when a screen of the dark sweep is drawn light (the declared dark style never reached it, say).
     func requireDark(_ screenshot: XCUIScreenshot, _ screen: String, file: StaticString = #filePath, line: UInt = #line) {
         guard let brightness = edgeBrightness(of: screenshot) else {
             XCTFail("Could not read the pixels of the screenshot of the \(screen) screen.", file: file, line: line)

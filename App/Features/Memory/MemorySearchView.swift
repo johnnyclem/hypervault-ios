@@ -234,7 +234,7 @@ struct MemoryRelevance: View {
                         .frame(width: 36 * fraction, height: 5)
                 }
             Text(scoreText)
-                .font(.system(.caption2, design: .rounded, weight: .semibold))
+                .font(.system(.caption2, weight: .semibold))
                 .foregroundStyle(Palette.textTertiary)
         }
         .fixedSize()

@@ -85,16 +85,15 @@ enum ChatOnDeviceModels {
 
     static func status() -> ChatOnDeviceStatus {
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, *) {
-            return ChatFoundationModelsAdapter.status()
-        }
-        #endif
+        return ChatFoundationModelsAdapter.status()
+        #else
         return .unavailable(needsNewerSystem)
+        #endif
     }
 
     static func provider() -> ChatModelProvider? {
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, *), ChatFoundationModelsAdapter.status().isAvailable {
+        if ChatFoundationModelsAdapter.status().isAvailable {
             return ChatFoundationModelsProvider()
         }
         #endif

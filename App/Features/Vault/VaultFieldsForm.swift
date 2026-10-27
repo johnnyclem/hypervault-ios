@@ -94,6 +94,7 @@ struct VaultFieldsForm: View {
                         // Digits only, and only ASCII ones: an Arabic number pad types others, which the server refuses.
                         set: { draft.fields["number"] = VaultItems.formatCardNumber(VaultItems.asciiDigits($0, transliterating: true)) }
                     ))
+                    .accessibilityIdentifier("vault.field.card-number")
                     .keyboardType(.numberPad)
                     .textContentType(.creditCardNumber)
                     .autocorrectionDisabled()

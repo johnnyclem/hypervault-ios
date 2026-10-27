@@ -314,4 +314,48 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
             requireNoWrite("POST", "/api/secrets")
         }
     }
+
+    func testATakenNamePutsTheServersWordsUnderNameAndMovesTheCursorThere() {
+        launch(.signedIn)
+        openTheVault()
+
+        step("A login is typed with a name that is already used") {
+            tap(button("Add to your vault"), "the add button")
+            tap(element("vault.add.login"), "the Login tile")
+            enter("ui-dup", into: element("vault.field.username"), "the username field")
+            enter("pw-dup-1", into: element("vault.field.password"), "the password field")
+            let name = element("vault.add.name")
+            tap(name, "the name field")
+            clear(name)
+            name.typeText("github.com")
+            putTheKeyboardAway()
+        }
+
+        step("Save puts the server's words under Name and the cursor in the Name field") {
+            open(button("Save"), "Save")
+            requireWrite("POST", "/api/secrets", equal: ["name": "github.com", "kind": "login", "value": "<redacted>"])
+            require(shows("already exists"), "the server's line about the name")
+            waitUntil("the cursor to be in the Name field") {
+                (self.element("vault.add.name").value(forKey: "hasKeyboardFocus") as? Bool) == true
+            }
+            require(element("vault.add.name"), "the form, still open with what was typed")
+        }
+    }
+
+    func testACardNumberSaysItIsWrongOnlyOnceTheFieldIsLeft() {
+        launch(.signedIn)
+        openTheVault()
+
+        step("A short card number is typed") {
+            tap(button("Add to your vault"), "the add button")
+            tap(element("vault.add.card"), "the Card tile")
+            enter("4242", into: element("vault.field.card-number"), "the card number field")
+            XCTAssertFalse(shows("must be 12 to 19 digits").exists, "The field says nothing while it is being typed in.")
+        }
+
+        step("Leaving the field says what is wrong with it") {
+            tap(textField("Cardholder (optional)"), "the cardholder field")
+            waitUntil("the card number's own line") { self.shows("The card number must be 12 to 19 digits.").exists }
+        }
+    }
 }

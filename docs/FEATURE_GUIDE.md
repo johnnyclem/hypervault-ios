@@ -126,7 +126,8 @@ struct WidgetsView: View {
   sentence is shown verbatim. Success is a light haptic (`Haptics.success()`)
   and, when the result is not obvious, a toast.
 - Destructive actions ask first with `.confirmationDialog` (never `.alert` for
-  choices). Optimistic updates roll back on failure.
+  choices). Optimistic updates roll back on failure, except for a switch that grants access: it moves only when the
+  server agrees (`VaultAllowedKeysModel`, handoff 4.6), because a thumb that shows an allow nobody confirmed is a claim.
 - Navigation: push local screens with `NavigationLink(value:)` and
   `.navigationDestination(for:)` on local `Hashable` types. To reach another
   feature use the router: `app.router.open(.route(.memory(id: id)))`. The set
@@ -300,7 +301,8 @@ in the sweep when it has a layout of its own.
 any iPhone simulator; `make test-unit` runs the rest. CI runs ten UI jobs beside the unit tests, each building and
 running on its own: `journeys` (everything not named below, so a new test class runs there until it is given a job),
 `screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
-`writes-keep` (`MemoryAndVaultWritesJourneyTests` and `PagesWritesJourneyTests`), `writes-more`
+`writes-keep` (`MemoryAndVaultWritesJourneyTests` and `PagesWritesJourneyTests`), `writes-vault` (`VaultWritesJourneyTests`),
+`writes-more`
 (`BoardsAndMailWritesJourneyTests` and `SessionAndSettingsWritesJourneyTests`), `writes-think`
 (`ThinkWritesJourneyTests`),
 `sweep-dark` (every sweep test in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the

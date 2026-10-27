@@ -1,120 +1,137 @@
 import HyperVaultKit
 import SwiftUI
 
+/// What can be added, in the order the chooser lists it.
+enum VaultAddType: String, CaseIterable, Identifiable, Hashable {
+    case login, card, contact, key
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .login: return "Login"
+        case .card: return "Card"
+        case .contact: return "Contact info"
+        case .key: return "Key"
+        }
+    }
+
+    /// The title of its form (style guide 11.10).
+    var formTitle: String {
+        switch self {
+        case .login: return "Add a login"
+        case .card: return "Add a card"
+        case .contact: return "Add contact info"
+        case .key: return "Add a key"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .login: return "A site's username and password"
+        case .card: return "A payment card"
+        case .contact: return "A name, email, phone or address"
+        case .key: return "An API token or header for an agent"
+        }
+    }
+
+    /// What it is, drawn on the neutral tile (handoff 2.7).
+    var symbol: String {
+        switch self {
+        case .login: return HVSymbol.login
+        case .card: return HVSymbol.card
+        case .contact: return HVSymbol.contact
+        case .key: return HVSymbol.key
+        }
+    }
+
+    var kind: SecretKind {
+        switch self {
+        case .login: return .login
+        case .card: return .card
+        case .contact: return .contact
+        case .key: return .opaque
+        }
+    }
+
+    var namePlaceholder: String {
+        switch self {
+        case .login: return "github.com"
+        case .card: return "visa-4242"
+        case .contact: return "home"
+        case .key: return "github-mcp-token"
+        }
+    }
+}
+
 /// Add a login, a card, contact info or a key: pick the type, then fill in a form shaped for it. The form
 /// checks with the same rules the server uses (`VaultItems`), so Save stays off until the server would
 /// accept the entry, and the line under the form says what is still missing. The server checks again.
 ///
-/// What is typed lives in this sheet's state and is gone when it closes. Nothing is shown again after a save.
+/// The type picker is the root of a navigation stack and the form is pushed on it, so the system draws the push and the
+/// back button. What is typed lives in this sheet's state, so the sheet knows when closing it would lose something: a swipe
+/// down is then refused, and Close asks first. It is gone when the sheet closes. Nothing is shown again after a save.
 struct VaultAddItemSheet: View {
     let model: VaultItemsModel
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    private enum AddType: String, CaseIterable, Identifiable {
-        case login, card, contact, key
-        var id: String { rawValue }
-
-        var title: String {
-            switch self {
-            case .login: return "Login"
-            case .card: return "Card"
-            case .contact: return "Contact info"
-            case .key: return "Key"
-            }
-        }
-
-        var detail: String {
-            switch self {
-            case .login: return "A site's username and password"
-            case .card: return "A payment card"
-            case .contact: return "A name, email, phone or address"
-            case .key: return "An API token or header for an agent"
-            }
-        }
-
-        var symbol: String {
-            switch self {
-            case .login: return "globe"
-            case .card: return "creditcard"
-            case .contact: return "person.crop.circle"
-            case .key: return "key.horizontal"
-            }
-        }
-
-        var tint: Color {
-            switch self {
-            case .login: return Palette.blue
-            case .card: return Palette.violet
-            case .contact: return Palette.sky
-            case .key: return Palette.amber
-            }
-        }
-
-        var kind: SecretKind {
-            switch self {
-            case .login: return .login
-            case .card: return .card
-            case .contact: return .contact
-            case .key: return .opaque
-            }
-        }
-
-        var namePlaceholder: String {
-            switch self {
-            case .login: return "github.com"
-            case .card: return "visa-4242"
-            case .contact: return "home"
-            case .key: return "github-mcp-token"
-            }
-        }
-    }
-
-    @State private var type: AddType?
+    @State private var path: [VaultAddType]
+    @State private var draft: VaultDraft
+    @State private var confirmingDiscard = false
 
     /// `startingWith` skips the type choice, for a screen that already knows what it is adding.
     init(model: VaultItemsModel, startingWith kind: SecretKind? = nil) {
         self.model = model
+        let start: VaultAddType?
         switch kind {
-        case .login?: _type = State(initialValue: .login)
-        case .card?: _type = State(initialValue: .card)
-        case .contact?: _type = State(initialValue: .contact)
-        case .some: _type = State(initialValue: .key)
-        case nil: _type = State(initialValue: nil)
+        case .login?: start = .login
+        case .card?: start = .card
+        case .contact?: start = .contact
+        case .some: start = .key
+        case nil: start = nil
+        }
+        _path = State(initialValue: start.map { [$0] } ?? [])
+        _draft = State(initialValue: VaultDraft(kind: kind ?? .login))
+    }
+
+    /// Whether closing now would drop something typed.
+    private var isDirty: Bool { !path.isEmpty && draft.isDirty }
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            chooser
+                .navigationTitle(VaultScreenCopy.addTitle)
+                .navigationBarTitleDisplayMode(.inline)
+                .hvScreenBackground()
+                .toolbar { closeButton }
+                .navigationDestination(for: VaultAddType.self) { type in
+                    VaultNewItemForm(model: model, type: type, draft: $draft, onSaved: { dismiss() })
+                        .navigationTitle(type.formTitle)
+                        .navigationBarTitleDisplayMode(.inline)
+                        .hvScreenBackground()
+                        .toolbar { closeButton }
+                }
+        }
+        .hvSensitive(!path.isEmpty)
+        .vaultDiscardGuard(isDirty: isDirty, isPresented: $confirmingDiscard) { dismiss() }
+        // Back to the chooser drops what was typed, as closing does.
+        .onChange(of: path) { _, now in
+            if now.isEmpty { draft = VaultDraft(kind: .login) }
         }
     }
 
-    var body: some View {
-        NavigationStack {
-            Group {
-                if let type {
-                    VaultNewItemForm(model: model, kind: type.kind, namePlaceholder: type.namePlaceholder, onSaved: { dismiss() })
-                        .id(type)
-                        .navigationTitle("Add a \(type.title.lowercased())")
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarLeading) {
-                                Button { self.type = nil } label: { Label("Back", systemImage: "chevron.left") }
-                            }
-                        }
-                } else {
-                    chooser
-                        .navigationTitle("Add to your vault")
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                        }
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .hvScreenBackground()
-            .hvSensitive(type != nil)
+    @ToolbarContentBuilder
+    private var closeButton: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            VaultCloseButton { if isDirty { confirmingDiscard = true } else { dismiss() } }
         }
     }
 
     private var chooser: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HV.Space.m) {
-                Text("What would you like to save?")
+                Text(VaultScreenCopy.chooseLine)
                     .font(.hvCallout)
                     .foregroundStyle(Palette.textSecondary)
                 // A grid, not a flowing layout: the tiles of a row take the height of the tallest, so the
@@ -126,7 +143,10 @@ struct VaultAddItemSheet: View {
                         }
                     }
                 }
-                Label("Values are encrypted when you save them and never shown again.", systemImage: "lock.fill")
+                if let limit = VaultLimits.entryLimitProblem(count: model.secrets.count) {
+                    KeysInlineMessage(text: limit)
+                }
+                Label(HVCopy.landingVaultLockLine, systemImage: "lock.fill")
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.textSecondary)
             }
@@ -136,19 +156,20 @@ struct VaultAddItemSheet: View {
     }
 
     /// Two tiles to a row, one at accessibility sizes where two would each be a narrow column of words.
-    private var chooserRows: [[AddType]] {
-        let all = AddType.allCases
+    private var chooserRows: [[VaultAddType]] {
+        let all = VaultAddType.allCases
         let width = dynamicTypeSize.isAccessibilitySize ? 1 : 2
         return stride(from: 0, to: all.count, by: width).map { Array(all[$0 ..< min($0 + width, all.count)]) }
     }
 
-    private func tile(_ choice: AddType) -> some View {
+    private func tile(_ choice: VaultAddType) -> some View {
         Button {
             Haptics.select()
-            type = choice
+            draft = VaultDraft(kind: choice.kind)
+            path.append(choice)
         } label: {
             VStack(alignment: .leading, spacing: HV.Space.s) {
-                HVIconBadge(symbol: choice.symbol, tint: choice.tint, size: 40)
+                HVTile(symbol: choice.symbol)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(choice.title).font(.hvHeadline).foregroundStyle(Palette.textPrimary)
                     Text(choice.detail)
@@ -162,6 +183,7 @@ struct VaultAddItemSheet: View {
             .hvCard()
         }
         .buttonStyle(.plain)
+        .disabled(model.isFull)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("vault.add.\(choice.rawValue)")
     }
@@ -171,71 +193,75 @@ struct VaultAddItemSheet: View {
 
 private struct VaultNewItemForm: View {
     let model: VaultItemsModel
-    let kind: SecretKind
-    let namePlaceholder: String
+    let type: VaultAddType
+    @Binding var draft: VaultDraft
     let onSaved: () -> Void
 
     @Environment(AppModel.self) private var app
 
-    @State private var draft: VaultDraft
-    @State private var typedName: String?
-    @State private var details = ""
     @State private var saving = false
     @State private var error: String?
+    /// A 409: the name is in use. Said under the Name field, which takes the cursor and VoiceOver's focus.
     @State private var nameError: String?
-
-    init(model: VaultItemsModel, kind: SecretKind, namePlaceholder: String, onSaved: @escaping () -> Void) {
-        self.model = model
-        self.kind = kind
-        self.namePlaceholder = namePlaceholder
-        self.onSaved = onSaved
-        _draft = State(initialValue: VaultDraft(kind: kind))
-    }
-
-    private var name: String {
-        (typedName ?? draft.suggestedName).trimmingCharacters(in: .whitespacesAndNewlines)
-    }
+    @FocusState private var nameFocused: Bool
+    @AccessibilityFocusState private var nameSpoken: Bool
 
     private var canSave: Bool {
-        !saving && draft.problem == nil && VaultItems.isValidName(name)
+        !saving && !model.isFull && draft.canSave
+    }
+
+    /// The line under the form: the account is full, or the first thing still missing once anything has been typed.
+    private var shownProblem: String? {
+        if let limit = VaultLimits.entryLimitProblem(count: model.secrets.count) { return limit }
+        return draft.isTouched ? draft.problem : nil
     }
 
     var body: some View {
+        ScrollViewReader { proxy in
+            form
+                // A taken name is said under the Name field, and the keyboard that comes up for it covers what is under the
+                // field: once it is up, the name and its line are brought into the middle of what is left.
+                .onChange(of: nameError) { _, error in
+                    guard error != nil else { return }
+                    Task {
+                        try? await Task.sleep(nanoseconds: 350_000_000)
+                        proxy.scrollTo(Self.nameBlockID, anchor: .center)
+                    }
+                }
+        }
+    }
+
+    private static let nameBlockID = "vault.add.name-block"
+
+    private var form: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HV.Space.l) {
-                VaultFieldsForm(draft: $draft)
-
-                VStack(alignment: .leading, spacing: HV.Space.xs) {
-                    HVLabeledField(title: "Name", footnote: "Agents ask for it by this name. \(VaultItems.nameHint)") {
-                        TextField(namePlaceholder, text: Binding(get: { typedName ?? draft.suggestedName }, set: { typedName = $0; nameError = nil }))
-                            .font(.system(.body, design: .monospaced))
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .accessibilityIdentifier("vault.add.name")
-                    }
-                    if !name.isEmpty, !VaultItems.isValidName(name) {
-                        KeysInlineMessage(text: "Use letters, digits, dots, dashes and underscores. No spaces.")
-                    }
-                    if let nameError { KeysInlineMessage(text: nameError) }
-                }
-
-                HVLabeledField(title: "Note (optional)") {
-                    TextField("What is it for?", text: $details)
+                // A key is named first, then given its kind and value; the others are named from what is typed, so the
+                // name comes after the fields it is made from.
+                if draft.itemKind == nil {
+                    nameBlock
+                    VaultFieldsForm(draft: $draft)
+                } else {
+                    VaultFieldsForm(draft: $draft)
+                    nameBlock
                 }
 
                 VStack(alignment: .leading, spacing: HV.Space.s) {
-                    if draft.isTouched, let problem = draft.problem {
-                        KeysInlineMessage(text: problem, isError: false)
+                    if let shownProblem {
+                        KeysInlineMessage(text: shownProblem, isError: model.isFull)
                     }
                     if let error { KeysInlineMessage(text: error) }
                     Button {
                         Task { await save() }
                     } label: {
-                        if saving { ProgressView().tint(.white) } else { Text("Save") }
+                        HStack(spacing: HV.Space.xs) {
+                            if saving { ProgressView().tint(.white) }
+                            Text(saving ? VaultScreenCopy.savingLabel : VaultScreenCopy.saveLabel)
+                        }
                     }
                     .buttonStyle(.hvPrimary)
                     .disabled(!canSave)
-                    Text("Once saved, the value cannot be shown again. You can replace it.")
+                    Text(VaultScreenCopy.afterSaveLine)
                         .font(.hvCaption)
                         .foregroundStyle(Palette.textSecondary)
                 }
@@ -244,6 +270,48 @@ private struct VaultNewItemForm: View {
             .hvReadableWidth()
         }
         .scrollDismissesKeyboard(.interactively)
+        // The web's polite live region: the line under the form is spoken when it changes, after the person has stopped
+        // typing for a moment so it does not talk over every keystroke.
+        .task(id: shownProblem) {
+            guard let line = shownProblem else { return }
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            guard !Task.isCancelled else { return }
+            VaultAnnouncement.polite(line)
+        }
+    }
+
+    private var nameBlock: some View {
+        VStack(alignment: .leading, spacing: HV.Space.xs) {
+            // The rule is the footnote, and turns destructive, with the field's edge, when the name breaks it.
+            HVLabeledField(
+                title: "Name", footnote: draft.nameProblem ?? VaultItems.nameHint,
+                isFocused: nameFocused, isInvalid: draft.nameProblem != nil || nameError != nil
+            ) {
+                TextField(type.namePlaceholder, text: Binding(
+                    get: { draft.typedName ?? draft.suggestedName },
+                    // The field writes its text back when it takes the cursor, and a taken name's line must survive the
+                    // cursor being moved there: only a change is an edit.
+                    set: { text in
+                        guard text != (draft.typedName ?? draft.suggestedName) else { return }
+                        draft.typedName = text
+                        nameError = nil
+                    }
+                ))
+                .font(.system(.body, design: .monospaced))
+                .keyboardType(.asciiCapable)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .focused($nameFocused)
+                .accessibilityFocused($nameSpoken)
+                .accessibilityLabel("Name")
+                .accessibilityIdentifier("vault.add.name")
+            }
+            Text("Agents ask for it by this name.")
+                .font(.hvCaption)
+                .foregroundStyle(Palette.textSecondary)
+            if let nameError { KeysInlineMessage(text: nameError) }
+        }
+        .id(Self.nameBlockID)
     }
 
     private func save() async {
@@ -252,20 +320,21 @@ private struct VaultNewItemForm: View {
         error = nil
         nameError = nil
         defer { saving = false }
-        do {
-            let note = details.trimmingCharacters(in: .whitespacesAndNewlines)
-            _ = try await model.create(name: name, kind: draft.kind, value: draft.serialized, description: note.isEmpty ? nil : note)
-            draft = VaultDraft(kind: kind)
+        switch await model.create(name: draft.name, kind: draft.kind, value: draft.serialized) {
+        case .created:
+            draft = VaultDraft(kind: type.kind)
             Haptics.success()
             app.toasts.success("Saved. Allow an agent to use it from its page.")
             onSaved()
-        } catch {
+        case .failure(let failure):
             Haptics.failure()
-            // A taken name is the name field's problem, so it is said there.
-            if (error as? HVError)?.status == 409 {
-                nameError = keysMessage(for: error)
+            if failure.isConflict {
+                // A taken name is the name field's problem, so it is said there, and the cursor and VoiceOver go there.
+                nameError = failure.message
+                nameFocused = true
+                nameSpoken = true
             } else {
-                self.error = keysMessage(for: error)
+                error = failure.message
             }
         }
     }

@@ -214,10 +214,21 @@ extension UITestWorld {
             },
             MockRoute(.get, "/api/secrets/*") { request in
                 let parts = components(request, after: "/api/secrets")
-                if parts.count == 2, parts[1] == "grants" {
-                    return reply(raw: #"{"grants":[{"id":"g1","api_key_id":"k1","created_at":"2026-10-24T10:00:00Z"}]}"#)
+                guard parts.count == 2, parts[1] == "grants" else { return notFound("No such secret.") }
+                switch secrets.grants(of: parts[0]) {
+                case .success(let keyIDs):
+                    return reply(.object(["grants": .array(keyIDs.map { grantRow(keyID: $0) })]))
+                case .failure(let problem):
+                    return reply(.object(["error": .string(problem.message)]), status: problem.status)
                 }
-                return notFound("No such secret.")
+            },
+            MockRoute(.post, "/api/secrets/*") { request in
+                let parts = components(request, after: "/api/secrets")
+                guard parts.count == 2, parts[1] == "grants" else { return notFound("No such secret.") }
+                switch secrets.allow(body(request)["api_key_id"]?.string ?? "", on: parts[0]) {
+                case .success(let keyID): return reply(.object(["grant": grantRow(keyID: keyID)]))
+                case .failure(let problem): return reply(.object(["error": .string(problem.message)]), status: problem.status)
+                }
             },
             MockRoute(.patch, "/api/secrets/*") { request in
                 let parts = components(request, after: "/api/secrets")
@@ -230,10 +241,21 @@ extension UITestWorld {
             },
             MockRoute(.delete, "/api/secrets/*") { request in
                 let parts = components(request, after: "/api/secrets")
+                if parts.count == 2, parts[1] == "grants" {
+                    switch secrets.revoke(body(request)["api_key_id"]?.string ?? "", on: parts[0]) {
+                    case .success: return reply(.object(["ok": .bool(true)]))
+                    case .failure(let problem): return reply(.object(["error": .string(problem.message)]), status: problem.status)
+                    }
+                }
                 guard let name = parts.first, parts.count == 1, secrets.delete(name: name) else { return notFound("No such secret.") }
                 return empty()
             },
         ]
+    }
+
+    /// One row of a grants list: the key that may read the entry.
+    private static func grantRow(keyID: String) -> JSONValue {
+        .object(["id": .string("g-\(keyID)"), "api_key_id": .string(keyID), "created_at": .string(date(3_600))])
     }
 
     // MARK: Task boards
@@ -836,9 +858,24 @@ final class UITestSecrets: @unchecked Sendable {
         let message: String
     }
 
+    /// The keys the canned server knows (`KeysPreviewData`): an allow for any other is a 404 "No such API key.".
+    private static let knownKeys: Set<String> = ["k1", "k2", "k3"]
+
+    /// The entry a journey uses to meet the other devices. Its first change of who may read it finds it deleted: the canned
+    /// server drops it and answers 404 "No such secret.", as it would if it had been deleted from the web a moment ago.
+    static let vanishingEntry = "stripe-restricted-key"
+
+    /// The key the first read of github.com's grants lists although the server has revoked it already, as another device
+    /// would have: turning it off answers 404 "No such grant.", and reading the grants again shows it off.
+    static let staleKey = "k3"
+
     private let lock = NSLock()
     private var secrets: [JSONValue]
     private var made = 0
+    /// Which keys may read each entry, by the entry's id. An entry not in here has only the Claude Code key, `k1`.
+    private var granted: [String: Set<String>] = [:]
+    /// Entries (by id) whose next read of the grants adds a key the server no longer has granted.
+    private var staleKeys: [String: String] = ["s1": UITestSecrets.staleKey]
 
     init() {
         secrets = UITestWorld.parse(VaultPreviewData.secretsJSON)["secrets"]?.array ?? []
@@ -906,6 +943,51 @@ final class UITestSecrets: @unchecked Sendable {
         guard let at = index(of: name) else { return false }
         secrets.remove(at: at)
         return true
+    }
+
+    // MARK: Who may read an entry
+
+    private static let noSuchSecret = Problem(status: 404, message: "No such secret.")
+
+    /// The keys that may read the entry, in a fixed order. The first read of github.com's also lists the stale key.
+    func grants(of name: String) -> Result<[String], Problem> {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let at = index(of: name), let id = secrets[at]["id"]?.string else { return .failure(Self.noSuchSecret) }
+        var keyIDs = granted[id] ?? ["k1"]
+        if let stale = staleKeys.removeValue(forKey: id) { keyIDs.insert(stale) }
+        return .success(keyIDs.sorted())
+    }
+
+    /// Lets a key read the entry (an upsert). The vanishing entry is found deleted instead.
+    func allow(_ keyID: String, on name: String) -> Result<String, Problem> {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let at = index(of: name), let id = secrets[at]["id"]?.string else { return .failure(Self.noSuchSecret) }
+        if name == Self.vanishingEntry {
+            secrets.remove(at: at)
+            return .failure(Self.noSuchSecret)
+        }
+        guard Self.knownKeys.contains(keyID) else { return .failure(Problem(status: 404, message: "No such API key.")) }
+        var keyIDs = granted[id] ?? ["k1"]
+        keyIDs.insert(keyID)
+        granted[id] = keyIDs
+        return .success(keyID)
+    }
+
+    /// Stops a key reading the entry. A key that was not allowed answers 404 "No such grant.", as the real route does.
+    func revoke(_ keyID: String, on name: String) -> Result<Void, Problem> {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let at = index(of: name), let id = secrets[at]["id"]?.string else { return .failure(Self.noSuchSecret) }
+        if name == Self.vanishingEntry {
+            secrets.remove(at: at)
+            return .failure(Self.noSuchSecret)
+        }
+        var keyIDs = granted[id] ?? ["k1"]
+        guard keyIDs.remove(keyID) != nil else { return .failure(Problem(status: 404, message: "No such grant.")) }
+        granted[id] = keyIDs
+        return .success(())
     }
 }
 

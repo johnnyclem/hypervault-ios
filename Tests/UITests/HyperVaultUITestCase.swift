@@ -33,6 +33,9 @@ enum Scenario: String, CaseIterable {
 class HyperVaultUITestCase: XCTestCase {
     var app = XCUIApplication()
 
+    /// Set once a field has been tapped three times without the keyboard coming up (see `enter`).
+    private var typesWithoutKeyboard = false
+
     /// How long to wait for something to appear on a slow simulator.
     let patience: TimeInterval = 30
 
@@ -229,9 +232,20 @@ class HyperVaultUITestCase: XCTestCase {
         }
     }
 
-    /// Taps a field and types into it.
+    /// Taps a field and types into it. A tap that lands while a sheet is still coming up puts the keyboard nowhere, and a
+    /// person would tap again: up to three taps, until the keyboard is up. (A phone that never shows one, because it types
+    /// from a hardware keyboard, is found out once and then not waited on.)
     func enter(_ text: String, into field: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
-        tap(field, what, file: file, line: line)
+        for attempt in 1...3 {
+            tap(field, what, file: file, line: line)
+            if typesWithoutKeyboard { break }
+            let deadline = Date().addingTimeInterval(3)
+            while Date() < deadline, app.keyboards.count == 0 {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+            }
+            if app.keyboards.count > 0 { break }
+            if attempt == 3 { typesWithoutKeyboard = true }
+        }
         field.typeText(text)
     }
 
@@ -253,7 +267,7 @@ class HyperVaultUITestCase: XCTestCase {
     /// page first, then back up it. A drag stops where the finger stops (a swipe flings, and at a large text size a fling
     /// carries a row past the screen without ever letting it be seen), and moves the page by about three fifths of its
     /// height. A row that is only just in view sits under the tab bar, and a tap on it would land on the tab bar.
-    func reveal(_ element: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
+    func reveal(_ element: XCUIElement, _ what: String, clearOfSearch: Bool = false, file: StaticString = #filePath, line: UInt = #line) {
         func hittable() -> Bool { element.exists && element.isHittable }
         if !hittable() {
             for _ in 0..<14 where !hittable() { drag(towardsEnd: true) }
@@ -262,18 +276,24 @@ class HyperVaultUITestCase: XCTestCase {
             for _ in 0..<20 where !hittable() { drag(towardsEnd: false) }
         }
         require(element, what, timeout: 5, file: file, line: line)
-        moveClearOfTheBars(element)
+        moveClearOfTheBars(element, clearOfSearch: clearOfSearch)
     }
 
     /// Moves the page until the middle of `element` is between the navigation bar and the tab bar, if the page can
     /// be moved that far: a tap lands in the middle of an element. (A page that does not move, a sheet's fixed button
     /// for one, is left as it is.)
-    private func moveClearOfTheBars(_ element: XCUIElement) {
+    private func moveClearOfTheBars(_ element: XCUIElement, clearOfSearch: Bool) {
         let window = app.windows.firstMatch.frame
         // The status and navigation bars take about 110 points of an iPhone's top, the floating tab bar and the home
         // indicator about 90 of its bottom.
-        let top = window.minY + 112
+        var top = window.minY + 112
         let bottom = window.maxY - 92
+        // A search field that floats over the list (the Connect your AI sheet has one) is as much in the way as the bars: a row
+        // whose middle is under it is tapped through it.
+        if clearOfSearch {
+            let search = app.searchFields.firstMatch
+            if search.exists, search.frame.minY < window.midY, search.frame.maxY > top { top = search.frame.maxY + 4 }
+        }
         var previous: CGFloat?
         for _ in 0..<4 {
             guard element.exists else { return }
@@ -298,8 +318,8 @@ class HyperVaultUITestCase: XCTestCase {
     /// Scrolls to an element, clear of the bars, then taps it: for rows that a larger text size has pushed below the fold.
     /// With `reached`, a tap that comes to nothing (a list that was still settling after a screen was popped) is repeated, as
     /// `tap(_:_:until:)` does.
-    func open(_ element: XCUIElement, _ what: String, until reached: (() -> Bool)? = nil, file: StaticString = #filePath, line: UInt = #line) {
-        reveal(element, what, file: file, line: line)
+    func open(_ element: XCUIElement, _ what: String, until reached: (() -> Bool)? = nil, clearOfSearch: Bool = false, file: StaticString = #filePath, line: UInt = #line) {
+        reveal(element, what, clearOfSearch: clearOfSearch, file: file, line: line)
         if let reached {
             tap(element, what, until: reached, file: file, line: line)
         } else {

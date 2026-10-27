@@ -23,6 +23,11 @@ final class LayoutSweepTests: LayoutSweepCase {
         look(mode, "Home with its hints", key: element("canvas.field"), "the canvas field", dumpTree: true)
 
         openYours()
+        // The panel opens at half the height of the screen, and at a large text size its first row is below the fold: it is
+        // looked at as it opens, and then at its whole height, where the rows are (scrolling a half-height panel from the
+        // page above it would put it away).
+        attachScreenshot("\(mode) - Yours, as it opens")
+        expandThePanel()
         look(mode, "Yours", key: element("yours.row.a1"), "the Bakery landing page row")
         tap(button("Done"), "Done")
         requireGone(element("yours.filter"), "the Yours panel")

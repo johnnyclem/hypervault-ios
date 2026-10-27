@@ -202,7 +202,7 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
     func testARoomIsMadeItsAgentsChangedItIsRenamedAndDeleted() {
         launch(.signedIn)
         openTab("Chat")
-        tap(segment("Rooms"), "the Rooms half")
+        tap(segment("Group chats"), "the Group chats half")
 
         step("New room offers the connected models and takes a name") {
             tap(button("New room"), "New room")

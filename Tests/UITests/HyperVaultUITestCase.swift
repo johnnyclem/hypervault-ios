@@ -383,7 +383,9 @@ class HyperVaultUITestCase: XCTestCase {
     /// Opens the Account menu with the avatar on Home, from wherever the person is.
     func openAccountMenu(file: StaticString = #filePath, line: UInt = #line) {
         showHome(file: file, line: line)
-        // A tap that lands while the page is still settling after the launch is lost, and a person would tap again.
+        // A tap that lands while the page is still settling (after the launch, or as the tab changes) is lost, and a person
+        // would tap again.
+        RunLoop.current.run(until: Date().addingTimeInterval(0.6))
         tap(element("canvas.account"), "the Account button", until: { element("account.close").exists }, file: file, line: line)
         require(element("account.close"), "the Account menu", file: file, line: line)
     }
@@ -420,8 +422,31 @@ class HyperVaultUITestCase: XCTestCase {
     /// Opens the Yours panel over Home with the button in the corner.
     func openYours(file: StaticString = #filePath, line: UInt = #line) {
         showHome(file: file, line: line)
+        RunLoop.current.run(until: Date().addingTimeInterval(0.6))
         tap(element("canvas.yours"), "the panel button", until: { element("yours.filter").exists }, file: file, line: line)
         require(element("yours.filter"), "the Yours panel", file: file, line: line)
+    }
+
+    /// Takes the Yours panel from half the height of the screen to the whole of it, the way a person does: a finger on its
+    /// navigation bar, drawn up. (A drag on the rows would scroll them, and a drag back down that starts above a panel of half
+    /// the height lands on Home and puts the panel away.)
+    func expandThePanel(file: StaticString = #filePath, line: UInt = #line) {
+        let more = element("yours.more")
+        require(more, "the panel's More menu", file: file, line: line)
+        let height = max(app.windows.firstMatch.frame.height, 1)
+        let filter = element("yours.filter")
+        // The panel has moved when the filter at the top of its list is in the upper third of the screen. (A drag that
+        // comes to nothing is made again; what the journey looks for next says whether the rows can be seen.)
+        for _ in 1...2 {
+            if filter.exists, filter.frame.minY < height * 0.33 { return }
+            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: more.frame.midY / height))
+            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08))
+            from.press(forDuration: 0.05, thenDragTo: to, withVelocity: XCUIGestureVelocity(rawValue: 500), thenHoldForDuration: 0.2)
+            let deadline = Date().addingTimeInterval(3)
+            while Date() < deadline, !(filter.exists && filter.frame.minY < height * 0.33) {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+            }
+        }
     }
 
     /// Home, on its first screen: the tab, and back from anything pushed on it.

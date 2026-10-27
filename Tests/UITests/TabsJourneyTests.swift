@@ -8,10 +8,17 @@ final class TabsJourneyTests: HyperVaultUITestCase {
         launch(.signedIn)
 
         step("Four tabs, in the order of the web's dock") {
-            let titles = app.tabBars.buttons.allElementsBoundByIndex.map(\.label)
-            XCTAssertEqual(titles, ["Home", "Chat", "Memory", "You"], "The tab bar says \(titles).")
+            // (Each tab is asked for by its title, left to right: the tab bar's own tree has more in it than its four buttons.)
+            var previous: CGFloat = -1
+            for title in ["Home", "Chat", "Memory", "You"] {
+                let item = tab(title)
+                require(item, "the \(title) tab")
+                XCTAssertGreaterThan(item.frame.minX, previous, "\(title) comes after the tab before it.")
+                previous = item.frame.minX
+            }
             XCTAssertFalse(tab("Yours").exists, "Yours is the panel on Home, not a tab.")
             XCTAssertFalse(tab("Canvas").exists, "The first tab is called Home.")
+            XCTAssertFalse(tab("Library").exists, "The Library is behind the avatar, not a tab.")
         }
     }
 
@@ -22,7 +29,8 @@ final class TabsJourneyTests: HyperVaultUITestCase {
         step("Yours lists what is kept") {
             require(element("yours.row.a1"), "the Bakery landing page row")
             XCTAssertTrue(element("yours.row.a1").label.contains("Bakery landing page"))
-            // (The panel is half the height of the screen, so the rows below its fold are scrolled to.)
+            // (The panel opens at half the height of the screen, so it is taken to the whole of it to see the rows below its fold.)
+            expandThePanel()
             for id in ["m1", "k1", "g1"] { reveal(element("yours.row.\(id)"), "the row \(id)") }
         }
 

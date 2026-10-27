@@ -136,18 +136,16 @@ final class PagesWritesJourneyTests: HyperVaultUITestCase {
             let top = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12))
             handle.press(forDuration: 0.05, thenDragTo: top, withVelocity: XCUIGestureVelocity(rawValue: 500), thenHoldForDuration: 0.2)
         }
-        // The row of a person reads its words as one (the way to remove them is its Remove action, and a Remove button at its end).
-        func personRow() -> XCUIElement {
-            app.descendants(matching: .any).matching(NSPredicate(
-                format: "label CONTAINS %@ AND elementType != %lu", email, XCUIElement.ElementType.textField.rawValue
-            )).firstMatch
-        }
+        // A person in the list is known by their Remove button, a button of its own (labelled "Remove <address>") beside the
+        // row that reads as one. (The row is not asked about: it is a button that covers the same width, and it is not
+        // reported as hittable. The toasts that name the address are static text, not buttons.)
+        let remove = button("Remove \(email)")
 
         step("The Trip to Lisbon page opens, and Share has nobody on it yet") {
             open(element("library.row.a2"), "the Trip to Lisbon row", until: { self.isShowingTitle("Trip to Lisbon") })
             tap(element("artifact.share"), "Share")
             require(element("artifact.share.email"), "the field for an email address")
-            XCTAssertFalse(personRow().exists, "Nobody has the page yet.")
+            XCTAssertFalse(remove.exists, "Nobody has the page yet.")
             pullTheSheetUp()
             require(element("artifact.share.email"), "the sheet at full height")
         }
@@ -155,18 +153,23 @@ final class PagesWritesJourneyTests: HyperVaultUITestCase {
         step("An address and Return give the person a view of the page") {
             enter("\(email)\n", into: element("artifact.share.email"), "the email field")
             requireWrite("POST", "/api/shares", equal: ["artifact": "trip-to-lisbon-q7", "email": email, "role": "view"])
-            require(personRow(), "the person in the list of who has the page")
+            require(remove, "the person in the list of who has the page (their Remove button)")
         }
 
         step("Remove asks first, and then ends the share") {
-            let row = personRow()
             // (If the sheet went back to half height while the keyboard came and went, the person is below it again.)
-            if !(row.exists && row.isHittable) { pullTheSheetUp() }
-            waitUntil("the person's row to be where it can be tapped") { row.exists && row.isHittable }
-            row.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+            if !(remove.exists && remove.isHittable) { pullTheSheetUp() }
+            revealAboveTheKeyboard(remove, "the Remove button of \(email)")
+            // The button is tapped where it is on the screen when XCUITest does not call it hittable: the row that reads as one
+            // is a button over the same width, and what the finger meets is the Remove button on top of it.
+            if remove.isHittable {
+                remove.tap()
+            } else {
+                remove.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            }
             confirm("Remove")
             requireWrite("DELETE", "/api/shares", equal: ["share_id": "sh-1"])
-            requireGone(personRow(), "the person who was removed")
+            requireGone(remove, "the person who was removed")
             tap(button("Done"), "Done")
         }
     }

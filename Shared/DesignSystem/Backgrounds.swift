@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Slow, quiet colour behind the first screens and the canvas. It never
-/// competes with content, and it holds still for people who ask the system to
-/// reduce motion.
+/// The web's ambient wash: `primary` at 8% and `accent` at 5%, "restrained, not playful" (style guide 7). It drifts
+/// slowly behind the first screens and the canvas, never competes with content, and holds still for people who ask
+/// the system to reduce motion.
 struct AuroraBackground: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -23,30 +23,21 @@ struct AuroraBackground: View {
         .accessibilityHidden(true)
     }
 
-    private var strength: Double {
-        0.34 * intensity
-    }
-
     private func blobs(at time: Double) -> some View {
         GeometryReader { proxy in
             let width = proxy.size.width
             let height = proxy.size.height
             ZStack {
                 Circle()
-                    .fill(Palette.violet.opacity(strength))
+                    .fill(HVColor.primary.opacity(0.08 * intensity))
                     .frame(width: width * 0.95)
                     .blur(radius: 90)
                     .offset(x: -width * 0.32 + sin(time / 9) * 36, y: -height * 0.30 + cos(time / 11) * 28)
                 Circle()
-                    .fill(Palette.blue.opacity(strength * 0.9))
+                    .fill(HVColor.accent.opacity(0.05 * intensity))
                     .frame(width: width * 0.85)
                     .blur(radius: 90)
                     .offset(x: width * 0.34 + cos(time / 10) * 32, y: -height * 0.18 + sin(time / 13) * 30)
-                Circle()
-                    .fill(Palette.cyan.opacity(strength * 0.7))
-                    .frame(width: width * 0.8)
-                    .blur(radius: 100)
-                    .offset(x: width * 0.12 + sin(time / 12) * 30, y: height * 0.42 + cos(time / 8) * 26)
             }
             .frame(width: width, height: height)
         }

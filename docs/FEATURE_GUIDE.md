@@ -149,6 +149,21 @@ floating chrome (composer, bars), never for lists. Lists are plain paper.
 - Contrast is checked, not assumed: `DesignContrastTests` holds the pairs the app draws text in to 4.5:1, and records
   the exceptions (white on `primary` is 3.68:1, so a label on the flat primary fill is bold; `primary` and
   `destructive` as text on raised paper fall under 4.5, so tinted text there uses `accent`).
+- Shapes, type and borders are the web's (handoff 2.4 and 2.5). Corner radii are named for their role in `HV.Radius`
+  (`control` 8 for buttons and inputs, `card` 16, `surface` 20, `brandTile` 5), always `.continuous`. Type is the system
+  face; no `design: .rounded` anywhere, and monospace only for what is typed or matched (`hvMono`) and for code
+  (`HVCodePanel`). Section headings (`HVSectionHeader`) are sentence case. Borders are the border token at reduced
+  strength: `Palette.border` (60%) on surfaces, `Palette.controlBorder` (70%) on controls, `Palette.divider` (50%)
+  between rows.
+- Buttons: `.hvPrimary` is flat `primary` with a bold label (white on it is 3.68:1, which only bold text passes),
+  `.hvSecondary` is `muted` with a control border, `.hvDestructive` is `destructive`, none of them with a glow, and none
+  with a spring (pressed is a dimmer fill). `hvFieldChrome` is the web's input: the page's own colour, 8pt, at least
+  44pt high, a half-strength ring when focused and a `destructive` outline when `isInvalid` (with the reason in words).
+  `HVTag` is the web's status chip (the colour as text, at 10% as the fill and at 40% as the border); `Palette.success`
+  and `Palette.warning` are its emerald and amber.
+- For the Vault and the settings panes: `HVTile` and `HVCardBrandTile` (tiles), `HVFilterPill` with `HVCount`,
+  `HVCodePanel`, `HVEmptyBox`, and `HVSymbol` for the SF Symbol of each concept. `hvGlass` is `.glassEffect`, and solid
+  `card` under Reduce Transparency.
 - Everything works at the largest Dynamic Type size, with
   VoiceOver (labels on icon-only buttons; combine row elements), with reduce
   motion, and with 44-point touch targets.

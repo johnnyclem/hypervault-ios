@@ -36,7 +36,7 @@ private struct YoursTab: View {
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink(value: Route.library) {
-                        Text("Library").font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        Text("Library").font(.system(.subheadline, weight: .semibold))
                     }
                     .accessibilityIdentifier("yours.library")
                 }

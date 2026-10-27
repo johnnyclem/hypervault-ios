@@ -258,7 +258,7 @@ struct ArtifactActionBar: View {
             Image(systemName: symbol)
                 .font(.system(size: 19, weight: .medium))
                 .frame(height: 24)
-            Text(title).font(.system(.caption2, design: .rounded, weight: .medium))
+            Text(title).font(.system(.caption2, weight: .medium))
         }
         .foregroundStyle(Palette.textPrimary)
         .frame(maxWidth: .infinity, minHeight: 48)

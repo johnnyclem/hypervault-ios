@@ -183,7 +183,7 @@ struct MemorySourceChip: View {
             Image(systemName: MemoryStyle.symbol(forSource: source))
                 .font(.system(size: 10, weight: .semibold))
             Text(MemorySource.label(source))
-                .font(.system(.caption2, design: .rounded, weight: .semibold))
+                .font(.system(.caption2, weight: .semibold))
         }
         // Inked like HVTag: in light mode the accent on a tint of itself needs the darker shade to read.
         .foregroundStyle(MemoryStyle.tint(forSource: source))
@@ -246,7 +246,7 @@ struct MemoryFieldLabel: View {
 
     var body: some View {
         Text(title)
-            .font(.system(.footnote, design: .rounded, weight: .medium))
+            .font(.system(.footnote, weight: .medium))
             .foregroundStyle(Palette.textSecondary)
     }
 }
@@ -395,8 +395,8 @@ struct MemoryMarkdownView: View {
 
     private func headingFont(_ level: Int) -> Font {
         switch level {
-        case 1: return .system(.title2, design: .rounded, weight: .bold)
-        case 2: return .system(.title3, design: .rounded, weight: .semibold)
+        case 1: return .system(.title2, weight: .bold)
+        case 2: return .system(.title3, weight: .semibold)
         default: return .hvHeadline
         }
     }

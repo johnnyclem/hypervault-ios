@@ -123,7 +123,7 @@ struct TruthSummaryStats: View {
             ForEach(summary.stats) { stat in
                 VStack(alignment: .leading, spacing: 0) {
                     Text("\(stat.count)")
-                        .font(.system(.title3, design: .rounded, weight: .semibold))
+                        .font(.system(.title3, weight: .semibold))
                         .foregroundStyle(Palette.textPrimary)
                     Text(stat.label)
                         .font(.hvCaption)
@@ -174,7 +174,7 @@ struct TruthStandingBadge: View {
                 Image(systemName: standing.symbol).font(.system(size: 10, weight: .bold))
                 Text(standing.title)
             }
-            .font(.system(.caption2, design: .rounded, weight: .semibold))
+            .font(.system(.caption2, weight: .semibold))
             .foregroundStyle(standing.tint)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
@@ -418,7 +418,7 @@ struct TruthTraceView: View {
             }
             if showsDependents, !derivation.dependents.isEmpty {
                 Text("Rests on it")
-                    .font(.system(.caption, design: .rounded, weight: .semibold))
+                    .font(.system(.caption, weight: .semibold))
                     .textCase(.uppercase)
                     .foregroundStyle(Palette.textSecondary)
                     .padding(.top, HV.Space.s)

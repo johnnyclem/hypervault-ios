@@ -29,6 +29,15 @@ final class DesignContrastTests: XCTestCase {
         return (light + 0.05) / (dark + 0.05)
     }
 
+    /// `tint` laid over `surface` at `alpha`, as 0xRRGGBB: what a tag's fill looks like on the paper it sits on.
+    private func composite(_ tint: UInt32, over surface: UInt32, alpha: Double) -> UInt32 {
+        func channel(_ shift: UInt32) -> UInt32 {
+            let top = Double((tint >> shift) & 0xFF), under = Double((surface >> shift) & 0xFF)
+            return UInt32((alpha * top + (1 - alpha) * under).rounded())
+        }
+        return channel(16) << 16 | channel(8) << 8 | channel(0)
+    }
+
     private let surfaces = ["background", "card", "muted"]
 
     func testBodyTextIsAtLeastFourAndAHalfOnThePageOnPaperAndOnRaisedPaper() throws {
@@ -67,6 +76,38 @@ final class DesignContrastTests: XCTestCase {
         let onDestructive = contrast(try hex("primary-foreground"), try hex("destructive"))
         XCTAssertEqual(onDestructive, 3.76, accuracy: 0.01)
         XCTAssertGreaterThanOrEqual(onDestructive, 3.0)
+    }
+
+    /// `HVTag`: the colour as text over the same colour at 10% (the web's status chips), on each surface a tag sits on.
+    func testTagTextIsAtLeastFourAndAHalfOverItsOwnFill() throws {
+        let tagAlpha = 0.10
+        for tint in ["emerald-400", "amber-400", "muted-foreground", "accent"] {
+            for surface in surfaces {
+                let fill = composite(try hex(tint), over: try hex(surface), alpha: tagAlpha)
+                let ratio = contrast(try hex(tint), fill)
+                XCTAssertGreaterThanOrEqual(ratio, 4.5, "A \(tint) tag on \(surface) is \(ratio):1.")
+            }
+        }
+        let decorative: [(String, Color)] = [
+            ("violet", Palette.violet), ("cyan", Palette.cyan), ("coral", Palette.coral), ("rose", Palette.rose),
+        ]
+        for (name, tint) in decorative {
+            for surface in surfaces {
+                let fill = composite(hex(of: tint), over: try hex(surface), alpha: tagAlpha)
+                let ratio = contrast(hex(of: tint), fill)
+                XCTAssertGreaterThanOrEqual(ratio, 4.5, "A \(name) tag on \(surface) is \(ratio):1.")
+            }
+        }
+    }
+
+    /// Known lows, as for text on raised paper: a `primary` or `destructive` tag on paper is a little under 4.5:1
+    /// (caption size, semibold). The words in a tag carry the meaning, and the colour only echoes it.
+    func testThePrimaryAndDestructiveTagsOnPaperAreWhatTheyWereRecordedAs() throws {
+        let card = try hex("card")
+        for (token, recorded) in [("primary", 4.31), ("destructive", 4.35)] {
+            let fill = composite(try hex(token), over: card, alpha: 0.10)
+            XCTAssertEqual(contrast(try hex(token), fill), recorded, accuracy: 0.02, "A \(token) tag on card.")
+        }
     }
 
     func testTextOnTheAccentFillIsBodyText() throws {

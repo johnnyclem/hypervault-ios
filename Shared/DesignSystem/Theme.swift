@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Layout constants. Everything on screen sits on this 4-point grid.
+/// Layout constants. Everything on screen sits on a 4-point grid, with the two values the web uses beside it (6 and 24).
 enum HV {
     enum Space {
         static let xxs: CGFloat = 4
@@ -10,9 +10,29 @@ enum HV {
         static let l: CGFloat = 20
         static let xl: CGFloat = 28
         static let xxl: CGFloat = 40
+        /// 6: between the pills of a row, the web's gap-1.5.
+        static let hair: CGFloat = 6
+        /// 24: between the groups of a pane, the web's gap-6.
+        static let wide: CGFloat = 24
     }
 
+    /// Corner radii. The role names are the web's (handoff 2.5); the ones that come from the stock tokens read
+    /// `HVTokens`. Every shape that uses one is `.continuous`. `s` and `m` are the app's older sizes and match nothing
+    /// on the web: new code names the role it is drawing, and a screen that still uses them moves when it is next touched.
     enum Radius {
+        /// 8, `rounded-lg`: buttons and inputs.
+        static let control: CGFloat = 8
+        /// 6, `rounded-md`: small buttons.
+        static let smallControl: CGFloat = 6
+        /// 16, `radius-xl`: the card, the neutral tile and the code panel.
+        static let card = HVTokens.RadiusPx.radiusXl
+        /// 20, `radius-2xl`: pane surfaces, the list, add-type tiles and the empty state.
+        static let surface = HVTokens.RadiusPx.radius2xl
+        /// 28, `radius-3xl`: the sheet, which the system draws. For reference; nothing sets it.
+        static let sheet = HVTokens.RadiusPx.radius3xl
+        /// 5, `rounded-[5px]`: the card-brand tile.
+        static let brandTile: CGFloat = 5
+
         static let s: CGFloat = 10
         static let m: CGFloat = 14
         static let l: CGFloat = 20
@@ -50,10 +70,14 @@ enum Palette {
     static let surface = HVColor.card
     /// Raised paper, for fields, tiles and the selected pill: `muted`.
     static let surfaceRaised = HVColor.muted
-    /// A 1pt edge: `border`.
-    static let border = HVColor.border
-    /// Between rows: `border` at 50%, the web's divider.
-    static let hairline = HVColor.border.opacity(0.5)
+    /// A 1pt edge on a surface (a card, a list, a tile): `border` at 60%, as the web draws them. At full strength it
+    /// is 1.34:1 on paper, and the web never uses it so.
+    static let border = HVColor.border.opacity(0.6)
+    /// A 1pt edge on a control (a secondary button, an input): `border` at 70%.
+    static let controlBorder = HVColor.border.opacity(0.7)
+    /// Between rows: `border` at 50%.
+    static let divider = HVColor.border.opacity(0.5)
+    static let hairline = divider
 
     /// Body text and row names: `foreground`.
     static let textPrimary = HVColor.foreground
@@ -108,17 +132,23 @@ enum Palette {
     )
 }
 
-/// Type. Text styles, so everything scales with Dynamic Type; rounded for the
-/// few moments that should feel warm.
+/// Type. Text styles, so everything scales with Dynamic Type, in the system face (SF Pro), which is what the web's
+/// sans stack resolves to. Monospace marks what is typed or matched exactly (a name, a key prefix, a card number);
+/// it is not a style. Roles are in handoff 2.4: a pane heading is `hvTitle3`, a sheet title `hvHeadline`, a section
+/// heading `HVSectionHeader`, a description `hvSubheadline`, a row name `hvBody`, a hint `hvFootnote`.
 extension Font {
-    static let hvHero = Font.system(.largeTitle, design: .rounded, weight: .bold)
-    static let hvTitle = Font.system(.title2, design: .rounded, weight: .semibold)
-    static let hvTitle3 = Font.system(.title3, design: .rounded, weight: .semibold)
+    static let hvHero = Font.system(.largeTitle, weight: .bold)
+    static let hvTitle = Font.system(.title2, weight: .semibold)
+    static let hvTitle3 = Font.system(.title3, weight: .semibold)
     static let hvHeadline = Font.system(.headline, weight: .semibold)
+    /// The label of a filled button: bold, which is what lets white on `primary` (3.68:1) pass.
+    static let hvButton = Font.system(.headline, weight: .bold)
     static let hvBody = Font.system(.body)
     static let hvCallout = Font.system(.callout)
     static let hvSubheadline = Font.system(.subheadline)
     static let hvFootnote = Font.system(.footnote)
     static let hvCaption = Font.system(.caption)
     static let hvMono = Font.system(.footnote, design: .monospaced)
+    /// Code in `HVCodePanel` and nowhere else: the web's 11px mono.
+    static let hvCode = Font.caption.monospaced()
 }

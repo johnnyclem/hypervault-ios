@@ -81,6 +81,18 @@ final class DesignTokensTests: XCTestCase {
         XCTAssertEqual(HVTokens.RadiusPx.radius3xl, 28)
     }
 
+    /// The radii are the web's roles, read from the tokens where the web has one.
+    func testTheRadiiAreTheWebsRoles() {
+        XCTAssertEqual(HV.Radius.control, 8)
+        XCTAssertEqual(HV.Radius.smallControl, 6)
+        XCTAssertEqual(HV.Radius.card, HVTokens.RadiusPx.radiusXl)
+        XCTAssertEqual(HV.Radius.surface, HVTokens.RadiusPx.radius2xl)
+        XCTAssertEqual(HV.Radius.sheet, HVTokens.RadiusPx.radius3xl)
+        XCTAssertEqual(HV.Radius.brandTile, 5)
+        XCTAssertEqual(HV.Radius.l, HV.Radius.surface)
+        XCTAssertEqual(HV.Radius.xl, HV.Radius.sheet)
+    }
+
     func testTheCodePanelAndTheCardBrandsAreFixed() {
         XCTAssertEqual(HVTokens.Fixed.docPanelBackground, 0x14161B)
         XCTAssertEqual(HVTokens.Fixed.docPanelForeground, 0xE6E8EC)

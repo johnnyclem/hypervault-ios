@@ -1,51 +1,17 @@
 import SwiftUI
 
-/// The "H" of the app icon, drawn as a shape so it scales anywhere.
-struct HMarkShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        // Proportions come from the 1024-point icon.
-        func box(_ x0: CGFloat, _ y0: CGFloat, _ x1: CGFloat, _ y1: CGFloat) -> CGRect {
-            CGRect(
-                x: rect.minX + rect.width * x0 / 1024,
-                y: rect.minY + rect.height * y0 / 1024,
-                width: rect.width * (x1 - x0) / 1024,
-                height: rect.height * (y1 - y0) / 1024
-            )
-        }
-        let corner = rect.width * 18 / 1024
-        var path = Path()
-        path.addRoundedRect(in: box(226, 140, 342, 884), cornerSize: CGSize(width: corner, height: corner))
-        path.addRoundedRect(in: box(682, 140, 798, 884), cornerSize: CGSize(width: corner, height: corner))
-        path.addRoundedRect(in: box(226, 456, 798, 570), cornerSize: CGSize(width: corner, height: corner))
-        return path
-    }
-}
-
-/// The app icon as a view: the H on the brand gradient.
+/// The in-app mark, as the web draws it: a capital H in the monospace face on a solid `primary` tile (brand book 8).
+/// It is live text and no logo is redrawn here; the gradient H of the app icon is the icon's alone. The corners keep
+/// the web's 8pt in 32 (a quarter of the side) at any size, and there is no glow.
 struct BrandMark: View {
     var size: CGFloat = 64
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: size * 0.225, style: .continuous)
-                .fill(Palette.brandGradient)
-            HMarkShape()
-                .fill(.white)
-                .padding(size * 0.02)
-        }
-        .frame(width: size, height: size)
-        .shadow(color: Palette.blue.opacity(0.35), radius: size * 0.22, x: 0, y: size * 0.1)
-        .accessibilityHidden(true)
-    }
-}
-
-/// Just the H, for use inside other shapes and as a watermark.
-struct BrandGlyph: View {
-    var size: CGFloat = 28
-    var body: some View {
-        HMarkShape()
-            .fill(Palette.brandGradient)
+        Text("H")
+            .font(.system(size: size * 0.4, weight: .semibold, design: .monospaced))
+            .foregroundStyle(HVColor.primaryForeground)
             .frame(width: size, height: size)
+            .background(HVColor.primary, in: RoundedRectangle(cornerRadius: size * 0.25, style: .continuous))
             .accessibilityHidden(true)
     }
 }

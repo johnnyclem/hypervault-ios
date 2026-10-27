@@ -37,6 +37,25 @@ struct HVEmptyState: View {
     }
 }
 
+/// An empty list said in one line, in a dashed box: the web's empty state for a pane (handoff 4.9). The line is the
+/// whole message, so it should say what the list will hold and not only that it is empty.
+struct HVEmptyBox: View {
+    let message: String
+
+    var body: some View {
+        Text(message)
+            .font(.hvSubheadline)
+            .foregroundStyle(Palette.textSecondary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(HV.Space.wide)
+            .overlay(
+                RoundedRectangle(cornerRadius: HV.Radius.surface, style: .continuous)
+                    .strokeBorder(Palette.border, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            )
+    }
+}
+
 /// A load that failed, in the server's own words, with a way to try again.
 struct HVErrorState: View {
     let message: String

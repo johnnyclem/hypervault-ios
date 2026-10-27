@@ -139,7 +139,7 @@ struct SignInContent: View {
                     ProgressView()
                 } else {
                     Text("G")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(Palette.brandGradient)
                 }
                 Text("Continue with Google")

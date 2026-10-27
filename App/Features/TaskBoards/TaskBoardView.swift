@@ -185,7 +185,7 @@ struct TaskBoardScreen: View {
     private func progressFigures(_ summary: TaskBoardSummary) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
             Text("\(summary.progress)%")
-                .font(.system(.title, design: .rounded, weight: .bold))
+                .font(.system(.title, weight: .bold))
             Text("\(summary.done) of \(summary.countable) done")
                 .font(.hvSubheadline)
                 .foregroundStyle(Palette.textSecondary)

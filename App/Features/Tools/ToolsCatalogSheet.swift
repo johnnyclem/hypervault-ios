@@ -247,7 +247,7 @@ struct ToolsCatalogRow: View {
                 Image(systemName: "checkmark").font(.system(size: 11, weight: .bold))
                 Text("Added")
             }
-            .font(.system(.footnote, design: .rounded, weight: .semibold))
+            .font(.system(.footnote, weight: .semibold))
             .foregroundStyle(Palette.mint)
             .padding(.horizontal, HV.Space.m)
             .frame(minHeight: 44)
@@ -259,7 +259,7 @@ struct ToolsCatalogRow: View {
         } else {
             Button(action: onAdd) {
                 Text("Add")
-                    .font(.system(.footnote, design: .rounded, weight: .semibold))
+                    .font(.system(.footnote, weight: .semibold))
                     .padding(.horizontal, HV.Space.m)
                     .frame(minHeight: 44)
                     .background(Palette.blue.opacity(0.14), in: Capsule())

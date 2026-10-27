@@ -125,7 +125,7 @@ struct MemoryTabScreen: View {
                 Text(list.branch)
                     .lineLimit(1)
             }
-            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+            .font(.system(.subheadline, weight: .semibold))
         }
         .accessibilityLabel("Branch: \(list.branch)")
         .accessibilityHint("Switch the branch of your memory you are reading")

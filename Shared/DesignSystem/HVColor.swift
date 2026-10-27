@@ -30,4 +30,10 @@ enum HVColor {
     /// are the clamped sRGB values the handoff gives, because Tailwind 4 defines the shades outside sRGB.
     static let emerald400 = Color("emerald-400")
     static let amber400 = Color("amber-400")
+
+    // Fixed colours: drawn outside the tokens, so no look changes them (tokens.json `fixed`). The card brands are in
+    // `HVCardBrandTile`.
+    static let docPanelBackground = Color(hex: HVTokens.Fixed.docPanelBackground)
+    static let docPanelForeground = Color(hex: HVTokens.Fixed.docPanelForeground)
+    static let docPanelBorder = Color(hex: HVTokens.Fixed.docPanelBorder, opacity: HVTokens.Fixed.docPanelBorderOpacity)
 }

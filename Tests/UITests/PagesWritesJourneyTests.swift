@@ -129,6 +129,13 @@ final class PagesWritesJourneyTests: HyperVaultUITestCase {
         launch(.signedIn)
         openFromYou("library", title: "Library")
         let email = "sam@home.invalid"
+        // The sheet opens at half height, which shows the link and not the people under it: its handle is pulled up to full
+        // height. (Scrolling it would not do: a drag that goes down on a sheet closes it.)
+        func pullTheSheetUp() {
+            let handle = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.475))
+            let top = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12))
+            handle.press(forDuration: 0.05, thenDragTo: top, withVelocity: XCUIGestureVelocity(rawValue: 500), thenHoldForDuration: 0.2)
+        }
         // The row of a person reads its words as one (the way to remove them is its Remove action, and a Remove button at its end).
         func personRow() -> XCUIElement {
             app.descendants(matching: .any).matching(NSPredicate(
@@ -141,6 +148,8 @@ final class PagesWritesJourneyTests: HyperVaultUITestCase {
             tap(element("artifact.share"), "Share")
             require(element("artifact.share.email"), "the field for an email address")
             XCTAssertFalse(personRow().exists, "Nobody has the page yet.")
+            pullTheSheetUp()
+            require(element("artifact.share.email"), "the sheet at full height")
         }
 
         step("An address and Return give the person a view of the page") {
@@ -150,9 +159,10 @@ final class PagesWritesJourneyTests: HyperVaultUITestCase {
         }
 
         step("Remove asks first, and then ends the share") {
-            // (The sheet opens at half height, and the person is below what it shows until the page is scrolled to them.)
             let row = personRow()
-            reveal(row, "the person in the list of who has the page")
+            // (If the sheet went back to half height while the keyboard came and went, the person is below it again.)
+            if !(row.exists && row.isHittable) { pullTheSheetUp() }
+            waitUntil("the person's row to be where it can be tapped") { row.exists && row.isHittable }
             row.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
             confirm("Remove")
             requireWrite("DELETE", "/api/shares", equal: ["share_id": "sh-1"])

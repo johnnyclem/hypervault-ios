@@ -144,8 +144,8 @@ floating chrome (composer, bars), never for lists. Lists are plain paper.
 
 The macOS CI job is the compiler. Keep it happy on the first push:
 
-- Swift 5 language mode, iOS 17 minimum. Newer APIs go behind
-  `if #available(iOS 26, *)` and `#if canImport(...)`.
+- Swift 5 language mode, iOS 26 minimum, so there are no availability checks for 26 or earlier. Anything newer goes
+  behind `if #available` and `#if canImport(...)`.
 - Small views. A `body` over about 40 lines becomes sub-views or computed
   properties; long `ViewBuilder` expressions are what type checkers time out on.
 - Give closures and large literals explicit types when inference might guess.

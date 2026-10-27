@@ -31,7 +31,7 @@ Only a phone can do these, so the app does them:
 ## Run it
 
 You need a current Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen). CI builds with
-the newest Xcode on GitHub's macOS runner (26.x when this was written); the deployment target is iOS 17.
+the newest Xcode on GitHub's macOS runner (26.x when this was written); the deployment target is iOS 26.
 
 ```sh
 brew install xcodegen

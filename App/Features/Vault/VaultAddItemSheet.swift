@@ -217,6 +217,23 @@ private struct VaultNewItemForm: View {
     }
 
     var body: some View {
+        ScrollViewReader { proxy in
+            form
+                // A taken name is said under the Name field, and the keyboard that comes up for it covers what is under the
+                // field: once it is up, the name and its line are brought into the middle of what is left.
+                .onChange(of: nameError) { _, error in
+                    guard error != nil else { return }
+                    Task {
+                        try? await Task.sleep(nanoseconds: 350_000_000)
+                        proxy.scrollTo(Self.nameBlockID, anchor: .center)
+                    }
+                }
+        }
+    }
+
+    private static let nameBlockID = "vault.add.name-block"
+
+    private var form: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HV.Space.l) {
                 // A key is named first, then given its kind and value; the others are named from what is typed, so the
@@ -288,6 +305,7 @@ private struct VaultNewItemForm: View {
                 .foregroundStyle(Palette.textSecondary)
             if let nameError { KeysInlineMessage(text: nameError) }
         }
+        .id(Self.nameBlockID)
     }
 
     private func save() async {

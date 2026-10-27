@@ -153,9 +153,8 @@ final class VaultWritesJourneyTests: HyperVaultUITestCase {
             open(button("Save"), "Save")
             requireWrite("POST", "/api/secrets", equal: ["name": "github.com", "kind": "login", "value": "<redacted>"])
             require(shows("already exists"), "the server's line about the name")
-            waitUntil("the cursor to be in the Name field") {
-                (self.element("vault.add.name").value(forKey: "hasKeyboardFocus") as? Bool) == true
-            }
+            // The keyboard had been put away before Save, so it coming back is the cursor going to the Name field.
+            waitUntil("the cursor to go to the Name field, which brings the keyboard up") { self.app.keyboards.count > 0 }
             require(element("vault.add.name"), "the form, still open with what was typed")
         }
     }
@@ -163,17 +162,19 @@ final class VaultWritesJourneyTests: HyperVaultUITestCase {
     func testACardNumberSaysItIsWrongOnlyOnceTheFieldIsLeft() {
         launch(.signedIn)
         openTheVault()
+        let note = "The list shows only the brand and the last four digits."
+        let problem = "The card number must be 12 to 19 digits."
 
-        step("A short card number is typed") {
+        step("A short card number is typed, and the field's own note stays what it was") {
             tap(button("Add to your vault"), "the add button")
             tap(element("vault.add.card"), "the Card tile")
             enter("4242", into: element("vault.field.card-number"), "the card number field")
-            XCTAssertFalse(shows("must be 12 to 19 digits").exists, "The field says nothing while it is being typed in.")
+            require(shows(note), "the card number's note")
         }
 
-        step("Leaving the field says what is wrong with it") {
+        step("Leaving the field puts what is wrong with it where the note was") {
             tap(textField("Cardholder (optional)"), "the cardholder field")
-            waitUntil("the card number's own line") { self.shows("The card number must be 12 to 19 digits.").exists }
+            waitUntil("the note to give way to the problem") { self.shows(problem).exists && !self.shows(note).exists }
         }
     }
 }

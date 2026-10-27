@@ -229,10 +229,24 @@ class HyperVaultUITestCase: XCTestCase {
         }
     }
 
-    /// Taps a field and types into it.
+    /// Taps a field and types into it. A tap that lands while a sheet or a list is still settling can be lost, and the
+    /// keyboard then stays with the field before it ("Neither element nor any descendant has keyboard focus"), so the
+    /// tap is repeated, up to three times, until the field has the keyboard, the way a person would tap it again.
     func enter(_ text: String, into field: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
-        tap(field, what, file: file, line: line)
+        for attempt in 1...3 {
+            tap(field, what, file: file, line: line)
+            let deadline = Date().addingTimeInterval(2.5)
+            while Date() < deadline, !hasKeyboardFocus(field) {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+            }
+            if hasKeyboardFocus(field) { break }
+            print("[journey] \(what) did not take the keyboard (attempt \(attempt))")
+        }
         field.typeText(text)
+    }
+
+    private func hasKeyboardFocus(_ element: XCUIElement) -> Bool {
+        (element.value(forKey: "hasKeyboardFocus") as? Bool) ?? false
     }
 
     /// Taps the system's Paste control. It draws itself outside the app's own view tree, so it is tapped as soon as it

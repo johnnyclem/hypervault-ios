@@ -217,6 +217,13 @@ canned hosts end in `.invalid`; anything that builds its own `URLSession` reques
 `UITestURLProtocol`. Animations are off, so the app settles at once after every tap. Release is never built in CI, so
 `scripts/check_debug_only.py` (a step of the CI job) fails if any of this is not inside `#if DEBUG`. A run never reaches a real server, the Keychain or anything a person left on the phone.
 
+**Getting to a screen.** The app has four tabs, Home, Chat, Memory and You, and the helpers of `HyperVaultUITestCase` follow
+them: `openPane("keys")` opens a pane of the You tab by its id (`general`, `vault`, `keys`, `backends`, `domain`,
+`appearance`, `import`; on a phone the tab opens on the vault, so the helper goes back to the list first, which is the case
+that a pane chosen again from the list has to open), `openFromAccount("library", title: "Library")` opens a row of the
+Account menu behind the avatar on Home (`account.<row>`), `openFromMemoryMenu("Digest", title: "Digest")` opens an item of
+Memory's More menu, and `openYours()` opens the Yours panel.
+
 **Adding a journey.**
 
 1. Give the control an identifier: `.accessibilityIdentifier("storey.thing")` (`canvas.send`, `yours.row.<id>`,
@@ -253,8 +260,8 @@ get its session back. When a flow is broken in the app (a screen that does not f
 update after a write), fix the app, not the journey. A write journey that fails is a finding.
 
 **The layout sweep.** `LayoutSweepTests` and `LayoutSweepScreensTests` launch the app in the dark appearance and at the
-largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the You tab
-opens (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
+largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the You panes
+and the Account menu open (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
 anything drawn off the screen) beside it. Dark is the app's own Appearance preference given as a launch argument
 (`-pref.appearance dark`, which is what Settings stores); `-AppleInterfaceStyle Dark` and the device's `appearance` left
 the app light on CI. So that a sweep of the dark never looks at light screens, each dark screenshot is first checked: the
@@ -265,15 +272,16 @@ tab bar first). The point is to look: fetch `ui-snapshots-<branch>` after a run 
 in the sweep when it has a layout of its own.
 
 **Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
-any iPhone simulator; `make test-unit` runs the rest. CI runs ten UI jobs beside the unit tests, each building and
+any iPhone simulator; `make test-unit` runs the rest. CI runs twelve UI jobs beside the unit tests, each building and
 running on its own: `journeys` (everything not named below, so a new test class runs there until it is given a job),
-`screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
+`tabs-you` (`YouJourneyTests` and `TabsJourneyTests`), `screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
 `writes-keep` (`MemoryAndVaultWritesJourneyTests` and `PagesWritesJourneyTests`), `writes-more`
 (`BoardsAndMailWritesJourneyTests` and `SessionAndSettingsWritesJourneyTests`), `writes-think`
 (`ThinkWritesJourneyTests`),
-`sweep-dark` (every sweep test in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
-large text size) and `sweep-large-keep` and `sweep-large-think` (the You tab's screens at the large text size, in two
-halves). A push waits for the slowest of them, which should stay at about 20 minutes. They have taken between 5 and 22
+`sweep-dark` (the tabs, what they open, the welcome and the waitlist in the dark), `sweep-dark-screens` (the screens of the
+You panes and the Account menu in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
+large text size) and `sweep-large-keep` and `sweep-large-think` (the screens of the You panes and the Account menu at the large
+text size, in two halves). A push waits for the slowest of them, which should stay at about 20 minutes. They have taken between 5 and 22
 minutes each, depending on the machine GitHub gives the job (the same job has taken twice as long on a slow one); the
 build and the simulator's start are about eight of those minutes, and the rest is the tests, of which the large text
 sizes, which scroll, are the slowest. A job that goes over 30 minutes is stopped; if one regularly nears 20, split it by

@@ -11,11 +11,10 @@ talks to `hypervault.store` with a bearer token.
 
 | | |
 | --- | --- |
-| **Canvas** | A quiet page and a field. Paste something to keep it, say "show my memories", "pull the trip notes onto the page", "hide that", or just ask. The canvas follows the web app's rules word for word (the command grammar is a tested port of `lib/canvas/commands.ts`). |
-| **Yours** | Everything kept, most recently used first: memories, pages, files, groups of files and keys, with the four quiet filters and search. |
-| **Memory** | The memory wiki (search with recall, ask, a force-directed graph), memorize from text, a file or a link, and "Git for a Mind": branches, commit log, compare, merge with conflict resolution, time travel, restore and undelete. Dreams and Digest review. |
-| **Chat** | Conversations and group rooms with several agents, your own models (connected through the server, or on your own network and called by the phone directly), replies you can keep, rate and read aloud, and on-device chat where Apple Intelligence exists. |
-| **You** | The Library (files as a file manager, with a list and graph view) and pages rendered in a sandboxed web view with sharing, source editing and history; saved logins, cards and keys; agent keys and the Connect picker for 33 clients; mail; the truth ledger and its swipeable review docket; task boards; tools (MCP servers); import of ChatGPT, Claude, Gemini and Grok histories; your address; admin. |
+| **Home** | A quiet page and a field (the canvas). Paste something to keep it, say "show my memories", "pull the trip notes onto the page", "hide that", or just ask. The canvas follows the web app's rules word for word (the command grammar is a tested port of `lib/canvas/commands.ts`). **Yours** is the panel in its corner: everything kept, most recently used first (memories, pages, files, groups of files and keys), with the four quiet filters and search, and the Library, a file manager with a list and graph view, under More. The avatar opens the **Account menu**: the Library, Mail, task boards, Account & keys, Group chats, Tools, Import, Dreams and Truth (Beta), Admin for an admin, and Sign out. |
+| **Chat** | Conversations and group chats (rooms) with several agents, your own models (connected through the server, or on your own network and called by the phone directly), replies you can keep, rate and read aloud, and on-device chat where Apple Intelligence exists. Tools (MCP servers) and the import of ChatGPT, Claude, Gemini and Grok histories are under More. |
+| **Memory** | The memory wiki (search with recall, ask, a force-directed graph), memorize from text, a file or a link, and "Git for a Mind": branches, commit log, compare, merge with conflict resolution, time travel, restore and undelete. Dreams, Truth (the ledger and its swipeable review docket) and Digest are under More. |
+| **You** | The web's You page, as a list of seven panes: **General** (the account, its plan, signing out, and under "On this phone" what belongs to this phone), **Vault** (saved logins, cards and keys), **Agent keys** (and the Connect picker for 33 clients), **Models**, **Domain** (your address), **Appearance** (the theme of your dashboard on the website, which the app does not wear) and **Import**. A phone opens on the Vault with the list one step back; an iPad shows both. |
 
 Only a phone can do these, so the app does them:
 
@@ -24,10 +23,10 @@ Only a phone can do these, so the app does them:
 - **Face ID lock** (a lock on the screen; the device passcode opens it too), and a blank app-switcher card while the
   lock is on or a screen is showing a value.
 - **Spotlight**: kept pages and memories in system search (never keys).
-- **Widgets**: Yours on the Home Screen and Lock Screen; a one-tap Keep widget.
+- **Widgets**: Yours on the Home Screen and Lock Screen; a one-tap Keep widget. Their links (`hypervault://tab/yours`, `tab/canvas`) keep working for good.
 - **Siri and Shortcuts**: "Keep this in HyperVault".
 - **Dictation** (on device where supported) and **page scanning** into the canvas.
-- **Haptics**, a first-keep celebration, sidebar tabs on iPad, light and dark.
+- **Haptics**, a first-keep celebration, light and dark. On an iPad the tab bar stays a tab bar, so that the You tab's list of panes is the only sidebar.
 
 ## Run it
 
@@ -116,9 +115,9 @@ Tests/AppTests/          App tests and snapshot renders.
 `.github/workflows/ios.yml` runs the Kit's tests on Linux and builds and tests the app
 on a macOS simulator. The app's snapshot tests render screens in light and dark and the
 workflow publishes the PNGs to a `snapshots-<branch>` branch, so a screen can be looked
-at without opening Xcode. Ten more jobs run the UI tests beside them (the journeys; the
-screens behind the You tab, and the content and account journeys, in two; the journeys that write, in three; the layout
-sweep in the dark in one and at a large text size in three) and publish what the app looked like at each step to `ui-snapshots-<branch>`. Each job builds the
+at without opening Xcode. Twelve more jobs run the UI tests beside them (the journeys; the tabs and the You journeys; the
+screens of the You panes and the Account menu, and the content and account journeys, in two; the journeys that write, in three; the layout
+sweep in the dark in two and at a large text size in three) and publish what the app looked like at each step to `ui-snapshots-<branch>`. Each job builds the
 app for itself and has taken between 5 and 22 minutes, depending on the machine GitHub gives it (the build and the
 simulator's start are about eight of them); GitHub runs five macOS jobs at a time, so the last ones start when the first
 have finished.
@@ -140,18 +139,19 @@ signedInEmpty | waitlisted | signedInAdmin>` builds its model on a canned server
 with an in-memory secure store and scratch defaults, so a run never touches the network, the Keychain or the phone's own
 state. They cover:
 
-- the **journeys**: the welcome story, sign-in and the email code sheet, the canvas (keep, ask, show, hide), the Yours,
-  Memory and Chat tabs, the Library (list and graph), Settings, the first run and the waitlist;
-- every **screen the You tab opens**, against canned answers that give it real content: Logins, cards & keys (and one
-  entry), Mail (the inbox, then a thread), Truth (the ledger, an entry's ancestry, the review docket), Tools (and a
-  server), Your address (and one), Import (a pasted conversation read and sent), Dreams, Digest, Task boards (a board,
+- the **journeys**: the welcome story, sign-in and the email code sheet, the canvas (keep, ask, show, hide), the Yours
+  panel, the Account menu, the Memory and Chat tabs, the seven panes of the You tab (chosen from the list, and the same
+  pane chosen again), the Library (list and graph), General, Appearance, the first run and the waitlist;
+- every **screen the You panes and the Account menu open**, against canned answers that give it real content: the Vault
+  (and one entry), Mail (the inbox, then a thread), Truth (the ledger, an entry's ancestry, the review docket), Tools (and a
+  server), Domain (and one address), Import (a pasted conversation read and sent), Dreams, Digest, Task boards (a board,
   then a task), Agent keys (Connect your AI through to a key that is shown once and copied, and revoking a key) and,
   for an admin, Admin (minting an invite code, switching it off, Accounts & waitlist); and a memory in full, Memory's Ask
   mode, a conversation and a room that take a message and answer it, a page from the Library with its Share, History
   and Details sheets;
 - the **journeys that write** (`Tests/UITests/*WritesJourneyTests.swift`): signing out (the welcome story, and a launch
-  afterwards that does not bring the session back), Settings (appearance, accent and haptics stay after leaving the
-  screen and after closing the app), a memory's title and text edited and a memory forgotten, a login added, renamed and a
+  afterwards that does not bring the session back), General (haptics stay after leaving the
+  pane and after closing the app), a memory's title and text edited and a memory forgotten, a login added, renamed and a
   card deleted, a task board made with tasks added, ticked along and marked done, a note composed and a reply written in
   its thread, a page made from pasted text and its source edited, a page made public, its link shown, and deleted, the
   look and the home page of a claimed address, a page shared with a person and the person removed, a dream's connections
@@ -163,7 +163,7 @@ state. They cover:
   answers in the shape of the real routes. Each journey checks what the screen shows and also what the app sent: every
   request that is not a read is noted (method, path, the names and values of the body's fields, never a secret's value)
   and shown through a hidden accessibility element, `uitest.writes` (`App/Core/UITestWrites.swift`, debug builds only);
-- a **layout sweep**: the main screens and every screen the You tab opens, launched in the dark appearance (the app's own
+- a **layout sweep**: the main screens and every screen the You panes and the Account menu open, launched in the dark appearance (the app's own
   Appearance preference as a launch argument, and each dark screenshot is checked to be dark before it is kept) and at the
   largest accessibility text size, a screenshot of each, and a note of every control under 44 points or drawn off the screen.
 
@@ -221,7 +221,10 @@ server change if you want the app to do more:
 - **Secrets stay on the server.** Saved logins, cards and keys are write-only by
   design: the app creates, names and controls who may use them, and never shows a
   stored value again.
-- **Payment is on the web.** Upgrading opens the web page; there is no In-App Purchase.
+- **Payment is on the web.** Upgrading opens the web page; there is no In-App Purchase, and General shows the plan
+  with no price and no Upgrade button.
+- **The Appearance pane is the website's theme.** It reads `profiles.theme` and sets it with `PATCH /api/dashboard-theme`;
+  it says so, and the app itself keeps one look.
 - **The web's 37 style themes** are CSS looks for web pages and are not ported; the app
   has system light and dark and five accents.
 - **Models on your own network** (Ollama, LM Studio) are called by the phone directly,
@@ -238,7 +241,7 @@ server change if you want the app to do more:
   parsing, sign-in and access phases) and renders every screen in light and dark, and the
   main ones at the largest text sizes, to PNGs the workflow publishes.
 - CI also launches the whole app and drives it: UI tests walk the welcome story, sign-in, the canvas (keep, ask,
-  show, hide), Yours, Memory, Chat, the Library, Settings, every screen the You tab opens, the first run and the
+  show, hide), Yours, the Account menu, Memory, Chat, the Library, the You panes, every screen they open, the first run and the
   waitlist, and create, edit and delete through the screens (sign-out, memories, vault entries, boards, mail, pages),
   checking what the app sent, on a canned server inside the app, and sweep the main screens in the dark appearance and at the largest
   accessibility text size. They do not cover a real sign-in, a real server, or anything that needs a device

@@ -85,19 +85,20 @@ that finds problems fastest. Each line says what should happen.
 
 ## 5. Features that need a live account
 
-Work through the You tab with a real approved account and a few kept things: Library (list and graph, open a
+Work through the Account menu (the avatar on Home), Yours (the panel in Home's corner) and the You tab with a real approved
+account and a few kept things: Library (from the Account menu or Yours, More; list and graph, open a
 page, share it, edit its source), Memory (search, ask, graph, a branch and a merge), Chat (a conversation with
 a connected model, a room), Agent keys (Connect an agent, make a key and copy it: the paste is gone after a
 minute and never reaches another device; revoke a key: Revoke, then Really revoke?), Logins, cards & keys
 (add one; its value is never shown again), Mail, Truth, Task boards, Tools (add an MCP server), Import (a
-ChatGPT export zip), Your address. Anything that shows the server's own refusal on a session-only route means the deployment predates #180.
+ChatGPT export zip), Domain, and Appearance (the website's theme: choose one and see it on the website; the app does not change). Anything that shows the server's own refusal on a session-only route means the deployment predates #180.
 
 ## 6. Needs special hardware or settings
 
 - **On-device chat** needs an Apple Intelligence device with the model downloaded: Chat > Models should say it is
   available, and a conversation should stream with no network.
 - **A model on your network** (Ollama or LM Studio): allow the local network prompt; the phone calls it directly.
-- **iPad:** the sidebar replaces the tab bar; rotate and use Split View with a sheet open.
+- **iPad:** the tab bar stays a tab bar (no sidebar of the tabs), and the You tab shows its list of panes beside the pane; rotate and use Split View with a sheet open.
 
 ## 7. Accessibility pass
 

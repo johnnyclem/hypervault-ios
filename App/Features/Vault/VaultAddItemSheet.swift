@@ -107,6 +107,7 @@ struct VaultAddItemSheet: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .hvScreenBackground()
+            .hvSensitive(type != nil)
         }
     }
 

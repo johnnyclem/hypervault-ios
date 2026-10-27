@@ -349,6 +349,7 @@ private struct AddWebhookSheet: View {
             }
         }
         .interactiveDismissDisabled(secret != nil && !copiedSecret)
+        .hvSensitive(secret != nil)
         .onDisappear { secret = nil }
     }
 

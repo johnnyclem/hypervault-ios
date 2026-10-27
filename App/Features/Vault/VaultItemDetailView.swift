@@ -283,6 +283,7 @@ private struct VaultEditSheet: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .hvScreenBackground()
+            .hvSensitive()
             .navigationTitle("Edit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -356,6 +357,7 @@ private struct VaultReplaceSheet: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .hvScreenBackground()
+            .hvSensitive()
             .navigationTitle("Replace \(secret.name)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

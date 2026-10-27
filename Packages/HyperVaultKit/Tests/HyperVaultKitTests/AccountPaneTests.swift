@@ -177,13 +177,16 @@ final class AccountPaneTests: XCTestCase {
         XCTAssertEqual(AccountPane.import.descriptionLine, "Bring what you made elsewhere into your vault.")
     }
 
-    func testTheModelsLineIsLeftOutBecauseTheBrandBookOnlyQuotesItsStart() {
-        XCTAssertNil(AccountPane.backends.descriptionLine)
+    func testTheModelsLineIsTheWebsWholeLineBecauseTheBrandBookOnlyQuotesItsStart() {
+        XCTAssertEqual(
+            AccountPane.backends.descriptionLine,
+            "What answers when you ask something, on the canvas and in Chat. Pick a provider, paste its API key, and press Connect. The canvas uses the newest one; Chat lets you pick one per conversation."
+        )
     }
 
     func testNoPaneDescribesItselfAsConnectedBecauseOnlyTheServerKnows() {
         for pane in AccountPane.allCases {
-            let line = pane.descriptionLine ?? ""
+            let line = pane.descriptionLine
             XCTAssertFalse(line.localizedCaseInsensitiveContains("connected"), pane.rawValue)
         }
     }

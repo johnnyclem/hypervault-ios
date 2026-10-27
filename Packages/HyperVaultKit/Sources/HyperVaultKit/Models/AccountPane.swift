@@ -42,12 +42,11 @@ public enum AccountPane: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// The line under the pane's heading, verbatim from the brand book (section 4, "Places"). Nil for Models:
-    /// the brand book quotes only the start of that line and then elides the rest ("What answers when you ask
-    /// something, on the canvas and in Chat. ..."), and a line that is not whole is not copied.
+    /// The line under the pane's heading, verbatim from the web (components/account-sections.tsx; the brand book,
+    /// section 4, "Places", quotes all of them but Models, whose line it cuts short, so that one is the code's).
     /// The Agent keys line is the default one. The web adds "1 agent connected." once a key has passed its setup
     /// challenge; the server works that out and a native client must not show it (handoff 5.10).
-    public var descriptionLine: String? {
+    public var descriptionLine: String {
         switch self {
         case .general:
             return "The account you are signed in with."
@@ -56,7 +55,7 @@ public enum AccountPane: String, CaseIterable, Identifiable, Sendable {
         case .keys:
             return "One key per agent. A key is shown once, and comes with a setup challenge the agent completes to prove the link works."
         case .backends:
-            return nil
+            return "What answers when you ask something, on the canvas and in Chat. Pick a provider, paste its API key, and press Connect. The canvas uses the newest one; Chat lets you pick one per conversation."
         case .domain:
             return "Every claimed address serves your whole vault. Visitors see the realm's look; you still get your dashboard."
         case .appearance:

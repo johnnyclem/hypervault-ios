@@ -238,7 +238,7 @@ in the sweep when it has a layout of its own.
 any iPhone simulator; `make test-unit` runs the rest. CI runs nine UI jobs beside the unit tests, each building and
 running on its own: `journeys` (everything not named below, so a new test class runs there until it is given a job),
 `screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
-`writes-keep` (`MemoryAndVaultWritesJourneyTests` and `PagesWritesJourneyTests`), `writes-more`
+`writes-keep` (`MemoryAndVaultWritesJourneyTests`, `PagesWritesJourneyTests` and `ThinkWritesJourneyTests`), `writes-more`
 (`BoardsAndMailWritesJourneyTests` and `SessionAndSettingsWritesJourneyTests`),
 `sweep-dark` (every sweep test in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
 large text size) and `sweep-large-keep` and `sweep-large-think` (the You tab's screens at the large text size, in two

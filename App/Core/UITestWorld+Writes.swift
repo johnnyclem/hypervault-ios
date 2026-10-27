@@ -16,7 +16,12 @@ extension UITestWorld {
         let secrets = UITestSecrets()
         let boards = UITestBoards()
         let mail = UITestMail()
+        let realms = UITestRealms()
+        let dreams = UITestDreams()
+        let digest = UITestDigest(memories: memories)
+        let chats = UITestChats()
         return pageRoutes(vault) + memoryRoutes(memories) + secretRoutes(secrets) + boardRoutes(boards) + mailRoutes(mail)
+            + realmRoutes(realms) + thinkRoutes(dreams, digest) + chatRoutes(chats)
     }
 
     // MARK: Helpers
@@ -294,6 +299,97 @@ extension UITestWorld {
                       let task = boards.patch(project, id: parts[2], patch: patch)
                 else { return notFound("No such task.") }
                 return reply(.object(["task": task, "tasklist": boards.boardJSON(project) ?? .null, "summary": boards.summary(project) ?? .null]))
+            },
+        ]
+    }
+
+    // MARK: Chat
+
+    /// The conversations: one begins with the first message sent to it, and one can be deleted.
+    private static func chatRoutes(_ chats: UITestChats) -> [MockRoute] {
+        [
+            MockRoute(.get, "/api/conversations") { _ in reply(raw: chats.listJSON()) },
+            MockRoute(.get, "/api/conversations/*") { request in
+                guard let raw = chats.detailJSON(id: lastComponent(request)) else { return notFound("That chat is not here.") }
+                return reply(raw: raw)
+            },
+            MockRoute(.delete, "/api/conversations/*") { request in
+                guard chats.delete(id: lastComponent(request)) else { return notFound("That chat is not here.") }
+                return empty()
+            },
+            MockRoute(.post, "/api/chat") { request in
+                let sent = body(request)
+                let message = sent["message"]?.string ?? ""
+                // A turn with no conversation begins one; a turn in one the person made carries on with it.
+                let conversation = chats.conversation(for: sent["conversation_id"]?.string, firstMessage: message)
+                let answer = chatAnswer(request, conversation: conversation)
+                let text = (try? JSONDecoder().decode(JSONValue.self, from: answer.data))?["reply"]?["content"]?.string ?? ""
+                chats.record(conversation, user: message, assistant: text)
+                return answer
+            },
+        ]
+    }
+
+    // MARK: Dreams and Digest
+
+    /// The connections found overnight and the splits proposed, each waiting for a verdict.
+    private static func thinkRoutes(_ dreams: UITestDreams, _ digest: UITestDigest) -> [MockRoute] {
+        [
+            MockRoute(.get, "/api/dreams") { _ in reply(raw: dreams.queueJSON()) },
+            MockRoute(.post, "/api/dreams") { request in
+                let sent = body(request)
+                guard let verdict = sent["decision"]?.string, verdict == "accept" || verdict == "reject" else {
+                    return reply(.object(["error": .string("decision must be accept or reject.")]), status: 400)
+                }
+                if let id = sent["id"]?.string {
+                    guard let answer = dreams.decide(connections: [id], accept: verdict == "accept") else { return notFound("No such connection.") }
+                    return reply(answer)
+                }
+                if let run = sent["runId"]?.string {
+                    guard let answer = dreams.decide(run: run, accept: verdict == "accept") else { return notFound("No such dream.") }
+                    return reply(answer)
+                }
+                return reply(.object(["error": .string("id or runId is required.")]), status: 400)
+            },
+            MockRoute(.get, "/api/digest") { _ in reply(raw: digest.queueJSON()) },
+            MockRoute(.post, "/api/digest") { request in
+                let sent = body(request)
+                guard let verdict = sent["decision"]?.string, verdict == "accept" || verdict == "reject", let run = sent["runId"]?.string else {
+                    return reply(.object(["error": .string("decision and runId are required.")]), status: 400)
+                }
+                guard let answer = digest.decide(run: run, accept: verdict == "accept") else { return notFound("No such proposal.") }
+                return reply(answer)
+            },
+        ]
+    }
+
+    // MARK: Your address
+
+    /// The claimed addresses and what is changed on them: the look and the page an address opens to.
+    private static func realmRoutes(_ realms: UITestRealms) -> [MockRoute] {
+        [
+            MockRoute(.get, "/rest/v1/domain_claims") { _ in reply(.array(realms.rows())) },
+            MockRoute(.patch, "/api/claim-domain") { request in
+                let sent = body(request)
+                guard let subdomain = sent["subdomain"]?.string, let base = sent["base_domain"]?.string else {
+                    return reply(.object(["error": .string("subdomain and base_domain are required.")]), status: 400)
+                }
+                // A body without `theme` changes only the home page, and the other way round.
+                guard let changed = realms.update(
+                    subdomain: subdomain, base: base,
+                    theme: sent["theme"].map { $0.string }, home: sent["default_artifact"].map { $0.string }
+                ) else { return notFound("You have not claimed that address.") }
+                var answer: [String: JSONValue] = [
+                    "domain": .string("\(subdomain).\(base)"),
+                    "theme": changed.theme.map(JSONValue.string) ?? .null,
+                    "default_artifact": changed.home.map(JSONValue.string) ?? .null,
+                    "url": .string("https://\(subdomain).\(base)/"),
+                    "message": .string("Saved."),
+                ]
+                if changed.home == "trip-to-lisbon-q7" {
+                    answer["warning"] = .string("That page is private, so visitors get its lock page. Make it public to serve it here.")
+                }
+                return reply(.object(answer))
             },
         ]
     }
@@ -589,6 +685,28 @@ final class UITestMemories: @unchecked Sendable {
             "commit_id": .string("c0000000-0000-4000-8000-00000000000\(commits)"),
             "message": .string((message?.isEmpty == false ? message : nil) ?? "edit: \(record.title)"),
         ])
+    }
+
+    /// Replaces a memory by the smaller ones it was split into, in its place in the list.
+    func split(id: String, into parts: [(title: String, summary: String, tags: [String])]) -> [String]? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let index = records.firstIndex(where: { $0.id == id }), !parts.isEmpty else { return nil }
+        let source = records.remove(at: index)
+        commits += 1
+        var ids: [String] = []
+        for (offset, part) in parts.enumerated() {
+            let newID = "\(id)-part\(offset + 1)"
+            ids.append(newID)
+            records.insert(
+                Record(
+                    id: newID, title: part.title, content: part.summary, summary: part.summary, tags: part.tags,
+                    source: source.source, createdAt: UITestWorld.date(30)
+                ),
+                at: index + offset
+            )
+        }
+        return ids
     }
 
     func forget(id: String) -> Bool {
@@ -887,6 +1005,226 @@ final class UITestBoards: @unchecked Sendable {
 /// Merges two dictionaries of values, the right one winning.
 private func + (left: [String: JSONValue], right: [String: JSONValue]) -> [String: JSONValue] {
     left.merging(right) { _, new in new }
+}
+
+/// The conversations: the ones the vault starts with, and the ones begun on the phone.
+final class UITestChats: @unchecked Sendable {
+    private struct Line {
+        let role: String
+        let content: String
+    }
+
+    private struct Made {
+        let id: String
+        let title: String
+        var lines: [Line]
+    }
+
+    private let lock = NSLock()
+    private var made: [Made] = []
+    private var deleted: Set<String> = []
+    private var count = 0
+
+    private var base: [JSONValue] { UITestWorld.parse(ChatPreviewData.conversationsJSON)["conversations"]?.array ?? [] }
+
+    private func row(_ chat: Made) -> JSONValue {
+        .object([
+            "id": .string(chat.id), "title": .string(chat.title), "source_platform": .string("hypervault"),
+            "model": .string("claude-opus-4-8"), "created_at": .string(UITestWorld.date(60)), "updated_at": .string(UITestWorld.date(5)),
+            "visibility": .string("private"), "share_slug": .null,
+        ])
+    }
+
+    func listJSON() -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        let kept = base.filter { !deleted.contains($0["id"]?.string ?? "") }
+        return JSONValue.object(["conversations": .array(made.filter { !deleted.contains($0.id) }.reversed().map(row) + kept)]).jsonString()
+    }
+
+    func detailJSON(id: String) -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !deleted.contains(id) else { return nil }
+        if let chat = made.first(where: { $0.id == id }) {
+            let messages = chat.lines.enumerated().map { position, line -> JSONValue in
+                .object([
+                    "id": .string("\(id)-m\(position)"), "role": .string(line.role), "content": .string(line.content),
+                    "attachments": .array([]), "model": line.role == "user" ? .null : .string("claude-opus-4-8"),
+                    "position": .int(position), "created_at": .string(UITestWorld.date(TimeInterval(60 - position))), "feedback": .null,
+                ])
+            }
+            return JSONValue.object(["conversation": row(chat), "messages": .array(messages)]).jsonString()
+        }
+        return id == "c1" ? ChatPreviewData.detailJSON : nil
+    }
+
+    func delete(id: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let known = made.contains { $0.id == id } || base.contains { $0["id"]?.string == id }
+        guard known, !deleted.contains(id) else { return false }
+        deleted.insert(id)
+        return true
+    }
+
+    /// The conversation a turn belongs to: the one it names, or a new one begun with this message.
+    func conversation(for named: String?, firstMessage: String) -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        if let named { return named }
+        count += 1
+        let id = "n\(count)"
+        made.append(Made(id: id, title: String(firstMessage.prefix(80)), lines: []))
+        return id
+    }
+
+    func record(_ id: String, user: String, assistant: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let at = made.firstIndex(where: { $0.id == id }) else { return }
+        made[at].lines.append(Line(role: "user", content: user))
+        made[at].lines.append(Line(role: "assistant", content: assistant))
+    }
+}
+
+/// The connections a dream proposed, and which of them have had a verdict.
+final class UITestDreams: @unchecked Sendable {
+    private let lock = NSLock()
+    private var accepted: Set<String> = []
+    private var rejected: Set<String> = []
+
+    private var base: [String: JSONValue] { UITestWorld.parse(MemoryPreviewData.dreams).object ?? [:] }
+
+    /// The queue as the route sends it: only the connections still waiting, a run with none left dropped.
+    func queueJSON() -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        var root = base
+        let runs = (root["runs"]?.array ?? []).compactMap { run -> JSONValue? in
+            guard case .object(var fields) = run else { return nil }
+            let waiting = (fields["connections"]?.array ?? []).filter { !isDecided($0["id"]?.string ?? "") }
+            guard !waiting.isEmpty else { return nil }
+            fields["connections"] = .array(waiting)
+            return .object(fields)
+        }
+        root["runs"] = .array(runs)
+        root["pending_count"] = .int(runs.reduce(0) { $0 + ($1["connections"]?.array?.count ?? 0) })
+        return JSONValue.object(root).jsonString()
+    }
+
+    private func isDecided(_ id: String) -> Bool { accepted.contains(id) || rejected.contains(id) }
+
+    private var everyConnection: [String] {
+        (base["runs"]?.array ?? []).flatMap { ($0["connections"]?.array ?? []).compactMap { $0["id"]?.string } }
+    }
+
+    func decide(connections ids: [String], accept: Bool) -> JSONValue? {
+        lock.lock()
+        defer { lock.unlock() }
+        let known = Set(everyConnection)
+        guard ids.allSatisfy({ known.contains($0) }) else { return nil }
+        let fresh = ids.filter { !isDecided($0) }
+        if accept { accepted.formUnion(fresh) } else { rejected.formUnion(fresh) }
+        return answer(accepted: accept ? fresh.count : 0, rejected: accept ? 0 : fresh.count)
+    }
+
+    func decide(run id: String, accept: Bool) -> JSONValue? {
+        let ids = (base["runs"]?.array ?? []).first { $0["id"]?.string == id }.map { ($0["connections"]?.array ?? []).compactMap { $0["id"]?.string } }
+        guard let ids else { return nil }
+        return decide(connections: ids, accept: accept)
+    }
+
+    private func answer(accepted: Int, rejected: Int) -> JSONValue {
+        let message = accepted > 0
+            ? "Wove \(accepted) \(accepted == 1 ? "connection" : "connections") into your graph."
+            : "Filed away \(rejected) \(rejected == 1 ? "connection" : "connections"). They will not be proposed again."
+        return .object(["accepted": .int(accepted), "rejected": .int(rejected), "failures": .array([]), "message": .string(message)])
+    }
+}
+
+/// The splits proposed for big memories, and what applying one does to the memories.
+final class UITestDigest: @unchecked Sendable {
+    private let lock = NSLock()
+    private let memories: UITestMemories
+    private var decided: Set<String> = []
+
+    init(memories: UITestMemories) {
+        self.memories = memories
+    }
+
+    private var base: [String: JSONValue] { UITestWorld.parse(MemoryPreviewData.digest).object ?? [:] }
+
+    func queueJSON() -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        var root = base
+        let runs = (root["runs"]?.array ?? []).filter { !decided.contains($0["id"]?.string ?? "") }
+        root["runs"] = .array(runs)
+        root["pending_count"] = .int(runs.count)
+        return JSONValue.object(root).jsonString()
+    }
+
+    /// Applies the split (the source memory is replaced by its segments) or keeps the memory whole.
+    func decide(run id: String, accept: Bool) -> JSONValue? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !decided.contains(id), let run = (base["runs"]?.array ?? []).first(where: { $0["id"]?.string == id }) else { return nil }
+        decided.insert(id)
+        guard accept else {
+            return .object(["status": .string("rejected"), "created": .int(0), "links": .int(0), "message": .string("Kept whole.")])
+        }
+        let segments = (run["segments"]?.array ?? []).map { segment in
+            (title: segment["title"]?.string ?? "", summary: segment["summary"]?.string ?? "", tags: (segment["tags"]?.array ?? []).compactMap(\.string))
+        }
+        let links = run["links"]?.array?.count ?? 0
+        _ = memories.split(id: run["source_memory_id"]?.string ?? "", into: segments)
+        return .object([
+            "status": .string("applied"), "created": .int(segments.count), "links": .int(links),
+            "message": .string("Split into \(segments.count) memories."),
+        ])
+    }
+}
+
+/// The addresses a person has claimed, with the look and the home page each has now.
+final class UITestRealms: @unchecked Sendable {
+    private struct Claim {
+        let id: String
+        let subdomain: String
+        let base: String
+        var theme: String?
+        var home: String?
+        let claimedAgo: TimeInterval
+    }
+
+    private let lock = NSLock()
+    private var claims: [Claim] = [
+        Claim(id: "c1", subdomain: "nova", base: "vault.cool", theme: "glassmorphism", home: "bakery-landing-page-x1", claimedAgo: 2_000_000),
+        Claim(id: "c2", subdomain: "nova", base: "cleon.wiki", theme: nil, home: nil, claimedAgo: 1_000_000),
+    ]
+
+    func rows() -> [JSONValue] {
+        lock.lock()
+        defer { lock.unlock() }
+        return claims.map { claim in
+            .object([
+                "id": .string(claim.id), "subdomain": .string(claim.subdomain), "base_domain": .string(claim.base),
+                "theme": claim.theme.map(JSONValue.string) ?? .null,
+                "default_artifact_slug": claim.home.map(JSONValue.string) ?? .null,
+                "claimed_at": .string(UITestWorld.date(claim.claimedAgo)),
+            ])
+        }
+    }
+
+    /// `theme` and `home` are nil when the body did not carry them; a `.some(nil)` is a value taken off.
+    func update(subdomain: String, base: String, theme: String??, home: String??) -> (theme: String?, home: String?)? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let at = claims.firstIndex(where: { $0.subdomain == subdomain && $0.base == base }) else { return nil }
+        if let theme { claims[at].theme = theme }
+        if let home { claims[at].home = home }
+        return (claims[at].theme, claims[at].home)
+    }
 }
 
 /// The mail: what the canned mailbox starts with, and what the person sends and replies.

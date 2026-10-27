@@ -339,25 +339,29 @@ enum UITestWorld {
     /// switch, tools), and it is answered from the memory it recalls.
     private static var chatRoute: MockRoute {
         MockRoute(.post, "/api/chat") { request in
-            let body = request.jsonBody
-            let message = body?["message"] as? String ?? ""
-            let asksMemory = body?["use_recall"] as? Bool == true && body?["use_smart_context"] == nil && body?["use_tools"] == nil
-            let conversation = body?["conversation_id"] as? String ?? "c-uitest"
-            return reply(.object([
-                "conversation_id": .string(conversation),
-                "reply": .object([
-                    "id": .string("r-uitest"),
-                    "role": .string("assistant"),
-                    "content": .string(asksMemory ? askAnswer : "Noted: \(message)"),
-                    "model": .string("claude-opus-4-8"),
-                    "truncated": .bool(false),
-                ]),
-                "backend": .object(["id": .string("b1"), "name": .string("My Claude"), "provider": .string("anthropic")]),
-                "recalled": .array([]),
-                "recalled_memories": .array(asksMemory ? [.string(askSource)] : []),
-                "pulled": .array([]),
-            ]))
+            chatAnswer(request, conversation: request.jsonBody?["conversation_id"] as? String ?? "c-uitest")
         }
+    }
+
+    /// The model's answer to a turn sent in `conversation`.
+    static func chatAnswer(_ request: URLRequest, conversation: String) -> HTTPResponse {
+        let body = request.jsonBody
+        let message = body?["message"] as? String ?? ""
+        let asksMemory = body?["use_recall"] as? Bool == true && body?["use_smart_context"] == nil && body?["use_tools"] == nil
+        return reply(.object([
+            "conversation_id": .string(conversation),
+            "reply": .object([
+                "id": .string("r-uitest"),
+                "role": .string("assistant"),
+                "content": .string(asksMemory ? askAnswer : "Noted: \(message)"),
+                "model": .string("claude-opus-4-8"),
+                "truncated": .bool(false),
+            ]),
+            "backend": .object(["id": .string("b1"), "name": .string("My Claude"), "provider": .string("anthropic")]),
+            "recalled": .array([]),
+            "recalled_memories": .array(asksMemory ? [.string(askSource)] : []),
+            "pulled": .array([]),
+        ]))
     }
 
     private static var backendsJSON: String {

@@ -141,7 +141,9 @@ state. They cover:
   afterwards that does not bring the session back), Settings (appearance, accent and haptics stay after leaving the
   screen and after closing the app), a memory's title and text edited and a memory forgotten, a login added, renamed and a
   card deleted, a task board made with tasks added, ticked along and marked done, a note composed and a reply written in
-  its thread, and a page made from pasted text, its source edited, then a page made public, its link shown, and deleted.
+  its thread, a page made from pasted text and its source edited, a page made public, its link shown, and deleted, the
+  look and the home page of a claimed address, a dream's connections accepted and rejected, a split of a memory applied in
+  Digest (Memory then has its parts), and a chat begun from its first message and deleted.
   The canned server keeps what they write (`App/Core/UITestWorld+Writes.swift`, a fresh store for every launch) and
   answers in the shape of the real routes. Each journey checks what the screen shows and also what the app sent: every
   request that is not a read is noted (method, path, the names and values of the body's fields, never a secret's value)
@@ -154,8 +156,8 @@ They do not cover: a real sign-in (Google, Apple, a real email code), a real ser
 payment (the app opens the web for those); anything that needs a device (Face ID and the biometric lock, dictation,
 the document scanner, the camera, widgets, the share extension, Spotlight, notifications, on-device models); the
 system's own sheets and pickers (the file importer, the share sheet, Safari); screens that are opened and read but not
-edited (creating a room, a ledger or a conversation, deciding a dream, a digest or a truth, adding to Truth, claiming an
-address or changing its look); deleting a task or a board (neither the app nor the server has a way to); landscape, iPad, and text sizes
+edited (creating a room or a ledger, changing a room's agents, deciding a truth or adding to Truth, claiming an address);
+renaming a chat, and deleting a task or a board (neither the app nor the server has a way to); landscape, iPad, and text sizes
 other than the default and the largest accessibility one. The sweep does not visit the Memory graph, the Library's graph
 and inbox views, the models screen or Admin. Layout is judged by looking at the sweep's screenshots: a test fails only when a screen's key control
 cannot be reached, or when a screenshot of the dark sweep turns out to be light; nothing compares pictures. To run them locally:

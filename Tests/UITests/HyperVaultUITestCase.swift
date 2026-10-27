@@ -431,7 +431,9 @@ class HyperVaultUITestCase: XCTestCase {
         }
     }
 
-    /// Every write the app has sent since it was launched, oldest first.
+    /// Every write the app has sent since it was launched, oldest first. (Opening the You tab sends one on its own: the
+    /// check whether this person is an admin is a write to an invite that does not exist, answered 403 for everyone else.
+    /// It is not something a journey did, so it is left out.)
     func recordedWrites() -> [RecordedWrite] {
         let beacon = element("uitest.writes")
         guard beacon.exists else { return [] }
@@ -440,6 +442,7 @@ class HyperVaultUITestCase: XCTestCase {
                   let entry = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
                   let method = entry["method"] as? String, let path = entry["path"] as? String
             else { return nil }
+            if method == "PATCH", path == "/api/admin/invites/00000000-0000-0000-0000-000000000000" { return nil }
             return RecordedWrite(
                 method: method, path: path, query: entry["query"] as? String ?? "",
                 fields: (entry["fields"] as? [String: String]) ?? [:]

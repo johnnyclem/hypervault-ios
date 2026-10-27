@@ -48,6 +48,10 @@ enum Route: Hashable {
     case dreams
     case digest
     case taskBoards
+    /// One board, pushed after it is made (and by anything that has its listing). It is a route, not a destination of
+    /// the list's own, so it goes on the tab's path with every other screen: a destination the list presented itself
+    /// (`navigationDestination(item:)`) was pushed again over the task opened from it.
+    case taskBoard(slug: String, project: String, title: String)
     case admin
     case settings
 }

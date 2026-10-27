@@ -90,6 +90,12 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
         require(element("vault.row.github.com"), "the saved logins")
     }
 
+    /// Opens an entry from the list and waits for its screen: the one that says its value is never shown again.
+    private func openTheEntry(_ name: String) {
+        open(element("vault.row.\(name)"), "the \(name) row", until: { self.shows("The value is encrypted and never shown again.").exists })
+        require(shows("The value is encrypted and never shown again."), "the screen of \(name)")
+    }
+
     func testAddingALoginSavesItAndNeverShowsItsPassword() {
         launch(.signedIn)
         openTheVault()
@@ -133,13 +139,15 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
         openTheVault()
 
         step("The github.com login opens") {
-            tap(element("vault.row.github.com"), "the github.com row", until: { self.button("Rename or add a note").exists })
-            require(button("Rename or add a note"), "the rename button")
+            openTheEntry("github.com")
             XCTAssertTrue(shows("Work account").exists, "The note is shown on the entry's screen.")
         }
 
         step("Rename opens with the current name and takes a new one") {
-            tap(button("Rename or add a note"), "Rename or add a note")
+            // (The entry's screen is a long list; the button is below the fold until it is scrolled to.)
+            let rename = button("Rename or add a note")
+            reveal(rename, "the rename button")
+            tap(rename, "Rename or add a note")
             require(element("vault.edit.name"), "the name field")
             XCTAssertEqual(element("vault.edit.name").value as? String, "github.com")
             append("-work", to: element("vault.edit.name"), "the name field")
@@ -153,11 +161,11 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
 
         step("The entry's screen is still the entry, under its new name") {
             // The screen was opened under the old name; it must follow the entry, not go looking for the old name.
-            waitUntil("the screen to settle") { self.button("Rename or add a note").exists || self.shows("This entry is gone").exists }
+            waitUntil("the screen to settle") { self.isShowingTitle("github.com-work") || self.shows("This entry is gone").exists }
             attachScreenshot("The entry's screen after the rename")
             XCTAssertFalse(shows("This entry is gone").exists, "Renaming an entry left its own screen saying it is gone.")
             require(button("Rename or add a note"), "the entry's screen after the rename")
-            require(text("github.com-work"), "the new name on the entry's screen")
+            XCTAssertTrue(isShowingTitle("github.com-work"), "The screen should carry the new name.")
         }
 
         step("The list has the new name and not the old") {
@@ -172,8 +180,7 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
         openTheVault()
 
         step("The card opens, masked") {
-            open(element("vault.row.visa-4242"), "the visa-4242 row", until: { self.button("Rename or add a note").exists })
-            require(button("Rename or add a note"), "the card's screen")
+            openTheEntry("visa-4242")
             XCTAssertTrue(shows("Visa").exists)
             XCTAssertFalse(shows("4242 4242").exists, "A card number is never shown whole.")
         }

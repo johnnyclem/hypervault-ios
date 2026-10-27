@@ -158,6 +158,7 @@ jobs:
               -skip-testing:HyperVaultUITests/PagesWritesJourneyTests
               -skip-testing:HyperVaultUITests/BoardsAndMailWritesJourneyTests
               -skip-testing:HyperVaultUITests/SessionAndSettingsWritesJourneyTests
+              -skip-testing:HyperVaultUITests/ThinkWritesJourneyTests
           - suite: screens-you
             tests: -only-testing:HyperVaultUITests/YouScreensJourneyTests
           - suite: sweep-large
@@ -175,6 +176,7 @@ jobs:
             tests: >-
               -only-testing:HyperVaultUITests/MemoryAndVaultWritesJourneyTests
               -only-testing:HyperVaultUITests/PagesWritesJourneyTests
+              -only-testing:HyperVaultUITests/ThinkWritesJourneyTests
           - suite: writes-more
             tests: >-
               -only-testing:HyperVaultUITests/BoardsAndMailWritesJourneyTests

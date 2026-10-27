@@ -257,6 +257,160 @@ final class UITestWritesTests: XCTestCase {
         XCTAssertEqual(memories.count, 7)
     }
 
+    // MARK: Chat
+
+    func testAChatIsBegunByItsFirstMessageAndDeleted() async throws {
+        let api = client()
+        let before = try await api.send(.conversations)
+        XCTAssertEqual(before.count, 7)
+
+        let first = try await api.send(.chat(backendID: "b1", message: "Plan the balcony garden", options: ChatSendOptions(smartContext: true)))
+        XCTAssertEqual(first.conversationID, "n1")
+        XCTAssertEqual(first.reply.content, "Noted: Plan the balcony garden")
+        let listed = try await api.send(.conversations)
+        XCTAssertEqual(listed.count, 8)
+        XCTAssertEqual(listed.first?.id, "n1", "A chat just begun is the newest.")
+        XCTAssertEqual(listed.first?.title, "Plan the balcony garden")
+
+        // The next turn goes on in the same chat.
+        let second = try await api.send(.chat(backendID: "b1", message: "And the pots", conversationID: "n1", options: ChatSendOptions(smartContext: true)))
+        XCTAssertEqual(second.conversationID, "n1")
+        let detail = try await api.send(.conversation(id: "n1"))
+        XCTAssertEqual(detail.messages.map(\.role), [ChatRole.user, .assistant, .user, .assistant])
+        XCTAssertEqual(detail.messages.last?.content, "Noted: And the pots")
+
+        // A chat the vault starts with takes a turn without becoming a new one.
+        let old = try await api.send(.chat(backendID: "b1", message: "Add a fado night", conversationID: "c1", options: ChatSendOptions(smartContext: true)))
+        XCTAssertEqual(old.conversationID, "c1")
+        let still = try await api.send(.conversations)
+        XCTAssertEqual(still.count, 8)
+
+        _ = try await api.send(.deleteConversation(id: "n1"))
+        _ = try await api.send(.deleteConversation(id: "c2"))
+        let after = try await api.send(.conversations)
+        XCTAssertEqual(after.map(\.id), ["c1", "c3", "c4", "c5", "c6", "c7"])
+        do {
+            _ = try await api.send(.conversation(id: "n1"))
+            XCTFail("A deleted chat is gone.")
+        } catch let error as HVError {
+            XCTAssertEqual(error.status, 404)
+        }
+    }
+
+    // MARK: Dreams and Digest
+
+    func testDreamsAreAcceptedAndRejectedOneByOneAndTheQueueFollows() async throws {
+        let api = client()
+        let before = try await api.send(.dreamQueue)
+        XCTAssertEqual(before.pendingCount, 4)
+        XCTAssertEqual(before.runs.first?.connections.map(\.id), ["d1", "d2", "d3", "d4"])
+
+        let accepted = try await api.send(.dreamDecide(connection: "d1", .accept))
+        XCTAssertEqual(accepted.accepted, 1)
+        XCTAssertEqual(accepted.rejected, 0)
+        XCTAssertTrue(accepted.failures.isEmpty)
+        let rejected = try await api.send(.dreamDecide(connection: "d3", .reject))
+        XCTAssertEqual(rejected.rejected, 1)
+
+        let after = try await api.send(.dreamQueue)
+        XCTAssertEqual(after.pendingCount, 2)
+        XCTAssertEqual(after.runs.first?.connections.map(\.id), ["d2", "d4"])
+
+        let rest = try await api.send(.dreamDecide(run: "run1", .reject))
+        XCTAssertEqual(rest.rejected, 2, "A verdict on a run reaches only the connections still waiting.")
+        let empty = try await api.send(.dreamQueue)
+        XCTAssertTrue(empty.runs.isEmpty)
+        XCTAssertEqual(empty.pendingCount, 0)
+
+        do {
+            _ = try await api.send(.dreamDecide(connection: "nope", .accept))
+            XCTFail("A connection nobody proposed should be refused.")
+        } catch let error as HVError {
+            XCTAssertEqual(error.status, 404)
+        }
+    }
+
+    func testASplitIsAppliedAndTheMemoryIsReplacedByItsParts() async throws {
+        let api = client()
+        let queue = try await api.send(.digestQueue)
+        XCTAssertEqual(queue.runs.map(\.id), ["dg1"])
+        XCTAssertEqual(queue.runs.first?.segments.count, 3)
+
+        let decision = try await api.send(.digestDecide(run: "dg1", .accept))
+        XCTAssertTrue(decision.applied)
+        XCTAssertEqual(decision.created, 3)
+        XCTAssertEqual(decision.links, 3)
+
+        let after = try await api.send(.digestQueue)
+        XCTAssertTrue(after.runs.isEmpty)
+        let memories = try await api.send(.memoryList()).memories
+        XCTAssertFalse(memories.contains { $0.id == "m3" }, "The memory that was split is replaced.")
+        XCTAssertEqual(memories.filter { $0.id.hasPrefix("m3-part") }.map(\.title), ["Budget is set at 40k", "Ship in March", "Hire one more engineer"])
+        XCTAssertEqual(memories.count, 9)
+        let part = try await api.send(.memoryPage(id: "m3-part2", branch: "main"))
+        XCTAssertEqual(part.memory.title, "Ship in March")
+
+        do {
+            _ = try await api.send(.digestDecide(run: "dg1", .accept))
+            XCTFail("A split that was applied is not proposed again.")
+        } catch let error as HVError {
+            XCTAssertEqual(error.status, 404)
+        }
+    }
+
+    func testAKeptWholeMemoryStaysAsItWas() async throws {
+        let api = client()
+        let decision = try await api.send(.digestDecide(run: "dg1", .reject))
+        XCTAssertFalse(decision.applied)
+        XCTAssertEqual(decision.created, 0)
+        let memories = try await api.send(.memoryList()).memories
+        XCTAssertTrue(memories.contains { $0.id == "m3" })
+        XCTAssertEqual(memories.count, 7)
+    }
+
+    // MARK: Your address
+
+    func testAnAddressTakesANewLookAndHomePageAndTheListRemembersThem() async throws {
+        let net = MockTransport(routes: UITestWorld.routes(for: .signedIn))
+        let api = HVClient(baseURL: UITestWorld.appURL, transport: net, tokens: StaticTokenProvider(), retry: .none)
+        let tables = AccountRest(
+            client: HVClient(baseURL: UITestWorld.supabaseURL, transport: net, tokens: StaticTokenProvider(), retry: .none),
+            anonKey: UITestWorld.anonKey
+        )
+        let userID = UITestWorld.user.id
+        let before = try await RealmDirectory.snapshot(rest: tables, userID: userID)
+        let second = try XCTUnwrap(before.claims.last)
+        XCTAssertEqual(second.host, "nova.cleon.wiki")
+        XCTAssertNil(second.theme)
+
+        let themed = try await api.send(.setRealmTheme(subdomain: second.subdomain, base: second.baseDomain, theme: "newsprint"))
+        XCTAssertEqual(themed.theme, "newsprint")
+        XCTAssertNil(themed.defaultArtifact)
+        XCTAssertNil(themed.warning)
+
+        let homed = try await api.send(.setRealmHome(subdomain: second.subdomain, base: second.baseDomain, artifactSlug: "trip-to-lisbon-q7"))
+        XCTAssertEqual(homed.theme, "newsprint", "Setting the home page leaves the look alone.")
+        XCTAssertEqual(homed.defaultArtifact, "trip-to-lisbon-q7")
+        XCTAssertNotNil(homed.warning, "A private page as the home page comes with the server's warning.")
+
+        let after = try await RealmDirectory.snapshot(rest: tables, userID: userID)
+        XCTAssertEqual(after.claims.last?.theme, "newsprint")
+        XCTAssertEqual(after.claims.last?.defaultArtifactSlug, "trip-to-lisbon-q7")
+        XCTAssertEqual(after.claims.first?.theme, "glassmorphism", "The other address is as it was.")
+
+        let cleared = try await api.send(.setRealmTheme(subdomain: second.subdomain, base: second.baseDomain, theme: nil))
+        XCTAssertNil(cleared.theme)
+        XCTAssertEqual(cleared.defaultArtifact, "trip-to-lisbon-q7")
+        // A fresh launch starts as the first one did.
+        let fresh = MockTransport(routes: UITestWorld.routes(for: .signedIn))
+        let freshTables = AccountRest(
+            client: HVClient(baseURL: UITestWorld.supabaseURL, transport: fresh, tokens: StaticTokenProvider(), retry: .none),
+            anonKey: UITestWorld.anonKey
+        )
+        let again = try await RealmDirectory.snapshot(rest: freshTables, userID: userID)
+        XCTAssertNil(again.claims.last?.defaultArtifactSlug)
+    }
+
     // MARK: The record of writes
 
     func testTheWriteLogNamesTheFieldsAndHidesWhatCouldBeASecret() throws {

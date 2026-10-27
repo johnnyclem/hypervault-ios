@@ -64,7 +64,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
         }
 
         step("Back returns to the inbox") {
-            goBack()
+            goBack(until: { element(thread).exists })
             require(element(thread), "the inbox again")
         }
     }

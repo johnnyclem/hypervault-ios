@@ -19,7 +19,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
         }
 
         step("Back returns to the list and Ask takes a question") {
-            goBack()
+            goBack(until: { element("memory.row.m1").exists })
             require(element("memory.row.m1"), "the list again")
             tap(segment("Ask"), "the Ask mode")
             require(shows("Ask your memory"), "the introduction to Ask")

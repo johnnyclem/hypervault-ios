@@ -332,9 +332,19 @@ class HyperVaultUITestCase: XCTestCase {
 
     /// Goes back one screen with the navigation bar's back button.
     func goBack(file: StaticString = #filePath, line: UInt = #line) {
+        tap(backButton(), "the back button", file: file, line: line)
+    }
+
+    /// Goes back one screen and waits for `reached` to be true of the screen behind, tapping back again (up to three
+    /// times) if nothing came of it: a tap that lands while the list behind is still settling after a push is lost, and a
+    /// person would just tap again. A tap is not repeated once the screen has moved on.
+    func goBack(until reached: () -> Bool, file: StaticString = #filePath, line: UInt = #line) {
+        tap(backButton(), "the back button", until: reached, file: file, line: line)
+    }
+
+    private func backButton() -> XCUIElement {
         let identified = named("BackButton", in: app.navigationBars.buttons)
-        let back = identified.waitForExistence(timeout: 5) ? identified : app.navigationBars.buttons.element(boundBy: 0)
-        tap(back, "the back button", file: file, line: line)
+        return identified.waitForExistence(timeout: 5) ? identified : app.navigationBars.buttons.element(boundBy: 0)
     }
 
     // MARK: Showing what happened

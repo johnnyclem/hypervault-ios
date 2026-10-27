@@ -62,7 +62,7 @@ final class TabsJourneyTests: HyperVaultUITestCase {
         }
 
         step("Back returns to Yours") {
-            goBack()
+            goBack(until: { element("yours.row.a1").exists })
             require(element("yours.row.a1"), "the list again")
         }
     }

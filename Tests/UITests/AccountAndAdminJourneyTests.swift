@@ -112,7 +112,7 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
         }
 
         step("The list shows the code as off") {
-            goBack()
+            goBack(until: { row.exists })
             require(row, "the code in the list")
             waitUntil("the row to say the code is off") { row.label.contains("Off") }
         }

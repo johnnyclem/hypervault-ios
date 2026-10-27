@@ -145,7 +145,7 @@ struct HVIconBadge: View {
     var body: some View {
         Image(systemName: symbol)
             .font(.system(size: size * 0.46, weight: .semibold))
-            .foregroundStyle(tint.hvInk())
+            .foregroundStyle(tint)
             .frame(width: size, height: size)
             .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: size * 0.3, style: .continuous))
             .accessibilityHidden(true)
@@ -193,7 +193,7 @@ struct HVTag: View {
         let wraps = dynamicTypeSize.isAccessibilitySize
         Text(text)
             .font(.system(.caption2, design: .rounded, weight: .semibold))
-            .foregroundStyle(tint.hvInk())
+            .foregroundStyle(tint)
             .lineLimit(wraps ? nil : 1)
             .fixedSize(horizontal: !wraps, vertical: true)
             .padding(.horizontal, 8)

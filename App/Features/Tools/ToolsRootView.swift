@@ -189,7 +189,7 @@ struct ToolsStep: View {
         HStack(alignment: .top, spacing: HV.Space.s) {
             Text("\(number)")
                 .font(.system(.footnote, design: .rounded, weight: .bold))
-                .foregroundStyle(Palette.blue.hvInk())
+                .foregroundStyle(Palette.blue)
                 .frame(width: 26, height: 26)
                 .background(Palette.blue.opacity(0.14), in: Circle())
                 .accessibilityHidden(true)

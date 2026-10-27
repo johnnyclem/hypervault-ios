@@ -3,8 +3,6 @@ import SwiftUI
 
 /// Preference keys, shared by `@AppStorage` in views and plain code.
 enum PrefKey {
-    static let appearance = "pref.appearance"
-    static let accent = "pref.accent"
     static let haptics = Haptics.preferenceKey
     static let biometricLock = "pref.biometricLock"
     static let onboarded = "pref.onboarded.v1"

@@ -248,7 +248,7 @@ struct ToolsCatalogRow: View {
                 Text("Added")
             }
             .font(.system(.footnote, design: .rounded, weight: .semibold))
-            .foregroundStyle(Palette.mint.hvInk())
+            .foregroundStyle(Palette.mint)
             .padding(.horizontal, HV.Space.m)
             .frame(minHeight: 44)
             .background(Palette.mint.opacity(0.14), in: Capsule())
@@ -263,7 +263,7 @@ struct ToolsCatalogRow: View {
                     .padding(.horizontal, HV.Space.m)
                     .frame(minHeight: 44)
                     .background(Palette.blue.opacity(0.14), in: Capsule())
-                    .foregroundStyle(Palette.blue.hvInk())
+                    .foregroundStyle(Palette.blue)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Add \(entry.displayName)")

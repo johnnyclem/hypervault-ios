@@ -175,7 +175,7 @@ struct TruthStandingBadge: View {
                 Text(standing.title)
             }
             .font(.system(.caption2, design: .rounded, weight: .semibold))
-            .foregroundStyle(standing.tint.hvInk())
+            .foregroundStyle(standing.tint)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(standing.tint.opacity(0.14), in: Capsule())

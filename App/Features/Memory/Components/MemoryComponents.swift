@@ -186,7 +186,7 @@ struct MemorySourceChip: View {
                 .font(.system(.caption2, design: .rounded, weight: .semibold))
         }
         // Inked like HVTag: in light mode the accent on a tint of itself needs the darker shade to read.
-        .foregroundStyle(MemoryStyle.tint(forSource: source).hvInk())
+        .foregroundStyle(MemoryStyle.tint(forSource: source))
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(MemoryStyle.tint(forSource: source).opacity(0.14), in: Capsule())

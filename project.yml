@@ -65,6 +65,9 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         UILaunchScreen:
           UIColorName: LaunchBackground
+        # The stock look is dark only (handoff 2.2). Declared here, not just with .preferredColorScheme, so the launch
+        # screen, alerts, keyboard and system controls are dark from the first frame, whatever the phone is set to.
+        UIUserInterfaceStyle: Dark
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations:
@@ -128,6 +131,7 @@ targets:
         HVAppGroup: $(HV_APP_GROUP)
         HVKeychainGroup: $(AppIdentifierPrefix)$(HV_KEYCHAIN_GROUP)
         HVDefaultServer: $(HV_DEFAULT_SERVER)
+        UIUserInterfaceStyle: Dark
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController

@@ -455,7 +455,7 @@ struct ImportGuideCard: View {
                     HStack(alignment: .top, spacing: HV.Space.s) {
                         Text("\(index + 1)")
                             .font(.system(.footnote, design: .rounded, weight: .bold))
-                            .foregroundStyle(guide.tint.hvInk())
+                            .foregroundStyle(guide.tint)
                             .frame(width: 24, height: 24)
                             .background(guide.tint.opacity(0.14), in: Circle())
                             .accessibilityHidden(true)

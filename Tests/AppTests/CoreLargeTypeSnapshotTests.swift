@@ -20,18 +20,18 @@ final class CoreLargeTypeSnapshotTests: XCTestCase {
     func testYoursAtTheLargestType() throws {
         try snapshot(
             PreviewHost(routes: [.json(.get, "/api/yours", Fixtures.yours)]) { YoursRootView().environment(\.dynamicTypeSize, .accessibility3) },
-            named: "yours-large", schemes: [.light]
+            named: "yours-large"
         )
     }
 
     func testLockScreenAtTheLargestType() throws {
-        try snapshot(LockScreen(lock: AppLock()).environment(\.dynamicTypeSize, .accessibility5), named: "lock-large", schemes: [.light])
+        try snapshot(LockScreen(lock: AppLock()).environment(\.dynamicTypeSize, .accessibility5), named: "lock-large")
     }
 
     func testSettingsAtTheLargestType() throws {
         try snapshot(
             PreviewHost { SettingsRootView().environment(\.dynamicTypeSize, .accessibility3) },
-            named: "settings-large", schemes: [.light]
+            named: "settings-large"
         )
     }
 }

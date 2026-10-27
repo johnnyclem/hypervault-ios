@@ -32,7 +32,7 @@ struct ArtifactGlyph: View {
     var body: some View {
         let glyph = ArtifactIcon.glyph(icon: icon, title: title)
         let stops = ArtifactIcon.stops(seed: slug)
-        let ink = ArtifactIcon.prefersDarkGlyph(seed: slug) ? Color(hex: 0x0B0F14) : Color.white
+        let ink = ArtifactIcon.prefersDarkGlyph(seed: slug) ? HVColor.background : Color.white
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
                 .fill(LinearGradient(colors: [Color(stops.first), Color(stops.second)], startPoint: .topLeading, endPoint: .bottomTrailing))

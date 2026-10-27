@@ -4,7 +4,6 @@ import SwiftUI
 /// competes with content, and it holds still for people who ask the system to
 /// reduce motion.
 struct AuroraBackground: View {
-    @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var intensity: Double = 1
@@ -25,7 +24,7 @@ struct AuroraBackground: View {
     }
 
     private var strength: Double {
-        (scheme == .dark ? 0.34 : 0.20) * intensity
+        0.34 * intensity
     }
 
     private func blobs(at time: Double) -> some View {

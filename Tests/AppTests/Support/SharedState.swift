@@ -13,6 +13,8 @@ enum SharedState {
         server = SharedConfig.server
         supabase = SharedConfig.supabase
         clear()
+        // A session the tests seed is theirs; without the marker, launch would take it for a previous install's and end it.
+        InstallMarker().mark()
     }
 
     static func end() {

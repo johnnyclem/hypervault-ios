@@ -121,7 +121,7 @@ jobs:
   # The journeys: the real app launched on a simulator and driven with taps and typing, through the welcome story,
   # sign-in, the canvas, each tab, every screen the You tab opens, and the waitlist; and a sweep of the main screens in
   # the dark appearance and at an accessibility text size. The app is a debug build whose network is canned inside it
-  # (App/Core/UITestHarness.swift); nothing here reaches a real server. Seven jobs run side by side (each builds the
+  # (App/Core/UITestHarness.swift); nothing here reaches a real server. Ten jobs run side by side (each builds the
   # app for itself), so a push waits for the slowest of them and none of them for the others.
   ui:
     name: UI tests (macOS, ${{ matrix.suite }})
@@ -131,6 +131,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # The journeys that write: they create, edit and delete through the screens, and check both what the screen
+          # shows afterwards and what the app sent (the debug-only record of writes, see App/Core/UITestWrites.swift).
+          - suite: writes-keep
+            tests: >-
+              -only-testing:HyperVaultUITests/MemoryAndVaultWritesJourneyTests
+              -only-testing:HyperVaultUITests/PagesWritesJourneyTests
+          - suite: writes-more
+            tests: >-
+              -only-testing:HyperVaultUITests/BoardsAndMailWritesJourneyTests
+              -only-testing:HyperVaultUITests/SessionAndSettingsWritesJourneyTests
+          - suite: writes-think
+            tests: -only-testing:HyperVaultUITests/ThinkWritesJourneyTests
           # The layout sweep (see Tests/UITests/LayoutSweepTests.swift): every screen of it at the largest accessibility
           # text size, the You tab's screens in two halves because scrolling at that size is slow, and in the dark
           # appearance in one job. The slowest are listed first, so that they start first when GitHub has fewer macOS
@@ -154,6 +166,11 @@ jobs:
               -skip-testing:HyperVaultUITests/ContentJourneyTests
               -skip-testing:HyperVaultUITests/LayoutSweepTests
               -skip-testing:HyperVaultUITests/LayoutSweepScreensTests
+              -skip-testing:HyperVaultUITests/MemoryAndVaultWritesJourneyTests
+              -skip-testing:HyperVaultUITests/PagesWritesJourneyTests
+              -skip-testing:HyperVaultUITests/BoardsAndMailWritesJourneyTests
+              -skip-testing:HyperVaultUITests/SessionAndSettingsWritesJourneyTests
+              -skip-testing:HyperVaultUITests/ThinkWritesJourneyTests
           - suite: screens-you
             tests: -only-testing:HyperVaultUITests/YouScreensJourneyTests
           - suite: sweep-large

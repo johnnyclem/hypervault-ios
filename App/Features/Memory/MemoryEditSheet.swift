@@ -44,11 +44,13 @@ struct MemoryEditSheet: View {
                         TextField("A short name", text: $title)
                             .font(.hvHeadline)
                             .focused($focus, equals: .title)
+                            .accessibilityIdentifier("memory.edit.title")
                     }
 
                     HVLabeledField(title: "Text") {
                         TextEditor(text: $content)
                             .focused($focus, equals: .content)
+                            .accessibilityIdentifier("memory.edit.content")
                             .scrollContentBackground(.hidden)
                             .frame(minHeight: 220)
                     }
@@ -67,6 +69,7 @@ struct MemoryEditSheet: View {
                     HVLabeledField(title: "Commit message", footnote: "Saved as a commit on \(model.branch). You can always go back from History.") {
                         TextField("edit: \(memory.title)", text: $note)
                             .focused($focus, equals: .note)
+                            .accessibilityIdentifier("memory.edit.note")
                     }
 
                     if let problem {

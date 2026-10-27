@@ -115,9 +115,9 @@ Tests/AppTests/          App tests and snapshot renders.
 `.github/workflows/ios.yml` runs the Kit's tests on Linux and builds and tests the app
 on a macOS simulator. The app's snapshot tests render screens in light and dark and the
 workflow publishes the PNGs to a `snapshots-<branch>` branch, so a screen can be looked
-at without opening Xcode. Seven more jobs run the UI tests beside them (the journeys; the
-screens behind the You tab, and the content and account journeys, in two; the layout sweep in the dark in one and at a
-large text size in three) and publish what the app looked like at each step to `ui-snapshots-<branch>`. Each job builds the
+at without opening Xcode. Ten more jobs run the UI tests beside them (the journeys; the
+screens behind the You tab, and the content and account journeys, in two; the journeys that write, in three; the layout
+sweep in the dark in one and at a large text size in three) and publish what the app looked like at each step to `ui-snapshots-<branch>`. Each job builds the
 app for itself and has taken between 5 and 22 minutes, depending on the machine GitHub gives it (the build and the
 simulator's start are about eight of them); GitHub runs five macOS jobs at a time, so the last ones start when the first
 have finished.
@@ -148,6 +148,20 @@ state. They cover:
   for an admin, Admin (minting an invite code, switching it off, Accounts & waitlist); and a memory in full, Memory's Ask
   mode, a conversation and a room that take a message and answer it, a page from the Library with its Share, History
   and Details sheets;
+- the **journeys that write** (`Tests/UITests/*WritesJourneyTests.swift`): signing out (the welcome story, and a launch
+  afterwards that does not bring the session back), Settings (appearance, accent and haptics stay after leaving the
+  screen and after closing the app), a memory's title and text edited and a memory forgotten, a login added, renamed and a
+  card deleted, a task board made with tasks added, ticked along and marked done, a note composed and a reply written in
+  its thread, a page made from pasted text and its source edited, a page made public, its link shown, and deleted, the
+  look and the home page of a claimed address, a page shared with a person and the person removed, a dream's connections
+  accepted and rejected, a split of a memory applied in Digest (Memory then has its parts), a belief asserted into the
+  hosted Truth ledger, the memories and pages that are out of date decided one by one (still fine, move to the new
+  one, stop tracking), a chat begun from its first message and deleted, and a room made, given another agent and one
+  fewer, renamed and deleted.
+  The canned server keeps what they write (`App/Core/UITestWorld+Writes.swift`, a fresh store for every launch) and
+  answers in the shape of the real routes. Each journey checks what the screen shows and also what the app sent: every
+  request that is not a read is noted (method, path, the names and values of the body's fields, never a secret's value)
+  and shown through a hidden accessibility element, `uitest.writes` (`App/Core/UITestWrites.swift`, debug builds only);
 - a **layout sweep**: the main screens and every screen the You tab opens, launched in the dark appearance (the app's own
   Appearance preference as a launch argument, and each dark screenshot is checked to be dark before it is kept) and at the
   largest accessibility text size, a screenshot of each, and a note of every control under 44 points or drawn off the screen.
@@ -156,8 +170,8 @@ They do not cover: a real sign-in (Google, Apple, a real email code), a real ser
 payment (the app opens the web for those); anything that needs a device (Face ID and the biometric lock, dictation,
 the document scanner, the camera, widgets, the share extension, Spotlight, notifications, on-device models); the
 system's own sheets and pickers (the file importer, the share sheet, Safari); screens that are opened and read but not
-edited (creating a room, a ledger, a board or a vault entry, editing or forgetting a memory, composing or replying to
-mail, deciding a dream, a digest or a truth, claiming an address, deleting anything); landscape, iPad, and text sizes
+edited (creating a ledger, deciding a review card of Truth, asserting a TB, claiming an address, a page's password
+or icon); renaming a page or a chat, and deleting a task or a board (neither the app nor the server has a way to); landscape, iPad, and text sizes
 other than the default and the largest accessibility one. The sweep does not visit the Memory graph, the Library's graph
 and inbox views, the models screen or Admin. Layout is judged by looking at the sweep's screenshots: a test fails only when a screen's key control
 cannot be reached, or when a screenshot of the dark sweep turns out to be light; nothing compares pictures. To run them locally:
@@ -215,14 +229,15 @@ server change if you want the app to do more:
 
 ## What has and has not been tested
 
-- The Kit (API client, auth, every model and rule) has about 860 unit tests, run on Linux and
+- The Kit (API client, auth, every model and rule) has about 880 unit tests, run on Linux and
   macOS in CI. Fixtures follow the routes' real output.
-- The app builds for the simulator in CI with 482 tests (screen state machines, link
+- The app builds for the simulator in CI with 504 tests (screen state machines, link
   parsing, sign-in and access phases) and renders every screen in light and dark, and the
   main ones at the largest text sizes, to PNGs the workflow publishes.
 - CI also launches the whole app and drives it: UI tests walk the welcome story, sign-in, the canvas (keep, ask,
   show, hide), Yours, Memory, Chat, the Library, Settings, every screen the You tab opens, the first run and the
-  waitlist, on a canned server inside the app, and sweep the main screens in the dark appearance and at the largest
+  waitlist, and create, edit and delete through the screens (sign-out, memories, vault entries, boards, mail, pages),
+  checking what the app sent, on a canned server inside the app, and sweep the main screens in the dark appearance and at the largest
   accessibility text size. They do not cover a real sign-in, a real server, or anything that needs a device
   (Face ID, dictation, the scanner, widgets, the share extension); "How it is tested" lists the rest.
 - The Kit's models decode the response shapes a real deployment sent for about twenty authenticated endpoints

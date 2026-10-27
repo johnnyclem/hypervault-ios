@@ -105,6 +105,8 @@ final class VaultItemsModel {
 
     func secret(named name: String) -> VaultSecret? { secrets.first { $0.name == name } }
 
+    func secret(id: String) -> VaultSecret? { secrets.first { $0.id == id } }
+
     // MARK: Changing
 
     func add(_ secret: VaultSecret) {

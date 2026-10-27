@@ -107,6 +107,8 @@ struct ArtifactShareTarget: Identifiable {
 struct ArtifactCodeView: UIViewRepresentable {
     @Binding var text: String
     var isEditable = false
+    /// What a UI test finds the text view by.
+    var identifier: String?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -128,6 +130,7 @@ struct ArtifactCodeView: UIViewRepresentable {
         view.delegate = context.coordinator
         view.text = text
         view.isEditable = isEditable
+        view.accessibilityIdentifier = identifier
         return view
     }
 

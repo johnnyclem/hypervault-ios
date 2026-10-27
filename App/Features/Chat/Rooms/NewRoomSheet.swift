@@ -145,6 +145,7 @@ struct ChatNewRoomSheet: View {
             Section {
                 HVLabeledField(title: "Room name (optional)") {
                     TextField("Room name", text: $model.title, prompt: chatPrompt("Weekly review"))
+                        .accessibilityIdentifier("room.new.title")
                         .onChange(of: model.title) { if model.title.count > ChatRoomHandles.maxTitle { model.title = String(model.title.prefix(ChatRoomHandles.maxTitle)) } }
                 }
                 .padding(.vertical, HV.Space.xs)

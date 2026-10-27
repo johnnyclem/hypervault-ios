@@ -36,6 +36,7 @@ struct ChatRoomMembersSheet: View {
                 Section {
                     ForEach(model.members) { member in
                         memberRow(member, color: palette.color(for: member))
+                            .accessibilityIdentifier("room.member.\(member.handle)")
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) { pendingRemoval = member } label: {
                                     Label("Remove", systemImage: "person.badge.minus")
@@ -120,6 +121,7 @@ struct ChatRoomMembersSheet: View {
                             TextField("Handle", text: $newHandle, prompt: chatPrompt("claude"))
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
+                                .accessibilityIdentifier("room.member.handle")
                         }
                     }
                     HVLabeledField(title: "Role (optional)") {

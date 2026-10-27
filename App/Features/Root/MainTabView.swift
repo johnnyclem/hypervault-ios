@@ -97,6 +97,8 @@ struct RouteDestination: View {
         case .dreams: DreamsRootView()
         case .digest: DigestRootView()
         case .taskBoards: TaskBoardsRootView()
+        case .taskBoard(let slug, let project, let title):
+            TaskBoardView(listing: TaskBoardListing(slug: slug, project: project, title: title))
         case .admin: AdminRootView()
         case .settings: SettingsRootView()
         }

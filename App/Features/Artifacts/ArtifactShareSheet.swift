@@ -228,6 +228,7 @@ struct ArtifactShareSheet: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.send)
+                    .accessibilityIdentifier("artifact.share.email")
                     .focused($emailFocused)
                     .onSubmit { add(role: role) }
             }

@@ -218,7 +218,7 @@ struct ArtifactSourceSheet: View {
         case .loaded(let content):
             VStack(spacing: 0) {
                 if let line = banner(content) { bannerView(line) }
-                ArtifactCodeView(text: Bindable(model).draft, isEditable: model.isEditing)
+                ArtifactCodeView(text: Bindable(model).draft, isEditable: model.isEditing, identifier: "artifact.source.text")
                 if let error = model.saveError {
                     ArtifactErrorLine(message: error).padding(HV.Space.m)
                 }

@@ -69,7 +69,7 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
         visit(mode, .pane("keys", title: nil), "Agent keys", key: element("keys.connect"), "Connect an agent") {
             open(element("keys.row.k1"), "the Claude Code key", until: { self.isShowingTitle("Key") })
             look(mode, "a key", key: button("Revoke"), "the Revoke button")
-            goBack()
+            goBack(until: { self.isShowingTitle("Agent keys") })
 
             open(element("keys.connect"), "Connect an agent", until: { self.isShowingTitle("Connect your AI") })
             look(mode, "Connect your AI", key: shows("Just make a key"), "the way to make a key for anything not listed")

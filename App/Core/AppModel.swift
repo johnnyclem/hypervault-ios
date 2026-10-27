@@ -104,6 +104,8 @@ final class AppModel {
     func start() async {
         guard !started else { return }
         started = true
+        // What an older build cached carries the system's default protection; this gives it the rule new files get.
+        Task { [cache] in await cache.protectExistingFiles() }
         await bootstrap()
     }
 

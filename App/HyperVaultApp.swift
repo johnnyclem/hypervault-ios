@@ -31,6 +31,8 @@ struct HyperVaultApp: App {
     /// The real app's model. A debug build launched by the UI tests (`-HV_UITEST`) gets one wired to canned answers
     /// instead; see `UITestHarness`.
     private static func makeModel() -> AppModel {
+        // Before the first request: the system's cache keeps nothing the server said to a signed-in person.
+        HVURLCache.install()
         #if DEBUG
         if let canned = UITestHarness.makeModel() { return canned }
         #endif

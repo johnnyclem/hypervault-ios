@@ -57,7 +57,8 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
 
             open(element("keys.connect"), "Connect an agent", until: { self.isShowingTitle("Connect your AI") })
             look(mode, "Connect your AI", key: shows("Just make a key"), "the way to make a key for anything not listed")
-            open(element("connect.client.cursor"), "the Cursor row")
+            open(element("connect.client.cursor"), "the Cursor row", until: { self.isShowingTitle("Cursor") })
+            attachScreenshot("\(mode) - the Cursor screen")
             open(button("Make the key"), "Make the key")
             look(mode, "a key, just made", key: button("Copy key"), "the Copy key button")
             // A key that was never copied is not let go of without asking, so it is copied first, as a person would; then

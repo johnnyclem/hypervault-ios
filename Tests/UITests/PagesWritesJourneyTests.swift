@@ -150,7 +150,10 @@ final class PagesWritesJourneyTests: HyperVaultUITestCase {
         }
 
         step("Remove asks first, and then ends the share") {
-            personRow().coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+            // (The sheet opens at half height, and the person is below what it shows until the page is scrolled to them.)
+            let row = personRow()
+            reveal(row, "the person in the list of who has the page")
+            row.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
             confirm("Remove")
             requireWrite("DELETE", "/api/shares", equal: ["share_id": "sh-1"])
             requireGone(personRow(), "the person who was removed")

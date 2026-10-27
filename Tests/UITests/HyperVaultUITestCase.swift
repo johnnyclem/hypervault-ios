@@ -369,7 +369,8 @@ class HyperVaultUITestCase: XCTestCase {
     /// Opens the Account menu with the avatar on Home, from wherever the person is.
     func openAccountMenu(file: StaticString = #filePath, line: UInt = #line) {
         showHome(file: file, line: line)
-        tap(element("canvas.account"), "the Account button", file: file, line: line)
+        // A tap that lands while the page is still settling after the launch is lost, and a person would tap again.
+        tap(element("canvas.account"), "the Account button", until: { element("account.close").exists }, file: file, line: line)
         require(element("account.close"), "the Account menu", file: file, line: line)
     }
 
@@ -384,6 +385,15 @@ class HyperVaultUITestCase: XCTestCase {
             goneBack += 1
         }
         tap(more, "the More menu of \(tabTitle)", file: file, line: line)
+        // At a large text size the menu is taller than the screen, and the items below its fold are not drawn until the
+        // menu is scrolled to them.
+        var scrolled = 0
+        while !button(item).exists, scrolled < 5 {
+            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+            from.press(forDuration: 0.05, thenDragTo: to, withVelocity: XCUIGestureVelocity(rawValue: 500), thenHoldForDuration: 0.2)
+            scrolled += 1
+        }
         tap(button(item), "\(item) in the More menu", until: { isShowingTitle(title) }, file: file, line: line)
         waitUntil("the \(title) screen", file: file, line: line) { isShowingTitle(title) }
     }
@@ -396,7 +406,7 @@ class HyperVaultUITestCase: XCTestCase {
     /// Opens the Yours panel over Home with the button in the corner.
     func openYours(file: StaticString = #filePath, line: UInt = #line) {
         showHome(file: file, line: line)
-        tap(element("canvas.yours"), "the panel button", file: file, line: line)
+        tap(element("canvas.yours"), "the panel button", until: { element("yours.filter").exists }, file: file, line: line)
         require(element("yours.filter"), "the Yours panel", file: file, line: line)
     }
 

@@ -22,9 +22,10 @@ extension UITestWorld {
         let chats = UITestChats()
         let truth = UITestTruth()
         let rooms = UITestRooms()
+        let shares = UITestShares()
         return pageRoutes(vault) + memoryRoutes(memories) + secretRoutes(secrets) + boardRoutes(boards) + mailRoutes(mail)
             + realmRoutes(realms) + thinkRoutes(dreams, digest) + chatRoutes(chats) + truthRoutes(truth)
-            + roomRoutes(rooms)
+            + roomRoutes(rooms) + shareRoutes(shares)
     }
 
     // MARK: Helpers
@@ -302,6 +303,32 @@ extension UITestWorld {
                       let task = boards.patch(project, id: parts[2], patch: patch)
                 else { return notFound("No such task.") }
                 return reply(.object(["task": task, "tasklist": boards.boardJSON(project) ?? .null, "summary": boards.summary(project) ?? .null]))
+            },
+        ]
+    }
+
+    // MARK: Sharing a page
+
+    /// Who else can open a page: the Bakery page starts with one person, and a person is added by email and removed.
+    private static func shareRoutes(_ shares: UITestShares) -> [MockRoute] {
+        [
+            MockRoute(.get, "/api/shares") { request in
+                reply(.object([
+                    "shares": .array(shares.people(of: request.queryValue("artifact") ?? "")),
+                    "roles": .array([.string("view"), .string("use"), .string("edit")]), "roles_enforced": .bool(true),
+                ]))
+            },
+            MockRoute(.post, "/api/shares") { request in
+                let sent = body(request)
+                guard let slug = sent["artifact"]?.string, let email = sent["email"]?.string, let role = sent["role"]?.string else {
+                    return reply(.object(["error": .string("artifact, email and role are required.")]), status: 400)
+                }
+                shares.add(slug: slug, email: email, role: role)
+                return reply(.object(["role": .string(role), "message": .string("Shared with \(email).")]), status: 201)
+            },
+            MockRoute(.delete, "/api/shares") { request in
+                guard let id = body(request)["share_id"]?.string, shares.remove(id: id) else { return notFound("No such share.") }
+                return reply(.object(["message": .string("Access removed.")]))
             },
         ]
     }
@@ -1283,6 +1310,48 @@ final class UITestTruth: @unchecked Sendable {
             root["summary"] = .object(summary)
         }
         return JSONValue.object(root).jsonString()
+    }
+}
+
+/// The people each page is shared with.
+final class UITestShares: @unchecked Sendable {
+    private let lock = NSLock()
+    private var shares: [String: [JSONValue]] = [
+        "bakery-landing-page-x1": [
+            .object(["id": .string("s1"), "email": .string("maya@example.com"), "display_name": .string("Maya"), "role": .string("edit"), "created_at": .string(UITestWorld.date(500_000))]),
+        ],
+    ]
+    private var made = 0
+
+    func people(of slug: String) -> [JSONValue] {
+        lock.lock()
+        defer { lock.unlock() }
+        return shares[slug] ?? []
+    }
+
+    /// A person with that address gets the role; adding them again changes it.
+    func add(slug: String, email: String, role: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        var list = shares[slug] ?? []
+        if let at = list.firstIndex(where: { $0["email"]?.string == email }), case .object(var fields) = list[at] {
+            fields["role"] = .string(role)
+            list[at] = .object(fields)
+        } else {
+            made += 1
+            list.append(.object(["id": .string("sh-\(made)"), "email": .string(email), "display_name": .null, "role": .string(role), "created_at": .string(UITestWorld.date(2))]))
+        }
+        shares[slug] = list
+    }
+
+    func remove(id: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        for (slug, list) in shares where list.contains(where: { $0["id"]?.string == id }) {
+            shares[slug] = list.filter { $0["id"]?.string != id }
+            return true
+        }
+        return false
     }
 }
 

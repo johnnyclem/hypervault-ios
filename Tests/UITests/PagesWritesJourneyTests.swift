@@ -125,4 +125,36 @@ final class PagesWritesJourneyTests: HyperVaultUITestCase {
             requireGone(element("library.row.a2"), "the deleted page")
         }
     }
+    func testAPageIsSharedWithAPersonAndTheyAreRemoved() {
+        launch(.signedIn)
+        openFromYou("library", title: "Library")
+        let email = "sam@home.invalid"
+        // The row of a person reads its words as one (the way to remove them is its Remove action, and a Remove button at its end).
+        func personRow() -> XCUIElement {
+            app.descendants(matching: .any).matching(NSPredicate(
+                format: "label CONTAINS %@ AND elementType != %lu", email, XCUIElement.ElementType.textField.rawValue
+            )).firstMatch
+        }
+
+        step("The Trip to Lisbon page opens, and Share has nobody on it yet") {
+            open(element("library.row.a2"), "the Trip to Lisbon row", until: { self.isShowingTitle("Trip to Lisbon") })
+            tap(element("artifact.share"), "Share")
+            require(element("artifact.share.email"), "the field for an email address")
+            XCTAssertFalse(personRow().exists, "Nobody has the page yet.")
+        }
+
+        step("An address and Return give the person a view of the page") {
+            enter("\(email)\n", into: element("artifact.share.email"), "the email field")
+            requireWrite("POST", "/api/shares", equal: ["artifact": "trip-to-lisbon-q7", "email": email, "role": "view"])
+            require(personRow(), "the person in the list of who has the page")
+        }
+
+        step("Remove asks first, and then ends the share") {
+            personRow().coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+            confirm("Remove")
+            requireWrite("DELETE", "/api/shares", equal: ["share_id": "sh-1"])
+            requireGone(personRow(), "the person who was removed")
+            tap(button("Done"), "Done")
+        }
+    }
 }

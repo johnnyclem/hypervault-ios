@@ -23,8 +23,6 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
             open(element("dream.accept.d1"), "the Accept button of the first connection")
             requireGone(element("dream.accept.d1"), "the accepted connection")
             requireWrite("POST", "/api/dreams", equal: ["decision": "accept", "id": "d1"])
-            // (The line is at the top of the list, which the step before scrolled away from.)
-            reveal(shows("1 connection woven into your graph"), "the line that says what was woven in")
         }
 
         step("Rejecting another files it away for good") {
@@ -47,6 +45,13 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
             reveal(element("dream.accept.d2"), "the second connection again")
             XCTAssertFalse(element("dream.accept.d1").exists, "The accepted connection should not come back.")
             XCTAssertFalse(element("dream.accept.d3").exists, "The rejected connection should not come back.")
+        }
+
+        step("Accept all takes the rest in one verdict, and the queue says what was woven in") {
+            open(button("Accept all"), "Accept all")
+            requireWrite("POST", "/api/dreams", equal: ["decision": "accept", "runId": "run1"])
+            require(shows("2 connections woven into your graph"), "the line that says what was woven in")
+            XCTAssertFalse(element("dream.accept.d2").exists, "Every connection of the dream had its verdict.")
         }
     }
 
@@ -135,11 +140,12 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
         step("A belief and why it is held are typed") {
             enter("Retries are bounded by the budget.", into: element("truth.assert.text"), "the belief field")
             enter("The retry design doc says so.", into: element("truth.assert.basis"), "the basis field")
-            putTheKeyboardAwayByDragging()
         }
 
         step("Assert UV sends it and closes the sheet") {
-            tap(button("Assert UV"), "Assert UV")
+            let assert = button("Assert UV")
+            revealAboveTheKeyboard(assert, "the Assert UV button")
+            tap(assert, "Assert UV")
             requireGone(element("truth.assert.text"), "the Assert sheet")
             requireWrite(
                 "POST", "/api/truth/entries",

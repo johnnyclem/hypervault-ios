@@ -389,18 +389,17 @@ class HyperVaultUITestCase: XCTestCase {
         }
     }
 
-    /// Puts the keyboard away by dragging down the page, which a scrolling form lets go of the keyboard for (`scrollDismissesKeyboard`),
-    /// for a form whose fields grow with their text, so that their Return key is a new line and not a way out. The finger goes
-    /// down the gutter at the right of the page, where no field is.
-    func putTheKeyboardAwayByDragging() {
-        guard app.keyboards.count > 0 else { return }
-        let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.3))
-        let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.95))
-        from.press(forDuration: 0.05, thenDragTo: to, withVelocity: XCUIGestureVelocity(rawValue: 500), thenHoldForDuration: 0.1)
-        let deadline = Date().addingTimeInterval(5)
-        while Date() < deadline, app.keyboards.count > 0 {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+    /// Scrolls a form that has the keyboard up until `element` is clear of the keyboard, for a form whose fields grow with their
+    /// text (their Return key is a new line, so there is no putting the keyboard away). The finger goes up the gutter at the
+    /// right of the page, in the part the keyboard leaves: the page moves with it, and a sheet is not pulled down (a drag
+    /// down would be).
+    func revealAboveTheKeyboard(_ element: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
+        for _ in 0..<6 where !(element.exists && element.isHittable) {
+            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.55))
+            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.15))
+            from.press(forDuration: 0.05, thenDragTo: to, withVelocity: XCUIGestureVelocity(rawValue: 500), thenHoldForDuration: 0.2)
         }
+        require(element, what, timeout: 5, file: file, line: line)
     }
 
     /// Answers a confirmation the app asks for a destructive choice. On a phone the dialog is an action sheet, or a popover

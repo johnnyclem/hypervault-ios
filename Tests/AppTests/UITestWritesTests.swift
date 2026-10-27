@@ -257,6 +257,34 @@ final class UITestWritesTests: XCTestCase {
         XCTAssertEqual(memories.count, 7)
     }
 
+    // MARK: Sharing a page
+
+    func testAPageIsSharedWithAPersonAndTheyAreRemoved() async throws {
+        let api = client()
+        let bakery = try await api.send(.artifactShares(slug: "bakery-landing-page-x1"))
+        XCTAssertEqual(bakery.people.map(\.email), ["maya@example.com"])
+        XCTAssertTrue(bakery.enforced)
+        let trip = try await api.send(.artifactShares(slug: "trip-to-lisbon-q7"))
+        XCTAssertTrue(trip.people.isEmpty, "Only the Bakery page starts shared.")
+
+        let added = try await api.send(.shareArtifact(slug: "trip-to-lisbon-q7", email: "sam@home.invalid", role: .view))
+        XCTAssertEqual(added.role, .view)
+        XCTAssertEqual(added.message, "Shared with sam@home.invalid.")
+        let after = try await api.send(.artifactShares(slug: "trip-to-lisbon-q7"))
+        XCTAssertEqual(after.people.map(\.email), ["sam@home.invalid"])
+        XCTAssertEqual(after.people.first?.id, "sh-1")
+
+        _ = try await api.send(.shareArtifact(slug: "trip-to-lisbon-q7", email: "sam@home.invalid", role: .edit))
+        let changed = try await api.send(.artifactShares(slug: "trip-to-lisbon-q7"))
+        XCTAssertEqual(changed.people.map(\.role), [.edit], "Adding a person again changes their role.")
+
+        _ = try await api.send(.endShare(id: "sh-1"))
+        let none = try await api.send(.artifactShares(slug: "trip-to-lisbon-q7"))
+        XCTAssertTrue(none.people.isEmpty)
+        let still = try await api.send(.artifactShares(slug: "bakery-landing-page-x1"))
+        XCTAssertEqual(still.people.count, 1)
+    }
+
     // MARK: Rooms
 
     func testARoomIsMadeRenamedGivenAMemberTakenOneAndDeleted() async throws {

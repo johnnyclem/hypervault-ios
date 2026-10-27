@@ -91,12 +91,6 @@ struct SignInContent: View {
                                     .padding(.top, HV.Space.xs)
                                     .transition(.opacity)
                             }
-
-                            Text("Only you can open what you keep.")
-                                .font(.hvCaption)
-                                .foregroundStyle(Palette.textTertiary)
-                                .multilineTextAlignment(.center)
-                                .padding(.top, HV.Space.s)
                         }
                         .padding(.horizontal, HV.Space.l)
                         .padding(.bottom, HV.Space.l)

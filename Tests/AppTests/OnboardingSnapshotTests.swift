@@ -1,3 +1,4 @@
+import HyperVaultKit
 import SwiftUI
 import XCTest
 @testable import HyperVault
@@ -7,8 +8,13 @@ final class OnboardingSnapshotTests: XCTestCase {
     func testWelcomePages() throws {
         try snapshot(ZStack { AuroraBackground(); WelcomePageKeep() }, named: "welcome-1-keep")
         try snapshot(ZStack { AuroraBackground(); WelcomePageTalk() }, named: "welcome-2-talk")
-        try snapshot(ZStack { AuroraBackground(); WelcomePageAnyAI() }, named: "welcome-3-any-ai")
-        try snapshot(ZStack { AuroraBackground(); WelcomePageSecrets() }, named: "welcome-4-secrets")
+        try snapshot(ZStack { AuroraBackground(); WelcomePageSecrets() }, named: "welcome-3-secrets")
+        try snapshot(ZStack { AuroraBackground(); WelcomePageAnyAI() }, named: "welcome-4-any-ai")
+    }
+
+    /// The page that tells the product sentence is its two sentences, verbatim.
+    func testTheTalkPageIsTheProductSentence() {
+        XCTAssertEqual("\(WelcomePageTalk.title) \(WelcomePageTalk.message)", HVCopy.productSentence)
     }
 
     func testStates() throws {

@@ -33,7 +33,7 @@ struct RecentWidgetView: View {
             case .signedOut:
                 message("Open HyperVault to sign in.")
             case .locked:
-                message("Locked. Open HyperVault to see what you kept.")
+                message("Hidden while the lock is on. Open HyperVault to see what you kept.")
             case .empty:
                 message("Nothing kept yet.")
             case .items(let things):

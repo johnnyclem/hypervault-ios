@@ -21,7 +21,8 @@ Only a phone can do these, so the app does them:
 
 - **Keep from anywhere**: a share extension keeps text or a link from any app, and
   when there is no network it saves to an outbox the app flushes later.
-- **Face ID lock** and a blank app-switcher card.
+- **Face ID lock** (a lock on the screen; the device passcode opens it too), and a blank app-switcher card while the
+  lock is on or a screen is showing a value.
 - **Spotlight**: kept pages and memories in system search (never keys).
 - **Widgets**: Yours on the Home Screen and Lock Screen; a one-tap Keep widget.
 - **Siri and Shortcuts**: "Keep this in HyperVault".
@@ -101,7 +102,7 @@ Tests/AppTests/          App tests and snapshot renders.
   retries safe requests on transient failures and keeps the server's own sentences.
   `AuthService` is Supabase Auth on device: PKCE for Google, the id-token exchange for
   Apple, emailed codes, silent refresh. The session lives in a Keychain group the
-  extensions share.
+  extensions share, kept after the first unlock and on this device only.
 - **Logic in the Kit, views thin.** Anything with rules (the canvas commands, card
   state, pull resolution, link parsing, the outbox policy, conflict resolution) is
   plain Swift with tests, ported from the web app and checked against its own test

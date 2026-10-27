@@ -7,7 +7,7 @@ import HyperVaultKit
 /// vault: the text waits in the outbox until the app has been opened and unlocked.
 struct KeepTextIntent: AppIntent {
     static let title: LocalizedStringResource = "Keep in HyperVault"
-    static let description = IntentDescription("Keeps some text and gives you its private link.")
+    static let description = IntentDescription("Keeps some text and gives you the link.")
 
     @Parameter(title: "Text", requestValueDialog: "What do you want to keep?")
     var text: String

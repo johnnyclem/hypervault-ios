@@ -53,7 +53,7 @@ struct SettingsRootView: View {
                     .onChange(of: spotlight) { _, on in if !on { SpotlightIndexer.clear() } }
             }.hvListRow()
 
-            Section(header: HVSectionHeader(title: "Security"), footer: Text("Ask for \(model.lock.methodName) when you open HyperVault, and blank the app switcher. Your saved logins, cards and keys never leave the server, so there is nothing on this phone to unlock them. While the lock is on, widgets and Spotlight show nothing from your vault, and what you ask Siri to keep waits until you unlock the app.")) {
+            Section(header: HVSectionHeader(title: "Security"), footer: Text("Ask for \(model.lock.methodName) when you open HyperVault, and blank the app switcher. This is a lock on the screen, and your device passcode opens it too. The value of a saved login, card or key is never sent to this phone; its name and short label are. While the lock is on, widgets and Spotlight show nothing from your vault, and what you ask Siri to keep waits until you unlock the app.")) {
                 Toggle("Lock with \(model.lock.methodName)", isOn: Binding(
                     get: { biometricLock },
                     set: { wanted in
@@ -109,7 +109,7 @@ struct SettingsRootView: View {
             Section(header: HVSectionHeader(title: "About")) {
                 LabeledContent("Version", value: versionText)
                 Link("Open hypervault.store", destination: env.server.baseURL)
-                Link("Read the privacy note", destination: env.webURL("/explain.md"))
+                Link("How HyperVault works", destination: env.webURL("/explain.md"))
             }.hvListRow()
         }
         .scrollContentBackground(.hidden)

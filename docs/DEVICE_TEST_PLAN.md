@@ -70,6 +70,15 @@ that finds problems fastest. Each line says what should happen.
 - The app switcher card is blank.
 - With the lock on, widgets show a placeholder and Siri keeps queue until you unlock.
 - VoiceOver on: nothing behind the lock can be reached.
+- The words say what it is: the lock screen says "HyperVault is locked" and "Unlock to continue.", and a passcode
+  opens it as well as Face ID.
+- **Lock off, a screen with a value:** Vault > Add, pick Card, type a number, then open the app switcher: the card is
+  the blank one with the mark, not the form. The same for the Replace and Edit sheets, a freshly made agent key, a
+  page password and a webhook's signing secret. Come back: the form is as you left it, and nothing asks for Face ID,
+  even after a minute away. Look at the card with the keyboard up: the system keyboard may still be drawn on it.
+- **Reinstall:** sign in, delete the app, install it again: the first launch shows the way in, not your account. An
+  update over the older build keeps you signed in. The widgets and the share sheet, used before the app is opened
+  again, say to sign in.
 
 ## 5. Features that need a live account
 

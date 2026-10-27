@@ -30,6 +30,15 @@ machine) belongs there with a test. Views stay thin.
   says the same thing. On first-run surfaces never use the words in
   `FIRST_RUN_BANNED` (MCP, tombstone, GraphRAG, grant, subdomain, AgentVault,
   wiki, vault item); power-user screens may.
+- A line claims no more than a check that can fail has shown. "Only you can open it."
+  (`HVCopy.onlyYouLine`) goes only under a kept card whose response said the thing
+  is private: not on a screen before anything is kept, not as a tagline of a sign-in
+  screen, not about a link. The Face ID lock gates the screen and the device passcode
+  opens it too, so nothing says "protected", "secure", "safe" or "encrypted on this
+  phone" about it, and "locked" describes the lock screen and nothing else. A line
+  about who can read a saved value names Claude Code, Codex, Cursor, Gemini CLI,
+  Grok Build or your own script (`HVCopy.landingVaultAgents`), never a chat app: a
+  chat app can connect but cannot read a value.
 
 `docs/mobile/` in that repo is an older plan. Where it disagrees with the code,
 the code wins. Do not invent endpoints.
@@ -122,6 +131,25 @@ struct WidgetsView: View {
   of cross-feature routes is `Route` in `App/Core/DeepLink.swift`.
 - Secrets are never shown after creation and are never logged. A value shown
   once is copied with `UIPasteboard.general.setItems([[...]], options: [.localOnly: true, .expirationDate: ...])`.
+
+## Secrets on the phone
+
+- The session is in the Keychain as `AfterFirstUnlockThisDeviceOnly`, not synchronised
+  (`Shared/KeychainSecureStore.swift`; the extensions read the same item). An item stored
+  by an older build moves to that class when it is read. The Keychain outlives an uninstall,
+  so the first launch of a new install ends whatever session it finds (`InstallMarker`,
+  kept in the app's own preferences, which an uninstall removes). Tests that seed a session
+  call `SharedState.begin()`, and the UI-test mode marks the install itself, or launch would
+  end the seeded session as a leftover.
+- A screen that shows or takes a value applies `.hvSensitive()` (or `.hvSensitive(model.key != nil)`
+  for one that holds a value only sometimes). While one is up, the app switcher gets the blank
+  card whether or not the Face ID lock is on; it never locks anyone.
+- `DiskCache` files are written readable only after the first unlock, and nothing the server said
+  to a signed-in person is kept in the system's URL cache (`HVURLCache`).
+- Each bundle has its own `PrivacyInfo.xcprivacy` (app, share extension, widgets). A bundle that
+  starts to use a required-reason API (user defaults, file timestamps, disk space, system boot
+  time, active keyboards) declares its reason there; `PrivacyManifestTests` reads the sources and
+  fails when a manifest and the code disagree.
 
 ## Look and feel
 

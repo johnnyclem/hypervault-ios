@@ -379,31 +379,11 @@ public enum VaultItems {
         return (1...(domain.count - 2)).contains { domain[$0] == "." }
     }
 
-    /// The host of an http(s) address, or nil when `url` is not one.
+    /// The host of an http(s) address as `new URL(url).hostname` writes it, or nil when `new URL` throws, the
+    /// scheme is not http(s) or there is no host. Not `URL(string:)`: that is RFC 3986 and its answer depends on
+    /// the OS. See VaultWebHost.swift.
     static func webHost(_ url: String) -> String? {
-        let lower = url.lowercased()
-        let prefixLength: Int
-        if lower.hasPrefix("https://") { prefixLength = 8 } else if lower.hasPrefix("http://") { prefixLength = 7 } else { return nil }
-        let rest = url.dropFirst(prefixLength)
-        let end = rest.firstIndex { "/?#\\".contains($0) } ?? rest.endIndex
-        var authority = String(rest[..<end])
-        if let at = authority.lastIndex(of: "@") { authority = String(authority[authority.index(after: at)...]) }
-
-        var host = authority
-        if host.hasPrefix("[") {
-            guard let close = host.firstIndex(of: "]") else { return nil }
-            let tail = host[host.index(after: close)...]
-            guard tail.isEmpty || (tail.hasPrefix(":") && tail.dropFirst().allSatisfy { $0.isASCII && $0.isNumber }) else { return nil }
-            host = String(host[...close])
-        } else if let colon = host.lastIndex(of: ":") {
-            let port = host[host.index(after: colon)...]
-            guard port.allSatisfy({ $0.isASCII && $0.isNumber }) else { return nil }
-            host = String(host[..<colon])
-        }
-        guard !host.isEmpty else { return nil }
-        let forbidden = Set("\"<>\\^`{|}".unicodeScalars)
-        if host.unicodeScalars.contains(where: { $0.value <= 0x20 || $0.value == 0x7F || forbidden.contains($0) }) { return nil }
-        return host.lowercased()
+        VaultWebHost.host(of: url)
     }
 
     /// The first problem with a canonical entry, worded for the person filling in the form.

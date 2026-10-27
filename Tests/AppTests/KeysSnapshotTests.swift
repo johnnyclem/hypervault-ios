@@ -3,7 +3,7 @@ import SwiftUI
 import XCTest
 @testable import HyperVault
 
-/// Account & keys, the Connect sheet, webhooks, the vault and Your address, rendered in light and
+/// Agent keys, the Connect sheet, webhooks, the vault and Your address, rendered in light and
 /// dark on canned routes. CI publishes the PNGs to `snapshots-claude-ios-keys`.
 @MainActor
 final class KeysSnapshotTests: XCTestCase {

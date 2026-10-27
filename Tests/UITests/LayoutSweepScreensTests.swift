@@ -50,9 +50,9 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
             look(mode, "a task", key: shows("Two quotes in, one to go."), "the agent's note")
         }
 
-        visit(mode, "agentsAndKeys", "Account & keys", key: element("keys.connect"), "Connect an agent") {
+        visit(mode, "agentsAndKeys", "Agent keys", key: element("keys.connect"), "Connect an agent") {
             open(element("keys.row.k1"), "the Claude Code key", until: { self.isShowingTitle("Key") })
-            look(mode, "a key", key: shows("Revoke key"), "the Revoke key row")
+            look(mode, "a key", key: button("Revoke"), "the Revoke button")
             goBack()
 
             open(element("keys.connect"), "Connect an agent", until: { self.isShowingTitle("Connect your AI") })

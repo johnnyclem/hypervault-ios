@@ -101,47 +101,26 @@ final class LocalE2ESessionRoutesTests: LocalE2ECase {
         _ = try await send(.revokeAgentKey(id: row.id), api)
     }
 
-    func testAnAgentFinishesItsSetupChallengeAndTheKeysListSaysConnected() async throws {
+    func testEachNewKeyHasASetupChallengePageAndTheKitFindsItsSlug() async throws {
         let (api, token) = member(3)
         let userID = try await userId(of: token)
         let rest = try rest(token: token)
         let minted = try await send(.createAgentKey(name: unique("Connector")), api)
         let challenge = try XCTUnwrap(minted.challenge)
-        var keys = try await AgentKeyDirectory.keys(rest: rest, userID: userID)
+        let keys = try await AgentKeyDirectory.keys(rest: rest, userID: userID)
         let row = try XCTUnwrap(keys.first { $0.keyPrefix == minted.prefix })
 
-        // Before: the challenge exists and is not complete.
-        var statuses = await AgentKeyDirectory.setupStatuses(rest: rest, userID: userID, keys: keys)
-        XCTAssertEqual(statuses[row.id]?.slug, challenge.slug)
-        XCTAssertEqual(statuses[row.id]?.complete, false)
-
-        // The agent, holding only the key, reads the page and writes it back completed.
-        let agent = client(minted.key)
-        let page = try await send(.artifactContent(slug: challenge.slug), agent)
-        XCTAssertFalse(AgentSetup.isComplete(content: page.content))
-        let done = page.content.replacingOccurrences(of: "data-setup-status=\"incomplete\"", with: "data-setup-status=\"complete\"")
-        XCTAssertNotEqual(done, page.content)
-        let head = try XCTUnwrap(page.headVersionId ?? page.version?.id)
-        let written = try await send(.writeArtifact(slug: challenge.slug, ArtifactWriteRequest(content: done, message: "agent setup complete", baseVersionId: head)), agent)
-        XCTAssertFalse(written.unchanged)
-
-        keys = try await AgentKeyDirectory.keys(rest: rest, userID: userID)
-        statuses = await AgentKeyDirectory.setupStatuses(rest: rest, userID: userID, keys: keys)
-        XCTAssertEqual(statuses[row.id]?.complete, true, "the Kit's two PostgREST reads did not agree the agent connected")
-        XCTAssertNotNil(statuses[row.id]?.completedAt)
+        // The Kit reads the page's slug and tags, and nothing about whether the agent has finished it.
+        let slugs = await AgentKeyDirectory.challengeSlugs(rest: rest, userID: userID, keys: keys)
+        XCTAssertEqual(slugs[row.id], challenge.slug)
         let snapshot = try await AgentKeyDirectory.snapshot(rest: rest, userID: userID)
         XCTAssertEqual(snapshot.keys.count, keys.count)
-        XCTAssertGreaterThanOrEqual(snapshot.connectedCount, 1)
+        XCTAssertEqual(snapshot.challengeSlugs[row.id], challenge.slug)
 
-        // A hand edit by the person does not count as the agent connecting.
-        let second = try await send(.createAgentKey(name: unique("Forged")), api)
-        let secondPage = try await send(.artifactContent(slug: try XCTUnwrap(second.challenge).slug), api)
-        let forged = secondPage.content.replacingOccurrences(of: "data-setup-status=\"incomplete\"", with: "data-setup-status=\"complete\"")
-        _ = try await send(.writeArtifact(slug: try XCTUnwrap(second.challenge).slug, ArtifactWriteRequest(content: forged, baseVersionId: secondPage.headVersionId)), api)
-        keys = try await AgentKeyDirectory.keys(rest: rest, userID: userID)
-        statuses = await AgentKeyDirectory.setupStatuses(rest: rest, userID: userID, keys: keys)
-        let forgedRow = try XCTUnwrap(keys.first { $0.keyPrefix == second.prefix })
-        XCTAssertEqual(statuses[forgedRow.id]?.complete, false, "a page edited by hand passed for a connected agent")
+        // The agent, holding only the key, can open the page the slug names.
+        let page = try await send(.artifactContent(slug: challenge.slug), client(minted.key))
+        XCTAssertFalse(page.content.isEmpty)
+        _ = try await send(.revokeAgentKey(id: row.id), api)
     }
 
     // MARK: The artifact source route (hypervault#180)

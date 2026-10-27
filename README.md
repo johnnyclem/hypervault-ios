@@ -144,7 +144,7 @@ state. They cover:
 - every **screen the You tab opens**, against canned answers that give it real content: Logins, cards & keys (and one
   entry), Mail (the inbox, then a thread), Truth (the ledger, an entry's ancestry, the review docket), Tools (and a
   server), Your address (and one), Import (a pasted conversation read and sent), Dreams, Digest, Task boards (a board,
-  then a task), Account & keys (Connect your AI through to a key that is shown once and copied, and revoking a key) and,
+  then a task), Agent keys (Connect your AI through to a key that is shown once and copied, and revoking a key) and,
   for an admin, Admin (minting an invite code, switching it off, Accounts & waitlist); and a memory in full, Memory's Ask
   mode, a conversation and a room that take a message and answer it, a page from the Library with its Share, History
   and Details sheets;

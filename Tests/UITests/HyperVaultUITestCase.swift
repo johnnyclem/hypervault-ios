@@ -401,13 +401,21 @@ class HyperVaultUITestCase: XCTestCase {
             goneBack += 1
         }
         tap(more, "the More menu of \(tabTitle)", file: file, line: line)
-        // At a large text size the menu is taller than the screen, and the items below its fold are not drawn until the
-        // menu is scrolled to them.
+        // At the largest text sizes every item of the menu is over a hundred points tall, and the card the menu is drawn in
+        // ends about two thirds of the way down the screen: the items below its fold are not drawn until the menu is scrolled,
+        // and the ones just past it exist but sit under the card's edge, where a tap would land on the page and put the menu
+        // away. The finger goes down inside the card (a drag that starts outside it puts the menu away too) and is drawn up.
+        let window = app.windows.firstMatch.frame
+        func reachable() -> Bool {
+            let target = button(item)
+            guard target.exists else { return false }
+            return target.frame.height < 90 || target.frame.midY < window.height * 0.55
+        }
         var scrolled = 0
-        while !button(item).exists, scrolled < 5 {
-            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
-            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
-            from.press(forDuration: 0.05, thenDragTo: to, withVelocity: XCUIGestureVelocity(rawValue: 500), thenHoldForDuration: 0.2)
+        while !reachable(), scrolled < 8 {
+            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.17))
+            from.press(forDuration: 0.01, thenDragTo: to, withVelocity: XCUIGestureVelocity(rawValue: 400), thenHoldForDuration: 0)
             scrolled += 1
         }
         tap(button(item), "\(item) in the More menu", until: { isShowingTitle(title) }, file: file, line: line)

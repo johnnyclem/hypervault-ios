@@ -16,11 +16,10 @@ public enum VaultLimits {
     /// than"; route.ts was not among the files, so neither is verified, and both are the looser reading.
     public static let maxValueBytes = 64 * 1024
 
-    /// Characters of a secret's description (the "Note" a person types). The handoff says "500 characters" and
-    /// names route.ts:107-108, which was not among the files, so whether the server counts UTF-16 units
-    /// (`.length`) or code points (`Array.from`) is not verified. Code points are counted here: that is the
-    /// smaller number for text with emoji, so the app never blocks a note the server would take. Past this the
-    /// server answers a 400 whose wording is also not in the files, so there is no message for it here.
+    /// UTF-16 units of a secret's description (the "Note" a person types). The server does not refuse a longer one:
+    /// `body.description.slice(0, 500)` (`app/api/secrets/route.ts:107-108`) cuts it silently, and `slice` counts
+    /// UTF-16 units, so an emoji uses two. There is no 400 and so no message for it; a form that takes a note stops
+    /// the field at this count (`clampedDescription`) so what was typed is what is kept.
     public static let maxDescription = 500
 
     /// A name is 1 to 100 characters of `[A-Za-z0-9._-]` (`VaultItems.isValidName`).
@@ -70,20 +69,28 @@ public enum VaultLimits {
         entryLimitReached(count: count) ? entryLimitMessage : nil
     }
 
-    /// How many characters of the description count against the limit (code points, see `maxDescription`).
+    /// How many characters of the description the server keeps count of: UTF-16 units, as `slice` counts them.
     public static func descriptionLength(_ text: String) -> Int {
-        text.unicodeScalars.count
+        text.utf16.count
     }
 
-    /// Whether a description is over the limit.
+    /// Whether the server would cut the description.
     public static func descriptionTooLong(_ text: String) -> Bool {
         descriptionLength(text) > maxDescription
     }
 
-    /// `text` cut to the limit without splitting a code point, for a field that stops taking input there. A
-    /// combining mark can be left without its base; the field is a counter, not a text editor.
+    /// `text` cut to the limit, for a field that stops taking input there. It never ends in half of a surrogate pair
+    /// (the server's `slice` would leave one), so an emoji that does not fit is dropped whole.
     public static func clampedDescription(_ text: String) -> String {
         guard descriptionTooLong(text) else { return text }
-        return String(String.UnicodeScalarView(text.unicodeScalars.prefix(maxDescription)))
+        var kept = String.UnicodeScalarView()
+        var used = 0
+        for scalar in text.unicodeScalars {
+            let width = scalar.value > 0xFFFF ? 2 : 1
+            if used + width > maxDescription { break }
+            kept.append(scalar)
+            used += width
+        }
+        return String(kept)
     }
 }

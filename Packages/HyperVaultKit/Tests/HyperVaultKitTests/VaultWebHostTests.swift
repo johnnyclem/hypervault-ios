@@ -111,6 +111,12 @@ final class VaultWebHostTests: XCTestCase {
         ("https://exa\u{200B}mple.com", "example.com"),
         ("https://exa\u{FEFF}mple.com", "example.com"),
         ("https://\u{1F600}.com", "xn--e28h.com"),
+        // zero-width joiners where spelling needs them (Node 22.22.0): Persian, Sinhala, Devanagari
+        ("https://\u{6A9}\u{62A}\u{627}\u{628}\u{200C}\u{647}\u{627}.com", "xn--mgbacg1m8wy53l.com"),
+        ("https://\u{645}\u{6CC}\u{200C}\u{62E}\u{648}\u{627}\u{647}\u{645}.com", "xn--mgbn2ecje63gr19l.com"),
+        ("https://www.\u{DC1}\u{DCA}\u{200D}\u{DBB}\u{DD3}.lk", "www.xn--10cl1a0b660p.lk"),
+        ("https://\u{915}\u{94D}\u{200D}\u{937}.com", "xn--11b2ezcw70k.com"),
+        ("https://xn--mgbacg1m8wy53l.com", "xn--mgbacg1m8wy53l.com"),
         ("https://ma\u{DF}e.de", "xn--mae-6ka.de"),
         ("https://\u{130}stanbul.com", "xn--istanbul-o0e.com"),
         ("https://\u{441}\u{430}\u{439}\u{442}.\u{440}\u{444}", "xn--80aswg.xn--p1ai"),
@@ -239,6 +245,8 @@ final class VaultWebHostTests: XCTestCase {
         ("https://exa\u{FFFD}mple.com", nil),
         ("https://exa\u{200D}mple.com", nil),
         ("https://exa\u{200C}mple.com", nil),
+        ("https://\u{200D}example.com", nil),
+        ("https://example\u{200D}.com", nil),
         ("https://\u{301}example.com", nil),
         ("https://exa\u{E000}mple.com", nil),
         ("https://exa%ffmple.com", nil),
@@ -250,7 +258,7 @@ final class VaultWebHostTests: XCTestCase {
     ]
 
     func testEveryRowOfTheNodeTable() {
-        XCTAssertEqual(Self.nodeTable.count, 211)
+        XCTAssertEqual(Self.nodeTable.count, 218)
         for (input, expected) in Self.nodeTable {
             XCTAssertEqual(Items.webHost(input), expected, "webHost(\(input.debugDescription))")
         }

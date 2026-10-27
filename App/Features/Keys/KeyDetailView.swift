@@ -1,9 +1,10 @@
 import HyperVaultKit
 import SwiftUI
 
-/// One key: what it is called, when it was made and last used, whether its agent finished setting up,
-/// what it may do with mail, the setup steps again, and revoking it. The key itself is gone (it was shown
-/// once); the steps carry a placeholder where it goes.
+/// One key: what it is called, when it was made and last used, what it may do with mail, the setup steps
+/// again, its setup challenge page, and revoking it. Every line is something the server states about the key;
+/// whether its agent is connected is not among them. The key itself is gone (it was shown once); the steps
+/// carry a placeholder where it goes.
 struct KeyDetailView: View {
     let keyID: String
     let model: AgentsAndKeysModel
@@ -31,10 +32,11 @@ struct KeyDetailView: View {
     }
 
     private func details(_ key: AgentKey) -> some View {
-        let status = model.status(of: key)
+        let challengeSlug = model.challengeSlug(of: key)
+        let isRevoking = model.revoking.contains(key.id)
         return List {
             Section {
-                header(key, status: status)
+                header(key)
                     .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.s, trailing: HV.Space.m))
             }
             .hvListRow()
@@ -43,14 +45,6 @@ struct KeyDetailView: View {
                 LabeledContent("Key", value: key.prefixLabel)
                 LabeledContent("Made", value: key.createdAt?.keysDay ?? "Unknown")
                 LabeledContent("Last used", value: key.lastUsedAt.map { AccountWords.agoLine(seconds: Date().timeIntervalSince($0)) } ?? "Never")
-                LabeledContent("Agent") {
-                    if let status {
-                        Text(status.complete ? "Connected" : "Waiting for its setup challenge")
-                            .foregroundStyle(status.complete ? Palette.success : Palette.warning)
-                    } else {
-                        Text("Not known").foregroundStyle(Palette.textSecondary)
-                    }
-                }
             } footer: {
                 Text("The key itself was shown once, when it was made. It cannot be shown again.")
             }
@@ -71,9 +65,9 @@ struct KeyDetailView: View {
                 Button { showSteps = true } label: {
                     HVRow(symbol: "list.bullet.rectangle", tint: Palette.blue, title: "Setup steps", subtitle: "Steps for an agent, with this key's place marked") { KeysChevron() }
                 }
-                if let status, !status.complete {
+                if let challengeSlug {
                     Button {
-                        app.router.open(.route(.artifact(slug: status.slug)))
+                        app.router.open(.route(.artifact(slug: challengeSlug)))
                     } label: {
                         HVRow(symbol: "doc.text", tint: Palette.violet, title: "Its challenge page", subtitle: "The page the agent has to rewrite") { KeysChevron() }
                     }
@@ -83,7 +77,7 @@ struct KeyDetailView: View {
 
             Section {
                 Button(role: .destructive) { confirmRevoke = true } label: {
-                    Label("Revoke key", systemImage: "xmark.circle").foregroundStyle(Palette.danger)
+                    Label(isRevoking ? KeysCopy.revoking : KeysCopy.revoke, systemImage: "xmark.circle").foregroundStyle(Palette.danger)
                 }
                 .disabled(model.changing.contains(key.id))
             } footer: {
@@ -92,37 +86,30 @@ struct KeyDetailView: View {
             .hvListRow()
         }
         .scrollContentBackground(.hidden)
-        .confirmationDialog("Revoke \(key.displayName ?? key.prefixLabel)?", isPresented: $confirmRevoke, titleVisibility: .visible) {
-            Button("Revoke key", role: .destructive) { revoke(key) }
+        .confirmationDialog(KeysCopy.reallyRevoke, isPresented: $confirmRevoke, titleVisibility: .visible) {
+            Button(KeysCopy.revoke, role: .destructive) { revoke(key) }
             Button("Keep it", role: .cancel) {}
         } message: {
-            Text("The agent using it stops working at once. This cannot be undone.")
+            Text(KeysCopy.revokeMessage(for: key))
         }
         .sheet(isPresented: $showSteps) {
-            ConnectAgentSheet(existingKey: key, challengeSlug: status?.slug)
+            ConnectAgentSheet(existingKey: key, challengeSlug: challengeSlug)
         }
     }
 
-    private func header(_ key: AgentKey, status: AgentSetupStatus?) -> some View {
-        let tag = status.map { HVTag(text: $0.complete ? "Agent connected" : "Setup pending", tint: $0.complete ? Palette.success : Palette.warning) }
+    private func header(_ key: AgentKey) -> some View {
         // Beside the name while it fits. At accessibility sizes the badge would leave the name a narrow column, so it goes
-        // above it, and the tag goes under the name, where it can have the width.
-        let stacked = dynamicTypeSize.isAccessibilitySize
-        let layout = stacked
+        // above it.
+        let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: HV.Space.s))
             : AnyLayout(HStackLayout(alignment: .center, spacing: HV.Space.m))
         return layout {
-            HVIconBadge(symbol: key.isPaired ? "link" : "key.horizontal", tint: status?.complete == true ? Palette.mint : Palette.amber, size: 48)
+            HVIconBadge(symbol: key.isPaired ? "link" : "key.horizontal", tint: Palette.amber, size: 48)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(key.displayName ?? "Untitled key").font(.hvTitle3)
                 if key.isPaired {
                     Text("Made by approving an AI tool").font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                 }
-                if stacked, let tag { tag }
-            }
-            if !stacked {
-                Spacer(minLength: 0)
-                if let tag { tag }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

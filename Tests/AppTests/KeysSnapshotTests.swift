@@ -3,7 +3,7 @@ import SwiftUI
 import XCTest
 @testable import HyperVault
 
-/// Account & keys, the Connect sheet, pairing, webhooks, the vault and Your address, rendered in light and
+/// Agent keys, the Connect sheet, webhooks, the vault and Your address, rendered in light and
 /// dark on canned routes. CI publishes the PNGs to `snapshots-claude-ios-keys`.
 @MainActor
 final class KeysSnapshotTests: XCTestCase {
@@ -70,26 +70,6 @@ final class KeysSnapshotTests: XCTestCase {
             PreviewHost(routes: [.json(.get, "/api/webhooks", WebhooksSnapshotData.json)]) { WebhooksView() }.environment(\.dynamicTypeSize, accessibility),
             named: "keys-webhooks-large"
         )
-        let probe: [MockRoute] = [.failure(.post, "/api/pair/poll", status: 400, message: "device_code is required")]
-        try snapshot(
-            PreviewHost(routes: probe, embedInNavigation: false) { PairApprovalView(code: "BCDF-2346") }.environment(\.dynamicTypeSize, accessibility),
-            named: "keys-pair-large"
-        )
-    }
-
-    func testPairingAsking() throws {
-        let probe: [MockRoute] = [.failure(.post, "/api/pair/poll", status: 400, message: "device_code is required")]
-        try snapshot(PreviewHost(routes: probe, embedInNavigation: false) { PairApprovalView(code: "BCDF-2346") }, named: "keys-pair-asking")
-    }
-
-    func testPairingEnteringACode() throws {
-        let probe: [MockRoute] = [.failure(.post, "/api/pair/poll", status: 400, message: "device_code is required")]
-        try snapshot(PreviewHost(routes: probe, embedInNavigation: false) { PairApprovalView(code: nil) }, named: "keys-pair-enter")
-    }
-
-    func testPairingNotAvailable() throws {
-        let off: [MockRoute] = [.failure(.post, "/api/pair/poll", status: 404, message: "Not found.")]
-        try snapshot(PreviewHost(routes: off, embedInNavigation: false) { PairApprovalView(code: "BCDF-2346") }, named: "keys-pair-unavailable")
     }
 
     func testWebhooks() throws {

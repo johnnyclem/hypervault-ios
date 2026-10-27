@@ -323,20 +323,70 @@ class HyperVaultUITestCase: XCTestCase {
         tap(button(option), "the \(option) choice", file: file, line: line)
     }
 
-    /// Opens a row of the You tab, scrolling to it first, and waits for the screen to name itself.
-    func openFromYou(_ id: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
+    /// Opens a pane of the You tab by its id (`general`, `vault`, `keys`, `backends`, `domain`, `appearance`, `import`):
+    /// back to the list the tab opens on a phone, then the pane's row. A row of the list that is already open still
+    /// opens, which is what going back and choosing the same pane again checks.
+    ///
+    /// With a `title` it waits for the pane's heading. Without one it waits for the list to go, which is enough for a
+    /// pane whose screen names itself (the caller then looks for what the pane holds).
+    func openPane(_ id: String, title: String? = nil, file: StaticString = #filePath, line: UInt = #line) {
+        showPaneList(file: file, line: line)
+        let row = element("you.pane.\(id)")
+        // The list can still be settling from the screen that was just popped off it, and a tap on it then comes to nothing.
+        tap(row, "the \(id) pane", until: { title.map { isShowingTitle($0) } ?? !row.exists }, file: file, line: line)
+        if let title {
+            waitUntil("the \(title) pane", file: file, line: line) { isShowingTitle(title) }
+        } else {
+            requireGone(row, "the list of panes, once \(id) is open", file: file, line: line)
+        }
+    }
+
+    /// The list of panes the You tab opens on a phone one step behind the pane: opens the tab, and goes back until the
+    /// list shows (choosing the tab again takes the person back to the first screen of the pane that is open).
+    func showPaneList(file: StaticString = #filePath, line: UInt = #line) {
         openTab("You", file: file, line: line)
-        // Choosing the tab again takes the person back to its first screen; if it has not, go back until it is.
         var goneBack = 0
-        while !isShowingTitle("You"), goneBack < 4 {
+        while !element("you.pane.general").exists, goneBack < 5 {
             goBack(file: file, line: line)
             goneBack += 1
         }
-        let row = element("you.\(id)")
-        reveal(row, "the \(id) row of the You tab", file: file, line: line)
-        // The list can still be settling from the screen that was just popped off it, and a tap on it then comes to nothing.
+        require(element("you.pane.general"), "the list of panes", file: file, line: line)
+    }
+
+    /// Opens a row of the Account menu behind the avatar on Home (`library`, `mail`, `taskBoards`, `accountAndKeys`,
+    /// `groupChats`, `tools`, `import`, `dreams`, `truth`, `admin`), scrolling to it first, and waits for the screen it goes
+    /// to to name itself.
+    func openFromAccount(_ id: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
+        openAccountMenu(file: file, line: line)
+        let row = element("account.\(id)")
+        reveal(row, "the \(id) row of the Account menu", file: file, line: line)
         tap(row, "the \(id) row", until: { isShowingTitle(title) }, file: file, line: line)
         waitUntil("the \(title) screen", file: file, line: line) { isShowingTitle(title) }
+    }
+
+    /// Opens the Account menu with the avatar on Home, from wherever the person is.
+    func openAccountMenu(file: StaticString = #filePath, line: UInt = #line) {
+        showHome(file: file, line: line)
+        tap(element("canvas.account"), "the Account button", file: file, line: line)
+        require(element("account.close"), "the Account menu", file: file, line: line)
+    }
+
+    /// Opens the Yours panel over Home with the button in the corner.
+    func openYours(file: StaticString = #filePath, line: UInt = #line) {
+        showHome(file: file, line: line)
+        tap(element("canvas.yours"), "the panel button", file: file, line: line)
+        require(element("yours.filter"), "the Yours panel", file: file, line: line)
+    }
+
+    /// Home, on its first screen: the tab, and back from anything pushed on it.
+    func showHome(file: StaticString = #filePath, line: UInt = #line) {
+        openTab("Home", file: file, line: line)
+        var goneBack = 0
+        while !element("canvas.account").exists, goneBack < 5 {
+            goBack(file: file, line: line)
+            goneBack += 1
+        }
+        require(element("canvas.account"), "Home, on its first screen", file: file, line: line)
     }
 
     /// Goes back one screen with the navigation bar's back button.

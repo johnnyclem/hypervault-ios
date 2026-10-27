@@ -73,7 +73,7 @@ enum DeepLink: Hashable {
     case groupChats
     /// Open the canvas with something already in the field.
     case keep(prefill: String?)
-    /// An agent is asking for a key: the website's pairing page, with the Agent keys pane behind it.
+    /// Open the website's pairing page, where a person answers an agent that is asking for a key, over the Agent keys pane.
     case pair(code: String?)
     case invite(code: String?)
 

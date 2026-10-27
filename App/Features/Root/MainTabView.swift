@@ -44,7 +44,7 @@ struct MainTabView: View {
         .sheet(item: $router.sheet) { sheet in
             switch sheet {
             case .pair(let code):
-                PairApprovalView(code: code)
+                PairingPageSheet(code: code)
             case .invite:
                 InviteLinkSheet()
             case .connectAgent:

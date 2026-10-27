@@ -201,95 +201,46 @@ public enum AgentKeyRules {
     }
 }
 
-// MARK: Setup status
+// MARK: Setup challenge pages
 
-/// Whether a key's agent has finished its setup challenge (lib/agent-setup.ts).
-public struct AgentSetupStatus: Sendable, Codable, Equatable, Hashable {
-    public let slug: String
-    public let complete: Bool
-    public let completedAt: Date?
-
-    public init(slug: String, complete: Bool, completedAt: Date? = nil) {
-        self.slug = slug
-        self.complete = complete
-        self.completedAt = completedAt
-    }
-}
-
-/// The artifact rows and head commits that setup status is worked out from.
-public enum AgentSetup {
+/// Which private page is each key's setup challenge. Every key is minted with one: a page its agent is asked to
+/// rewrite, tagged with the key's prefix. Only the slug is read, so the app can open the page. Whether the agent
+/// finished is not worked out here: no route reports the server's check, and a second copy of it on the device
+/// would be untested.
+public enum SetupChallengePages {
     /// The tag that marks an artifact as a key's setup challenge, beside the key prefix.
-    public static let challengeTag = "agent-setup-challenge"
+    public static let tag = "agent-setup-challenge"
 
-    /// A challenge page that has been completed carries `data-setup-status="complete"` on the
-    /// `<body>` tag. Anchored to the tag so the instructions inside the page cannot satisfy it.
-    public static func isComplete(content: String) -> Bool {
-        let pattern = #"<body[^>]{0,300}data-setup-status\s*=\s*["']complete["']"#
-        return content.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil
-    }
-
-    public struct ChallengePage: Sendable, Decodable, Equatable {
-        public let id: String
+    public struct Page: Sendable, Decodable, Equatable {
         public let slug: String
         public let tags: [String]
-        public let content: String
 
-        public init(id: String, slug: String, tags: [String], content: String) {
-            self.id = id
+        public init(slug: String, tags: [String]) {
             self.slug = slug
             self.tags = tags
-            self.content = content
         }
 
         public init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: Keys.self)
-            id = try c.decode(String.self, forKey: .id)
             slug = try c.decode(String.self, forKey: .slug)
             tags = try c.decodeIfPresent([String].self, forKey: .tags) ?? []
-            content = try c.decodeIfPresent(String.self, forKey: .content) ?? ""
         }
 
-        enum Keys: String, CodingKey { case id, slug, tags, content }
+        enum Keys: String, CodingKey { case slug, tags }
     }
 
-    /// The newest commit of a challenge page (`artifact_versions`).
-    public struct HeadVersion: Sendable, Decodable, Equatable {
-        public let artifactId: String
-        public let authorKind: String?
-        public let authorKeyId: String?
-        public let createdAt: Date?
-
-        public init(artifactId: String, authorKind: String?, authorKeyId: String?, createdAt: Date?) {
-            self.artifactId = artifactId
-            self.authorKind = authorKind
-            self.authorKeyId = authorKeyId
-            self.createdAt = createdAt
-        }
-    }
-
-    /// Which challenge belongs to each key (matched by the prefix tag, newest wins) and whether it
-    /// is complete. Complete needs the marker in the head content AND, when the commits could be
-    /// read (`heads` is not nil), that the head was written by an agent holding that exact key, so
-    /// editing the page by hand cannot pass for a working agent. `pages` must be newest first.
-    public static func resolve(
-        keys: [AgentKey],
-        pages: [ChallengePage],
-        heads: [String: HeadVersion]?
-    ) -> [String: AgentSetupStatus] {
-        var byPrefix: [String: ChallengePage] = [:]
+    /// The slug of each key's challenge page by key id, matched by the prefix tag with the newest page winning.
+    /// `pages` must be newest first. A key with no page (minted before challenges existed) has no entry.
+    public static func slugs(keys: [AgentKey], pages: [Page]) -> [String: String] {
+        var byPrefix: [String: String] = [:]
         for page in pages {
-            for tag in page.tags where tag != challengeTag && byPrefix[tag] == nil {
-                byPrefix[tag] = page
+            for tag in page.tags where tag != Self.tag && byPrefix[tag] == nil {
+                byPrefix[tag] = page.slug
             }
         }
-        var out: [String: AgentSetupStatus] = [:]
+        var out: [String: String] = [:]
         for key in keys {
-            guard let page = byPrefix[key.keyPrefix] else { continue }
-            let marked = isComplete(content: page.content)
-            let head = heads?[page.id]
-            let provenanceOK = heads == nil || (head?.authorKind == "agent" && head?.authorKeyId == key.id)
-            let complete = marked && provenanceOK
-            out[key.id] = AgentSetupStatus(slug: page.slug, complete: complete, completedAt: complete ? head?.createdAt : nil)
+            if let slug = byPrefix[key.keyPrefix] { out[key.id] = slug }
         }
         return out
     }
@@ -297,20 +248,28 @@ public enum AgentSetup {
 
 // MARK: Reading the lists
 
-/// What the account screen shows: the keys and, where the challenge pages could be read, how each agent's setup stands.
+/// What the keys screen shows: the keys and, where the challenge pages could be read, the slug of each key's page.
 public struct AgentKeysSnapshot: Sendable, Codable, Equatable {
     public var keys: [AgentKey]
-    public var statuses: [String: AgentSetupStatus]
+    /// Key id to the slug of its setup challenge page.
+    public var challengeSlugs: [String: String]
 
-    public init(keys: [AgentKey] = [], statuses: [String: AgentSetupStatus] = [:]) {
+    public init(keys: [AgentKey] = [], challengeSlugs: [String: String] = [:]) {
         self.keys = keys
-        self.statuses = statuses
+        self.challengeSlugs = challengeSlugs
     }
 
-    public var connectedCount: Int { keys.filter { statuses[$0.id]?.complete == true }.count }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: Keys.self)
+        keys = try c.decode([AgentKey].self, forKey: .keys)
+        // A copy saved by an older version has no slugs.
+        challengeSlugs = try c.decodeIfPresent([String: String].self, forKey: .challengeSlugs) ?? [:]
+    }
+
+    enum Keys: String, CodingKey { case keys, challengeSlugs }
 }
 
-/// Reads the person's keys and their setup challenges through PostgREST, the way the web page does on the server.
+/// Reads the person's keys and their setup challenge pages through PostgREST, the way the web page does on the server.
 public enum AgentKeyDirectory {
     static let baseColumns = "id,key_prefix,name,created_at,last_used_at"
     static let mailColumns = "scopes,mail_claim_id,mail_pin_cleared"
@@ -333,52 +292,27 @@ public enum AgentKeyDirectory {
         }
     }
 
-    /// Setup status for `keys`. Best effort: when the pages cannot be read the result is empty
-    /// and the screen shows no status rather than a wrong one.
-    public static func setupStatuses(rest: AccountRest, userID: String, keys: [AgentKey]) async -> [String: AgentSetupStatus] {
+    /// The slug of each key's setup challenge page, by key id. Best effort: when the pages cannot be read the
+    /// result is empty and the screen simply has no page to open. Reads the slug and tags only, never a page's content.
+    public static func challengeSlugs(rest: AccountRest, userID: String, keys: [AgentKey]) async -> [String: String] {
         guard !keys.isEmpty else { return [:] }
-        guard let pages: [AgentSetup.ChallengePage] = try? await rest.rows(
+        guard let pages: [SetupChallengePages.Page] = try? await rest.rows(
             from: "artifacts",
             query: [
-                URLQueryItem(name: "select", value: "id,slug,tags,content"),
+                URLQueryItem(name: "select", value: "slug,tags"),
                 URLQueryItem(name: "user_id", value: "eq.\(userID)"),
-                URLQueryItem(name: "tags", value: "cs.{\(AgentSetup.challengeTag)}"),
+                URLQueryItem(name: "tags", value: "cs.{\(SetupChallengePages.tag)}"),
                 URLQueryItem(name: "order", value: "created_at.desc"),
                 URLQueryItem(name: "limit", value: "200"),
             ]
-        ), !pages.isEmpty else { return [:] }
-
-        // Which pages belong to a key we know, so the commit read stays small.
-        let prefixes = Set(keys.map(\.keyPrefix))
-        let relevant = pages.filter { page in page.tags.contains { prefixes.contains($0) } }
-        guard !relevant.isEmpty else { return [:] }
-
-        var heads: [String: AgentSetup.HeadVersion]?
-        do {
-            let ids = relevant.map(\.id).joined(separator: ",")
-            let versions: [AgentSetup.HeadVersion] = try await rest.rows(
-                from: "artifact_versions",
-                query: [
-                    URLQueryItem(name: "select", value: "artifact_id,author_kind,author_key_id,created_at"),
-                    URLQueryItem(name: "artifact_id", value: "in.(\(ids))"),
-                    URLQueryItem(name: "order", value: "created_at.desc"),
-                ]
-            )
-            var newest: [String: AgentSetup.HeadVersion] = [:]
-            for version in versions where newest[version.artifactId] == nil { newest[version.artifactId] = version }
-            heads = newest
-        } catch where AccountRest.isMissingTable(error) {
-            heads = nil  // a database from before commits: the marker alone decides, as on the web
-        } catch {
-            return [:]
-        }
-        return AgentSetup.resolve(keys: keys, pages: relevant, heads: heads)
+        ) else { return [:] }
+        return SetupChallengePages.slugs(keys: keys, pages: pages)
     }
 
     public static func snapshot(rest: AccountRest, userID: String) async throws -> AgentKeysSnapshot {
         let keys = try await keys(rest: rest, userID: userID)
-        let statuses = await setupStatuses(rest: rest, userID: userID, keys: keys)
-        return AgentKeysSnapshot(keys: keys, statuses: statuses)
+        let slugs = await challengeSlugs(rest: rest, userID: userID, keys: keys)
+        return AgentKeysSnapshot(keys: keys, challengeSlugs: slugs)
     }
 }
 

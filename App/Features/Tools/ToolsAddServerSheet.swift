@@ -346,7 +346,7 @@ struct ToolsAddServerSheet: View {
                         Toggle(isOn: $flow.saveToVault) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Save to the saved-secrets vault").font(.hvCallout)
-                                Text("Keeps the key as a named secret you manage under Logins, cards & keys.")
+                                Text("Keeps the key as a named secret you manage under Vault.")
                                     .font(.hvCaption)
                                     .foregroundStyle(Palette.textSecondary)
                             }

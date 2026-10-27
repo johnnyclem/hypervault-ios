@@ -86,7 +86,7 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
     // MARK: Vault
 
     private func openTheVault() {
-        openFromYou("vaultItems", title: "Logins, cards & keys")
+        openFromYou("vaultItems", title: "Vault")
         require(element("vault.row.github.com"), "the saved logins")
     }
 
@@ -140,14 +140,13 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
 
         step("The github.com login opens") {
             openTheEntry("github.com")
-            XCTAssertTrue(shows("Work account").exists, "The note is shown on the entry's screen.")
         }
 
         step("Rename opens with the current name and takes a new one") {
             // (The entry's screen is a long list; the button is below the fold until it is scrolled to.)
-            let rename = button("Rename or add a note")
+            let rename = button("Rename")
             reveal(rename, "the rename button")
-            tap(rename, "Rename or add a note")
+            tap(rename, "Rename")
             require(element("vault.edit.name"), "the name field")
             XCTAssertEqual(element("vault.edit.name").value as? String, "github.com")
             append("-work", to: element("vault.edit.name"), "the name field")
@@ -164,7 +163,7 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
             waitUntil("the screen to settle") { self.isShowingTitle("github.com-work") || self.shows("This entry is gone").exists }
             attachScreenshot("The entry's screen after the rename")
             XCTAssertFalse(shows("This entry is gone").exists, "Renaming an entry left its own screen saying it is gone.")
-            require(button("Rename or add a note"), "the entry's screen after the rename")
+            require(button("Rename"), "the entry's screen after the rename")
             XCTAssertTrue(isShowingTitle("github.com-work"), "The screen should carry the new name.")
         }
 
@@ -197,6 +196,114 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
             require(element("vault.row.github.com"), "the list again")
             requireGone(element("vault.row.visa-4242"), "the deleted card")
             require(element("vault.row.amex-0005"), "the other card, which stays")
+        }
+    }
+
+    // MARK: Who may read an entry
+
+    /// The switch for the agent key whose label holds `fragment` ("Claude Code", a key's prefix).
+    private func switchFor(_ fragment: String) -> XCUIElement {
+        app.switches.matching(NSPredicate(format: "label CONTAINS %@", fragment)).firstMatch
+    }
+
+    /// Flips a switch the way a person does: a tap at the right of its row, where the thumb is.
+    private func flip(_ toggle: XCUIElement) {
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+    }
+
+    func testAKeyIsAllowedAndRevokedAndTheSwitchFollowsTheServer() {
+        launch(.signedIn)
+        openTheVault()
+
+        step("The entry's page shows which keys may read it, as the server says") {
+            openTheEntry("github.com")
+            waitUntil("the switches to appear") { self.switchFor("Claude Code").exists }
+            XCTAssertEqual(switchFor("Claude Code").value as? String, "1", "Claude Code may read it.")
+            XCTAssertEqual(switchFor("Paired: Cursor").value as? String, "0", "The paired Cursor key may not.")
+        }
+
+        step("Allowing the Cursor key sends the allow, and the switch ends on") {
+            let cursor = switchFor("Paired: Cursor")
+            reveal(cursor, "the Cursor key's switch")
+            flip(cursor)
+            requireWrite("POST", "/api/secrets/github.com/grants", equal: ["api_key_id": "k2"])
+            waitUntil("the Cursor switch to turn on") { (cursor.value as? String) == "1" }
+        }
+
+        step("Revoking it sends the revoke, and the switch ends off") {
+            let cursor = switchFor("Paired: Cursor")
+            flip(cursor)
+            requireWrite("DELETE", "/api/secrets/github.com/grants", equal: ["api_key_id": "k2"])
+            waitUntil("the Cursor switch to turn off") { (cursor.value as? String) == "0" }
+            XCTAssertEqual(switchFor("Claude Code").value as? String, "1", "The other key is not touched.")
+        }
+    }
+
+    func testTurningOffAKeyTheServerHadAlreadyRevokedEndsOffAndSaysNothing() {
+        launch(.signedIn)
+        openTheVault()
+        openTheEntry("github.com")
+
+        step("The first read still lists a key that another device revoked") {
+            waitUntil("the switches to appear") { self.switchFor("hv_Dd3Ee4Ff").exists }
+            XCTAssertEqual(switchFor("hv_Dd3Ee4Ff").value as? String, "1")
+        }
+
+        step("Turning it off ends off, and the server's 404 is not shown") {
+            let stale = switchFor("hv_Dd3Ee4Ff")
+            reveal(stale, "the default key's switch")
+            flip(stale)
+            requireWrite("DELETE", "/api/secrets/github.com/grants", equal: ["api_key_id": "k3"])
+            waitUntil("the switch to end off") { (stale.value as? String) == "0" }
+            XCTAssertFalse(shows("No such grant").exists, "'No such grant.' is never shown.")
+        }
+    }
+
+    func testAnEntryDeletedElsewhereClosesItsPageWhenAKeyIsAllowed() {
+        launch(.signedIn)
+        openTheVault()
+        openTheEntry("stripe-restricted-key")
+
+        step("Allowing a key finds the entry gone, and its page closes") {
+            waitUntil("the switches to appear") { self.switchFor("Paired: Cursor").exists }
+            let cursor = switchFor("Paired: Cursor")
+            reveal(cursor, "the Cursor key's switch")
+            flip(cursor)
+            requireWrite("POST", "/api/secrets/stripe-restricted-key/grants", equal: ["api_key_id": "k2"])
+            waitUntil("the page to close and the list to lose the entry") {
+                self.element("vault.row.github.com").exists && !self.element("vault.row.stripe-restricted-key").exists
+            }
+            XCTAssertFalse(shows("No such secret").exists, "'No such secret.' is never shown.")
+        }
+    }
+
+    // MARK: Closing a sheet that holds typed values
+
+    func testClosingTheAddSheetAsksBeforeItDropsWhatWasTyped() {
+        launch(.signedIn)
+        openTheVault()
+
+        step("A login is started") {
+            tap(button("Add to your vault"), "the add button")
+            tap(element("vault.add.login"), "the Login tile")
+            enter("typed-and-not-saved", into: element("vault.field.username"), "the username field")
+            putTheKeyboardAway()
+        }
+
+        step("Close asks first, and Keep editing returns to the form") {
+            tap(button("Close"), "the Close button")
+            require(button("Discard"), "the question about the typed values")
+            tap(button("Keep editing"), "Keep editing")
+            requireGone(button("Discard"), "the question")
+            XCTAssertEqual(element("vault.field.username").value as? String, "typed-and-not-saved", "What was typed is still there.")
+        }
+
+        step("Discard closes the sheet and sends nothing") {
+            tap(button("Close"), "the Close button")
+            confirm("Discard")
+            requireGone(element("vault.add.name"), "the add sheet")
+            require(element("vault.row.github.com"), "the list")
+            requireNoWrite("POST", "/api/secrets")
         }
     }
 }

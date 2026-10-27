@@ -7,7 +7,7 @@ import XCTest
 final class YouScreensJourneyTests: HyperVaultUITestCase {
     func testVaultItemsListMaskedEntriesFilterThemAndOpenOne() {
         launch(.signedIn)
-        openFromYou("vaultItems", title: "Logins, cards & keys")
+        openFromYou("vaultItems", title: "Vault")
 
         step("The vault lists what is saved, with a masked line and never a value") {
             let github = element("vault.row.github.com")
@@ -30,7 +30,6 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
         step("An entry opens to the agents that may read it") {
             tap(element("vault.row.github.com"), "the github.com entry")
             waitUntil("the entry's title") { isShowingTitle("github.com") }
-            require(shows("Work account"), "the entry's note")
             let claude = app.switches.matching(NSPredicate(format: "label CONTAINS %@", "Claude Code")).firstMatch
             require(claude, "the switch for the Claude Code key")
             waitUntil("Claude Code to be allowed to read it") { (claude.value as? String) == "1" }

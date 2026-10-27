@@ -194,7 +194,7 @@ struct ToolsServerDetailView: View {
                 Button {
                     app.router.push(.vaultItems)
                 } label: {
-                    Label("Change the key in Logins, cards & keys", systemImage: "lock.rectangle.stack")
+                    Label("Change the key in Vault", systemImage: "lock.rectangle.stack")
                 }
             } else {
                 Button {

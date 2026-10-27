@@ -142,7 +142,7 @@ state. They cover:
 
 - the **journeys**: the welcome story, sign-in and the email code sheet, the canvas (keep, ask, show, hide), the Yours,
   Memory and Chat tabs, the Library (list and graph), Settings, the first run and the waitlist;
-- every **screen the You tab opens**, against canned answers that give it real content: Logins, cards & keys (and one
+- every **screen the You tab opens**, against canned answers that give it real content: Vault (and one
   entry), Mail (the inbox, then a thread), Truth (the ledger, an entry's ancestry, the review docket), Tools (and a
   server), Your address (and one), Import (a pasted conversation read and sent), Dreams, Digest, Task boards (a board,
   then a task), Account & keys (Connect your AI through to a key that is shown once and copied, and revoking a key) and,

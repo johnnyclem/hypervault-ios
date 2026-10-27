@@ -5,9 +5,9 @@ private enum VaultDestination: Hashable {
     case secret(String)
 }
 
-/// Logins, cards & keys: what is saved once so the agents you allow can use it. The list shows each entry's
-/// name and a masked line (a username, `Visa •••• 4242`); a value is encrypted when it is saved and is never
-/// shown again, here or anywhere. The native version of the web's Vault pane.
+/// The Vault pane: what is saved once so the agents you allow can use it. The list shows each entry's name and a
+/// masked line (a username, `Visa •••• 4242`); a value is encrypted when it is saved and is never shown again, here
+/// or anywhere. The native version of the web's Vault pane.
 struct VaultItemsView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(AppModel.self) private var app
@@ -21,11 +21,11 @@ struct VaultItemsView: View {
             if let model {
                 content(model)
             } else {
-                HVLoadingState().frame(maxHeight: .infinity)
+                HVLoadingState(message: VaultCopy.loadingLine).frame(maxHeight: .infinity)
             }
         }
         .hvScreenBackground()
-        .navigationTitle("Logins, cards & keys")
+        .navigationTitle(AccountPane.vault.label)
         .keysLargeTitle()
         .navigationDestination(for: VaultDestination.self) { destination in
             switch destination {
@@ -36,8 +36,8 @@ struct VaultItemsView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { startAdding() } label: { Image(systemName: "plus") }
-                    .disabled(model == nil)
-                    .accessibilityLabel("Add to your vault")
+                    .disabled(model == nil || model?.isFull == true)
+                    .accessibilityLabel(VaultScreenCopy.addTitle)
             }
         }
         .task {
@@ -45,7 +45,11 @@ struct VaultItemsView: View {
             await model?.load()
         }
         .sheet(isPresented: $adding) {
-            if let model { VaultAddItemSheet(model: model) }
+            if let model {
+                VaultAddItemSheet(model: model)
+                    // Large, so the keyboard does not cover the form.
+                    .presentationDetents([.large])
+            }
         }
     }
 
@@ -55,7 +59,7 @@ struct VaultItemsView: View {
         unlocking = true
         Task {
             defer { unlocking = false }
-            if await KeysBiometricGate.confirm(reason: "Add to your vault") { adding = true }
+            if await KeysBiometricGate.confirm(reason: VaultScreenCopy.addTitle) { adding = true }
         }
     }
 
@@ -63,7 +67,7 @@ struct VaultItemsView: View {
     private func content(_ model: VaultItemsModel) -> some View {
         switch model.phase {
         case .loading:
-            HVListSkeleton(rows: 6).frame(maxHeight: .infinity, alignment: .top)
+            HVLoadingState(message: VaultCopy.loadingLine).frame(maxHeight: .infinity)
         case .failed(let message):
             HVErrorState(message: message) { Task { await model.load() } }.frame(maxHeight: .infinity)
         case .loaded:
@@ -74,7 +78,20 @@ struct VaultItemsView: View {
     private func list(_ model: VaultItemsModel) -> some View {
         @Bindable var model = model
         return List {
+            // The pane's description, then the filters: the first thing on the page after its title.
             Section {
+                Text(AccountPane.vault.descriptionLine ?? "")
+                    .font(.hvCallout)
+                    .foregroundStyle(Palette.textSecondary)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 0, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
+                if let message = model.refreshError {
+                    Label(message, systemImage: "exclamationmark.circle")
+                        .font(.hvFootnote)
+                        .foregroundStyle(Palette.danger)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 0, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
+                }
                 filters(model)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
@@ -86,8 +103,9 @@ struct VaultItemsView: View {
                 Section {
                     empty(model)
                         .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 } footer: {
-                    note
+                    note(model)
                 }
             } else {
                 Section {
@@ -98,7 +116,7 @@ struct VaultItemsView: View {
                         .accessibilityIdentifier("vault.row.\(secret.name)")
                     }
                 } footer: {
-                    note
+                    note(model)
                 }
                 .hvListRow()
             }
@@ -108,12 +126,14 @@ struct VaultItemsView: View {
         .refreshable { await model.load() }
     }
 
-    /// What the vault is for and that a value cannot be read back: said once, under the entries, so the first
-    /// screen at any text size is the filters and what is saved.
-    private var note: some View {
+    /// What stays visible beside what is hidden, said once, under the entries (brand book rule 4): the web's own line.
+    /// When the account is full, the server's refusal comes first, since the Add button is off and nothing else says why.
+    private func note(_ model: VaultItemsModel) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            Text("Save a login, card or contact once, and the agents you allow can use it. Agents you give a key, like Claude Code, Codex, Cursor, Gemini CLI or your own script, only ever get what you allow.")
-            Label("Values are encrypted when you save them and never shown again.", systemImage: "lock.fill")
+            if let limit = VaultLimits.entryLimitProblem(count: model.secrets.count) {
+                Text(limit).foregroundStyle(Palette.danger)
+            }
+            Label(HVCopy.landingVaultLockLine, systemImage: "lock.fill")
         }
         .font(.hvFootnote)
         .foregroundStyle(Palette.textSecondary)
@@ -141,8 +161,10 @@ struct VaultItemsView: View {
             )
         )
         .accessibilityElement(children: .contain)
+        .accessibilityLabel("Show")
     }
 
+    /// A filter and its count. The count is always there, 0 included: "its 0 already says so".
     private func chip(_ title: String, category: VaultCategory?, model: VaultItemsModel) -> some View {
         let selected = model.filter == category
         let count = model.count(in: category)
@@ -150,7 +172,7 @@ struct VaultItemsView: View {
             Haptics.select()
             model.filter = category
         } label: {
-            HVChip(title: count > 0 ? "\(title) \(count)" : title, isSelected: selected)
+            HVChip(title: "\(title) \(count)", isSelected: selected)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(title), \(count)")
@@ -161,15 +183,33 @@ struct VaultItemsView: View {
     private func empty(_ model: VaultItemsModel) -> some View {
         if !model.query.isEmpty {
             HVEmptyState(symbol: "magnifyingglass", title: "Nothing called that", message: "Try part of a name, a username or a card's last four digits.")
-        } else if let filter = model.filter {
-            HVEmptyState(symbol: "lock.rectangle.stack", title: "Nothing here yet", message: filter.emptyLine, actionTitle: "Add", action: startAdding)
         } else {
-            HVEmptyState(
-                symbol: "lock.rectangle.stack", title: "Nothing saved yet",
-                message: "Add a login, a card or contact info, then choose which agents may use it.",
-                actionTitle: "Add something", action: startAdding
-            )
+            VStack(spacing: HV.Space.s) {
+                VaultEmptyLine(text: model.filter?.emptyLine ?? VaultScreenCopy.emptyVaultLine)
+                if !model.isFull {
+                    Button("Add", action: startAdding).buttonStyle(.hvGhost)
+                }
+            }
         }
+    }
+}
+
+/// The web's empty state: one dashed box with one helpful line in it (`components/vault-pane/vault-pane.tsx:26-32`).
+private struct VaultEmptyLine: View {
+    let text: String
+
+    var body: some View {
+        // 20pt corners, as the web's rounded-2xl box.
+        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        Text(text)
+            .font(.hvSubheadline)
+            .foregroundStyle(Palette.textSecondary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, HV.Space.l)
+            .padding(.vertical, HV.Space.xl)
+            .background(Palette.surface, in: shape)
+            .overlay(shape.strokeBorder(Palette.border.opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
     }
 }
 
@@ -185,6 +225,9 @@ struct VaultRow: View {
     private var tileSize: CGFloat { min(tile, 56) }
     private let spacing = HV.Space.s + 2
 
+    /// "Never used", or "Last used 2 days ago". Only an agent's read counts.
+    private var lastUsed: String { VaultCopy.rowLastUsedLine(secret.lastAccessedAt) }
+
     var body: some View {
         KeysRowLayout {
             VaultTile(secret: secret, size: tileSize)
@@ -198,53 +241,24 @@ struct VaultRow: View {
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.textSecondary)
                     .lineLimit(isLarge ? nil : 1)
-                if isLarge { lastUsed }
+                // Under the hint at every width: beside it, "Last used 2 months ago" leaves a name no room.
+                Text(lastUsed)
+                    .font(.hvCaption)
+                    .foregroundStyle(Palette.textTertiary)
+                    .lineLimit(isLarge ? nil : 1)
             }
-        } trailing: {
-            lastUsed
         }
         .contentShape(Rectangle())
         // Every separator starts under the text. Left to itself the system takes a login's monogram, which is
         // text, as the start of the row and draws that one line further left than the rest.
         .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + (isLarge ? 0 : tileSize + spacing) }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(secret.name), \(secret.subtitle). \(AccountWords.lastUsedLine(secret.lastAccessedAt))")
-    }
-
-    private var lastUsed: some View {
-        Text(secret.lastAccessedAt == nil ? AccountWords.neverUsed : AccountWords.agoLine(seconds: Date().timeIntervalSince(secret.lastAccessedAt ?? Date())))
-            .font(.hvCaption)
-            .foregroundStyle(Palette.textTertiary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
+        // The card's mask reads as "ending in 4242", not as four bullets.
+        .accessibilityLabel("\(secret.name), \(secret.spokenSubtitle). \(lastUsed)")
     }
 }
 
 #if DEBUG
-enum VaultPreviewData {
-    static let secretsJSON = """
-    {"secrets":[
-      {"id":"s1","name":"github.com","kind":"login","description":"Work account","created_at":"2026-10-20T10:00:00Z","updated_at":"2026-10-20T10:00:00Z","last_accessed_at":"2026-10-25T09:30:00Z","hint":"jane@appleseed.dev"},
-      {"id":"s2","name":"visa-4242","kind":"card","description":null,"created_at":"2026-10-21T10:00:00Z","updated_at":"2026-10-21T10:00:00Z","last_accessed_at":null,"hint":"Visa •••• 4242"},
-      {"id":"s3","name":"amex-0005","kind":"card","description":null,"created_at":"2026-10-21T11:00:00Z","updated_at":"2026-10-21T11:00:00Z","last_accessed_at":"2026-10-22T09:30:00Z","hint":"Amex •••• 0005"},
-      {"id":"s4","name":"contact","kind":"contact","description":null,"created_at":"2026-10-22T10:00:00Z","updated_at":"2026-10-22T10:00:00Z","last_accessed_at":null,"hint":"jane@appleseed.dev"},
-      {"id":"s5","name":"home","kind":"contact","description":null,"created_at":"2026-10-22T10:00:00Z","updated_at":"2026-10-22T10:00:00Z","last_accessed_at":null,"hint":"Address"},
-      {"id":"s6","name":"stripe-restricted-key","kind":"opaque","description":"Read-only","created_at":"2026-10-23T10:00:00Z","updated_at":"2026-10-23T10:00:00Z","last_accessed_at":"2026-10-24T09:30:00Z","hint":null}
-    ]}
-    """
-
-    static let routes: [MockRoute] = [
-        .json(.get, "/api/secrets", secretsJSON),
-        .json(.get, "/rest/v1/api_keys", KeysPreviewData.keysJSON),
-    ] + grantRoutes
-
-    /// Which keys may read each entry: Claude Code the first, nothing else. One route a name, so no entry in the
-    /// previews or the snapshots asks for a grants list the canned server does not have.
-    static let grantRoutes: [MockRoute] = ["github.com", "visa-4242", "amex-0005", "contact", "home", "stripe-restricted-key"].map { name in
-        MockRoute.json(.get, "/api/secrets/\(name)/grants", #"{"grants":[{"id":"g1","api_key_id":"k1","created_at":"2026-10-24T10:00:00Z"}]}"#)
-    }
-}
-
 #Preview("Vault") {
     PreviewHost(routes: VaultPreviewData.routes) { VaultItemsView() }
 }

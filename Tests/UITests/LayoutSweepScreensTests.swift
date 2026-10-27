@@ -38,7 +38,7 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
     private func keepAndAgentScreens(_ mode: String) {
         visit(mode, "library", "Library", key: element("library.row.a1"), "the Bakery landing page row")
 
-        visit(mode, "vaultItems", "Logins, cards & keys", key: element("vault.row.github.com"), "the github.com entry") {
+        visit(mode, "vaultItems", "Vault", key: element("vault.row.github.com"), "the github.com entry") {
             open(element("vault.row.github.com"), "the github.com entry", until: { self.isShowingTitle("github.com") })
             look(mode, "a vault entry", key: shows("How an agent reads it"), "the section that says how an agent reads it")
         }

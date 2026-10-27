@@ -26,12 +26,14 @@ struct MailComposeView: View {
                     recipient
                     HVLabeledField(title: "Subject (optional)") {
                         TextField("What it is about", text: $subject)
+                            .accessibilityIdentifier("mail.compose.subject")
                             .focused($focus, equals: .subject)
                             .submitLabel(.next)
                             .onSubmit { focus = .body }
                     }
                     HVLabeledField(title: "Note") {
                         TextField("Write to your agents", text: $text, axis: .vertical)
+                            .accessibilityIdentifier("mail.compose.body")
                             .lineLimit(6...20)
                             .focused($focus, equals: .body)
                     }

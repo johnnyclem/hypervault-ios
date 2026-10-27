@@ -360,8 +360,10 @@ private struct DreamConnectionCard: View {
                 HStack(spacing: HV.Space.xs) {
                     Button("Accept", action: onAccept)
                         .buttonStyle(DreamTintedButtonStyle())
+                        .accessibilityIdentifier("dream.accept.\(connection.id)")
                     Button("Reject", action: onReject)
                         .buttonStyle(.hvGhost)
+                        .accessibilityIdentifier("dream.reject.\(connection.id)")
                     Spacer(minLength: 0)
                 }
             }

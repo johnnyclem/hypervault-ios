@@ -256,7 +256,7 @@ struct NewArtifactView: View {
                 .buttonBorderShape(.capsule)
                 .controlSize(.regular)
             }
-            ArtifactCodeView(text: Bindable(model).content, isEditable: true)
+            ArtifactCodeView(text: Bindable(model).content, isEditable: true, identifier: "artifact.new.content")
                 .frame(height: 260)
                 .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
@@ -285,6 +285,7 @@ struct NewArtifactView: View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             HVSectionHeader(title: "Title").artifactCardCaption()
             TextField("Title", text: Bindable(model).title, prompt: artifactPrompt("Untitled"))
+                .accessibilityIdentifier("artifact.new.title")
                 .focused($titleFocused)
                 .submitLabel(.done)
                 .hvFieldChrome(isFocused: titleFocused)

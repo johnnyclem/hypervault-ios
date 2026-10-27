@@ -76,6 +76,7 @@ struct VaultFieldsForm: View {
         ) {
             // Verbatim: a plain string is read as Markdown, and an address in it is drawn as a link.
             TextField("Website", text: binding("url"), prompt: Text(verbatim: "https://github.com"))
+                .accessibilityIdentifier("vault.field.website")
                 .keyboardType(.URL)
                 .textContentType(.URL)
                 .textInputAutocapitalization(.never)
@@ -83,6 +84,7 @@ struct VaultFieldsForm: View {
         }
         HVLabeledField(title: "Username") {
             TextField("Username or email", text: binding("username"))
+                .accessibilityIdentifier("vault.field.username")
                 .textContentType(.username)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -259,12 +261,19 @@ struct VaultSecretField: View {
         }
     }
 
+    /// `vault.field.password`, `vault.field.security-code`, `vault.field.value`.
+    private var fieldID: String {
+        "vault.field." + title.lowercased().replacingOccurrences(of: " ", with: "-")
+    }
+
     @ViewBuilder
     private var field: some View {
         if revealed {
             TextField(title, text: $text)
+                .accessibilityIdentifier(fieldID)
         } else {
             SecureField(title, text: $text)
+                .accessibilityIdentifier(fieldID)
         }
     }
 }

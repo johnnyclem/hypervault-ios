@@ -39,6 +39,9 @@ enum UITestScenario: String, CaseIterable {
 enum UITestHarness {
     static let launchFlag = "-HV_UITEST"
     static let scenarioFlag = "-HV_UITEST_SCENARIO"
+    /// A launch that carries on from the one before it: the secure store is read back from where the last launch left it
+    /// instead of being seeded, so a journey can close the app and open it again to see whether it still has a session.
+    static let resumeFlag = "-HV_UITEST_RESUME"
 
     /// The scenario this launch asked for; nil for a normal launch.
     static let requested: UITestScenario? = parse(CommandLine.arguments)
@@ -54,12 +57,14 @@ enum UITestHarness {
         // takes half a second to settle is half a second of every step on a slow simulator.
         UIView.setAnimationsEnabled(false)
 
-        let transport = MockTransport(routes: UITestWorld.routes(for: scenario))
+        // Every write the app makes is noted on its way to the canned server (UITestWrites.swift), for a journey to read.
+        let transport = UITestRecordingTransport(inner: MockTransport(routes: UITestWorld.routes(for: scenario)))
         UITestURLProtocol.transport = transport
         _ = URLProtocol.registerClass(UITestURLProtocol.self)
 
+        let resumes = CommandLine.arguments.contains(resumeFlag)
         var seed: [String: Data] = [:]
-        if scenario.hasSession, let data = try? HVCoding.encoder(.verbatim).encode(UITestWorld.session()) {
+        if scenario.hasSession, !resumes, let data = try? HVCoding.encoder(.verbatim).encode(UITestWorld.session()) {
             // The key AuthService keeps its session under.
             seed["hypervault.session"] = data
         }
@@ -70,11 +75,17 @@ enum UITestHarness {
         }
 
         return AppModel(
-            secureStore: UITestSecureStore(seed: seed),
+            secureStore: UITestSecureStore(seed: seed, file: secureStoreFile, resumes: resumes),
             server: ServerConfig(baseURL: UITestWorld.appURL),
             transport: transport,
             cacheDirectory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-uitest-\(UUID().uuidString)", isDirectory: true)
         )
+    }
+
+    /// Where the in-memory secure store keeps a copy, so that the next launch (with `-HV_UITEST_RESUME`) finds what this one
+    /// left. It is in the app's temporary folder, holds only the canned session, and is removed by every launch that is not a resume.
+    private static var secureStoreFile: URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent("hv-uitest-secure-store.json")
     }
 
     private static func parse(_ arguments: [String]) -> UITestScenario? {
@@ -88,10 +99,13 @@ enum UITestHarness {
         return scenario
     }
 
-    /// A phone that has never run the app: no preferences, and shared defaults that belong to this launch alone.
+    /// A phone that has never run the app: no preferences, and shared defaults that belong to this launch alone. A launch
+    /// that resumes the one before keeps what that one left (its preferences and the markers of who was signed in), as a
+    /// phone does when the app is closed and opened again.
     @MainActor
     private static func isolateState() {
-        if let bundle = Bundle.main.bundleIdentifier {
+        let resumes = CommandLine.arguments.contains(resumeFlag)
+        if !resumes, let bundle = Bundle.main.bundleIdentifier {
             UserDefaults.standard.removePersistentDomain(forName: bundle)
         }
         // Emptied preferences look like a new install, and a new install ends the session it finds. The seeded session is
@@ -99,22 +113,45 @@ enum UITestHarness {
         InstallMarker().mark()
         let suite = "hv.uitest"
         let scratch = UserDefaults(suiteName: suite)
-        scratch?.removePersistentDomain(forName: suite)
+        if !resumes { scratch?.removePersistentDomain(forName: suite) }
         SharedConfig.scratchDefaults = scratch
     }
 }
 
-/// A secure store in memory that starts with whatever the scenario seeds, so the Keychain is never read or written.
+/// A secure store in memory that starts with whatever the scenario seeds, so the Keychain is never read or written. It also
+/// keeps a copy in a file of the app's temporary folder, which a launch with `-HV_UITEST_RESUME` reads back (a launch
+/// without it starts the file over): that is how a journey closes the app and opens it again to see what it remembers.
 actor UITestSecureStore: SecureStore {
     private var values: [String: Data]
+    private let file: URL?
 
-    init(seed: [String: Data] = [:]) {
-        values = seed
+    init(seed: [String: Data] = [:], file: URL? = nil, resumes: Bool = false) {
+        self.file = file
+        if resumes, let file, let data = try? Data(contentsOf: file),
+           let stored = try? JSONDecoder().decode([String: Data].self, from: data) {
+            values = stored
+        } else {
+            values = seed
+        }
+        if let file, let data = try? JSONEncoder().encode(values) {
+            try? data.write(to: file, options: .atomic)
+        }
     }
 
     func get(_ key: String) -> Data? { values[key] }
-    func set(_ value: Data, for key: String) { values[key] = value }
-    func remove(_ key: String) { values[key] = nil }
+    func set(_ value: Data, for key: String) {
+        values[key] = value
+        persist()
+    }
+    func remove(_ key: String) {
+        values[key] = nil
+        persist()
+    }
+
+    private func persist() {
+        guard let file, let data = try? JSONEncoder().encode(values) else { return }
+        try? data.write(to: file, options: .atomic)
+    }
 }
 
 /// Answers the requests that do not go through the model's transport (a few screens build their own client, and the page
@@ -123,7 +160,7 @@ actor UITestSecureStore: SecureStore {
 /// `URLSession`. (A web view's own subresource requests do not pass here; the canned pages have none.)
 final class UITestURLProtocol: URLProtocol {
     /// The same transport the model uses. Set before the protocol is registered.
-    nonisolated(unsafe) static var transport: MockTransport?
+    nonisolated(unsafe) static var transport: (any HTTPTransport)?
 
     private static let hosts: Set<String> = Set([UITestWorld.appURL, UITestWorld.supabaseURL].compactMap(\.host))
 

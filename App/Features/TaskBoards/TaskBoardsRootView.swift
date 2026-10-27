@@ -10,16 +10,10 @@ struct TaskBoardsRootView: View {
     }
 }
 
-private struct OpenedBoard: Hashable, Identifiable {
-    let listing: TaskBoardListing
-    var id: String { listing.slug }
-}
-
 struct TaskBoardsScreen: View {
     @Environment(AppModel.self) private var app
     @State private var model: TaskBoardsModel
     @State private var showCreate = false
-    @State private var opened: OpenedBoard?
     private let client: HVClient
     private let cache: DiskCache
     private let namespace: String
@@ -50,14 +44,11 @@ struct TaskBoardsScreen: View {
             .navigationDestination(for: TaskBoardListing.self) { listing in
                 TaskBoardScreen(client: client, cache: cache, namespace: namespace, listing: listing)
             }
-            .navigationDestination(item: $opened) { item in
-                TaskBoardScreen(client: client, cache: cache, namespace: namespace, listing: item.listing)
-            }
             .sheet(isPresented: $showCreate) {
                 TaskBoardCreateView { draft in
                     let listing = try await model.create(draft)
                     Haptics.success()
-                    opened = OpenedBoard(listing: listing)
+                    app.router.push(.taskBoard(slug: listing.slug, project: listing.project, title: listing.title))
                 }
             }
     }
@@ -198,11 +189,13 @@ struct TaskBoardCreateView: View {
                     // The footnote says why the button below is off until there is a name.
                     HVLabeledField(title: "Name", footnote: draft.canCreate ? nil : "Give it a name to start.") {
                         TextField("What is it for?", text: $draft.title)
+                            .accessibilityIdentifier("taskboards.new.title")
                             .focused($focused)
                             .submitLabel(.next)
                     }
                     HVLabeledField(title: "A first plan (optional)", footnote: "One task per line. Your agents see them too.") {
                         TextField("Order the front panels", text: $draft.plan, axis: .vertical)
+                            .accessibilityIdentifier("taskboards.new.plan")
                             .lineLimit(5...12)
                     }
                     if let errorMessage {

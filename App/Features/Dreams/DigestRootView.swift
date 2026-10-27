@@ -192,8 +192,10 @@ private struct DigestRunCard: View {
                     if isBusy { ProgressView() } else { Text("Apply split") }
                 }
                 .buttonStyle(DreamTintedButtonStyle())
+                .accessibilityIdentifier("digest.apply.\(run.id)")
                 Button("Keep whole", action: onKeepWhole)
                     .buttonStyle(.hvGhost)
+                    .accessibilityIdentifier("digest.keep.\(run.id)")
                 Spacer(minLength: 0)
             }
             .disabled(isBusy)

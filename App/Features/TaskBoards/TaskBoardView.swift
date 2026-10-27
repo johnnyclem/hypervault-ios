@@ -249,6 +249,7 @@ struct TaskBoardScreen: View {
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
             TextField("Add a task", text: $newTitle)
+                .accessibilityIdentifier("taskboard.add")
                 .focused($addFocused)
                 .submitLabel(.done)
                 .onSubmit { addTask() }
@@ -291,6 +292,7 @@ struct TaskBoardScreen: View {
         return HStack(alignment: .top, spacing: HV.Space.s) {
             TaskCheck(status: task.status) { tick(task) }
                 .disabled(temporary)
+                .accessibilityIdentifier("taskboard.check.\(task.id)")
             NavigationLink(value: TaskRef(id: task.id)) {
                 TaskRowBody(task: task, rollup: model.board?.rollup(of: task.id), parentTitle: row.parentTitle)
             }

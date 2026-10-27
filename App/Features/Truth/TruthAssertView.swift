@@ -79,6 +79,7 @@ struct TruthAssertView: View {
                 .lineLimit(3...8)
                 .font(.system(.body, design: .serif))
                 .focused($focus, equals: .text)
+                .accessibilityIdentifier("truth.assert.text")
             }
 
             if draft.type == .uv {
@@ -86,6 +87,7 @@ struct TruthAssertView: View {
                     TextField("Why you believe it", text: $draft.basis, prompt: truthPrompt("The design doc"), axis: .vertical)
                         .lineLimit(2...5)
                         .focused($focus, equals: .basis)
+                        .accessibilityIdentifier("truth.assert.basis")
                 }
                 HVLabeledField(title: "Where to check it", footnote: "A file, a symbol or a place to look.") {
                     TextField("Where to check it", text: $draft.verifyBy, prompt: truthPrompt("src/retry.ts"))

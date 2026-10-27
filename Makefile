@@ -12,7 +12,7 @@ help:
 	@echo "make test-unit Run only the app's unit tests"
 	@echo "make test-ui   Run only the UI tests: the whole app launched and driven on a simulator"
 	@echo "make open      Generate the project and open it in Xcode"
-	@echo "make icon      Redraw the app icon"
+	@echo "make icon      Cut the app icon from docs/app-icon-source.png"
 
 project:
 	xcodegen generate

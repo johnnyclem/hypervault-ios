@@ -45,7 +45,10 @@ struct VaultRenameSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.l) {
                     VStack(alignment: .leading, spacing: HV.Space.xs) {
-                        HVLabeledField(title: VaultCopy.renameFieldLabel(secret.name)) {
+                        HVLabeledField(
+                            title: VaultCopy.renameFieldLabel(secret.name), footnote: hint.text,
+                            isFocused: nameFocused, isInvalid: hint.isInvalid || nameError != nil
+                        ) {
                             TextField(
                                 "github.com",
                                 text: Binding(get: { newName }, set: { newName = $0; nameError = nil })
@@ -61,9 +64,6 @@ struct VaultRenameSheet: View {
                         Text(VaultCopy.renameWarning)
                             .font(.hvFootnote)
                             .foregroundStyle(Palette.textSecondary)
-                        Text(hint.text)
-                            .font(.hvFootnote)
-                            .foregroundStyle(hint.isInvalid ? Palette.danger : Palette.textSecondary)
                         if let nameError { KeysInlineMessage(text: nameError) }
                     }
                     if let error { KeysInlineMessage(text: error) }

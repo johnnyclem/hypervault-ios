@@ -78,14 +78,7 @@ struct VaultItemDetailView: View {
             Section {
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
                     Text(readsLine(secret)).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
-                    Text(fetchCommand(secret))
-                        .font(.hvMono)
-                        .foregroundStyle(Palette.textPrimary)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(HV.Space.s)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.s, style: .continuous))
+                    HVCodePanel(fetchCommand(secret))
                 }
                 VaultCopyButton(text: fetchCommand(secret))
             } header: {
@@ -100,7 +93,7 @@ struct VaultItemDetailView: View {
             .hvListRow()
 
             Section {
-                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: "trash").foregroundStyle(Palette.danger) }
+                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: HVSymbol.delete).foregroundStyle(Palette.danger) }
             } footer: {
                 Text("Deleting it cuts off every agent at once.")
             }
@@ -205,7 +198,7 @@ struct VaultCopyButton: View {
                 copied = false
             }
         } label: {
-            Label(copied ? VaultScreenCopy.copiedLabel : VaultScreenCopy.copyLabel, systemImage: copied ? "checkmark" : "doc.on.doc")
+            Label(copied ? VaultScreenCopy.copiedLabel : VaultScreenCopy.copyLabel, systemImage: copied ? HVSymbol.copied : HVSymbol.copy)
         }
         // The ghost style pads its text in from the edge for a 44pt target; in a column of text that would set the
         // button's words in from the text above it.

@@ -34,21 +34,13 @@ enum VaultAddType: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
+    /// What it is, drawn on the neutral tile (handoff 2.7).
     var symbol: String {
         switch self {
-        case .login: return "globe"
-        case .card: return "creditcard"
-        case .contact: return "person.crop.circle"
-        case .key: return "key.horizontal"
-        }
-    }
-
-    var tint: Color {
-        switch self {
-        case .login: return Palette.blue
-        case .card: return Palette.violet
-        case .contact: return Palette.sky
-        case .key: return Palette.amber
+        case .login: return HVSymbol.login
+        case .card: return HVSymbol.card
+        case .contact: return HVSymbol.contact
+        case .key: return HVSymbol.key
         }
     }
 
@@ -177,7 +169,7 @@ struct VaultAddItemSheet: View {
             path.append(choice)
         } label: {
             VStack(alignment: .leading, spacing: HV.Space.s) {
-                HVIconBadge(symbol: choice.symbol, tint: choice.tint, size: 40)
+                HVTile(symbol: choice.symbol)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(choice.title).font(.hvHeadline).foregroundStyle(Palette.textPrimary)
                     Text(choice.detail)
@@ -273,7 +265,11 @@ private struct VaultNewItemForm: View {
 
     private var nameBlock: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HVLabeledField(title: "Name") {
+            // The rule is the footnote, and turns destructive, with the field's edge, when the name breaks it.
+            HVLabeledField(
+                title: "Name", footnote: draft.nameProblem ?? VaultItems.nameHint,
+                isFocused: nameFocused, isInvalid: draft.nameProblem != nil || nameError != nil
+            ) {
                 TextField(type.namePlaceholder, text: Binding(
                     get: { draft.typedName ?? draft.suggestedName },
                     set: { draft.typedName = $0; nameError = nil }
@@ -290,10 +286,6 @@ private struct VaultNewItemForm: View {
             Text("Agents ask for it by this name.")
                 .font(.hvCaption)
                 .foregroundStyle(Palette.textSecondary)
-            // The rule, which turns destructive when the name breaks it (the words say so as well as the colour).
-            Text(draft.nameProblem ?? VaultItems.nameHint)
-                .font(.hvCaption)
-                .foregroundStyle(draft.nameProblem == nil ? Palette.textSecondary : Palette.danger)
             if let nameError { KeysInlineMessage(text: nameError) }
         }
     }

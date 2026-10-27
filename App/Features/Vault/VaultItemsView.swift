@@ -143,10 +143,10 @@ struct VaultItemsView: View {
 
     private func filters(_ model: VaultItemsModel) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: HV.Space.xs) {
-                chip("All", category: nil, model: model)
+            HStack(spacing: HV.Space.hair) {
+                pill("All", category: nil, model: model)
                 ForEach(VaultCategory.allCases) { category in
-                    chip(category.label, category: category, model: model)
+                    pill(category.label, category: category, model: model)
                 }
             }
             // Room at the end, so the last chip can scroll clear of the fade.
@@ -167,18 +167,10 @@ struct VaultItemsView: View {
     }
 
     /// A filter and its count. The count is always there, 0 included: "its 0 already says so".
-    private func chip(_ title: String, category: VaultCategory?, model: VaultItemsModel) -> some View {
-        let selected = model.filter == category
-        let count = model.count(in: category)
-        return Button {
-            Haptics.select()
+    private func pill(_ title: String, category: VaultCategory?, model: VaultItemsModel) -> some View {
+        HVFilterPill(title: title, count: model.count(in: category), isSelected: model.filter == category) {
             model.filter = category
-        } label: {
-            HVChip(title: "\(title) \(count)", isSelected: selected)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(title), \(count)")
-        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     @ViewBuilder
@@ -201,8 +193,7 @@ private struct VaultEmptyLine: View {
     let text: String
 
     var body: some View {
-        // 20pt corners, as the web's rounded-2xl box.
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: HV.Radius.surface, style: .continuous)
         Text(text)
             .font(.hvSubheadline)
             .foregroundStyle(Palette.textSecondary)
@@ -211,7 +202,7 @@ private struct VaultEmptyLine: View {
             .padding(.horizontal, HV.Space.l)
             .padding(.vertical, HV.Space.xl)
             .background(Palette.surface, in: shape)
-            .overlay(shape.strokeBorder(Palette.border.opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+            .overlay(shape.strokeBorder(Palette.border, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
     }
 }
 
@@ -223,10 +214,10 @@ struct VaultRow: View {
     var showsChevron = false
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
 
     private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
-    private var tileSize: CGFloat { min(tile, 56) }
+    /// The tile is 36pt, whatever the text size (handoff 4.3).
+    private let tileSize: CGFloat = 36
     private let spacing = HV.Space.s + 2
 
     /// What VoiceOver reads for the row: the name, the hint with a card's mask as "ending in 4242", and when an agent last

@@ -6,7 +6,7 @@ struct VaultCloseButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "xmark")
+            Image(systemName: HVSymbol.close)
         }
         .accessibilityLabel(VaultScreenCopy.closeLabel)
     }

@@ -35,9 +35,10 @@ struct VaultFieldsForm: View {
     /// A field with its label above it. VoiceOver reads the same words as the field's name, since a field's own title is
     /// its placeholder and the label above is only text beside it.
     private func labelled<Field: View>(
-        _ title: String, footnote: String? = nil, isFocused: Bool = false, @ViewBuilder field: @escaping () -> Field
+        _ title: String, footnote: String? = nil, isFocused: Bool = false, isInvalid: Bool = false,
+        @ViewBuilder field: @escaping () -> Field
     ) -> some View {
-        HVLabeledField(title: title, footnote: footnote, isFocused: isFocused) {
+        HVLabeledField(title: title, footnote: footnote, isFocused: isFocused, isInvalid: isInvalid) {
             field().accessibilityLabel(title)
         }
     }
@@ -79,9 +80,14 @@ struct VaultFieldsForm: View {
     @ViewBuilder
     private var cardFields: some View {
         let brand = VaultItems.cardBrand(VaultItems.asciiDigits(draft.fields["number"] ?? ""))
-        let numberProblem = draft.cardNumberProblem
+        // Its own invalid state shows once the field has been left, not while the number is still being typed: the
+        // footnote says what is wrong, in destructive, with the field's edge.
+        let numberProblem = numberLeft && !numberFocused ? draft.cardNumberProblem : nil
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            labelled("Card number", footnote: "The list shows only the brand and the last four digits.", isFocused: numberFocused) {
+            labelled(
+                "Card number", footnote: numberProblem ?? "The list shows only the brand and the last four digits.",
+                isFocused: numberFocused, isInvalid: numberProblem != nil
+            ) {
                 HStack {
                     TextField("1234 5678 9012 3456", text: Binding(
                         get: { draft.fields["number"] ?? "" },
@@ -93,12 +99,8 @@ struct VaultFieldsForm: View {
                     .autocorrectionDisabled()
                     .font(.system(.body, design: .monospaced))
                     .focused($numberFocused)
-                    if brand != .other { VaultBrandCard(brand: brand) }
+                    if let tileBrand = HVCardBrand(brand) { HVCardBrandTile(brand: tileBrand) }
                 }
-            }
-            // Its own invalid state shows once the field has been left, not while the number is still being typed.
-            if numberLeft, !numberFocused, let numberProblem {
-                KeysInlineMessage(text: numberProblem)
             }
         }
         .onChange(of: numberFocused) { _, focused in

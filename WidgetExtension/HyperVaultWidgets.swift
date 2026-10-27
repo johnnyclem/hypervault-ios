@@ -134,7 +134,7 @@ struct KeepWidgetView: View {
             if family == .accessoryCircular {
                 ZStack {
                     AccessoryWidgetBackground()
-                    HMarkShape().fill(.primary).padding(10)
+                    Text("H").font(.system(size: 24, weight: .semibold, design: .monospaced)).foregroundStyle(.primary)
                 }
             } else if family == .accessoryInline {
                 Label("Keep something", systemImage: "tray.and.arrow.down")

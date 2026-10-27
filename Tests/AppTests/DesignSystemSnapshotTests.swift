@@ -2,6 +2,16 @@ import SwiftUI
 import XCTest
 @testable import HyperVault
 
+private func swatch(_ name: String, _ color: Color) -> some View {
+    VStack(spacing: 4) {
+        RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous)
+            .fill(color)
+            .frame(height: 36)
+            .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+        Text(name).font(.system(size: 9)).foregroundStyle(Palette.textSecondary).lineLimit(1).minimumScaleFactor(0.7)
+    }
+}
+
 /// The design system on one page each, so the stock look can be read off the published renders: the palette on its
 /// surfaces, the buttons, fields and tags, the pieces the Vault is built from, and the marks and glass.
 @MainActor
@@ -12,16 +22,6 @@ final class DesignSystemSnapshotTests: XCTestCase {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(paper ? Palette.background : Color.clear)
             .tint(HVColor.primary)
-    }
-
-    private func swatch(_ name: String, _ color: Color) -> some View {
-        VStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous)
-                .fill(color)
-                .frame(height: 36)
-                .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
-            Text(name).font(.system(size: 9)).foregroundStyle(Palette.textSecondary).lineLimit(1).minimumScaleFactor(0.7)
-        }
     }
 
     func testThePaletteOnItsSurfaces() throws {

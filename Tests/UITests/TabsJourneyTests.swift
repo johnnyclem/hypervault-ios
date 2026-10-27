@@ -22,10 +22,12 @@ final class TabsJourneyTests: HyperVaultUITestCase {
         step("Yours lists what is kept") {
             require(element("yours.row.a1"), "the Bakery landing page row")
             XCTAssertTrue(element("yours.row.a1").label.contains("Bakery landing page"))
-            for id in ["m1", "k1", "g1"] { require(element("yours.row.\(id)"), "the row \(id)") }
+            // (The panel is half the height of the screen, so the rows below its fold are scrolled to.)
+            for id in ["m1", "k1", "g1"] { reveal(element("yours.row.\(id)"), "the row \(id)") }
         }
 
         step("The Memories filter keeps only memories") {
+            reveal(segment("Memories"), "the Memories filter")
             tap(segment("Memories"), "the Memories filter")
             require(element("yours.row.m2"), "the Auth decision memory")
             requireGone(element("yours.row.a1"), "the page, which is not a memory")

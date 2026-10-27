@@ -25,6 +25,7 @@ final class LayoutSweepTests: LayoutSweepCase {
         openYours()
         look(mode, "Yours", key: element("yours.row.a1"), "the Bakery landing page row")
         tap(button("Done"), "Done")
+        requireGone(element("yours.filter"), "the Yours panel")
         openTab("Chat")
         look(mode, "Chat", key: element("chat.row.c1"), "the Lisbon conversation row")
         choose("Group chats", from: "chat.section")
@@ -39,6 +40,8 @@ final class LayoutSweepTests: LayoutSweepCase {
         openAccountMenu()
         look(mode, "the Account menu", key: element("account.library"), "the Library row")
         tap(element("account.close"), "Close")
+        // A tap on a tab while the menu is still going would land on the menu, which covers the tab bar.
+        requireGone(element("account.close"), "the Account menu")
 
         // Last, because typing brings the keyboard up over the tab bar.
         openTab("Home")

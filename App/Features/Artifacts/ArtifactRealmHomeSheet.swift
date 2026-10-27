@@ -50,7 +50,7 @@ struct ArtifactRealmHomeSheet: View {
     private func row(_ realm: ArtifactRealm) -> some View {
         let isHome = realm.defaultArtifactSlug == detail.slug
         return HStack(spacing: HV.Space.s) {
-            HVIconBadge(symbol: "globe", tint: Palette.blue, size: 32)
+            HVIconBadge(symbol: HVSymbol.domain, tint: Palette.blue, size: 32)
             VStack(alignment: .leading, spacing: 2) {
                 Text(realm.host).font(.hvBody).foregroundStyle(Palette.textPrimary)
                 Text(isHome ? "Opens on this page" : (realm.defaultArtifactSlug == nil ? "Opens on your list of public pages" : "Opens on another page"))
@@ -61,7 +61,7 @@ struct ArtifactRealmHomeSheet: View {
             if changing == realm.host {
                 ProgressView()
             } else if isHome {
-                Image(systemName: "checkmark").foregroundStyle(.tint).fontWeight(.semibold)
+                HVIcon("checkmark").foregroundStyle(.tint).fontWeight(.semibold)
             }
         }
         .contentShape(Rectangle())

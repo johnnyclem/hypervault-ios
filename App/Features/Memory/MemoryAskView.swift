@@ -36,7 +36,7 @@ struct MemoryAskView: View {
                 .scrollDismissesKeyboard(.interactively)
                 .onChange(of: model.turns.last) { _, last in
                     guard let last else { return }
-                    withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(last.id, anchor: .bottom) }
+                    HV.Motion.animate(.easeOut(duration: 0.25)) { proxy.scrollTo(last.id, anchor: .bottom) }
                 }
             }
             composer
@@ -231,7 +231,7 @@ private struct MemoryAskTurnView: View {
                                 .multilineTextAlignment(.leading)
                         }
                         Spacer(minLength: 0)
-                        Image(systemName: "chevron.right")
+                        Image(systemName: HVSymbol.open)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Palette.textTertiary)
                             .accessibilityHidden(true)

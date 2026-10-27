@@ -46,7 +46,7 @@ struct ImportScreen: View {
             }
             .padding(HV.Space.m)
             .hvReadableWidth()
-            .animation(.easeInOut(duration: 0.2), value: model.stage)
+            .hvAnimation(.easeInOut(duration: 0.2), value: model.stage)
         }
         .onChange(of: model.stage) { _, stage in
             switch stage {

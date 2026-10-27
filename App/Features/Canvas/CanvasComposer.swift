@@ -12,6 +12,7 @@ struct CanvasComposer: View {
     var onScan: (() -> Void)?
 
     @FocusState private var focused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: HV.Space.xs + 2) {
@@ -38,18 +39,18 @@ struct CanvasComposer: View {
         .padding(.top, HV.Space.xs)
         .padding(.bottom, HV.Space.xs)
         .hvReadableWidth()
-        .animation(.snappy, value: model.staged != nil)
-        .animation(.snappy, value: model.notice)
+        .hvAnimation(.snappy, value: model.staged != nil)
+        .hvAnimation(.snappy, value: model.notice)
     }
 
     private var field: some View {
         HStack(alignment: .bottom, spacing: HV.Space.xs) {
             Menu {
                 Button("New thread", systemImage: "square.and.pencil", action: onNewThread)
-                Button(HVCopy.copyPromptLabel, systemImage: "doc.on.doc", action: onCopyStarter)
+                Button(HVCopy.copyPromptLabel, systemImage: HVSymbol.copy, action: onCopyStarter)
                 if let onScan { Button("Scan a page", systemImage: "doc.viewfinder", action: onScan) }
             } label: {
-                Image(systemName: "plus")
+                Image(systemName: HVSymbol.add)
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(Palette.textSecondary)
                     .frame(width: 44, height: 44)
@@ -115,7 +116,7 @@ struct CanvasComposer: View {
             Image(systemName: isDictating ? "waveform" : "mic")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(isDictating ? Color.accentColor : Palette.textSecondary)
-                .symbolEffect(.variableColor.iterative, isActive: isDictating)
+                .symbolEffect(.variableColor.iterative, isActive: isDictating && !reduceMotion)
                 .frame(width: 44, height: 44)
         }
         .accessibilityLabel(isDictating ? "Stop dictating" : "Dictate")
@@ -133,7 +134,7 @@ private struct StagedChip: View {
 
     var body: some View {
         HStack(spacing: HV.Space.s) {
-            Image(systemName: "doc.on.clipboard")
+            HVIcon("doc.on.clipboard")
                 .foregroundStyle(Palette.textSecondary)
             Text(HVCopy.pastedLine(characters: characters))
                 .font(.system(.subheadline, weight: .medium))
@@ -166,7 +167,7 @@ private struct NoticeLine: View {
 
     var body: some View {
         HStack(spacing: HV.Space.xs) {
-            Image(systemName: notice.kind == .error ? "exclamationmark.circle" : "info.circle")
+            HVIcon(notice.kind == .error ? "exclamationmark.circle" : "info.circle")
             Text(notice.text).font(.hvFootnote)
                 .accessibilityIdentifier("canvas.notice")
             Spacer(minLength: 0)
@@ -175,7 +176,7 @@ private struct NoticeLine: View {
                     .font(.system(.footnote, weight: .semibold))
             }
             Button(action: dismiss) {
-                Image(systemName: "xmark")
+                Image(systemName: HVSymbol.close)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }

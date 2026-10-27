@@ -53,7 +53,7 @@ struct ChatConversationListView: View {
         case .loaded:
             if model.conversations.isEmpty {
                 HVEmptyState(
-                    symbol: "bubble.left.and.bubble.right",
+                    symbol: HVSymbol.chat,
                     title: "No chats yet.",
                     message: "Start one, or bring in your history from ChatGPT, Claude, Gemini or Grok.",
                     actionTitle: "Import your history"
@@ -107,7 +107,7 @@ struct ChatConversationListView: View {
                             Button(role: .destructive) {
                                 pendingDelete = conversation
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                Label("Delete", systemImage: HVSymbol.delete)
                             }
                         }
                     }

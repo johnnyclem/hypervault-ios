@@ -45,7 +45,7 @@ private struct MindDiffRowView: View {
         switch row.kind {
         case .gap:
             HStack(spacing: HV.Space.xs) {
-                Image(systemName: "ellipsis")
+                HVIcon("ellipsis")
                     .font(.system(size: 11, weight: .semibold))
                 Text(gapText)
                     .font(.hvCaption)
@@ -255,7 +255,7 @@ struct MindStateDiffView: View {
         let isOpen = expanded.contains(change.id)
         return VStack(alignment: .leading, spacing: HV.Space.xs) {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                HV.Motion.animate(.easeInOut(duration: 0.2)) {
                     if isOpen { expanded.remove(change.id) } else { expanded.insert(change.id) }
                 }
             } label: {
@@ -279,7 +279,7 @@ struct MindStateDiffView: View {
                     if change.contentChanged {
                         MindDiffTally(added: change.diff.addedLines, removed: change.diff.removedLines)
                     }
-                    Image(systemName: "chevron.down")
+                    HVIcon(HVSymbol.fold)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Palette.textTertiary)
                         .rotationEffect(.degrees(isOpen ? 180 : 0))

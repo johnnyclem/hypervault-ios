@@ -139,7 +139,7 @@ struct RealmsRootView: View {
             // Not a DisclosureGroup: its chevron is drawn bold in the primary colour, heavier than the muted
             // ones on every other row. This is the same row with the same quiet chevron.
             Button {
-                withAnimation(.easeOut(duration: 0.2)) { showsPlans.toggle() }
+                HV.Motion.animate { showsPlans.toggle() }
             } label: {
                 HStack {
                     Text("What Pro includes").font(.hvBody).foregroundStyle(Palette.textPrimary)
@@ -201,7 +201,7 @@ struct RealmRow: View {
 
     var body: some View {
         KeysRowLayout {
-            HVIconBadge(symbol: "globe", tint: Palette.blue, size: min(tile, 56))
+            HVIconBadge(symbol: HVSymbol.domain, tint: Palette.blue, size: min(tile, 56))
         } words: {
             VStack(alignment: .leading, spacing: 2) {
                 // An address is one word: it shrinks to fit before it is allowed to break in the middle.

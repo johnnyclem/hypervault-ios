@@ -53,7 +53,7 @@ struct ToolsServerDetailView: View {
                 refreshRow(server)
                 signInRows(server)
                 Button(role: .destructive) { confirmRemove = true } label: {
-                    Label("Remove this server", systemImage: "trash")
+                    Label("Remove this server", systemImage: HVSymbol.delete)
                 }
                 .confirmationDialog("Remove \(server.name)?", isPresented: $confirmRemove, titleVisibility: .visible) {
                     Button("Remove", role: .destructive) {
@@ -194,7 +194,7 @@ struct ToolsServerDetailView: View {
                 Button {
                     app.router.push(.vaultItems)
                 } label: {
-                    Label("Change the key in Vault", systemImage: "lock.rectangle.stack")
+                    Label("Change the key in Vault", systemImage: HVSymbol.vault)
                 }
             } else {
                 Button {
@@ -202,7 +202,7 @@ struct ToolsServerDetailView: View {
                     flow.useToken()
                     signIn = flow
                 } label: {
-                    Label("Replace the token", systemImage: "key")
+                    Label("Replace the token", systemImage: HVSymbol.key)
                 }
             }
         }

@@ -19,7 +19,7 @@ struct RealmDetailView: View {
             if let claim = model.claim(id: claimID) {
                 details(claim)
             } else {
-                HVEmptyState(symbol: "globe", title: "This address is gone", actionTitle: "Back") { dismiss() }.frame(maxHeight: .infinity)
+                HVEmptyState(symbol: HVSymbol.domain, title: "This address is gone", actionTitle: "Back") { dismiss() }.frame(maxHeight: .infinity)
             }
         }
         .hvScreenBackground()

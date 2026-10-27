@@ -195,6 +195,27 @@ floating chrome (composer, bars), never for lists. Lists are plain paper.
 - For the Vault and the settings panes: `HVTile` and `HVCardBrandTile` (tiles), `HVFilterPill` with `HVCount`,
   `HVCodePanel`, `HVEmptyBox`, and `HVSymbol` for the SF Symbol of each concept. `hvGlass` is `.glassEffect`, and solid
   `card` under Reduce Transparency.
+- Symbols: `HVSymbol` names the SF Symbol of each concept (handoff 2.7), so the same idea draws the same glyph
+  everywhere: a login is `globe`, a card `creditcard`, a key `key`, delete `trash`, copy `doc.on.doc` and copied
+  `checkmark`, close `xmark`. A symbol beside words is decoration, so draw it with `HVIcon(name)` (or add
+  `.hvDecorative()`), which VoiceOver skips; a `Label(title, systemImage:)` already hides its symbol. A symbol that is
+  the whole label of a control is not decoration: the control gets an `accessibilityLabel`. One that carries a state the
+  words do not (a failure triangle, a selected check without the `isSelected` trait) is left readable.
+- Motion (handoff 2.6): never write a bare `withAnimation` or `.animation(_:value:)`. `.hvAnimation(_:value:)` and
+  `HV.Motion.animate { }` are those two with Reduce Motion in front, `.hvBounce(value:)` is a symbol bounce that holds
+  still under it, and `HV.Motion.entrance` is the web's entrance (ease-out, 0.2s). A looping or decorative animation
+  reads `accessibilityReduceMotion` itself (Aurora, the thinking dots, the confetti). The icon button style swaps its
+  spring for a dimmer fill, and the toast fades in place of sliding. A button says "Copied" for `HV.Motion.copiedHold`
+  (1.5s), as the web's copy button does. System sheet and push animations are left to the system.
+- Glass and bars: `hvGlass` is for floating chrome (a composer, an action bar, a legend), never a `.background(.bar)` or
+  a material, and the system's navigation bar is not repainted (no `toolbarBackground`): on iOS 26 it carries its own
+  scroll-edge effect.
+- Sheets: every sheet has a visible way out (handoff 4.4 and 9). Most already have a `Cancel`, a `Done` or a `Close` in
+  the navigation bar, or an `HVSheetHeader` with its xmark; a sheet that has none puts `.hvSheetClose(isDirty:)` on its
+  root view inside the `NavigationStack`. It adds a "Close" button (xmark, `.cancellationAction`); while `isDirty` it
+  also turns off the swipe and asks "Discard your changes?" first, because the web drops typed values on close without
+  a word and the phone should not. Do not add it beside a Cancel, a Done or a Close that already does the job: two ways
+  out read as a mistake, and a UI test that taps "Close" would find two buttons.
 - Everything works at the largest Dynamic Type size, with
   VoiceOver (labels on icon-only buttons; combine row elements), with reduce
   motion, and with 44-point touch targets.

@@ -94,7 +94,7 @@ struct SignInContent: View {
                         .padding(.horizontal, HV.Space.l)
                         .padding(.bottom, HV.Space.l)
                         .hvReadableWidth()
-                        .animation(.easeOut(duration: 0.2), value: controller.message)
+                        .hvAnimation(HV.Motion.entrance, value: controller.message)
                     }
                     .frame(maxWidth: .infinity, minHeight: proxy.size.height)
                 }
@@ -151,7 +151,7 @@ struct SignInContent: View {
             showEmail = true
         } label: {
             HStack(spacing: HV.Space.s) {
-                Image(systemName: "envelope")
+                HVIcon("envelope")
                 Text("Continue with email")
             }
         }

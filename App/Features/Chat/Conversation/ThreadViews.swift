@@ -70,7 +70,7 @@ struct ChatUserBubble: View {
                 .textSelection(.enabled)
             if isLong {
                 Button(expanded ? "Show less" : "Show more") {
-                    withAnimation(.easeOut(duration: 0.2)) { expanded.toggle() }
+                    HV.Motion.animate { expanded.toggle() }
                 }
                 .font(.hvCaption.weight(.semibold))
                 .foregroundStyle(.white)
@@ -190,12 +190,12 @@ struct ChatReplyActions: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            action(copied ? "checkmark" : "doc.on.doc", label: copied ? "Copied" : "Copy reply", tint: copied ? Palette.mint : nil) {
+            action(copied ? HVSymbol.copied : HVSymbol.copy, label: copied ? "Copied" : "Copy reply", tint: copied ? Palette.mint : nil) {
                 UIPasteboard.general.string = row.text
                 Haptics.tap()
                 copied = true
                 Task {
-                    try? await Task.sleep(nanoseconds: 1_600_000_000)
+                    try? await Task.sleep(nanoseconds: UInt64(HV.Motion.copiedHold * 1_000_000_000))
                     copied = false
                 }
             }
@@ -343,7 +343,7 @@ struct ChatGroundingView: View {
                             chipView(chip)
                         }
                         if !showAll && chips.count > 5 {
-                            Button("+\(chips.count - 5) more") { withAnimation { showAll = true } }
+                            Button("+\(chips.count - 5) more") { HV.Motion.animate(.default) { showAll = true } }
                                 .font(.hvCaption.weight(.medium))
                                 .buttonStyle(.plain)
                                 .foregroundStyle(Color.accentColor)
@@ -376,7 +376,7 @@ struct ChatGroundingView: View {
             .accessibilityLabel("Page: \(page.title)")
             .accessibilityHint("Opens the page")
         case .memory(let title):
-            sourceChip(title, symbol: "brain.head.profile")
+            sourceChip(title, symbol: HVSymbol.memory)
                 .accessibilityLabel("Memory: \(title)")
         case .graph(let label):
             sourceChip(label, symbol: "point.3.connected.trianglepath.dotted")
@@ -389,7 +389,7 @@ struct ChatGroundingView: View {
     private func sourceChip(_ title: String, symbol: String) -> some View {
         let large = typeSize.isAccessibilitySize
         return HStack(alignment: large ? .firstTextBaseline : .center, spacing: 5) {
-            Image(systemName: symbol).font(.system(size: glyphSize, weight: .semibold))
+            HVIcon(symbol).font(.system(size: glyphSize, weight: .semibold))
             Text(title)
                 .lineLimit(large ? 4 : 1)
                 .multilineTextAlignment(.leading)
@@ -420,17 +420,17 @@ struct ChatToolGroupView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(.easeOut(duration: 0.2)) { open.toggle() }
+                HV.Motion.animate { open.toggle() }
             } label: {
                 HStack(spacing: HV.Space.xs) {
-                    Image(systemName: "wrench.and.screwdriver").font(.hvFootnote.weight(.semibold))
+                    HVIcon("wrench.and.screwdriver").font(.hvFootnote.weight(.semibold))
                     Text(steps.count == 1 ? "Used a tool" : "Used \(steps.count) tools")
                         .font(.hvFootnote.weight(.medium))
                     if failures > 0 {
                         HVTag(text: failures == 1 ? "1 failed" : "\(failures) failed", tint: Palette.danger)
                     }
                     Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
+                    HVIcon(HVSymbol.open)
                         .font(.hvCaption.weight(.bold))
                         .rotationEffect(.degrees(open ? 90 : 0))
                 }
@@ -465,7 +465,7 @@ struct ChatToolStepView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.xxs) {
             Button {
-                withAnimation(.easeOut(duration: 0.2)) { open.toggle() }
+                HV.Motion.animate { open.toggle() }
             } label: {
                 HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
                     Image(systemName: step.ok ? "checkmark.circle" : "xmark.circle")
@@ -526,7 +526,7 @@ struct ChatToolPickerView: View {
             ForEach(selection.options.prefix(12)) { option in
                 Button { onPick(option) } label: {
                     HStack(spacing: HV.Space.xs) {
-                        Image(systemName: "wrench.and.screwdriver").font(.hvFootnote)
+                        HVIcon("wrench.and.screwdriver").font(.hvFootnote)
                         Text(option.label).font(.hvFootnote.weight(.medium)).lineLimit(2).multilineTextAlignment(.leading)
                         Spacer(minLength: 0)
                     }
@@ -593,7 +593,7 @@ struct ChatThinkingBubble: View {
                         .font(.hvCallout)
                         .foregroundStyle(Palette.textSecondary)
                         .contentTransition(.opacity)
-                        .animation(.easeOut(duration: 0.25), value: Self.line(seconds: seconds, usesRecall: usesRecall))
+                        .hvAnimation(.easeOut(duration: 0.25), value: Self.line(seconds: seconds, usesRecall: usesRecall))
                     Spacer(minLength: 0)
                     if seconds >= 3 {
                         Text(Self.clock(seconds))

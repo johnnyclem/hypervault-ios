@@ -188,7 +188,7 @@ struct AdminAccountToolsView: View {
 
         Section(header: HVSectionHeader(title: "Danger"), footer: Text("Deleting removes the sign-in and everything the person saved. There is no undo.")) {
             Button(role: .destructive) { deleting = true } label: {
-                Label("Delete this account…", systemImage: "trash")
+                Label("Delete this account…", systemImage: HVSymbol.delete)
             }
             .disabled(model.isSelf || model.isWorking)
         }

@@ -66,10 +66,6 @@ struct ChatConversationContent: View {
             .hvScreenBackground()
             .navigationTitle(model.title)
             .navigationBarTitleDisplayMode(.inline)
-            // A thread scrolls under the bar. Paper behind it keeps the title and the menu readable and
-            // stops the words and the blue bubbles showing through as a smear.
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(Palette.background, for: .navigationBar)
             .toolbar { toolbar }
             .sheet(isPresented: $showOptions) { ChatOptionsSheet(model: model) }
             .sheet(isPresented: $showVisibility) { ChatVisibilitySheet(model: model) }
@@ -177,14 +173,14 @@ struct ChatConversationContent: View {
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
-        withAnimation(.easeOut(duration: 0.25)) {
+        HV.Motion.animate(.easeOut(duration: 0.25)) {
             proxy.scrollTo(Self.bottomID, anchor: .bottom)
         }
     }
 
     private var emptyThread: some View {
         HVEmptyState(
-            symbol: "bubble.left.and.bubble.right",
+            symbol: HVSymbol.chat,
             title: "Ask anything.",
             message: "Your memories come along. The model is only the engine, so you can switch it in the middle of a chat."
         )
@@ -226,7 +222,7 @@ struct ChatConversationContent: View {
                 if model.conversation != nil {
                     Divider()
                     Button(role: .destructive) { confirmDelete = true } label: {
-                        Label("Delete chat", systemImage: "trash")
+                        Label("Delete chat", systemImage: HVSymbol.delete)
                     }
                 }
             } label: {

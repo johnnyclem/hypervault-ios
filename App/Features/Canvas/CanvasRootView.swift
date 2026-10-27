@@ -124,7 +124,7 @@ struct CanvasScreen: View {
             celebrating = true
             Task {
                 try? await Task.sleep(nanoseconds: 2_200_000_000)
-                withAnimation { celebrating = false }
+                HV.Motion.animate(.default) { celebrating = false }
             }
         }
     }
@@ -158,7 +158,7 @@ struct CanvasScreen: View {
                 ScrollView {
                     VStack(spacing: HV.Space.m) {
                         ForEach(model.cards) { card in
-                            CanvasCardView(card: card, onOpen: { open(card) }, onHide: { withAnimation(.snappy) { model.dispatch(.hide(key: card.key)) } })
+                            CanvasCardView(card: card, onOpen: { open(card) }, onHide: { HV.Motion.animate(.snappy) { model.dispatch(.hide(key: card.key)) } })
                                 .transition(.asymmetric(insertion: .scale(scale: 0.96).combined(with: .opacity), removal: .opacity))
                         }
                         CanvasThreadView(model: model)
@@ -167,14 +167,14 @@ struct CanvasScreen: View {
                     .padding(.horizontal, HV.Space.m)
                     .padding(.top, HV.Space.s)
                     .hvReadableWidth()
-                    .animation(.snappy, value: model.cards)
+                    .hvAnimation(.snappy, value: model.cards)
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .onChange(of: model.messages.count) { _, _ in
-                    withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo("bottom", anchor: .bottom) }
+                    HV.Motion.animate(.easeOut(duration: 0.25)) { proxy.scrollTo("bottom", anchor: .bottom) }
                 }
                 .onChange(of: model.cards.count) { _, _ in
-                    withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo("bottom", anchor: .bottom) }
+                    HV.Motion.animate(.easeOut(duration: 0.25)) { proxy.scrollTo("bottom", anchor: .bottom) }
                 }
             }
         }

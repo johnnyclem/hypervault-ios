@@ -83,7 +83,7 @@ struct AdminScreen: View {
                 }
                 Link(destination: dashboard) {
                     HVRow(symbol: "safari", tint: Palette.blue, title: "Open the web dashboard", subtitle: "Every invite, the waitlist and all accounts") {
-                        Image(systemName: "arrow.up.right").font(.footnote).foregroundStyle(Palette.textTertiary)
+                        HVIcon("arrow.up.right").font(.footnote).foregroundStyle(Palette.textTertiary)
                     }
                 }
             }
@@ -242,11 +242,11 @@ struct AdminCopyButton: View {
             Haptics.tap()
             copied = true
             Task {
-                try? await Task.sleep(nanoseconds: 1_600_000_000)
+                try? await Task.sleep(nanoseconds: UInt64(HV.Motion.copiedHold * 1_000_000_000))
                 copied = false
             }
         } label: {
-            Label(copied ? "Copied" : title, systemImage: copied ? "checkmark" : "doc.on.doc")
+            Label(copied ? "Copied" : title, systemImage: copied ? HVSymbol.copied : HVSymbol.copy)
                 .frame(minHeight: minHeight)
         }
     }

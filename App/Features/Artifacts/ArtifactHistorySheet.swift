@@ -139,7 +139,7 @@ struct ArtifactVersionRow: View {
                 }
             }
             HStack(spacing: HV.Space.xs) {
-                Image(systemName: version.authorKind == "agent" ? "cpu" : "person.fill")
+                HVIcon(version.authorKind == "agent" ? "cpu" : "person.fill")
                     .font(.system(size: 11))
                 Text(version.authorLine)
                 if let ago = LibraryCopy.ago(since: version.authoredAt ?? version.createdAt) {
@@ -182,7 +182,7 @@ struct ArtifactVersionScreen: View {
                     ArtifactVersionSource(model: model, version: version)
                 } label: {
                     HVRow(symbol: "doc.plaintext", tint: Palette.blue, title: "See the whole source") {
-                        Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.textTertiary)
+                        HVIcon(HVSymbol.open).font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.textTertiary)
                     }
                 }
                 .buttonStyle(.plain)
@@ -285,7 +285,7 @@ struct ArtifactVersionSource: View {
                         Haptics.tap()
                         app.toasts.show("Copied", style: .info)
                     } label: {
-                        Image(systemName: "doc.on.doc")
+                        Image(systemName: HVSymbol.copy)
                     }
                     .accessibilityLabel("Copy source")
                 }

@@ -255,7 +255,7 @@ struct ArtifactActionBar: View {
 
     private func item(_ title: String, _ symbol: String) -> some View {
         VStack(spacing: 3) {
-            Image(systemName: symbol)
+            HVIcon(symbol)
                 .font(.system(size: 19, weight: .medium))
                 .frame(height: 24)
             Text(title).font(.system(.caption2, weight: .medium))
@@ -338,7 +338,7 @@ struct ArtifactActionBar: View {
                     }
                 }
                 Section {
-                    Button(role: .destructive) { askDelete = true } label: { Label("Delete", systemImage: "trash") }
+                    Button(role: .destructive) { askDelete = true } label: { Label("Delete", systemImage: HVSymbol.delete) }
                 }
             }
         } label: {

@@ -205,7 +205,7 @@ struct TruthEntryScreen: View {
             open?()
         } label: {
             HStack(alignment: .top, spacing: HV.Space.s) {
-                Image(systemName: context.kind == "memory" ? "brain.head.profile" : "doc.text")
+                Image(systemName: context.kind == "memory" ? HVSymbol.memory : "doc.text")
                     .foregroundStyle(Palette.textSecondary)
                     .frame(width: 24)
                     .accessibilityHidden(true)

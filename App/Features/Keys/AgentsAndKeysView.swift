@@ -128,7 +128,7 @@ struct AgentsAndKeysView: View {
                 if dynamicTypeSize.isAccessibilitySize {
                     Text("Connect an agent")
                 } else {
-                    Label("Connect an agent", systemImage: "plus")
+                    Label("Connect an agent", systemImage: HVSymbol.add)
                 }
             }
             .buttonStyle(.hvPrimary)
@@ -177,7 +177,7 @@ struct KeyRow: View {
     var body: some View {
         KeysRowLayout(alignment: .top) {
             HVIconBadge(
-                symbol: key.isPaired ? "link" : "key.horizontal",
+                symbol: key.isPaired ? "link" : HVSymbol.key,
                 tint: Palette.amber,
                 size: min(tile, 56)
             )

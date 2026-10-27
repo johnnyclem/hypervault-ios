@@ -207,7 +207,7 @@ struct TruthReviewScreen: View {
             .onEnded { value in
                 let width = value.translation.width
                 let horizontal = abs(width) > abs(value.translation.height)
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { drag = 0 }
+                HV.Motion.animate(.spring(response: 0.35, dampingFraction: 0.8)) { drag = 0 }
                 guard horizontal else { return }
                 if width > 110 {
                     open(.approve, item)
@@ -340,7 +340,7 @@ struct TruthReviewScreen: View {
     private var undoBar: some View {
         if let last = model.deferral {
             HStack(spacing: HV.Space.s) {
-                Image(systemName: "clock.fill").foregroundStyle(Palette.amber)
+                HVIcon("clock.fill").foregroundStyle(Palette.amber)
                 Text("Put off for a week.").font(.hvSubheadline)
                 Spacer()
                 Button("Undo") {
@@ -353,7 +353,7 @@ struct TruthReviewScreen: View {
                 Button {
                     model.dismissUndo()
                 } label: {
-                    Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).frame(width: 44, height: 44)
+                    Image(systemName: HVSymbol.close).font(.system(size: 12, weight: .bold)).frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("Dismiss")
             }
@@ -386,13 +386,13 @@ struct TruthReviewScreen: View {
                     }
                 }
                 Divider()
-                Button { showNewLedger = true } label: { Label("New hosted ledger", systemImage: "plus") }
+                Button { showNewLedger = true } label: { Label("New hosted ledger", systemImage: HVSymbol.add) }
             } label: {
                 VStack(spacing: 0) {
                     Text("Review").font(.hvHeadline).foregroundStyle(Palette.textPrimary)
                     HStack(spacing: 3) {
                         Text(model.ledger?.name ?? "Ledger").lineLimit(1)
-                        Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
+                        HVIcon(HVSymbol.fold).font(.system(size: 8, weight: .bold))
                     }
                     .font(.hvCaption)
                     .foregroundStyle(Palette.textSecondary)

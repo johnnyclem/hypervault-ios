@@ -40,7 +40,7 @@ struct MemorySearchView: View {
             default:
                 if list.items.isEmpty {
                     HVEmptyState(
-                        symbol: "brain.head.profile",
+                        symbol: HVSymbol.memory,
                         title: "Nothing in memory yet",
                         message: "Ask your AI to keep something, or write a note here.",
                         actionTitle: "Memorize something",

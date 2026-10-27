@@ -153,7 +153,7 @@ struct HVStaleBanner: View {
 
     var body: some View {
         HStack(spacing: HV.Space.xs) {
-            Image(systemName: "icloud.slash").font(.system(size: 12, weight: .semibold))
+            HVIcon("icloud.slash").font(.system(size: 12, weight: .semibold))
             Text(message).font(.hvCaption)
         }
         .foregroundStyle(Palette.textSecondary)

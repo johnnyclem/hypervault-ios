@@ -99,10 +99,10 @@ struct ShareView: View {
 
     private func keptView(_ kept: KeptThing, link: String) -> some View {
         VStack(spacing: HV.Space.m) {
-            Image(systemName: "checkmark.seal.fill")
+            HVIcon("checkmark.seal.fill")
                 .font(.system(size: 52))
                 .foregroundStyle(Palette.success)
-                .symbolEffect(.bounce, value: celebrated)
+                .hvBounce(value: celebrated)
                 .onAppear { celebrated = true }
             Text(kept.duplicate ? HVCopy.alreadyKeptLine : HVCopy.keptLine)
                 .font(.hvTitle3)
@@ -129,7 +129,7 @@ struct ShareView: View {
 
     private func message(symbol: String, title: String, detail: String, done: Bool = false) -> some View {
         VStack(spacing: HV.Space.m) {
-            Image(systemName: symbol)
+            HVIcon(symbol)
                 .font(.system(size: 40))
                 .foregroundStyle(Palette.textSecondary)
             Text(title).font(.hvTitle3)

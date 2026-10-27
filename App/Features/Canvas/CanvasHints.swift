@@ -90,7 +90,7 @@ struct CanvasHints: View {
     private var starterButton: some View {
         VStack(spacing: 4) {
             Button(action: onCopyStarter) {
-                Label(starterCopied ? "Copied" : HVCopy.copyPromptLabel, systemImage: starterCopied ? "checkmark" : "doc.on.doc")
+                Label(starterCopied ? "Copied" : HVCopy.copyPromptLabel, systemImage: starterCopied ? HVSymbol.copied : HVSymbol.copy)
                     .font(.system(.subheadline, weight: .semibold))
             }
             .buttonStyle(.hvGhost)
@@ -102,7 +102,7 @@ struct CanvasHints: View {
                     .transition(.opacity)
             }
         }
-        .animation(.easeOut(duration: 0.2), value: starterCopied)
+        .hvAnimation(HV.Motion.entrance, value: starterCopied)
     }
 
     private func greeting(for name: String) -> String {

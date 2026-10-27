@@ -275,7 +275,7 @@ private struct MemoryDetailContent: View {
                 UIPasteboard.general.string = page.memory.content
                 Haptics.success()
                 app.toasts.success("Copied.")
-            } label: { Label("Copy text", systemImage: "doc.on.doc") }
+            } label: { Label("Copy text", systemImage: HVSymbol.copy) }
             ShareLink(item: shareText(page.memory), subject: Text(page.memory.title)) {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
@@ -284,7 +284,7 @@ private struct MemoryDetailContent: View {
             }
             Button { digest() } label: { Label("Digest this", systemImage: "scissors") }
             Divider()
-            Button(role: .destructive) { confirmForget = true } label: { Label("Forget", systemImage: "trash") }
+            Button(role: .destructive) { confirmForget = true } label: { Label("Forget", systemImage: HVSymbol.delete) }
         } label: {
             Image(systemName: "ellipsis.circle")
         }
@@ -344,7 +344,7 @@ private struct MemoryDetailContent: View {
     private func goneView(_ message: String) -> some View {
         VStack(spacing: HV.Space.m) {
             HVEmptyState(
-                symbol: "brain.head.profile",
+                symbol: HVSymbol.memory,
                 title: "This memory is not here",
                 message: message + " It may have been forgotten. Its history can bring it back."
             )

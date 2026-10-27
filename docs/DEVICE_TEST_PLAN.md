@@ -108,6 +108,9 @@ A render and a unit test cannot show these, and each one decides a line of the c
   cursor is in the Name field, and with VoiceOver on, VoiceOver is too.
 - **The line under the form is polite.** With VoiceOver on, type a card number that fails its checksum and leave the
   field: the line is read after a short pause, behind whatever VoiceOver is saying, and a failed Save is read at once.
+- **An entry is a sheet.** Vault > an entry opens at half height with the grabber showing; drag it up to full height and
+  back down, and Close dismisses it. With the text size at the largest accessibility size the half-height sheet still
+  scrolls to everything, and Rename and Replace the value open over it.
 - **Closing keeps what was typed.** Add > Login, type a username and swipe the sheet down: it stays. Close asks
   "Discard what you typed?", and Keep editing returns to the form. The same for Rename and Replace the value.
 

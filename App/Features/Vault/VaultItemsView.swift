@@ -1,10 +1,6 @@
 import HyperVaultKit
 import SwiftUI
 
-private enum VaultDestination: Hashable {
-    case secret(String)
-}
-
 /// The Vault pane: what is saved once so the agents you allow can use it. The list shows each entry's name and a
 /// masked line (a username, `Visa •••• 4242`); a value is encrypted when it is saved and is never shown again, here
 /// or anywhere. The native version of the web's Vault pane.
@@ -14,6 +10,8 @@ struct VaultItemsView: View {
 
     @State private var model: VaultItemsModel?
     @State private var adding = false
+    /// The entry whose page is up. The page follows the entry by its id, so a rename does not close it.
+    @State private var opened: VaultSecret?
     @State private var unlocking = false
 
     var body: some View {
@@ -27,12 +25,6 @@ struct VaultItemsView: View {
         .hvScreenBackground()
         .navigationTitle(AccountPane.vault.label)
         .keysLargeTitle()
-        .navigationDestination(for: VaultDestination.self) { destination in
-            switch destination {
-            case .secret(let name):
-                if let model { VaultItemDetailView(name: name, model: model) }
-            }
-        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { startAdding() } label: { Image(systemName: "plus") }
@@ -49,6 +41,14 @@ struct VaultItemsView: View {
                 VaultAddItemSheet(model: model)
                     // Large, so the keyboard does not cover the form.
                     .presentationDetents([.large])
+            }
+        }
+        .sheet(item: $opened) { secret in
+            if let model {
+                NavigationStack { VaultItemDetailView(name: secret.name, model: model) }
+                    // Half height to see what it is, full height to work with it.
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
         }
     }
@@ -110,9 +110,11 @@ struct VaultItemsView: View {
             } else {
                 Section {
                     ForEach(shown) { secret in
-                        NavigationLink(value: VaultDestination.secret(secret.name)) {
-                            VaultRow(secret: secret)
+                        // A button, not a navigation link: the page is a sheet. In a list it highlights as a row does.
+                        Button { opened = secret } label: {
+                            VaultRow(secret: secret, showsChevron: true)
                         }
+                        .accessibilityLabel(VaultRow.spokenLabel(for: secret))
                         .accessibilityIdentifier("vault.row.\(secret.name)")
                     }
                 } footer: {
@@ -217,6 +219,8 @@ private struct VaultEmptyLine: View {
 
 struct VaultRow: View {
     let secret: VaultSecret
+    /// The mark of a row that opens something without being a navigation link.
+    var showsChevron = false
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
@@ -225,36 +229,41 @@ struct VaultRow: View {
     private var tileSize: CGFloat { min(tile, 56) }
     private let spacing = HV.Space.s + 2
 
-    /// "Never used", or "Last used 2 days ago". Only an agent's read counts.
-    private var lastUsed: String { VaultCopy.rowLastUsedLine(secret.lastAccessedAt) }
+    /// What VoiceOver reads for the row: the name, the hint with a card's mask as "ending in 4242", and when an agent last
+    /// read it ("Never used", "Last used 2 days ago").
+    static func spokenLabel(for secret: VaultSecret) -> String {
+        "\(secret.name), \(secret.spokenSubtitle). \(VaultCopy.rowLastUsedLine(secret.lastAccessedAt))"
+    }
 
     var body: some View {
-        KeysRowLayout {
-            VaultTile(secret: secret, size: tileSize)
-        } words: {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(secret.name)
-                    .font(.hvBody)
-                    .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(isLarge ? nil : 1)
-                Text(secret.subtitle)
-                    .font(.hvFootnote)
-                    .foregroundStyle(Palette.textSecondary)
-                    .lineLimit(isLarge ? nil : 1)
-                // Under the hint at every width: beside it, "Last used 2 months ago" leaves a name no room.
-                Text(lastUsed)
-                    .font(.hvCaption)
-                    .foregroundStyle(Palette.textTertiary)
-                    .lineLimit(isLarge ? nil : 1)
+        HStack(spacing: HV.Space.xs) {
+            KeysRowLayout {
+                VaultTile(secret: secret, size: tileSize)
+            } words: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(secret.name)
+                        .font(.hvBody)
+                        .foregroundStyle(Palette.textPrimary)
+                        .lineLimit(isLarge ? nil : 1)
+                    Text(secret.subtitle)
+                        .font(.hvFootnote)
+                        .foregroundStyle(Palette.textSecondary)
+                        .lineLimit(isLarge ? nil : 1)
+                    // Under the hint at every width: beside it, "Last used 2 months ago" leaves a name no room.
+                    Text(VaultCopy.rowLastUsedLine(secret.lastAccessedAt))
+                        .font(.hvCaption)
+                        .foregroundStyle(Palette.textTertiary)
+                        .lineLimit(isLarge ? nil : 1)
+                }
             }
+            if showsChevron { KeysChevron() }
         }
         .contentShape(Rectangle())
         // Every separator starts under the text. Left to itself the system takes a login's monogram, which is
         // text, as the start of the row and draws that one line further left than the rest.
         .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + (isLarge ? 0 : tileSize + spacing) }
         .accessibilityElement(children: .combine)
-        // The card's mask reads as "ending in 4242", not as four bullets.
-        .accessibilityLabel("\(secret.name), \(secret.spokenSubtitle). \(lastUsed)")
+        .accessibilityLabel(Self.spokenLabel(for: secret))
     }
 }
 

@@ -1,7 +1,7 @@
 import HyperVaultKit
 import SwiftUI
 
-/// One saved entry, opened from its row: what it is, when it was saved and last read, which agent keys may
+/// One saved entry, in the sheet its row opens: what it is, when it was saved and last read, which agent keys may
 /// read it, the request an agent makes, and the ways to change it. Never the value: it is write-only once
 /// saved. Replacing it asks for the whole entry again.
 struct VaultItemDetailView: View {
@@ -46,6 +46,9 @@ struct VaultItemDetailView: View {
         .hvScreenBackground()
         .navigationTitle(current?.name ?? name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) { VaultCloseButton { dismiss() } }
+        }
         // The entry left the list while this page was up (deleted here or somewhere else): there is nothing to show.
         .onChange(of: current == nil) { _, isGone in
             if isGone { dismiss() }

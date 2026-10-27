@@ -90,10 +90,11 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
         require(element("vault.row.github.com"), "the saved logins")
     }
 
-    /// Opens an entry from the list and waits for its screen: the one that says its value is never shown again.
+    /// Opens an entry from the list and waits for its sheet: the one that says its value is never shown again. The sheet
+    /// opens at half height, and the first drag up takes it to full height, where the rest of it can be reached.
     private func openTheEntry(_ name: String) {
-        open(element("vault.row.\(name)"), "the \(name) row", until: { self.shows("The value is encrypted and never shown again.").exists })
-        require(shows("The value is encrypted and never shown again."), "the screen of \(name)")
+        open(element("vault.row.\(name)"), "the \(name) row", until: { self.isShowingTitle(name) })
+        reveal(shows("The value is encrypted and never shown again."), "the screen of \(name)")
     }
 
     func testAddingALoginSavesItAndNeverShowsItsPassword() {
@@ -168,7 +169,8 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
         }
 
         step("The list has the new name and not the old") {
-            goBack(until: { self.element("vault.row.github.com-work").exists })
+            tap(button("Close"), "the entry's Close button")
+            waitUntil("the list to show the renamed login") { self.element("vault.row.github.com-work").exists }
             require(element("vault.row.github.com-work"), "the renamed login in the list")
             XCTAssertFalse(element("vault.row.github.com").exists, "The old name should be gone from the list.")
         }
@@ -217,7 +219,7 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
 
         step("The entry's page shows which keys may read it, as the server says") {
             openTheEntry("github.com")
-            waitUntil("the switches to appear") { self.switchFor("Claude Code").exists }
+            reveal(switchFor("Claude Code"), "the Claude Code key's switch")
             XCTAssertEqual(switchFor("Claude Code").value as? String, "1", "Claude Code may read it.")
             XCTAssertEqual(switchFor("Paired: Cursor").value as? String, "0", "The paired Cursor key may not.")
         }
@@ -245,7 +247,7 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
         openTheEntry("github.com")
 
         step("The first read still lists a key that another device revoked") {
-            waitUntil("the switches to appear") { self.switchFor("hv_Dd3Ee4Ff").exists }
+            reveal(switchFor("hv_Dd3Ee4Ff"), "the default key's switch")
             XCTAssertEqual(switchFor("hv_Dd3Ee4Ff").value as? String, "1")
         }
 
@@ -265,7 +267,6 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
         openTheEntry("stripe-restricted-key")
 
         step("Allowing a key finds the entry gone, and its page closes") {
-            waitUntil("the switches to appear") { self.switchFor("Paired: Cursor").exists }
             let cursor = switchFor("Paired: Cursor")
             reveal(cursor, "the Cursor key's switch")
             flip(cursor)

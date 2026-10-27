@@ -20,8 +20,11 @@ extension UITestWorld {
         let dreams = UITestDreams()
         let digest = UITestDigest(memories: memories)
         let chats = UITestChats()
+        let truth = UITestTruth()
+        let rooms = UITestRooms()
         return pageRoutes(vault) + memoryRoutes(memories) + secretRoutes(secrets) + boardRoutes(boards) + mailRoutes(mail)
-            + realmRoutes(realms) + thinkRoutes(dreams, digest) + chatRoutes(chats)
+            + realmRoutes(realms) + thinkRoutes(dreams, digest) + chatRoutes(chats) + truthRoutes(truth)
+            + roomRoutes(rooms)
     }
 
     // MARK: Helpers
@@ -299,6 +302,87 @@ extension UITestWorld {
                       let task = boards.patch(project, id: parts[2], patch: patch)
                 else { return notFound("No such task.") }
                 return reply(.object(["task": task, "tasklist": boards.boardJSON(project) ?? .null, "summary": boards.summary(project) ?? .null]))
+            },
+        ]
+    }
+
+    // MARK: Rooms
+
+    /// The rooms: one is made from the connected models, renamed, given another member or one fewer, and deleted. A room made
+    /// on the phone takes the next of `UITestRooms.madeIDs`, whose routes are listed here one by one (a route matches a path, and
+    /// the room the vault starts with, `r1`, has its own in `UITestWorld+Screens`).
+    private static func roomRoutes(_ rooms: UITestRooms) -> [MockRoute] {
+        var routes: [MockRoute] = [
+            MockRoute(.get, "/api/rooms") { _ in reply(raw: rooms.listJSON()) },
+            MockRoute(.post, "/api/rooms") { request in
+                let sent = body(request)
+                let members = (sent["members"]?.array ?? []).compactMap { member -> (backend: String, handle: String, brief: String)? in
+                    guard let backend = member["backend_id"]?.string, let handle = member["handle"]?.string else { return nil }
+                    return (backend, handle, member["role_brief"]?.string ?? "")
+                }
+                guard !members.isEmpty else { return reply(.object(["error": .string("A room needs at least one member.")]), status: 400) }
+                guard let made = rooms.create(title: sent["title"]?.string, members: members) else {
+                    return reply(.object(["error": .string("That is as many rooms as this canned server keeps.")]), status: 400)
+                }
+                return reply(.object(["room": .object(["id": .string(made.id), "title": .string(made.title)]), "members": .array(made.members)]), status: 201)
+            },
+        ]
+        for id in UITestRooms.madeIDs {
+            routes.append(MockRoute(.get, "/api/rooms/\(id)") { _ in
+                guard let raw = rooms.detailJSON(id: id) else { return notFound("That room is not here.") }
+                return reply(raw: raw)
+            })
+            routes.append(MockRoute(.patch, "/api/rooms/\(id)") { request in
+                guard let title = body(request)["title"]?.string, rooms.rename(id: id, to: title) else { return notFound("That room is not here.") }
+                return empty()
+            })
+            routes.append(MockRoute(.delete, "/api/rooms/\(id)") { _ in
+                rooms.delete(id: id) ? empty() : notFound("That room is not here.")
+            })
+            routes.append(MockRoute(.post, "/api/rooms/\(id)/members") { request in
+                let drafts = (body(request)["members"]?.array ?? []).compactMap { member -> (backend: String, handle: String, brief: String)? in
+                    guard let backend = member["backend_id"]?.string, let handle = member["handle"]?.string else { return nil }
+                    return (backend, handle, member["role_brief"]?.string ?? "")
+                }
+                switch rooms.addMembers(id: id, drafts) {
+                case .success(let added): return reply(.object(["members": .array(added)]), status: 201)
+                case .failure(let problem): return reply(.object(["error": .string(problem.message)]), status: problem.status)
+                }
+            })
+            routes.append(MockRoute(.delete, "/api/rooms/\(id)/members") { request in
+                guard let member = body(request)["member_id"]?.string, rooms.removeMember(id: id, memberID: member) else { return notFound("That member is not here.") }
+                return empty()
+            })
+        }
+        return routes
+    }
+
+    // MARK: Truth
+
+    /// The ledger: what is asserted into it, and what is out of date and waits on the person.
+    private static func truthRoutes(_ truth: UITestTruth) -> [MockRoute] {
+        [
+            MockRoute(.get, "/api/truth") { _ in reply(raw: truth.overviewJSON()) },
+            MockRoute(.post, "/api/truth/entries") { request in
+                let sent = body(request)
+                guard let type = sent["type"]?.string, let ledger = sent["ledger"]?.string else {
+                    return reply(.object(["error": .string("type and ledger are required.")]), status: 400)
+                }
+                let text = (type == "TB" ? sent["claim"]?.string : sent["assertion"]?.string) ?? ""
+                guard !text.trimmingCharacters(in: .whitespaces).isEmpty else {
+                    return reply(.object(["error": .string("Say what is being asserted.")]), status: 400)
+                }
+                let line = truth.assert(type: type, text: text, basis: sent["basis"]?.string, ledger: ledger)
+                return reply(.object(["line": line, "standing": .string("sound")]), status: 201)
+            },
+            MockRoute(.get, "/api/truth/stale") { _ in reply(raw: truth.staleJSON()) },
+            MockRoute(.post, "/api/truth/stale") { request in
+                let sent = body(request)
+                guard let kind = sent["kind"]?.string, let id = sent["id"]?.string,
+                      let action = sent["action"]?.string, ["reaffirm", "relink", "unlink"].contains(action)
+                else { return reply(.object(["error": .string("kind, id and action are required.")]), status: 400) }
+                guard truth.resolve(kind: kind, id: id) else { return notFound("That item is not out of date.") }
+                return reply(.object(["ok": .bool(true)]))
             },
         ]
     }
@@ -1085,6 +1169,245 @@ final class UITestChats: @unchecked Sendable {
         guard let at = made.firstIndex(where: { $0.id == id }) else { return }
         made[at].lines.append(Line(role: "user", content: user))
         made[at].lines.append(Line(role: "assistant", content: assistant))
+    }
+}
+
+/// The ledger a person keeps: the entries asserted into it from the phone, and the memories and pages whose facts moved.
+final class UITestTruth: @unchecked Sendable {
+    private let lock = NSLock()
+    private var asserted: [JSONValue] = []
+    private var resolved: Set<String> = []
+
+    private static func entry(_ id: String, _ status: String, _ text: String) -> String {
+        #"{"id":"\#(id)","type":"TB","status":"\#(status)","standing":"sound","reasons":[],"text":"\#(text)","signedBy":"johnnyclem","answerableBy":"johnnyclem"}"#
+    }
+
+    private static func item(
+        kind: String, id: String, title: String, slug: String?, entry: (id: String, text: String), summary: String, successor: (id: String, text: String)?
+    ) -> JSONValue {
+        let slugPart = slug.map { #","slug":"\#($0)""# } ?? ""
+        let next = successor.map { Self.entry($0.id, "active", $0.text) } ?? "null"
+        return UITestWorld.parse(#"""
+        {"item":{"kind":"\#(kind)","id":"\#(id)","title":"\#(title)"\#(slugPart)},"key":"\#(kind):\#(id)","ledger":{"id":"l1","slug":"team","name":"Team","kind":"hosted"},
+         "edges":[{"link":{"entry_id":"\#(entry.id)","relation":"rests_on","seen_status":"active","seen_standing":"sound","stale_since":"2026-10-24T10:00:00.000Z","stale_kind":"overturned","stale_by":null,"stale_summary":"\#(summary)","note":null},
+                   "entry":\#(Self.entry(entry.id, "overridden", entry.text)),"successor":\#(next)}]}
+        """#)
+    }
+
+    /// Three that moved: a memory with a newer entry to move to, a memory that is fine as it is, and a page to stop tracking.
+    private static let staleItems: [JSONValue] = [
+        UITestTruth.item(kind: "memory", id: "mem1", title: "Retry policy, as of October", slug: nil, entry: ("E1", "Retries are capped at 3."),
+             summary: "The retry cap TB was overridden by a newer one.", successor: ("E9", "Retries are capped at 5; the old cap of 3 is dead.")),
+        UITestTruth.item(kind: "memory", id: "mem2", title: "Budget notes", slug: nil, entry: ("E2", "The budget is 40k."),
+             summary: "The budget TB is under appeal.", successor: nil),
+        UITestTruth.item(kind: "artifact", id: "a-retry", title: "Retry ledger", slug: "retry-ledger", entry: ("E3", "Writes are retried once."),
+             summary: "The retry TB was overridden by a newer one.", successor: nil),
+    ]
+
+    func staleJSON() -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        let waiting = Self.staleItems.filter { !resolved.contains($0["key"]?.string ?? "") }
+        return JSONValue.object(["ledger": .null, "items": .array(waiting), "total": .int(waiting.count), "as_of": .string(UITestWorld.date(60))]).jsonString()
+    }
+
+    /// Whether there was such an item, still out of date.
+    func resolve(kind: String, id: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let key = "\(kind):\(id)"
+        guard Self.staleItems.contains(where: { $0["key"]?.string == key }), !resolved.contains(key) else { return false }
+        resolved.insert(key)
+        return true
+    }
+
+    /// A line asserted from the phone, as the route answers it. A UV is open and goes to the unverified list.
+    func assert(type: String, text: String, basis: String?, ledger: String) -> JSONValue {
+        lock.lock()
+        defer { lock.unlock() }
+        let id = "01M2UITEST" + String(format: "%016d", asserted.count + 1)
+        var line: [String: JSONValue] = [
+            "id": .string(id), "type": .string(type), "ts": .string(UITestWorld.date(2)), "author": .string("johnnyclem"),
+            "status": .string(type == "TB" ? "active" : "open"),
+        ]
+        if type == "TB" {
+            line["claim"] = .string(text)
+            line["evidence"] = .array([])
+            line["signedBy"] = .string("johnnyclem")
+            line["answerableBy"] = .string("johnnyclem")
+        } else {
+            line["assertion"] = .string(text)
+            line["basis"] = .string(basis ?? "")
+            line["verifyBy"] = .object(["kind": .string("inspect"), "value": .string("(unspecified)")])
+        }
+        asserted.append(.object(line))
+        return .object(line)
+    }
+
+    /// The ledger page: the canned ledger and what was asserted into it since.
+    func overviewJSON() -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        var root = UITestWorld.parse(TruthPreviewData.overview).object ?? [:]
+        let uvs = asserted.filter { $0["type"]?.string == "UV" }
+        let tbs = asserted.filter { $0["type"]?.string == "TB" }
+        let flags: [JSONValue] = (root["flags"]?.array ?? []) + uvs
+        root["flags"] = .array(flags)
+        var citable: [JSONValue] = root["citable"]?.array ?? []
+        for line in tbs {
+            var row: [String: JSONValue] = ["entry": line, "standing": .string("sound"), "reasons": .array([]), "contested_by": .array([])]
+            row["answerable_by"] = line["answerableBy"] ?? .null
+            citable.append(.object(row))
+        }
+        root["citable"] = .array(citable)
+        var entries: [JSONValue] = root["entries"]?.array ?? []
+        for line in asserted {
+            var row: [String: JSONValue] = [:]
+            row["id"] = line["id"] ?? .null
+            row["type"] = line["type"] ?? .null
+            row["status"] = line["status"] ?? .null
+            row["standing"] = .string("sound")
+            row["reasons"] = .array([])
+            row["corroborated"] = .bool(false)
+            row["freshness"] = .null
+            row["answerable_by"] = line["answerableBy"] ?? .null
+            row["author"] = line["author"] ?? .null
+            row["ts"] = line["ts"] ?? .null
+            row["source"] = .string("manual")
+            entries.append(.object(row))
+        }
+        root["entries"] = .array(entries)
+        if case .object(var summary)? = root["summary"] {
+            summary["total"] = .int((summary["total"]?.int ?? 0) + asserted.count)
+            summary["flags"] = .int((summary["flags"]?.int ?? 0) + uvs.count)
+            root["summary"] = .object(summary)
+        }
+        return JSONValue.object(root).jsonString()
+    }
+}
+
+/// The group chats: the two the vault starts with, and rooms made on the phone.
+final class UITestRooms: @unchecked Sendable {
+    /// The ids rooms made on the phone get, in turn.
+    static let madeIDs = ["rn1", "rn2", "rn3"]
+
+    struct Problem: Error {
+        let status: Int
+        let message: String
+    }
+
+    private struct Made {
+        let id: String
+        var title: String
+        var members: [JSONValue]
+        var memberCount: Int
+    }
+
+    private let lock = NSLock()
+    private var made: [Made] = []
+    private var deleted: Set<String> = []
+
+    private var base: [JSONValue] { UITestWorld.parse(ChatPreviewData.roomsJSON)["rooms"]?.array ?? [] }
+
+    private static let backends: [String: (name: String, provider: String, model: String)] = [
+        "b1": ("My Claude", "anthropic", "claude-opus-4-8"),
+        "b2": ("GPT", "openai", "gpt-4o"),
+        "b3": ("Office Llama", "ollama", "llama3.3"),
+    ]
+
+    private func member(room: String, id: String, backend: String, handle: String, brief: String, position: Int) -> JSONValue {
+        let known = Self.backends[backend] ?? (name: backend, provider: "anthropic", model: "")
+        return .object([
+            "id": .string(id), "room_id": .string(room), "backend_id": .string(backend), "handle": .string(handle),
+            "role_brief": .string(brief), "position": .int(position),
+            "backend": .object(["name": .string(known.name), "provider": .string(known.provider), "default_model": .string(known.model)]),
+        ])
+    }
+
+    private func summary(_ room: Made) -> JSONValue {
+        .object([
+            "id": .string(room.id), "title": .string(room.title), "pending": .array([]), "members": .array(room.members),
+            "created_at": .string(UITestWorld.date(120)), "updated_at": .string(UITestWorld.date(10)),
+        ])
+    }
+
+    func listJSON() -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        let kept = base.filter { !deleted.contains($0["id"]?.string ?? "") }
+        let fresh: [JSONValue] = made.filter { !deleted.contains($0.id) }.reversed().map { summary($0) }
+        return JSONValue.object(["rooms": .array(fresh + kept)]).jsonString()
+    }
+
+    func create(title: String?, members: [(backend: String, handle: String, brief: String)]) -> (id: String, title: String, members: [JSONValue])? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard made.count < Self.madeIDs.count else { return nil }
+        let id = Self.madeIDs[made.count]
+        let name = (title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let shown = name.isEmpty ? "Room with " + members.map { "@" + $0.handle }.joined(separator: ", ") : name
+        var count = 0
+        let seated: [JSONValue] = members.enumerated().map { position, entry in
+            count += 1
+            return member(room: id, id: "\(id)-m\(count)", backend: entry.backend, handle: entry.handle, brief: entry.brief, position: position)
+        }
+        made.append(Made(id: id, title: shown, members: seated, memberCount: count))
+        return (id, shown, seated)
+    }
+
+    func detailJSON(id: String) -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let room = made.first(where: { $0.id == id }), !deleted.contains(id) else { return nil }
+        let header: JSONValue = .object([
+            "id": .string(id), "title": .string(room.title), "pending": .array([]), "budget": .int(12), "running": .bool(false),
+            "truth_ledgers": .null, "created_at": .string(UITestWorld.date(120)), "updated_at": .string(UITestWorld.date(10)),
+        ])
+        return JSONValue.object(["room": header, "members": .array(room.members), "messages": .array([])]).jsonString()
+    }
+
+    func rename(id: String, to title: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let at = made.firstIndex(where: { $0.id == id }), !deleted.contains(id) else { return false }
+        made[at].title = title
+        return true
+    }
+
+    func delete(id: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard made.contains(where: { $0.id == id }), !deleted.contains(id) else { return false }
+        deleted.insert(id)
+        return true
+    }
+
+    func addMembers(id: String, _ drafts: [(backend: String, handle: String, brief: String)]) -> Result<[JSONValue], Problem> {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let at = made.firstIndex(where: { $0.id == id }), !deleted.contains(id) else { return .failure(Problem(status: 404, message: "That room is not here.")) }
+        var added: [JSONValue] = []
+        for draft in drafts {
+            let taken = made[at].members.compactMap { $0["handle"]?.string }
+            guard !taken.contains(draft.handle) else { return .failure(Problem(status: 409, message: "@\(draft.handle) is already in this room.")) }
+            made[at].memberCount += 1
+            let seat = member(
+                room: id, id: "\(id)-m\(made[at].memberCount)", backend: draft.backend, handle: draft.handle, brief: draft.brief,
+                position: made[at].members.count
+            )
+            made[at].members.append(seat)
+            added.append(seat)
+        }
+        return .success(added)
+    }
+
+    func removeMember(id: String, memberID: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let at = made.firstIndex(where: { $0.id == id }) else { return false }
+        let before = made[at].members.count
+        made[at].members.removeAll { $0["id"]?.string == memberID }
+        return made[at].members.count < before
     }
 }
 

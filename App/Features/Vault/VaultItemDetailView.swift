@@ -5,8 +5,11 @@ import SwiftUI
 /// read it, the request an agent makes, and the ways to change it. Never the value: it is write-only once
 /// saved. Replacing it asks for the whole entry again.
 struct VaultItemDetailView: View {
+    /// The name the entry had when its row was opened. The entry is followed by its id from then on: renaming it from
+    /// this screen changes its name, and a screen that went on looking for the old name found nothing ("This entry is gone").
     let name: String
     let model: VaultItemsModel
+    @State private var id: String?
 
     @Environment(AppEnvironment.self) private var env
     @Environment(AppModel.self) private var app
@@ -22,9 +25,20 @@ struct VaultItemDetailView: View {
     @State private var confirmDelete = false
     @State private var connecting = false
 
+    init(name: String, model: VaultItemsModel) {
+        self.name = name
+        self.model = model
+        _id = State(initialValue: model.secret(named: name)?.id)
+    }
+
+    private var current: VaultSecret? {
+        if let id, let found = model.secret(id: id) { return found }
+        return model.secret(named: name)
+    }
+
     var body: some View {
         Group {
-            if let secret = model.secret(named: name) {
+            if let secret = current {
                 details(secret)
             } else {
                 HVEmptyState(symbol: "lock.rectangle.stack", title: "This entry is gone", actionTitle: "Back") { dismiss() }
@@ -32,7 +46,7 @@ struct VaultItemDetailView: View {
             }
         }
         .hvScreenBackground()
-        .navigationTitle(name)
+        .navigationTitle(current?.name ?? name)
         .navigationBarTitleDisplayMode(.inline)
     }
 

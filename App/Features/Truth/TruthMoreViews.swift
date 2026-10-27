@@ -224,6 +224,7 @@ struct TruthStaleScreen: View {
                         TruthBriefRow(entry: successor)
                         Button("Move to the new one") { resolve(.relink, item: item, edge: edge) }
                             .truthAlignedGhost()
+                            .accessibilityIdentifier("truth.stale.relink.\(item.key)")
                     }
                 }
                 .padding(.vertical, HV.Space.xxs)
@@ -232,8 +233,10 @@ struct TruthStaleScreen: View {
             // The one that stops tracking is red and on the far side, so it is not tapped for "Still fine".
             HStack {
                 Button("Still fine") { resolve(.reaffirm, item: item) }
+                    .accessibilityIdentifier("truth.stale.reaffirm.\(item.key)")
                 Spacer()
                 Button("Stop tracking", role: .destructive) { confirmStop = item }
+                    .accessibilityIdentifier("truth.stale.unlink.\(item.key)")
             }
             .truthAlignedGhost()
             .disabled(model.busy.contains(item.id))

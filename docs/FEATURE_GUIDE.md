@@ -235,11 +235,12 @@ tab bar first). The point is to look: fetch `ui-snapshots-<branch>` after a run 
 in the sweep when it has a layout of its own.
 
 **Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
-any iPhone simulator; `make test-unit` runs the rest. CI runs nine UI jobs beside the unit tests, each building and
+any iPhone simulator; `make test-unit` runs the rest. CI runs ten UI jobs beside the unit tests, each building and
 running on its own: `journeys` (everything not named below, so a new test class runs there until it is given a job),
 `screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
-`writes-keep` (`MemoryAndVaultWritesJourneyTests`, `PagesWritesJourneyTests` and `ThinkWritesJourneyTests`), `writes-more`
-(`BoardsAndMailWritesJourneyTests` and `SessionAndSettingsWritesJourneyTests`),
+`writes-keep` (`MemoryAndVaultWritesJourneyTests` and `PagesWritesJourneyTests`), `writes-more`
+(`BoardsAndMailWritesJourneyTests` and `SessionAndSettingsWritesJourneyTests`), `writes-think`
+(`ThinkWritesJourneyTests`),
 `sweep-dark` (every sweep test in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
 large text size) and `sweep-large-keep` and `sweep-large-think` (the You tab's screens at the large text size, in two
 halves). A push waits for the slowest of them, which should stay at about 20 minutes. They have taken between 5 and 22

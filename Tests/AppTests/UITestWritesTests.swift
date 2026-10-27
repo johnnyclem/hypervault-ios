@@ -257,6 +257,96 @@ final class UITestWritesTests: XCTestCase {
         XCTAssertEqual(memories.count, 7)
     }
 
+    // MARK: Rooms
+
+    func testARoomIsMadeRenamedGivenAMemberTakenOneAndDeleted() async throws {
+        let api = client()
+        let before = try await api.send(.rooms)
+        XCTAssertEqual(before.map(\.id), ["r1", "r2"])
+
+        let made = try await api.send(.createRoom(title: "Garden club", members: [ChatRoomMemberDraft(backendID: "b1", handle: "claude", roleBrief: "The plan.")]))
+        XCTAssertEqual(made.room.id, "rn1")
+        XCTAssertEqual(made.room.title, "Garden club")
+        XCTAssertEqual(made.members.map(\.handle), ["claude"])
+        let listed = try await api.send(.rooms)
+        XCTAssertEqual(listed.first?.id, "rn1", "A room just made is the newest.")
+        XCTAssertEqual(listed.first?.members.first?.roleBrief, "The plan.")
+
+        let detail = try await api.send(.room(id: "rn1"))
+        XCTAssertEqual(detail.room.title, "Garden club")
+        XCTAssertEqual(detail.members.count, 1)
+        XCTAssertTrue(detail.messages.isEmpty)
+
+        _ = try await api.send(.renameRoom(id: "rn1", title: "Garden club 2026"))
+        let renamed = try await api.send(.room(id: "rn1"))
+        XCTAssertEqual(renamed.room.title, "Garden club 2026")
+
+        let added = try await api.send(.addRoomMembers(roomID: "rn1", members: [ChatRoomMemberDraft(backendID: "b2", handle: "gpt")]))
+        XCTAssertEqual(added.map(\.handle), ["gpt"])
+        let both = try await api.send(.room(id: "rn1")).members.map(\.handle)
+        XCTAssertEqual(both, ["claude", "gpt"])
+        do {
+            _ = try await api.send(.addRoomMembers(roomID: "rn1", members: [ChatRoomMemberDraft(backendID: "b2", handle: "gpt")]))
+            XCTFail("A handle taken is refused.")
+        } catch let error as HVError {
+            XCTAssertEqual(error.status, 409)
+        }
+
+        _ = try await api.send(.removeRoomMember(roomID: "rn1", memberID: try XCTUnwrap(added.first).id))
+        let left = try await api.send(.room(id: "rn1")).members.map(\.handle)
+        XCTAssertEqual(left, ["claude"])
+
+        _ = try await api.send(.deleteRoom(id: "rn1"))
+        let after = try await api.send(.rooms)
+        XCTAssertEqual(after.map(\.id), ["r1", "r2"])
+    }
+
+    // MARK: Truth
+
+    func testAUVIsAssertedIntoTheLedgerAndTheOutOfDateItemsAreResolved() async throws {
+        let api = client()
+        let before = try await api.send(.truth(ledger: "team"))
+        XCTAssertEqual(before.sections.unverified.count, 1)
+
+        var draft = TruthAssertDraft(type: .uv)
+        draft.text = "Retries are bounded by the budget."
+        draft.basis = "The retry design doc."
+        let made = try await api.send(.assertTruth(draft, ledger: "team"))
+        XCTAssertEqual(made.line?.id, "01M2UITEST0000000000000001")
+        XCTAssertEqual(made.line?.type, .uv)
+
+        let after = try await api.send(.truth(ledger: "team"))
+        XCTAssertEqual(after.sections.unverified.count, 2)
+        XCTAssertTrue(after.sections.unverified.contains { $0.id == "01M2UITEST0000000000000001" })
+        XCTAssertEqual(after.summary.total, before.summary.total + 1)
+
+        var tb = TruthAssertDraft(type: .tb)
+        tb.text = "Writes are retried twice."
+        tb.evidence = [TruthEvidenceDraft(kind: .file, ref: "src/retry.ts")]
+        _ = try await api.send(.assertTruth(tb, ledger: "team"))
+        let standing = try await api.send(.truth(ledger: "team")).sections.standing
+        XCTAssertTrue(standing.contains { $0.line.id == "01M2UITEST0000000000000002" })
+
+        let worklist = try await api.send(.truthStale())
+        XCTAssertEqual(worklist.items.map(\.key), ["memory:mem1", "memory:mem2", "artifact:a-retry"])
+        XCTAssertEqual(worklist.items.first?.edges.first?.successor?.id, "E9")
+        XCTAssertNil(worklist.items[1].edges.first?.successor)
+        let moved = worklist.items[0]
+        _ = try await api.send(.resolveTruthStale(.relink, item: try XCTUnwrap(moved.item), entries: ["E1"], to: ["E9"], ledger: "team"))
+        _ = try await api.send(.resolveTruthStale(.reaffirm, item: try XCTUnwrap(worklist.items[1].item), entries: ["E2"], ledger: "team"))
+        let left = try await api.send(.truthStale())
+        XCTAssertEqual(left.items.map(\.key), ["artifact:a-retry"])
+        _ = try await api.send(.resolveTruthStale(.unlink, item: try XCTUnwrap(left.items[0].item), entries: ["E3"], ledger: "team"))
+        let none = try await api.send(.truthStale())
+        XCTAssertTrue(none.items.isEmpty)
+        do {
+            _ = try await api.send(.resolveTruthStale(.unlink, item: try XCTUnwrap(left.items[0].item), entries: ["E3"], ledger: "team"))
+            XCTFail("An item that was resolved is not out of date any more.")
+        } catch let error as HVError {
+            XCTAssertEqual(error.status, 404)
+        }
+    }
+
     // MARK: Chat
 
     func testAChatIsBegunByItsFirstMessageAndDeleted() async throws {

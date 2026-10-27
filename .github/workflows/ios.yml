@@ -26,6 +26,16 @@ jobs:
         working-directory: Packages/HyperVaultKit
         run: swift test
 
+  # The colour catalog and HVTokens are generated from docs/brand/tokens.json (scripts/gen_tokens.py); this fails when
+  # either has drifted from it.
+  tokens:
+    name: Design tokens match tokens.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check
+        run: python3 scripts/gen_tokens.py --check
+
   # The app, its extensions and its tests, on a simulator.
   app:
     name: App build and tests (macOS)

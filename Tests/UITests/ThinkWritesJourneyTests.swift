@@ -145,7 +145,9 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
         step("Assert UV sends it and closes the sheet") {
             let assert = button("Assert UV")
             revealAboveTheKeyboard(assert, "the Assert UV button")
-            tap(assert, "Assert UV")
+            // (A tap that lands while the form is still settling after the scroll is lost, and a person would tap again;
+            // `until` taps again only while the sheet is still there.)
+            tap(assert, "Assert UV", until: { !self.element("truth.assert.text").exists })
             requireGone(element("truth.assert.text"), "the Assert sheet")
             requireWrite(
                 "POST", "/api/truth/entries",

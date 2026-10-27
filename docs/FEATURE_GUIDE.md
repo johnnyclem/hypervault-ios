@@ -30,10 +30,12 @@ machine) belongs there with a test. Views stay thin.
   says the same thing. On first-run surfaces never use the words in
   `FIRST_RUN_BANNED` (MCP, tombstone, GraphRAG, grant, subdomain, AgentVault,
   wiki, vault item); power-user screens may.
-- A line claims no more than a check that can fail has shown. "Only you can open it."
-  (`HVCopy.onlyYouLine`) goes only under a kept card whose response said the thing
-  is private: not on a screen before anything is kept, not as a tagline of a sign-in
-  screen, not about a link. The Face ID lock gates the screen and the device passcode
+- A line claims no more than a check that can fail has shown. The sentence "Only you
+  can open it." on its own (`HVCopy.onlyYouLine`) goes only under a kept card whose
+  response said the thing is private: not about a link, and not as a paraphrase on
+  any screen. The web's landing line (`HVCopy.landingLine`), which carries the same
+  words, is used verbatim on the first welcome page and on the sign-in screen and
+  nowhere else before something is kept. The Face ID lock gates the screen and the device passcode
   opens it too, so nothing says "protected", "secure", "safe" or "encrypted on this
   phone" about it, and "locked" describes the lock screen and nothing else. A line
   about who can read a saved value names Claude Code, Codex, Cursor, Gemini CLI,

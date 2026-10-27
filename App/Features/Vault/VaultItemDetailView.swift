@@ -155,7 +155,7 @@ struct VaultItemDetailView: View {
     /// The command to copy, with the public origin the agent has to call (`capabilities.app_url`) and not the host this
     /// phone happens to be talking to.
     private func fetchCommand(_ secret: VaultSecret) -> String {
-        VaultItems.fetchCommand(appURL: env.capabilities.appUrl, fallbackOrigin: env.server.baseURL.absoluteString, name: secret.name)
+        VaultItems.fetchCommand(appURL: env.capabilities.appUrl, fallbackOrigin: ServerOrigin.string(of: env.server.baseURL), name: secret.name)
     }
 
     private func readsLine(_ secret: VaultSecret) -> String {

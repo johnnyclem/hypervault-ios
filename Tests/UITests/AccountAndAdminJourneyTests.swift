@@ -1,18 +1,25 @@
 import XCTest
 
-/// Account & keys end to end (connecting an agent mints a key that is shown once; revoking a key removes it) and the
+/// Agent keys end to end (connecting an agent mints a key that is shown once; revoking a key removes it) and the
 /// Admin screen of a person the server knows as an admin (minting an invite code and managing it).
 @MainActor
 final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
     func testConnectingAnAgentMintsAKeyShownOnceAndRevokingAKeyRemovesIt() {
         launch(.signedIn)
-        openFromYou("agentsAndKeys", title: "Account & keys")
+        openFromYou("agentsAndKeys", title: "Agent keys")
 
-        step("Account & keys lists the keys the person has") {
+        step("Agent keys lists the keys the person has, with what the server states about each") {
             for id in ["k1", "k2", "k3"] { require(element("keys.row.\(id)"), "the key \(id)") }
             // The server names a key nobody named "default", and the list calls it what a person would.
             XCTAssertTrue(element("keys.row.k3").label.contains("Untitled key"), "The third key says \"\(element("keys.row.k3").label)\".")
-            XCTAssertTrue(element("keys.row.k1").label.contains("Agent connected"), "The first key says \"\(element("keys.row.k1").label)\".")
+            let first = element("keys.row.k1").label
+            XCTAssertTrue(first.contains("Claude Code") && first.contains("hv_Zk3pQ9vL") && first.contains("Last used"), "The first key says \"\(first)\".")
+        }
+
+        step("Nothing on the screen claims that an agent is connected") {
+            require(shows("One key per agent. A key is shown once, and comes with a setup challenge the agent completes to prove the link works."), "the pane's own description")
+            XCTAssertFalse(shows("connected").exists, "Agent keys claims a connection that nothing checked.")
+            XCTAssertFalse(shows("Setup pending").exists, "Agent keys claims a state that nothing checked.")
         }
 
         step("Connect your AI offers the apps an agent lives in") {
@@ -55,16 +62,16 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
             XCTAssertFalse(made.label.contains("V2cLp9Rs"), "The key's value is never shown again.")
         }
 
-        step("Revoking a key removes it from the list") {
+        step("Revoking a key asks first, then removes it from the list") {
             tap(element("keys.row.k3"), "the key nobody named")
             waitUntil("the key's screen") { isShowingTitle("Key") }
-            tap(button("Revoke key"), "Revoke key")
+            tap(button("Revoke"), "Revoke")
             // On a phone, a confirmation anchored to a button is drawn as a popover that holds only the destructive
-            // choice (the way out is a tap outside it); the choice is the second "Revoke key" on screen, or the one in the popover.
-            let confirm = app.buttons.matching(NSPredicate(format: "label == %@", "Revoke key"))
-            let inPopover = app.popovers.buttons["Revoke key"]
+            // choice (the way out is a tap outside it); the choice is the second "Revoke" on screen, or the one in the popover.
+            let confirm = app.buttons.matching(NSPredicate(format: "label == %@", "Revoke"))
+            let inPopover = app.popovers.buttons["Revoke"]
             waitUntil("the confirmation to ask") { inPopover.exists || confirm.count >= 2 || self.button("Keep it").exists }
-            tap(inPopover.exists ? inPopover : confirm.element(boundBy: max(confirm.count - 1, 0)), "the Revoke key confirmation")
+            tap(inPopover.exists ? inPopover : confirm.element(boundBy: max(confirm.count - 1, 0)), "the Revoke confirmation")
             requireGone(element("keys.row.k3"), "the revoked key")
             require(element("keys.row.k1"), "the keys that were not revoked")
             require(element("keys.row.k4"), "the key that was made")

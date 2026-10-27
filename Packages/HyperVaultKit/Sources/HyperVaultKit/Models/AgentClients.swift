@@ -229,7 +229,6 @@ public enum ConnectCopy {
         "Paste it into \(name). It connects, then rewrites a page of yours to prove the link works."
     }
     public static let privateLine = "The prompt holds your key: paste it into a private chat, not a shared one."
-    public static let doneLine = "When it writes back, the key reads Agent connected on your account page."
 
     /// Shown wherever a client puts the key inside a URL. A header can be kept out of logs and a URL cannot.
     public static let urlKeyWarning =

@@ -8,7 +8,7 @@ that finds problems fastest. Each line says what should happen.
 ## Before you start
 
 1. **Server.** Make sure the deployment you test against includes
-   [hypervault#180](https://github.com/johnnyclem/hypervault/pull/180) (the keys, invite, pairing and admin
+   [hypervault#180](https://github.com/johnnyclem/hypervault/pull/180) (the keys, invite and admin
    routes accept the app's bearer token; on an older deployment those screens show the server's own refusal,
    which is correct but not what you want to test) and
    [hypervault#181](https://github.com/johnnyclem/hypervault/pull/181) (Google sign-in's way back to the app).
@@ -62,6 +62,9 @@ that finds problems fastest. Each line says what should happen.
   something and the widget updates.
 - **Siri / Shortcuts:** "Keep this in HyperVault" with text.
 - **Spotlight:** search a page's name from the Home Screen; tapping opens it in the app. Keys never appear.
+- **Pairing link:** put `hypervault://pair?code=BCDF-2346` in a note and tap it. Agent keys opens with the website's
+  `/pair` page over it in Safari, the code in the link; the app never offers to approve. Sign in on the page if it
+  asks, and closing it returns to Agent keys.
 
 ## 4. Lock
 
@@ -84,7 +87,8 @@ that finds problems fastest. Each line says what should happen.
 
 Work through the You tab with a real approved account and a few kept things: Library (list and graph, open a
 page, share it, edit its source), Memory (search, ask, graph, a branch and a merge), Chat (a conversation with
-a connected model, a room), Account & keys (Connect an agent, make and revoke a key), Logins, cards & keys
+a connected model, a room), Agent keys (Connect an agent, make a key and copy it: the paste is gone after a
+minute and never reaches another device; revoke a key: Revoke, then Really revoke?), Logins, cards & keys
 (add one; its value is never shown again), Mail, Truth, Task boards, Tools (add an MCP server), Import (a
 ChatGPT export zip), Your address. Anything that shows the server's own refusal on a session-only route means the deployment predates #180.
 

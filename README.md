@@ -15,7 +15,7 @@ talks to `hypervault.store` with a bearer token.
 | **Yours** | Everything kept, most recently used first: memories, pages, files, groups of files and keys, with the four quiet filters and search. |
 | **Memory** | The memory wiki (search with recall, ask, a force-directed graph), memorize from text, a file or a link, and "Git for a Mind": branches, commit log, compare, merge with conflict resolution, time travel, restore and undelete. Dreams and Digest review. |
 | **Chat** | Conversations and group rooms with several agents, your own models (connected through the server, or on your own network and called by the phone directly), replies you can keep, rate and read aloud, and on-device chat where Apple Intelligence exists. |
-| **You** | The Library (files as a file manager, with a list and graph view) and pages rendered in a sandboxed web view with sharing, source editing and history; saved logins, cards and keys; agent keys and the Connect picker for 33 clients; pairing; mail; the truth ledger and its swipeable review docket; task boards; tools (MCP servers); import of ChatGPT, Claude, Gemini and Grok histories; your address; admin. |
+| **You** | The Library (files as a file manager, with a list and graph view) and pages rendered in a sandboxed web view with sharing, source editing and history; saved logins, cards and keys; agent keys and the Connect picker for 33 clients; mail; the truth ledger and its swipeable review docket; task boards; tools (MCP servers); import of ChatGPT, Claude, Gemini and Grok histories; your address; admin. |
 
 Only a phone can do these, so the app does them:
 
@@ -58,7 +58,7 @@ project to sign in against, what the server supports and its limits.
 
 - **Bearer auth on the session-only routes.** Most routes already accept a Supabase
   bearer token. `/api/keys`, `/api/invite/redeem`, `/api/onboarding`,
-  `/api/artifacts/[slug]/source`, `/api/pair/*`, `/api/admin/*` and the private
+  `/api/artifacts/[slug]/source`, `/api/admin/*` and the private
   `/a/[slug]` page used to read the web cookie only; that is fixed by
   [hypervault#180](https://github.com/johnnyclem/hypervault/pull/180), merged on 2026-10-26.
   A deployment older than that still refuses them: the app signs in, keeps, chats and
@@ -145,7 +145,7 @@ state. They cover:
 - every **screen the You tab opens**, against canned answers that give it real content: Vault (and one
   entry), Mail (the inbox, then a thread), Truth (the ledger, an entry's ancestry, the review docket), Tools (and a
   server), Your address (and one), Import (a pasted conversation read and sent), Dreams, Digest, Task boards (a board,
-  then a task), Account & keys (Connect your AI through to a key that is shown once and copied, and revoking a key) and,
+  then a task), Agent keys (Connect your AI through to a key that is shown once and copied, and revoking a key) and,
   for an admin, Admin (minting an invite code, switching it off, Accounts & waitlist); and a memory in full, Memory's Ask
   mode, a conversation and a room that take a message and answer it, a page from the Library with its Share, History
   and Details sheets;
@@ -197,8 +197,10 @@ server change if you want the app to do more:
 - **Admin has no list routes**, and the tables have no read policy for a user's token, so the
   Admin screen cannot list invites, the waitlist or accounts. It mints invites and acts on
   an account ID you paste, and remembers codes minted on the phone.
-- **Pairing is switched off in production** (`/api/pair/*` answers 404), so the app hides
-  that row and says so when it is off.
+- **Pairing is approved on the website.** The server answers an approval only when its `Origin`
+  header names the site, which proves a person at one of its pages said yes; an app can set any
+  header, so it does not approve and never sets that one. A `hypervault://pair?code=...` link opens
+  the website's `/pair` page in Safari. Production has pairing switched off.
 - **The MCP sign-in callback needs the web cookie**, so connecting a tool that signs in
   through the browser works only while you are also signed in to the site in Safari.
   Redirecting that callback to `hypervault://mcp-oauth?ok=1` (the app already understands

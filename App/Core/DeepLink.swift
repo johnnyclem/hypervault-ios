@@ -64,7 +64,7 @@ enum DeepLink: Hashable {
     case route(Route)
     /// Open the canvas with something already in the field.
     case keep(prefill: String?)
-    /// Approve an agent that is asking for a key.
+    /// Open the website's pairing page, where a person answers an agent that is asking for a key.
     case pair(code: String?)
     case invite(code: String?)
 

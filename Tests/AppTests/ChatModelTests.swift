@@ -386,6 +386,33 @@ final class ChatModelTests: XCTestCase {
     }
 }
 
+/// The words Apple logs when the on-device model is reported ready but its files are not on the phone.
+private struct CatalogDump: Error, LocalizedError {
+    let text: String
+    var errorDescription: String? { text }
+}
+
+final class OnDeviceAssetFailureTests: XCTestCase {
+    func testAMissingModelCatalogIsSaidInPlainWordsAndStopsLookingReady() {
+        let raw = """
+        Encountered an unknown special token: com.apple.fm.language.safety_guardrail. \
+        Error Domain=com.apple.UnifiedAssetFramework Code=5000 "There are no underlying assets \
+        (neither atomic instance nor asset roots) for consistency token for asset set com.apple.modelcatalog"
+        """
+        let dump = CatalogDump(text: raw)
+        XCTAssertTrue(OnDeviceModelAssets.isMissing(dump))
+        XCTAssertFalse(OnDeviceModelAssets.isMissing(CatalogDump(text: "The server is busy.")))
+        guard #available(iOS 26.0, *) else { return }
+        let said = ChatFoundationModelsAdapter.explain(dump)
+        XCTAssertEqual(said, OnDeviceModelAssets.explanation)
+        XCTAssertFalse(said.contains("safety_guardrail"))
+        ChatFoundationModelsAdapter.noteAssetFailure()
+        defer { ChatFoundationModelsAdapter.noteWorking() }
+        XCTAssertFalse(ChatFoundationModelsAdapter.status().isAvailable)
+        XCTAssertEqual(ChatFoundationModelsAdapter.status().explanation, OnDeviceModelAssets.explanation)
+    }
+}
+
 private struct OfflineAlways: HTTPTransport {
     func send(_ request: URLRequest) async throws -> HTTPResponse {
         throw URLError(.notConnectedToInternet)

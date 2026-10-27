@@ -45,6 +45,34 @@ struct ChatOnDeviceSupport {
     }
 }
 
+/// Apple's availability check can say the on-device model is ready while the
+/// safety-guardrail asset it needs is not on the phone. Generation then fails
+/// inside the model catalog (`com.apple.fm.language.safety_guardrail`,
+/// UnifiedAssetFramework 5000) and the raw text is not something to show.
+enum OnDeviceModelAssets {
+    static let explanation = "The on-device model isn't on this iPhone yet, even though Apple Intelligence is on. In Settings, under Apple Intelligence & Siri, stay on Wi-Fi until it finishes downloading, then try again."
+
+    static func isMissing(_ error: Error) -> Bool {
+        var parts = [String(describing: error), error.localizedDescription]
+        if let debug = error as? CustomDebugStringConvertible {
+            parts.append(debug.debugDescription)
+        }
+        let ns = error as NSError
+        parts.append(ns.domain)
+        if let reason = ns.localizedFailureReason { parts.append(reason) }
+        if let underlying = ns.userInfo[NSUnderlyingErrorKey] as? Error {
+            parts.append(String(describing: underlying))
+            parts.append(underlying.localizedDescription)
+        }
+        let blob = parts.joined(separator: "\n").lowercased()
+        return blob.contains("safety_guardrail")
+            || blob.contains("modelcatalog")
+            || blob.contains("unifiedassetframework")
+            || blob.contains("no underlying assets")
+            || blob.contains("assetsunavailable")
+    }
+}
+
 enum ChatOnDeviceModels {
     /// What the title says wherever the on-device model is named.
     static let title = "On this iPhone"

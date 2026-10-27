@@ -20,32 +20,38 @@ final class SignInController {
     @ObservationIgnored private let announcer: SpeechAnnouncer
     @ObservationIgnored private let presenter = WebAuthPresenter()
     @ObservationIgnored private var webSession: ASWebAuthenticationSession?
+    @ObservationIgnored private let sheet: SheetRunner?
+    /// Set once the person has been told the site cannot hand a sign-in back, so a second tap goes ahead regardless:
+    /// the check is a probe, and a probe that is wrong must not lock Google out.
+    @ObservationIgnored private var warnedAboutHandoff = false
 
     /// Closes the sheet when the callback page redirects to hypervault://.
     static let callbackScheme = "hypervault"
 
+    /// Opens the sign-in sheet at a URL and returns the address it ended on. Left out, it is the system's; a test
+    /// stands in for it.
+    typealias SheetRunner = @MainActor (URL) async throws -> URL
+
     init(
         auth: AuthService,
         oauthOrigin: URL = URL(string: "https://hypervault.store")!,
-        announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared
+        announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared,
+        sheet: SheetRunner? = nil
     ) {
         self.auth = auth
         self.oauthOrigin = oauthOrigin
         self.announcer = announcer
+        self.sheet = sheet
     }
 
-    /// Supabase sends the code here. `client=app` tells that page to redirect
-    /// to `appCallback` instead of signing the website in. The scheme itself
-    /// is not on Supabase's allow-list, so asking for it drops the code on the
-    /// website and the sheet stays open.
+    /// Where Supabase sends the code: the website's callback page, told the sign-in is the app's, which hands the
+    /// code on to `hypervault://`. Supabase will not return to that scheme itself, so asking for it would drop the
+    /// code on the website's own sign-in page and the sheet would stay open. See `AppHandoff`.
     static func oauthRedirect(on origin: URL) -> URL {
-        var components = URLComponents(url: origin, resolvingAgainstBaseURL: false) ?? URLComponents()
-        components.path = "/auth/callback"
-        components.queryItems = [URLQueryItem(name: "client", value: "app")]
-        components.fragment = nil
-        guard let url = components.url else { return origin }
-        return url
+        AppHandoff.returnURL(on: origin)
     }
+
+    static let handoffMissingMessage = "This server's website can't hand a Google sign-in back to the app yet. It needs its latest update. Try again later, or tap Google again to try anyway."
 
     var isWorking: Bool { work != .idle }
 
@@ -59,8 +65,22 @@ final class SignInController {
         message = nil
         defer { work = .idle }
         do {
-            let url = try await auth.authorizationURL(provider: "google", redirectTo: Self.oauthRedirect(on: oauthOrigin))
-            let callback = try await runWebSession(url: url)
+            let returnURL = Self.oauthRedirect(on: oauthOrigin)
+            // A site that cannot hand the sign-in back leaves the person in the sheet, on its own login page, with
+            // no way to the app. Say so before opening it. An answer that is no answer (offline) goes ahead.
+            if !warnedAboutHandoff, await auth.appHandoff(returnURL: returnURL) == .missing {
+                warnedAboutHandoff = true
+                report(Self.handoffMissingMessage)
+                Haptics.failure()
+                return
+            }
+            let url = try await auth.authorizationURL(provider: "google", redirectTo: returnURL)
+            let callback: URL
+            if let sheet {
+                callback = try await sheet(url)
+            } else {
+                callback = try await runWebSession(url: url)
+            }
             try await auth.completeOAuth(callbackURL: callback)
             Haptics.success()
         } catch {

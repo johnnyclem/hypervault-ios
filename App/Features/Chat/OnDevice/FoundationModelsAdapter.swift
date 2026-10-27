@@ -11,7 +11,36 @@ import FoundationModels
 
 @available(iOS 26.0, *)
 enum ChatFoundationModelsAdapter {
+    private static let gate = NSLock()
+    private static var assetsBroken = false
+    /// Coming back from Settings is the moment a download can have finished.
+    /// The next status check should trust Apple again, and the next message
+    /// tries the model instead of repeating the old failure.
+    private static let becameActive: NSObjectProtocol = NotificationCenter.default.addObserver(
+        forName: UIApplication.didBecomeActiveNotification, object: nil, queue: nil
+    ) { _ in noteWorking() }
+
+    static func noteAssetFailure() {
+        gate.lock()
+        assetsBroken = true
+        gate.unlock()
+    }
+
+    static func noteWorking() {
+        gate.lock()
+        assetsBroken = false
+        gate.unlock()
+    }
+
+    private static var assetsAreBroken: Bool {
+        gate.lock()
+        defer { gate.unlock() }
+        return assetsBroken
+    }
+
     static func status() -> ChatOnDeviceStatus {
+        _ = becameActive
+        if assetsAreBroken { return .unavailable(OnDeviceModelAssets.explanation) }
         switch SystemLanguageModel.default.availability {
         case .available:
             return .ready
@@ -31,8 +60,20 @@ enum ChatFoundationModelsAdapter {
         }
     }
 
+    static func isAssetFailure(_ error: Error) -> Bool {
+        if OnDeviceModelAssets.isMissing(error) { return true }
+        if #available(iOS 27.0, *), let failure = error as? SystemLanguageModel.Error, case .assetsUnavailable = failure {
+            return true
+        }
+        if let failure = error as? LanguageModelSession.GenerationError, case .assetsUnavailable = failure {
+            return true
+        }
+        return false
+    }
+
     /// Apple's errors, said in plain words.
     static func explain(_ error: Error) -> String {
+        if isAssetFailure(error) { return OnDeviceModelAssets.explanation }
         if let failure = error as? LanguageModelSession.GenerationError {
             switch failure {
             case .exceededContextWindowSize:
@@ -41,8 +82,6 @@ enum ChatFoundationModelsAdapter {
                 return "Apple's on-device model won't answer that one. Try asking another way, or choose a connected model."
             case .unsupportedLanguageOrLocale:
                 return "The model on this iPhone doesn't support this language yet."
-            case .assetsUnavailable:
-                return "The model on this iPhone isn't ready yet. Try again in a little while."
             default:
                 break
             }
@@ -63,20 +102,58 @@ struct ChatFoundationModelsProvider: ChatModelProvider {
         let prompt = OnDevicePrompt.prompt(messages: messages)
         return AsyncThrowingStream { continuation in
             let task = Task {
+                // Default guardrails insert a safety-guardrail token the phone
+                // may not have downloaded. Chat is a transformation of the
+                // person's own words, which is what the permissive setting is
+                // for, and it does not ask for that token. If that setting
+                // itself is refused for some other reason, the default model
+                // still gets one try. A missing asset fails both, so it is not
+                // tried twice.
+                let permissive = SystemLanguageModel(useCase: .general, guardrails: .permissiveContentTransformations)
+                let yielded = Yielded()
                 do {
-                    let session = LanguageModelSession(instructions: instructions)
-                    for try await snapshot in session.streamResponse(to: prompt) {
-                        continuation.yield(snapshot.content)
-                    }
+                    try await Self.respond(model: permissive, instructions: instructions, prompt: prompt, yielded: yielded, continuation: continuation)
+                    ChatFoundationModelsAdapter.noteWorking()
                     continuation.finish()
                 } catch is CancellationError {
                     continuation.finish(throwing: CancellationError())
                 } catch {
-                    continuation.finish(throwing: OnDeviceChatError.generation(ChatFoundationModelsAdapter.explain(error)))
+                    if yielded.value || ChatFoundationModelsAdapter.isAssetFailure(error) {
+                        if ChatFoundationModelsAdapter.isAssetFailure(error) { ChatFoundationModelsAdapter.noteAssetFailure() }
+                        continuation.finish(throwing: OnDeviceChatError.generation(ChatFoundationModelsAdapter.explain(error)))
+                        return
+                    }
+                    do {
+                        try await Self.respond(model: .default, instructions: instructions, prompt: prompt, yielded: yielded, continuation: continuation)
+                        ChatFoundationModelsAdapter.noteWorking()
+                        continuation.finish()
+                    } catch is CancellationError {
+                        continuation.finish(throwing: CancellationError())
+                    } catch {
+                        if ChatFoundationModelsAdapter.isAssetFailure(error) { ChatFoundationModelsAdapter.noteAssetFailure() }
+                        continuation.finish(throwing: OnDeviceChatError.generation(ChatFoundationModelsAdapter.explain(error)))
+                    }
                 }
             }
             continuation.onTermination = { _ in task.cancel() }
         }
     }
+
+    private static func respond(
+        model: SystemLanguageModel, instructions: String, prompt: String, yielded: Yielded,
+        continuation: AsyncThrowingStream<String, Error>.Continuation
+    ) async throws {
+        let session = LanguageModelSession(model: model, instructions: instructions)
+        for try await snapshot in session.streamResponse(to: prompt) {
+            try Task.checkCancellation()
+            yielded.value = true
+            continuation.yield(snapshot.content)
+        }
+    }
+}
+
+/// Set from the stream loop. A class so the flag survives the `await`.
+private final class Yielded: @unchecked Sendable {
+    var value = false
 }
 #endif

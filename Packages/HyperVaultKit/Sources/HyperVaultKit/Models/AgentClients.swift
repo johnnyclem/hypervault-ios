@@ -339,7 +339,8 @@ public struct ConnectGuide: Sendable, Equatable {
     // MARK: Parsing
 
     /// Reads a client's block from the markdown of `/connect.md?client=<id>` (or the whole page: the
-    /// last `### ` heading starts the client). Tolerant: a line it does not recognize is skipped.
+    /// last `### ` heading starts the client). Tolerant: a line it does not recognize is skipped. The sentences that
+    /// promise a key's row will read "Agent connected" are left out of the prose (`withoutVerdictClaims`).
     public static func parse(_ markdown: String) -> ConnectGuide {
         let lines = markdown.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n")
         guard let start = lines.lastIndex(where: { $0.hasPrefix("### ") }) else { return ConnectGuide() }
@@ -403,7 +404,7 @@ public struct ConnectGuide: Sendable, Equatable {
                 break
             }
         }
-        return guide
+        return guide.withoutVerdictClaims()
     }
 
     private mutating func assignFact(_ fact: String) {

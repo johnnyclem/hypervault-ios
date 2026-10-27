@@ -156,9 +156,9 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
         step("Pasted text is read as a conversation") {
             tap(element("import.source.other"), "the Something else card")
             let editor = app.textViews["Pasted conversation"]
-            tap(editor, "the paste box")
-            editor.typeText("User: What time is the ferry?\nAssistant: It leaves at seven.")
-            tap(button("Check what I pasted"), "Check what I pasted")
+            enter("User: What time is the ferry?\nAssistant: It leaves at seven.", into: editor, "the paste box")
+            // (A tap that only lets go of the keyboard, or lands while the box is still settling, is made again.)
+            tap(button("Check what I pasted"), "Check what I pasted", until: { self.shows("A pasted conversation").exists })
             require(shows("A pasted conversation"), "the review of what was pasted")
             require(shows("2 messages"), "the message count")
             require(button("Import 1 conversation"), "the import button")

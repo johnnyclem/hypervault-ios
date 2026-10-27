@@ -71,7 +71,9 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
 
             open(element("keys.connect"), "Connect an agent", until: { self.isShowingTitle("Connect your AI") })
             look(mode, "Connect your AI", key: shows("Just make a key"), "the way to make a key for anything not listed")
-            // (The sheet's search field floats over its list, and a row under it is tapped through it.)
+            // The app is found the way a person finds one in a long list, by its name: the sheet's search field floats over the
+            // list, and scrolling a row out from under it (and from the sheet's own pull-down to close) is not reliable.
+            enter("Cursor", into: searchField("Search apps, like Cursor or curl"), "the app search")
             open(element("connect.client.cursor"), "the Cursor row", until: { self.isShowingTitle("Cursor") }, clearOfSearch: true)
             attachScreenshot("\(mode) - the Cursor screen")
             open(button("Make the key"), "Make the key")
@@ -81,6 +83,8 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
             open(button("Copy key"), "Copy key")
             let back = app.navigationBars.buttons.matching(NSPredicate(format: "label == %@", "Connect your AI")).firstMatch
             if back.exists { tap(back, "the back button to Connect your AI") }
+            // The search is still open, and while it is open its own close button stands where Done is.
+            if !button("Done").exists, button("Close").exists { tap(button("Close"), "the search's close button") }
             tap(button("Done"), "Done")
         }
 

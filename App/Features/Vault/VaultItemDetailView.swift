@@ -78,7 +78,8 @@ struct VaultItemDetailView: View {
             Section {
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
                     Text(readsLine(secret)).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
-                    HVCodePanel(fetchCommand(secret))
+                    // Both lines of the command, wrapped: a list row does not give the panel the height its text needs.
+                    HVCodePanel(fetchCommand(secret)).fixedSize(horizontal: false, vertical: true)
                 }
                 VaultCopyButton(text: fetchCommand(secret))
             } header: {

@@ -304,7 +304,7 @@ struct DreamTintedButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+            .font(.system(.subheadline, weight: .semibold))
             .foregroundStyle(isEnabled ? AnyShapeStyle(TintShapeStyle()) : AnyShapeStyle(Palette.textTertiary))
             .padding(.horizontal, HV.Space.m)
             .frame(minHeight: 44)
@@ -332,7 +332,7 @@ private struct DreamConnectionCard: View {
                     .frame(width: 3, height: 18)
                     .padding(.leading, 18)
                 Text(connection.edgeType.label)
-                    .font(.system(.caption2, design: .rounded, weight: .semibold))
+                    .font(.system(.caption2, weight: .semibold))
                     .foregroundStyle(Palette.textTertiary)
                     .textCase(.uppercase)
                 Spacer(minLength: 0)

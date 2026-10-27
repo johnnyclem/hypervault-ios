@@ -175,7 +175,7 @@ struct FloatingCard: View {
             let t = context.date.timeIntervalSinceReferenceDate + phase
             HStack(spacing: 8) {
                 HVIconBadge(symbol: symbol, tint: tint, size: 28)
-                Text(label).font(.system(.footnote, design: .rounded, weight: .semibold))
+                Text(label).font(.system(.footnote, weight: .semibold))
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
@@ -206,7 +206,7 @@ struct WelcomePageTalk: View {
                         .foregroundStyle(kept ? Palette.success : Palette.textTertiary)
                         .contentTransition(.symbolEffect(.replace))
                     Text(kept ? HVCopy.keptLine : HVCopy.keepingLine)
-                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                         .foregroundStyle(kept ? Palette.textPrimary : Palette.textSecondary)
                 }
                 .padding(.horizontal, HV.Space.m)
@@ -269,7 +269,7 @@ struct WelcomePageSecrets: View {
         HStack(spacing: HV.Space.s + 2) {
             HVIconBadge(symbol: symbol, tint: tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(.subheadline, design: .rounded, weight: .semibold))
+                Text(title).font(.system(.subheadline, weight: .semibold))
                 if let label { Text(label).font(.hvMono).foregroundStyle(Palette.textSecondary) }
             }
             Spacer()

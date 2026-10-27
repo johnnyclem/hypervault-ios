@@ -136,7 +136,7 @@ private struct StagedChip: View {
             Image(systemName: "doc.on.clipboard")
                 .foregroundStyle(Palette.textSecondary)
             Text(HVCopy.pastedLine(characters: characters))
-                .font(.system(.subheadline, design: .rounded, weight: .medium))
+                .font(.system(.subheadline, weight: .medium))
                 .lineLimit(1)
                 .accessibilityIdentifier("canvas.pasted")
             Spacer(minLength: 0)
@@ -172,7 +172,7 @@ private struct NoticeLine: View {
             Spacer(minLength: 0)
             if notice.opensSettings, let settings = URL(string: UIApplication.openSettingsURLString) {
                 Button("Settings") { openURL(settings) }
-                    .font(.system(.footnote, design: .rounded, weight: .semibold))
+                    .font(.system(.footnote, weight: .semibold))
             }
             Button(action: dismiss) {
                 Image(systemName: "xmark")

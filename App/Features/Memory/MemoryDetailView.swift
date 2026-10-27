@@ -92,7 +92,7 @@ private struct MemoryDetailContent: View {
     private func header(_ page: MemoryPage) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             Text(page.memory.title)
-                .font(.system(.title2, design: .rounded, weight: .bold))
+                .font(.system(.title2, weight: .bold))
                 .foregroundStyle(Palette.textPrimary)
                 .textSelection(.enabled)
                 .accessibilityAddTraits(.isHeader)

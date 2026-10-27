@@ -191,7 +191,11 @@ public final class HVClient: Sendable {
             request.setValue(contentType, forHTTPHeaderField: "Content-Type")
             request.httpBody = data
         }
-        for (name, value) in endpoint.headers { request.setValue(value, forHTTPHeaderField: name) }
+        // `Origin` is the browser's word that a person at one of our pages asked for this (the server's pairing approval
+        // checks it), so the app never says it: a header the app wrote by hand would be a forged one.
+        for (name, value) in endpoint.headers where name.caseInsensitiveCompare("Origin") != .orderedSame {
+            request.setValue(value, forHTTPHeaderField: name)
+        }
         return request
     }
 

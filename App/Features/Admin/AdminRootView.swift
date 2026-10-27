@@ -217,7 +217,7 @@ struct AdminMintedCard: View {
                         .frame(minHeight: 44)
                 }
             }
-            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+            .font(.system(.subheadline, weight: .semibold))
             .buttonStyle(.borderless)
             Button("Done", action: onDismiss).buttonStyle(.hvGhost).padding(.leading, -HV.Space.s)
         }

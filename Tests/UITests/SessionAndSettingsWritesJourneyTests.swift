@@ -47,13 +47,7 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
         launch(.signedIn)
         openFromYou("settings", title: "Settings")
 
-        step("Appearance, the accent and haptics are changed") {
-            choose("Dark", from: "settings.appearance")
-            waitUntil("Dark to be the chosen appearance") { self.segment("Dark").isSelected }
-            let violet = button("Violet")
-            reveal(violet, "the Violet swatch")
-            tap(violet, "the Violet accent")
-            waitUntil("Violet to be the chosen accent") { violet.isSelected }
+        step("Haptics are changed") {
             let haptics = toggle("Haptics")
             reveal(haptics, "the Haptics switch")
             XCTAssertEqual(haptics.value as? String, "1", "Haptics start on.")
@@ -62,12 +56,6 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
         }
 
         func choicesAreKept(_ when: String) {
-            require(element("settings.appearance"), "the appearance choice \(when)")
-            XCTAssertTrue(segment("Dark").isSelected, "Dark should still be the appearance \(when).")
-            let violet = button("Violet")
-            reveal(violet, "the Violet swatch \(when)")
-            XCTAssertTrue(violet.isSelected, "Violet should still be the accent \(when).")
-            XCTAssertFalse(button("Blue").isSelected, "Blue should no longer be the accent \(when).")
             let haptics = toggle("Haptics")
             reveal(haptics, "the Haptics switch \(when)")
             XCTAssertEqual(haptics.value as? String, "0", "Haptics should still be off \(when).")

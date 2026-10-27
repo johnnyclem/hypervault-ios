@@ -21,7 +21,7 @@ final class TruthSnapshotTests: XCTestCase {
     func testLedgerAtLargeType() throws {
         try snapshot(
             PreviewHost(routes: TruthPreviewData.ledgerRoutes, delay: 0) { TruthRootView() }.environment(\.dynamicTypeSize, accessibility),
-            named: "truth-ledger-large", size: CGSize(width: 393, height: 1800), settle: 2, schemes: [.light]
+            named: "truth-ledger-large", size: CGSize(width: 393, height: 1800), settle: 2
         )
     }
 
@@ -52,7 +52,7 @@ final class TruthSnapshotTests: XCTestCase {
         let screen = try entryScreen(env)
         try snapshot(
             PreviewHost(routes: TruthPreviewData.entryRoutes, delay: 0) { screen }.environment(\.dynamicTypeSize, accessibility),
-            named: "truth-entry-large", size: CGSize(width: 393, height: 2600), settle: 2, schemes: [.light]
+            named: "truth-entry-large", size: CGSize(width: 393, height: 2600), settle: 2
         )
     }
 
@@ -65,7 +65,7 @@ final class TruthSnapshotTests: XCTestCase {
     func testReviewAtLargeType() throws {
         try snapshot(
             PreviewHost(routes: TruthPreviewData.reviewRoutes, delay: 0) { TruthReviewView() }.environment(\.dynamicTypeSize, accessibility),
-            named: "truth-review-large", size: CGSize(width: 393, height: 1900), settle: 2, schemes: [.light]
+            named: "truth-review-large", size: CGSize(width: 393, height: 1900), settle: 2
         )
     }
 
@@ -97,7 +97,7 @@ final class TruthSnapshotTests: XCTestCase {
         try snapshot(
             PreviewHost(routes: TruthPreviewData.reviewRoutes, delay: 0, embedInNavigation: false) { TruthAssertView(client: env.client, ledger: team) {} }
                 .environment(\.dynamicTypeSize, accessibility),
-            named: "truth-assert-large", size: CGSize(width: 393, height: 1400), settle: 2, schemes: [.light]
+            named: "truth-assert-large", size: CGSize(width: 393, height: 1400), settle: 2
         )
     }
 
@@ -132,7 +132,7 @@ final class TruthSnapshotTests: XCTestCase {
         try snapshot(
             PreviewHost(routes: TruthPreviewData.draftRoutes, delay: 0) { TruthDraftsScreen(client: env.client, ledger: "default") }
                 .environment(\.dynamicTypeSize, accessibility),
-            named: "truth-drafts-large", size: CGSize(width: 393, height: 2000), settle: 2, schemes: [.light]
+            named: "truth-drafts-large", size: CGSize(width: 393, height: 2000), settle: 2
         )
     }
 
@@ -149,7 +149,7 @@ final class TruthSnapshotTests: XCTestCase {
         try snapshot(
             PreviewHost(routes: TruthPreviewData.noticeRoutes, delay: 0) { TruthNoticesScreen(client: env.client, ledger: team) }
                 .environment(\.dynamicTypeSize, accessibility),
-            named: "truth-notices-large", size: CGSize(width: 393, height: 1500), settle: 2, schemes: [.light]
+            named: "truth-notices-large", size: CGSize(width: 393, height: 1500), settle: 2
         )
     }
 
@@ -166,7 +166,7 @@ final class TruthSnapshotTests: XCTestCase {
         try snapshot(
             PreviewHost(routes: TruthPreviewData.staleRoutes, delay: 0) { TruthStaleScreen(client: env.client) }
                 .environment(\.dynamicTypeSize, accessibility),
-            named: "truth-stale-large", size: CGSize(width: 393, height: 1800), settle: 2, schemes: [.light]
+            named: "truth-stale-large", size: CGSize(width: 393, height: 1800), settle: 2
         )
     }
 
@@ -197,7 +197,7 @@ final class TruthSnapshotTests: XCTestCase {
                 TruthImportView(ledger: ledger, onStream: { _ in throw HVError.cancelled }, onPage: { _, _ in throw HVError.cancelled })
             }
             .environment(\.dynamicTypeSize, accessibility),
-            named: "truth-import-large", size: CGSize(width: 393, height: 1700), settle: 1, schemes: [.light]
+            named: "truth-import-large", size: CGSize(width: 393, height: 1700), settle: 1
         )
     }
 }

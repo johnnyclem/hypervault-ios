@@ -55,7 +55,7 @@ struct CanvasCardView: View {
 
     private var kindLabel: some View {
         Text(card.kind.singular.uppercased())
-            .font(.system(.caption2, design: .rounded, weight: .bold))
+            .font(.system(.caption2, weight: .bold))
             .foregroundStyle(card.kind.tint)
             .tracking(0.6)
             .lineLimit(1)
@@ -82,7 +82,7 @@ struct CanvasCardView: View {
                     .symbolEffect(.bounce, value: sealed)
                     .onAppear { sealed = true }
                 Text(kept.line)
-                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .font(.system(.subheadline, weight: .semibold))
             }
             if kept.isPrivate {
                 Text(HVCopy.onlyYouLine)
@@ -123,7 +123,7 @@ struct CanvasCardView: View {
     private func keyAgents(_ agents: [CardAgent]) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             Text(HVCopy.agentsAllowedHeading)
-                .font(.system(.caption, design: .rounded, weight: .semibold))
+                .font(.system(.caption, weight: .semibold))
                 .foregroundStyle(Palette.textSecondary)
             if agents.isEmpty {
                 Text("No agents allowed").font(.hvFootnote).foregroundStyle(Palette.textTertiary)

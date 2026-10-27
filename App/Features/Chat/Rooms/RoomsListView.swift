@@ -176,7 +176,7 @@ struct ChatHandleChip: View {
     var body: some View {
         Text("@\(handle)")
             .font(font)
-            .foregroundStyle(color.hvInk())
+            .foregroundStyle(color)
             .padding(.horizontal, 8)
             .padding(.vertical, verticalPadding)
             .background(color.opacity(0.14), in: Capsule())

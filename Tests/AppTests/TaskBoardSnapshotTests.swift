@@ -29,7 +29,7 @@ final class TaskBoardSnapshotTests: XCTestCase {
         try snapshot(
             PreviewHost(routes: TaskBoardPreviewData.boardRoutes, delay: 0) { TaskBoardView(listing: TaskBoardPreviewData.listing) }
                 .environment(\.dynamicTypeSize, .accessibility2),
-            named: "taskboards-board-large", settle: 2, schemes: [.light]
+            named: "taskboards-board-large", settle: 2
         )
     }
 

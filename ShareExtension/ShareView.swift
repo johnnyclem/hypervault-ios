@@ -30,13 +30,13 @@ struct ShareView: View {
             Spacer()
             HStack(spacing: 6) {
                 BrandMark(size: 22)
-                Text("HyperVault").font(.system(.headline, design: .rounded, weight: .semibold))
+                Text("HyperVault").font(.system(.headline, weight: .semibold))
             }
             Spacer()
             if case .ready = model.phase {
                 Button("Keep") { Task { await model.keep() } }
                     .buttonStyle(.hvGhost)
-                    .font(.system(.body, design: .rounded, weight: .bold))
+                    .font(.system(.body, weight: .bold))
                     .disabled(model.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             } else {
                 Color.clear.frame(width: 56, height: 1)
@@ -85,7 +85,7 @@ struct ShareView: View {
     private var editor: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
             Text("What to keep")
-                .font(.system(.footnote, design: .rounded, weight: .semibold))
+                .font(.system(.footnote, weight: .semibold))
                 .foregroundStyle(Palette.textSecondary)
             TextEditor(text: $model.text)
                 .font(.hvBody)

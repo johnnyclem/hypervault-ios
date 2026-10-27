@@ -15,7 +15,6 @@ struct RoomScreen: View {
 struct ChatRoomContent: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let env: AppEnvironment
     @State private var model: ChatRoomModel
@@ -47,7 +46,6 @@ struct ChatRoomContent: View {
             // The thread scrolls under the bar; paper behind it keeps the title readable.
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(Palette.background, for: .navigationBar)
-            .toolbarColorScheme(colorScheme, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
@@ -343,11 +341,11 @@ struct ChatRoomMessageView: View {
             HStack(spacing: 6) {
                 // A failed turn is marked by a sign as well as by red, so it does not rest on colour alone.
                 if message.failed {
-                    Image(systemName: "exclamationmark.triangle.fill").font(.hvCaption).foregroundStyle(tint.hvInk())
+                    Image(systemName: "exclamationmark.triangle.fill").font(.hvCaption).foregroundStyle(tint)
                 } else {
                     Circle().fill(tint).frame(width: 8, height: 8)
                 }
-                Text("@\(message.senderHandle ?? "agent")").font(.hvFootnote.weight(.semibold)).foregroundStyle(tint.hvInk())
+                Text("@\(message.senderHandle ?? "agent")").font(.hvFootnote.weight(.semibold)).foregroundStyle(tint)
                 if let model = message.model, !model.isEmpty {
                     Text(model).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(1)
                 }

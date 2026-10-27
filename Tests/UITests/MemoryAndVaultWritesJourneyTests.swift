@@ -294,7 +294,14 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
         step("Close asks first, and Keep editing returns to the form") {
             tap(button("Close"), "the Close button")
             require(button("Discard"), "the question about the typed values")
-            tap(button("Keep editing"), "Keep editing")
+            // The question is a popover on iOS 26, which has no Cancel button: a tap away from it is Keep editing. (Where it is
+            // a sheet with a button, the button is tapped.)
+            let keep = button("Keep editing")
+            if keep.waitForExistence(timeout: 3) {
+                keep.tap()
+            } else {
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.96)).tap()
+            }
             requireGone(button("Discard"), "the question")
             XCTAssertEqual(element("vault.field.username").value as? String, "typed-and-not-saved", "What was typed is still there.")
         }

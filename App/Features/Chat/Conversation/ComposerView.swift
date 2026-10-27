@@ -30,8 +30,8 @@ struct ChatComposerView: View {
         .padding(.top, HV.Space.xs)
         .padding(.bottom, HV.Space.xs)
         .hvReadableWidth()
-        .animation(.easeOut(duration: 0.2), value: model.notice)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: model.canSend)
+        .hvAnimation(HV.Motion.entrance, value: model.notice)
+        .hvAnimation(.spring(response: 0.3, dampingFraction: 0.8), value: model.canSend)
     }
 
     private var field: some View {
@@ -49,9 +49,9 @@ struct ChatComposerView: View {
             HStack(spacing: HV.Space.xs) {
                 Button(action: onOptions) {
                     HStack(spacing: 6) {
-                        Image(systemName: model.isOnDevice ? "iphone" : (model.runsLocally ? "desktopcomputer" : "cpu")).font(.hvFootnote.weight(.semibold))
+                        HVIcon(model.isOnDevice ? "iphone" : (model.runsLocally ? "desktopcomputer" : "cpu")).font(.hvFootnote.weight(.semibold))
                         Text(model.modelName).lineLimit(1)
-                        Image(systemName: "chevron.up.chevron.down").font(.hvCaption.weight(.bold)).imageScale(.small)
+                        HVIcon("chevron.up.chevron.down").font(.hvCaption.weight(.bold)).imageScale(.small)
                     }
                     .font(.hvFootnote.weight(.medium))
                     .foregroundStyle(Palette.textSecondary)
@@ -113,7 +113,7 @@ struct ChatComposerView: View {
             Button {
                 model.dismissNotice()
             } label: {
-                Image(systemName: "xmark").font(.hvCaption.weight(.bold)).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                Image(systemName: HVSymbol.close).font(.hvCaption.weight(.bold)).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .foregroundStyle(Palette.textSecondary)

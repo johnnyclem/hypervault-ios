@@ -347,7 +347,7 @@ private struct DreamConnectionCard: View {
             }
             if isWoven {
                 HStack(spacing: HV.Space.xs) {
-                    Image(systemName: "checkmark.circle.fill")
+                    HVIcon("checkmark.circle.fill")
                         .foregroundStyle(Palette.success)
                     Text("Woven into your graph")
                         .font(.hvSubheadline.weight(.semibold))
@@ -369,7 +369,7 @@ private struct DreamConnectionCard: View {
             }
         }
         .hvCard()
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isWoven)
+        .hvAnimation(.spring(response: 0.35, dampingFraction: 0.8), value: isWoven)
     }
 
     @ViewBuilder
@@ -391,7 +391,7 @@ private struct DreamConnectionCard: View {
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
                 if openable {
-                    Image(systemName: "chevron.right")
+                    Image(systemName: HVSymbol.open)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Palette.textTertiary)
                         .accessibilityHidden(true)

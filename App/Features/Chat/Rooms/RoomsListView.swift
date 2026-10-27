@@ -24,7 +24,7 @@ struct ChatRoomsListView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showNew = true } label: {
-                        Image(systemName: "plus").frame(width: 44, height: 44)
+                        Image(systemName: HVSymbol.add).frame(width: 44, height: 44)
                     }
                     .accessibilityLabel("New room")
                 }
@@ -92,7 +92,7 @@ struct ChatRoomsListView: View {
                         .hvListRow()
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) { pendingDelete = room } label: {
-                                Label("Delete", systemImage: "trash")
+                                Label("Delete", systemImage: HVSymbol.delete)
                             }
                         }
                     }

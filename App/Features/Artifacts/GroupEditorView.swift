@@ -311,7 +311,7 @@ struct GroupEditorView: View {
                 ForEach(model.files) { file in
                     NavigationLink(value: file.path) {
                         HStack {
-                            Image(systemName: icon(for: file.path)).foregroundStyle(Palette.blue).frame(width: 22)
+                            HVIcon(icon(for: file.path)).foregroundStyle(Palette.blue).frame(width: 22)
                             Text(file.path).font(.hvMono).foregroundStyle(Palette.textPrimary).lineLimit(1).truncationMode(.middle)
                             Spacer(minLength: HV.Space.xs)
                             Text(ByteCountFormatter.string(fromByteCount: Int64(file.content.utf8.count), countStyle: .file))
@@ -321,13 +321,13 @@ struct GroupEditorView: View {
                     }
                     .swipeActions(edge: .trailing) {
                         if ArtifactGroupRules.isRemovable(file.path) {
-                            Button(role: .destructive) { model.remove(file.path) } label: { Label("Remove", systemImage: "trash") }
+                            Button(role: .destructive) { model.remove(file.path) } label: { Label("Remove", systemImage: HVSymbol.delete) }
                         }
                     }
                     .contextMenu {
                         if ArtifactGroupRules.isRemovable(file.path) {
                             Button { renameTo = file.path; renaming = file.path } label: { Label("Rename", systemImage: "pencil") }
-                            Button(role: .destructive) { model.remove(file.path) } label: { Label("Remove", systemImage: "trash") }
+                            Button(role: .destructive) { model.remove(file.path) } label: { Label("Remove", systemImage: HVSymbol.delete) }
                         }
                     }
                     .accessibilityElement(children: .combine)
@@ -338,7 +338,7 @@ struct GroupEditorView: View {
                     addError = nil
                     addingFile = true
                 } label: {
-                    Label("Add a file", systemImage: "plus")
+                    Label("Add a file", systemImage: HVSymbol.add)
                 }
             } header: {
                 HVSectionHeader(title: "Files", detail: "\(model.files.count) of \(ArtifactGroupRules.maxFiles)")

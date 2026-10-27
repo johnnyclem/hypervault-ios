@@ -151,7 +151,7 @@ struct MemoryTagEditor: View {
                         } label: {
                             HStack(spacing: 4) {
                                 Text(tag)
-                                Image(systemName: "xmark")
+                                Image(systemName: HVSymbol.close)
                                     .font(.system(size: 9, weight: .bold))
                             }
                             .font(.system(.footnote, weight: .medium))

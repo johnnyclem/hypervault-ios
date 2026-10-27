@@ -23,7 +23,7 @@ struct OnboardingFlow: View {
                 story
                     .transition(.opacity)
             } else {
-                SignInScreen(onBack: cameFromStory ? { withAnimation(.snappy) { showStory = true } } : nil)
+                SignInScreen(onBack: cameFromStory ? { HV.Motion.animate(.snappy) { showStory = true } } : nil)
                     .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
             }
         }
@@ -56,7 +56,7 @@ struct OnboardingFlow: View {
                     if page == pageCount - 1 {
                         finishStory()
                     } else {
-                        withAnimation(.snappy) { page += 1 }
+                        HV.Motion.animate(.snappy) { page += 1 }
                     }
                 }
                 .buttonStyle(.hvPrimary)
@@ -79,7 +79,7 @@ struct OnboardingFlow: View {
     private func finishStory() {
         onboarded = true
         cameFromStory = true
-        withAnimation(.snappy) { showStory = false }
+        HV.Motion.animate(.snappy) { showStory = false }
     }
 }
 
@@ -95,7 +95,7 @@ struct PageDots: View {
                     .frame(width: index == current ? 22 : 7, height: 7)
             }
         }
-        .animation(.snappy, value: current)
+        .hvAnimation(.snappy, value: current)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Page \(current + 1) of \(count)")
         .accessibilityIdentifier("welcome.pages")
@@ -153,7 +153,7 @@ struct WelcomePageKeep: View {
             ZStack {
                 FloatingCard(symbol: "doc.richtext", label: "Pricing page", tint: Palette.blue, x: -74, y: -112, phase: 0)
                 FloatingCard(symbol: "note.text", label: "Trip notes", tint: Palette.violet, x: 96, y: 90, phase: 1.3)
-                FloatingCard(symbol: "key.horizontal", label: "Deploy key", tint: Palette.mint, x: -84, y: 128, phase: 2.1)
+                FloatingCard(symbol: HVSymbol.key, label: "Deploy key", tint: Palette.mint, x: -84, y: 128, phase: 2.1)
                 BrandMark(size: 104)
             }
         }
@@ -202,7 +202,7 @@ struct WelcomePageTalk: View {
                 bubble("Make me a landing page for the bakery.", isUser: true)
                 bubble("Done. Here it is.", isUser: false)
                 HStack(spacing: HV.Space.s) {
-                    Image(systemName: kept ? "checkmark.seal.fill" : "seal")
+                    HVIcon(kept ? "checkmark.seal.fill" : "seal")
                         .foregroundStyle(kept ? Palette.success : Palette.textTertiary)
                         .contentTransition(.symbolEffect(.replace))
                     Text(kept ? HVCopy.keptLine : HVCopy.keepingLine)
@@ -257,9 +257,9 @@ struct WelcomePageSecrets: View {
     var body: some View {
         WelcomePage(title: HVCopy.landingVaultSaveLine, message: HVCopy.landingVaultLockLine) {
             VStack(spacing: HV.Space.s) {
-                secretRow(symbol: "person.crop.circle", tint: Palette.blue, title: "Bakery admin", label: "sam@bakery.co")
-                secretRow(symbol: "creditcard", tint: Palette.violet, title: "Work card", label: "Visa \u{2022}\u{2022}\u{2022}\u{2022} 4242")
-                secretRow(symbol: "key.horizontal", tint: Palette.mint, title: "Deploy key", label: nil)
+                secretRow(symbol: HVSymbol.login, tint: Palette.blue, title: "Bakery admin", label: "sam@bakery.co")
+                secretRow(symbol: HVSymbol.card, tint: Palette.violet, title: "Work card", label: "Visa \u{2022}\u{2022}\u{2022}\u{2022} 4242")
+                secretRow(symbol: HVSymbol.key, tint: Palette.mint, title: "Deploy key", label: nil)
             }
             .padding(.horizontal, HV.Space.xl)
         }

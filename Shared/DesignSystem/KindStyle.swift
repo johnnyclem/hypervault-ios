@@ -5,11 +5,11 @@ import SwiftUI
 extension KeptKind {
     var symbol: String {
         switch self {
-        case .memory: return "brain.head.profile"
+        case .memory: return HVSymbol.memory
         case .page: return "doc.richtext"
         case .file: return "doc.fill"
         case .group: return "square.stack.3d.up"
-        case .key: return "key.horizontal"
+        case .key: return HVSymbol.key
         }
     }
 

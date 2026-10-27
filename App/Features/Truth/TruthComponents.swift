@@ -171,7 +171,7 @@ struct TruthStandingBadge: View {
     var body: some View {
         if let standing, standing != .sound || showsSound {
             HStack(spacing: 3) {
-                Image(systemName: standing.symbol).font(.system(size: 10, weight: .bold))
+                HVIcon(standing.symbol).font(.system(size: 10, weight: .bold))
                 Text(standing.title)
             }
             .font(.system(.caption2, weight: .semibold))
@@ -307,7 +307,7 @@ struct TruthEvidenceEditor: View {
             Button {
                 rows.append(TruthEvidenceDraft())
             } label: {
-                Label("Add evidence", systemImage: "plus")
+                Label("Add evidence", systemImage: HVSymbol.add)
             }
             .truthAlignedGhost()
         }
@@ -323,7 +323,7 @@ struct TruthEvidenceEditor: View {
         } label: {
             HStack(spacing: 3) {
                 Text(row.wrappedValue.kind.title).font(.system(.footnote, design: .monospaced, weight: .semibold))
-                Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .bold))
+                HVIcon("chevron.up.chevron.down").font(.system(size: 9, weight: .bold))
             }
             .foregroundStyle(Palette.textPrimary)
             .padding(.horizontal, HV.Space.s)

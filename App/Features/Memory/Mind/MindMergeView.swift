@@ -191,7 +191,7 @@ struct MindBranchPill: View {
 
     var body: some View {
         HStack(spacing: 5) {
-            Image(systemName: "arrow.triangle.branch")
+            HVIcon("arrow.triangle.branch")
                 .font(.system(size: 11, weight: .semibold))
             Text(name)
                 .font(.system(.subheadline, weight: .semibold))
@@ -240,10 +240,10 @@ private struct MindConflictCard: View {
                 onEdit()
             } label: {
                 HStack {
-                    Image(systemName: "square.and.pencil")
+                    HVIcon("square.and.pencil")
                     Text(isCustom(resolution) ? "Edit your version" : "Write my own")
                     Spacer()
-                    if isCustom(resolution) { Image(systemName: "checkmark").foregroundStyle(Palette.success) }
+                    if isCustom(resolution) { HVIcon("checkmark").foregroundStyle(Palette.success) }
                 }
                 .font(.hvSubheadline.weight(.semibold))
                 .foregroundStyle(Color.accentColor)
@@ -255,7 +255,7 @@ private struct MindConflictCard: View {
 
             if conflict.hunksOurs.hasTextChanges || conflict.hunksTheirs.hasTextChanges {
                 Button(showDiffs ? "Hide the changes" : "Show what each side changed") {
-                    withAnimation(.easeInOut(duration: 0.2)) { showDiffs.toggle() }
+                    HV.Motion.animate(.easeInOut(duration: 0.2)) { showDiffs.toggle() }
                 }
                 .buttonStyle(.hvGhost)
                 .padding(.leading, -HV.Space.s)

@@ -93,13 +93,14 @@ struct ChatLocalModelSheet: View {
                                 Text(name).font(.hvMono).foregroundStyle(Palette.textPrimary)
                                 Spacer()
                                 if draft.model == name {
-                                    Image(systemName: "checkmark").foregroundStyle(Color.accentColor)
+                                    HVIcon("checkmark").foregroundStyle(Color.accentColor)
                                 }
                             }
                             .frame(minHeight: 44)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityAddTraits(draft.model == name ? .isSelected : [])
                     }
                 }
                 .hvListRow()

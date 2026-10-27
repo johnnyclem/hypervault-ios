@@ -145,7 +145,7 @@ struct ConnectGuideView: View {
         let isOpen = notesOverride ?? (!info.verified || info.keyInUrl)
         return VStack(alignment: .leading, spacing: HV.Space.xs) {
             Button {
-                withAnimation(.easeOut(duration: 0.2)) { notesOverride = !isOpen }
+                HV.Motion.animate { notesOverride = !isOpen }
             } label: {
                 HStack {
                     sectionTitle(ConnectCopy.notesHeading)

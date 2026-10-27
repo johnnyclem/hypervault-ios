@@ -165,7 +165,7 @@ struct ForceGraphView: View {
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(.ultraThinMaterial, in: Capsule())
+                .hvGlass(in: Capsule())
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -416,7 +416,7 @@ struct ForceGraphView: View {
             }
         case .pan:
             if moved <= 6, selection != nil {
-                withAnimation(.easeOut(duration: 0.15)) { selection = nil }
+                HV.Motion.animate(.easeOut(duration: 0.15)) { selection = nil }
             }
         case .undecided:
             break
@@ -429,7 +429,7 @@ struct ForceGraphView: View {
         if selection == id {
             onOpen(id)
         } else {
-            withAnimation(.easeOut(duration: 0.18)) { selection = id }
+            HV.Motion.animate(.easeOut(duration: 0.18)) { selection = id }
         }
     }
 

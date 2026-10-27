@@ -103,11 +103,11 @@ struct KeysCopyButton: View {
             copied = true
             onCopy?()
             Task {
-                try? await Task.sleep(nanoseconds: 1_600_000_000)
+                try? await Task.sleep(nanoseconds: UInt64(HV.Motion.copiedHold * 1_000_000_000))
                 copied = false
             }
         } label: {
-            Label(copied ? ConnectCopy.copiedLabel : title, systemImage: copied ? "checkmark" : "doc.on.doc")
+            Label(copied ? ConnectCopy.copiedLabel : title, systemImage: copied ? HVSymbol.copied : HVSymbol.copy)
         }
         .accessibilityLabel(copied ? "Copied" : title)
         .accessibilityHint(accessibilityHint ?? (isSecret ? "Copies to this device only, and clears in a minute." : ""))
@@ -287,7 +287,7 @@ struct KeysChevron: View {
     var isOpen = false
 
     var body: some View {
-        Image(systemName: "chevron.right")
+        Image(systemName: HVSymbol.open)
             .font(.system(.footnote, weight: .semibold))
             .foregroundStyle(Palette.textTertiary)
             .rotationEffect(.degrees(isOpen ? 90 : 0))

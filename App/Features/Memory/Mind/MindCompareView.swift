@@ -130,14 +130,14 @@ struct MindRefPicker: View {
                     }
                 } label: {
                     HStack(spacing: HV.Space.xs) {
-                        Image(systemName: symbol)
+                        HVIcon(symbol)
                             .foregroundStyle(Palette.textSecondary)
                         Text(label)
                             .font(.hvBody)
                             .foregroundStyle(Palette.textPrimary)
                             .lineLimit(1)
                         Spacer(minLength: 0)
-                        Image(systemName: "chevron.up.chevron.down")
+                        HVIcon("chevron.up.chevron.down")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(Palette.textTertiary)
                     }

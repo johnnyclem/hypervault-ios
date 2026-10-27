@@ -149,7 +149,7 @@ struct ArtifactPasswordsScreen: View {
                         Haptics.success()
                         app.toasts.show("Copied. It stays on this device for two minutes.", style: .info)
                     } label: {
-                        Label("Copy", systemImage: "doc.on.doc")
+                        Label("Copy", systemImage: HVSymbol.copy)
                     }
                     .buttonStyle(.hvPrimary)
                     Button("I have it") { model.clearMinted() }
@@ -217,7 +217,7 @@ struct ArtifactPasswordsScreen: View {
                 }
                 .accessibilityElement(children: .combine)
                 .swipeActions(edge: .trailing) {
-                    Button(role: .destructive) { deleting = item } label: { Label("Delete", systemImage: "trash") }
+                    Button(role: .destructive) { deleting = item } label: { Label("Delete", systemImage: HVSymbol.delete) }
                     Button {
                         Task { await model.setDisabled(item, disabled: !item.disabled) }
                     } label: {
@@ -231,7 +231,7 @@ struct ArtifactPasswordsScreen: View {
                     } label: {
                         Label(item.disabled ? "Reactivate" : "Deactivate", systemImage: item.disabled ? "play" : "pause")
                     }
-                    Button(role: .destructive) { deleting = item } label: { Label("Delete", systemImage: "trash") }
+                    Button(role: .destructive) { deleting = item } label: { Label("Delete", systemImage: HVSymbol.delete) }
                 }
             }
         } header: {

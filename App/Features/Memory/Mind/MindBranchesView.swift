@@ -31,7 +31,7 @@ struct MindBranchesView: View {
                 Button {
                     showNew = true
                 } label: {
-                    Label("New branch from \(list.branch)", systemImage: "plus")
+                    Label("New branch from \(list.branch)", systemImage: HVSymbol.add)
                 }
                 .buttonStyle(.hvPrimary)
                 .padding(.top, HV.Space.xs)
@@ -102,7 +102,7 @@ struct MindBranchesView: View {
                     Button { mergeSource = branch } label: { Label("Merge into main", systemImage: "arrow.triangle.merge") }
                     Button { compareSource = branch } label: { Label("Compare with main", systemImage: "arrow.left.arrow.right") }
                     Divider()
-                    Button(role: .destructive) { deleting = branch } label: { Label("Delete branch", systemImage: "trash") }
+                    Button(role: .destructive) { deleting = branch } label: { Label("Delete branch", systemImage: HVSymbol.delete) }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .font(.system(size: 20))
@@ -117,7 +117,7 @@ struct MindBranchesView: View {
         .contextMenu {
             if !branch.isDefault {
                 Button { mergeSource = branch } label: { Label("Merge into main", systemImage: "arrow.triangle.merge") }
-                Button(role: .destructive) { deleting = branch } label: { Label("Delete branch", systemImage: "trash") }
+                Button(role: .destructive) { deleting = branch } label: { Label("Delete branch", systemImage: HVSymbol.delete) }
             }
         }
     }

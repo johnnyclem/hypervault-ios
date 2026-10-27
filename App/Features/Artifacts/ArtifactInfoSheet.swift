@@ -131,7 +131,7 @@ struct ArtifactInfoSheet: View {
                         }
                         Spacer(minLength: HV.Space.xs)
                         if option == current {
-                            Image(systemName: "checkmark").foregroundStyle(.tint).fontWeight(.semibold)
+                            HVIcon("checkmark").foregroundStyle(.tint).fontWeight(.semibold)
                         }
                     }
                     .contentShape(Rectangle())
@@ -210,7 +210,7 @@ struct ArtifactInfoSheet: View {
                     Haptics.tap()
                     app.toasts.show("Copied", style: .info)
                 } label: {
-                    Label("Copy prompt", systemImage: "doc.on.doc")
+                    Label("Copy prompt", systemImage: HVSymbol.copy)
                 }
             }
         }

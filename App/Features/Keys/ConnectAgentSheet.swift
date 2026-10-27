@@ -125,6 +125,7 @@ private struct ConnectPickerScreen: View {
                         NavigationLink(value: ConnectRoute.client(info)) {
                             ClientRow(info: info)
                         }
+                        .accessibilityIdentifier("connect.client.\(info.id)")
                     }
                 } header: {
                     HVSectionHeader(title: section.group.title)

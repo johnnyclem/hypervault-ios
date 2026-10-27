@@ -274,26 +274,31 @@ struct MemoryTagList: View {
 /// A memory in a list: its title, two lines of what it says, its tags and a quiet date.
 struct MemoryCard: View {
     let item: MemoryItem
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HStack(alignment: .firstTextBaseline, spacing: HV.Space.s) {
-                Text(item.title)
-                    .font(.hvHeadline)
-                    .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                Spacer(minLength: HV.Space.xs)
-                Text(MemoryDates.quiet(item.createdAt))
-                    .font(.hvCaption)
-                    .foregroundStyle(Palette.textTertiary)
-                    .fixedSize()
+            // The date beside the title while the title has the room. At an accessibility size it would leave the title a
+            // sliver ("Trip to…"), so it goes under it and the title takes the whole width.
+            if isLarge {
+                VStack(alignment: .leading, spacing: 2) {
+                    title
+                    date
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: HV.Space.s) {
+                    title
+                    Spacer(minLength: HV.Space.xs)
+                    date
+                }
             }
             if !item.summary.isEmpty {
                 Text(item.summary)
                     .font(.hvSubheadline)
                     .foregroundStyle(Palette.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(isLarge ? 4 : 2)
                     .multilineTextAlignment(.leading)
             }
             MemoryTagList(tags: item.tags, source: item.source, limit: 3)
@@ -302,6 +307,21 @@ struct MemoryCard: View {
         .hvCard()
         .accessibilityElement(children: .combine)
         .accessibilityHint("Opens this memory")
+    }
+
+    private var title: some View {
+        Text(item.title)
+            .font(.hvHeadline)
+            .foregroundStyle(Palette.textPrimary)
+            .lineLimit(isLarge ? 4 : 2)
+            .multilineTextAlignment(.leading)
+    }
+
+    private var date: some View {
+        Text(MemoryDates.quiet(item.createdAt))
+            .font(.hvCaption)
+            .foregroundStyle(Palette.textTertiary)
+            .fixedSize()
     }
 }
 

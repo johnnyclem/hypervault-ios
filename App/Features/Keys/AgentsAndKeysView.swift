@@ -84,6 +84,7 @@ struct AgentsAndKeysView: View {
                         NavigationLink(value: KeysDestination.key(key)) {
                             KeyRow(key: key, status: model.status(of: key))
                         }
+                        .accessibilityIdentifier("keys.row.\(key.id)")
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) { keyToRevoke = key } label: { Label("Revoke", systemImage: "xmark.circle") }
                         }
@@ -149,6 +150,7 @@ struct AgentsAndKeysView: View {
             }
             .buttonStyle(.hvPrimary)
             .multilineTextAlignment(.center)
+            .accessibilityIdentifier("keys.connect")
         }
         .padding(.vertical, HV.Space.xs)
     }
@@ -234,10 +236,17 @@ struct KeyRow: View {
             .foregroundStyle(Palette.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
         } else {
-            Text("\(key.prefixLabel) \u{00B7} \(lastUsed)")
-                .font(.hvFootnote)
-                .foregroundStyle(Palette.textSecondary)
-                .lineLimit(2)
+            // One line while both fit; when they do not, each gets its own rather than "Last used 14 / days ago".
+            ViewThatFits(in: .horizontal) {
+                Text("\(key.prefixLabel) \u{00B7} \(lastUsed)")
+                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(key.prefixLabel)
+                    Text(lastUsed)
+                }
+            }
+            .font(.hvFootnote)
+            .foregroundStyle(Palette.textSecondary)
         }
     }
 }

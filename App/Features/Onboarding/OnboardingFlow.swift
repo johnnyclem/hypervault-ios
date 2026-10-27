@@ -35,6 +35,7 @@ struct OnboardingFlow: View {
                 Button("Skip") { finishStory() }
                     .buttonStyle(.hvGhost)
                     .opacity(page < pageCount - 1 ? 1 : 0)
+                    .accessibilityIdentifier("welcome.skip")
             }
             .padding(.horizontal, HV.Space.m)
             .frame(height: 44)
@@ -58,9 +59,12 @@ struct OnboardingFlow: View {
                     }
                 }
                 .buttonStyle(.hvPrimary)
+                .accessibilityIdentifier("welcome.continue")
                 if page == 0 {
                     Button("I already have an account") { finishStory() }
                         .buttonStyle(.hvGhost)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("welcome.haveAccount")
                 } else {
                     Color.clear.frame(height: 36)
                 }
@@ -93,6 +97,7 @@ struct PageDots: View {
         .animation(.snappy, value: current)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Page \(current + 1) of \(count)")
+        .accessibilityIdentifier("welcome.pages")
     }
 }
 
@@ -255,7 +260,7 @@ struct WelcomePageAnyAI: View {
         ) {
             FlowLayout(spacing: HV.Space.s) {
                 ForEach(Array(names.enumerated()), id: \.offset) { index, name in
-                    HVChip(title: name, isSelected: index % 4 == 0)
+                    HVChip(title: name, isSelected: index % 4 == 0, minTarget: 0)
                 }
             }
             .padding(.horizontal, HV.Space.xl)

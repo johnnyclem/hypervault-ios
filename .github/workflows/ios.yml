@@ -47,6 +47,10 @@ jobs:
       - name: Generate the project
         run: xcodegen generate
 
+      # Release is never built here, so this is what keeps the UI-test mode out of it.
+      - name: Check the UI-test mode is debug-only
+        run: python3 scripts/check_debug_only.py
+
       - name: Pick a simulator
         id: sim
         run: |
@@ -64,6 +68,8 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             2>&1 | tee build.log | xcbeautify --renderer github-actions
 
+      # The unit tests and the snapshot renders. The UI tests (the whole app launched and driven) are the next
+      # job, which runs beside this one, so they add no time to a push.
       - name: Test
         env:
           # xcodebuild hands TEST_RUNNER_* to the test process without the prefix.
@@ -75,6 +81,7 @@ jobs:
             -project HyperVault.xcodeproj -scheme HyperVault \
             -destination "id=${{ steps.sim.outputs.id }}" \
             -derivedDataPath build \
+            -skip-testing:HyperVaultUITests \
             -resultBundlePath build/tests.xcresult \
             CODE_SIGNING_ALLOWED=NO \
             2>&1 | tee test.log | xcbeautify --renderer github-actions
@@ -110,3 +117,165 @@ jobs:
         run: |
           echo "---- errors ----"
           grep -hE "error:|\*\* (BUILD|TEST) FAILED|Test Case .* failed" build.log test.log 2>/dev/null | sort -u | head -80
+
+  # The journeys: the real app launched on a simulator and driven with taps and typing, through the welcome story,
+  # sign-in, the canvas, each tab, every screen the You tab opens, and the waitlist; and a sweep of the main screens in
+  # the dark appearance and at an accessibility text size. The app is a debug build whose network is canned inside it
+  # (App/Core/UITestHarness.swift); nothing here reaches a real server. Seven jobs run side by side (each builds the
+  # app for itself), so a push waits for the slowest of them and none of them for the others.
+  ui:
+    name: UI tests (macOS, ${{ matrix.suite }})
+    runs-on: macos-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The layout sweep (see Tests/UITests/LayoutSweepTests.swift): every screen of it at the largest accessibility
+          # text size, the You tab's screens in two halves because scrolling at that size is slow, and in the dark
+          # appearance in one job. The slowest are listed first, so that they start first when GitHub has fewer macOS
+          # machines free than there are jobs.
+          - suite: sweep-large-keep
+            tests: -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheKeepAndAgentScreensAtAnAccessibilityTextSize
+          - suite: sweep-large-think
+            tests: -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheThinkAndAccountScreensAtAnAccessibilityTextSize
+          - suite: sweep-dark
+            tests: >-
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testTheTabsInTheDark
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testWhatTheTabsOpenInTheDark
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testTheWelcomeAndTheWaitlistInTheDark
+              -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheYouScreensInTheDark
+          # Everything a class does not list in another job. A new test class runs here until it is given a job of its own.
+          - suite: journeys
+            tests: >-
+              -only-testing:HyperVaultUITests
+              -skip-testing:HyperVaultUITests/YouScreensJourneyTests
+              -skip-testing:HyperVaultUITests/AccountAndAdminJourneyTests
+              -skip-testing:HyperVaultUITests/ContentJourneyTests
+              -skip-testing:HyperVaultUITests/LayoutSweepTests
+              -skip-testing:HyperVaultUITests/LayoutSweepScreensTests
+          - suite: screens-you
+            tests: -only-testing:HyperVaultUITests/YouScreensJourneyTests
+          - suite: sweep-large
+            tests: >-
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testTheTabsAtAnAccessibilityTextSize
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testWhatTheTabsOpenAtAnAccessibilityTextSize
+              -only-testing:HyperVaultUITests/LayoutSweepTests/testTheWelcomeAndTheWaitlistAtAnAccessibilityTextSize
+          - suite: screens-more
+            tests: >-
+              -only-testing:HyperVaultUITests/AccountAndAdminJourneyTests
+              -only-testing:HyperVaultUITests/ContentJourneyTests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pick the newest Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$latest" ]; then sudo xcode-select -s "$latest/Contents/Developer"; fi
+          xcodebuild -version
+
+      # Spotlight indexing what the build just made competes with the build and the tests for three cores.
+      - name: Keep Spotlight off the build
+        run: sudo mdutil -a -i off || true
+
+      - name: Install tools
+        run: brew install xcodegen xcbeautify
+
+      - name: Generate the project
+        run: xcodegen generate
+
+      - name: Pick a simulator
+        id: sim
+        run: |
+          id=$(xcrun simctl list devices available iPhone -j | python3 scripts/pick_simulator.py)
+          echo "Using simulator $id"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project HyperVault.xcodeproj -scheme HyperVault \
+            -destination "id=${{ steps.sim.outputs.id }}" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build.log | xcbeautify --renderer github-actions
+
+      - name: UI tests
+        id: uitests
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -project HyperVault.xcodeproj -scheme HyperVault \
+            -destination "id=${{ steps.sim.outputs.id }}" \
+            -derivedDataPath build \
+            ${{ matrix.tests }} \
+            -parallel-testing-enabled NO \
+            -resultBundlePath build/ui-tests.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee ui-test.log | xcbeautify --renderer github-actions
+
+      # Every journey step attached a screenshot to the result (the sweep also notes what it saw of each layout);
+      # they are written out as PNGs and text, and uploaded. The `ui-publish` job below puts them all on
+      # ui-snapshots-<branch> (git fetch origin ui-snapshots-<branch>), so a screen can be looked at without a simulator.
+      - name: Export the screenshots
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: python3 scripts/export_ui_screenshots.py build/ui-tests.xcresult build/ui-screenshots
+
+      - name: Upload the screenshots
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots-${{ matrix.suite }}
+          path: build/ui-screenshots
+          if-no-files-found: ignore
+
+      - name: Upload the result bundle
+        if: ${{ !cancelled() && steps.uitests.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results-${{ matrix.suite }}
+          path: build/ui-tests.xcresult
+          if-no-files-found: ignore
+
+      - name: Summarise failures
+        if: failure()
+        run: |
+          echo "---- errors ----"
+          grep -hE "error:|\*\* (BUILD|TEST) FAILED|Test Case .* failed" build.log ui-test.log 2>/dev/null | sort -u | head -80
+          echo "---- failing tests ----"
+          grep -hoE "Test Case '[^']+' failed" ui-test.log 2>/dev/null | sort -u | head -80
+          echo "---- failures, as the result bundle records them ----"
+          python3 scripts/summarize_xcresult.py build/ui-tests.xcresult || true
+
+  # The screenshots of all the UI jobs, on one branch: git fetch origin ui-snapshots-<branch>. The test classes are
+  # in folders of their own, so the jobs' folders merge without touching each other.
+  ui-publish:
+    name: Publish the UI screenshots
+    needs: ui
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect the screenshots
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ui-screenshots-*
+          path: shots
+          merge-multiple: true
+
+      - name: Publish the screenshots to a branch
+        continue-on-error: true
+        run: |
+          if [ ! -d shots ] || [ -z "$(ls -A shots)" ]; then echo "no screenshots"; exit 0; fi
+          slug=$(echo "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" | tr '/' '-')
+          dir=$(mktemp -d)
+          cp -R shots "$dir/ui"
+          cd "$dir"
+          git init -q
+          git checkout -q -b "ui-snapshots-$slug"
+          git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -q -m "UI test screenshots for $GITHUB_SHA"
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git push -f -q origin "ui-snapshots-$slug"

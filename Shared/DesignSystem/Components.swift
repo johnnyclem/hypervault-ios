@@ -10,6 +10,8 @@ struct HVPrimaryButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(.headline, design: .rounded, weight: .semibold))
             .foregroundStyle(isEnabled ? Color.white : Palette.textSecondary)
+            // A label that wraps at a large text size is centred in its capsule, not left on the first line's edge.
+            .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity, minHeight: 52)
             .padding(.horizontal, HV.Space.l)
             .background {
@@ -35,6 +37,7 @@ struct HVSecondaryButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(.headline, design: .rounded, weight: .semibold))
             .foregroundStyle(isEnabled ? Palette.textPrimary : Palette.textTertiary)
+            .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity, minHeight: 52)
             .padding(.horizontal, HV.Space.l)
             .background(Palette.surfaceRaised, in: Capsule())
@@ -154,6 +157,9 @@ struct HVChip: View {
     let title: String
     var symbol: String?
     var isSelected = false
+    /// The height of the area that answers a tap. The pill is shorter than a finger, so the room around it counts
+    /// (nothing is drawn there); pass 0 where a chip is only drawn, never tapped.
+    var minTarget: CGFloat = 44
 
     var body: some View {
         HStack(spacing: 6) {
@@ -170,6 +176,8 @@ struct HVChip: View {
         )
         .overlay(Capsule().strokeBorder(isSelected ? Color.clear : Palette.border, lineWidth: 1))
         .animation(.easeOut(duration: 0.15), value: isSelected)
+        .frame(minHeight: minTarget)
+        .contentShape(Rectangle())
     }
 }
 
@@ -177,13 +185,17 @@ struct HVChip: View {
 struct HVTag: View {
     let text: String
     var tint: Color = Palette.textSecondary
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
+        // One line at its own width, except at an accessibility size, where "Agent connected" is wider than the screen:
+        // a tag that will not wrap pushes the row it is in past the edges, and the row is cut off on both sides.
+        let wraps = dynamicTypeSize.isAccessibilitySize
         Text(text)
             .font(.system(.caption2, design: .rounded, weight: .semibold))
             .foregroundStyle(tint.hvInk())
-            .lineLimit(1)
-            .fixedSize()
+            .lineLimit(wraps ? nil : 1)
+            .fixedSize(horizontal: !wraps, vertical: true)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(tint.opacity(0.14), in: Capsule())
@@ -193,20 +205,41 @@ struct HVTag: View {
 struct HVSectionHeader: View {
     let title: String
     var detail: String?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(title)
-                .font(.system(.footnote, design: .rounded, weight: .semibold))
-                .foregroundStyle(Palette.textSecondary)
-                .textCase(.uppercase)
-                .tracking(0.6)
-            Spacer(minLength: 0)
-            if let detail {
-                Text(detail).font(.hvCaption).foregroundStyle(Palette.textTertiary)
+        // At an accessibility size the title has the whole line and the detail sits under it: side by side the detail
+        // and whatever else shares the row leave the title a sliver, and a word is broken in two ("PROGR / ESS").
+        Group {
+            if dynamicTypeSize.isAccessibilitySize, detail != nil {
+                VStack(alignment: .leading, spacing: 2) {
+                    titleText
+                    detailText
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline) {
+                    titleText
+                    Spacer(minLength: 0)
+                    detailText
+                }
             }
         }
         .accessibilityAddTraits(.isHeader)
+    }
+
+    private var titleText: some View {
+        Text(title)
+            .font(.system(.footnote, design: .rounded, weight: .semibold))
+            .foregroundStyle(Palette.textSecondary)
+            .textCase(.uppercase)
+            .tracking(0.6)
+    }
+
+    @ViewBuilder
+    private var detailText: some View {
+        if let detail {
+            Text(detail).font(.hvCaption).foregroundStyle(Palette.textTertiary)
+        }
     }
 }
 
@@ -295,10 +328,15 @@ struct HVSheetHeader: View {
 
     var body: some View {
         HStack(alignment: .top) {
+            // Never cut short: a sheet with the keyboard up is short, and a header squeezed to one line read
+            // "Sign in wi..." at a large text size.
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.hvTitle)
+                Text(title).font(.hvTitle).fixedSize(horizontal: false, vertical: true)
                 if let subtitle {
-                    Text(subtitle).font(.hvSubheadline).foregroundStyle(Palette.textSecondary)
+                    Text(subtitle)
+                        .font(.hvSubheadline)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Spacer()

@@ -268,6 +268,7 @@ struct TaskBoardScreen: View {
             HStack(spacing: HV.Space.xs) {
                 Image(systemName: group.status.symbol).foregroundStyle(group.status.tint)
                 HVSectionHeader(title: group.status.title, detail: "\(group.rows.count)")
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "chevron.down")
                     .font(.system(.caption2, weight: .bold))
                     .rotationEffect(.degrees(isCollapsed ? -90 : 0))
@@ -293,6 +294,7 @@ struct TaskBoardScreen: View {
             NavigationLink(value: TaskRef(id: task.id)) {
                 TaskRowBody(task: task, rollup: model.board?.rollup(of: task.id), parentTitle: row.parentTitle)
             }
+            .accessibilityIdentifier("taskboard.task.\(task.id)")
             .disabled(temporary)
         }
         .padding(.leading, CGFloat(min(row.depth, 3)) * HV.Space.l)
@@ -397,6 +399,10 @@ struct TaskRowBody: View {
             }
         }
         .padding(.vertical, HV.Space.xxs)
+        // A task with only a title is a line of text: 20 points to tap. The row is at least a finger tall, and all of
+        // it opens the task.
+        .frame(minHeight: 44, alignment: .leading)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 

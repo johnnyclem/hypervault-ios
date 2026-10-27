@@ -158,6 +158,7 @@ struct TruthScreen: View {
                 NavigationLink(value: TruthDestination.review) {
                     docketRow(overview)
                 }
+                .accessibilityIdentifier("truth.review")
                 .hvListRow()
 
                 Toggle(isOn: Binding(get: { overview.chatTruth }, set: { setCiting($0) })) {
@@ -224,6 +225,7 @@ struct TruthScreen: View {
                     NavigationLink(value: TruthDestination.entry(ref(row))) {
                         TruthEntryRowView(row: row)
                     }
+                    .accessibilityIdentifier("truth.entry.\(row.id)")
                     .hvListRow()
                 }
             }

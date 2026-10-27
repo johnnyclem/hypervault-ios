@@ -15,6 +15,7 @@ struct DreamsRootView: View {
 private struct DreamsContent: View {
     @Environment(AppModel.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var model: DreamsModel
     @State private var rejecting: DreamRun?
 
@@ -58,23 +59,44 @@ private struct DreamsContent: View {
 
     // MARK: Settings
 
+    private var settingsWords: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Dream every night")
+                .font(.hvHeadline)
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("While you sleep, HyperVault looks for connections you never made by hand, between your memories and your pages, and stages them here for you to review.")
+                .font(.hvFootnote)
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var dreamSwitch: some View {
+        Toggle("Dream every night", isOn: Binding(get: { model.enabled }, set: { toggle($0) }))
+            .labelsHidden()
+            .disabled(model.isChangingSetting)
+    }
+
     private var settings: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            HStack(alignment: .top, spacing: HV.Space.s) {
-                HVIconBadge(symbol: "moon.stars", tint: Palette.violet, size: 40)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Dream every night")
-                        .font(.hvHeadline)
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("While you sleep, HyperVault looks for connections you never made by hand, between your memories and your pages, and stages them here for you to review.")
-                        .font(.hvFootnote)
-                        .foregroundStyle(Palette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+            // Badge, words and switch in a row while the words have the room. At an accessibility size they would get a
+            // narrow column between the badge and the switch ("connec-/tions"), so the switch goes up beside the badge
+            // and the words have the whole width below.
+            if dynamicTypeSize.isAccessibilitySize {
+                HStack(spacing: HV.Space.s) {
+                    HVIconBadge(symbol: "moon.stars", tint: Palette.violet, size: 40)
+                    Spacer(minLength: HV.Space.xs)
+                    dreamSwitch
                 }
-                Spacer(minLength: HV.Space.xs)
-                Toggle("Dream every night", isOn: Binding(get: { model.enabled }, set: { toggle($0) }))
-                    .labelsHidden()
-                    .disabled(model.isChangingSetting)
+                settingsWords
+            } else {
+                HStack(alignment: .top, spacing: HV.Space.s) {
+                    HVIconBadge(symbol: "moon.stars", tint: Palette.violet, size: 40)
+                    settingsWords
+                    Spacer(minLength: HV.Space.xs)
+                    dreamSwitch
+                }
             }
             if model.enabled {
                 Button {

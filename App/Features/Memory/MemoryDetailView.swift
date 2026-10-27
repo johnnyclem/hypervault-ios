@@ -192,9 +192,10 @@ private struct MemoryDetailContent: View {
                         MemoryChevron()
                     }
                     .padding(.vertical, HV.Space.xs)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .frame(minHeight: 44)
             }
         }
     }
@@ -208,9 +209,10 @@ private struct MemoryDetailContent: View {
                         MemoryChevron()
                     }
                     .padding(.vertical, HV.Space.xs)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .frame(minHeight: 44)
             }
         }
     }
@@ -229,9 +231,10 @@ private struct MemoryDetailContent: View {
                     MemoryChevron()
                 }
                 .padding(.vertical, HV.Space.xs)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .frame(minHeight: 44)
             MemoryRowDivider()
             if page.branch == MindBranchName.defaultName {
                 Button {
@@ -241,9 +244,10 @@ private struct MemoryDetailContent: View {
                         MemoryChevron()
                     }
                     .padding(.vertical, HV.Space.xs)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .frame(minHeight: 44)
                 MemoryRowDivider()
             }
             Button {
@@ -253,10 +257,11 @@ private struct MemoryDetailContent: View {
                     if model.isWorking { ProgressView() }
                 }
                 .padding(.vertical, HV.Space.xs)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(model.isWorking)
-            .frame(minHeight: 44)
         }
         .memoryRowCard()
     }

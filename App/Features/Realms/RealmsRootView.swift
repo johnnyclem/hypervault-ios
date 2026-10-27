@@ -86,6 +86,7 @@ struct RealmsRootView: View {
                         NavigationLink(value: RealmsDestination.realm(claim.id)) {
                             RealmRow(claim: claim, isPro: model.snapshot.isPro)
                         }
+                        .accessibilityIdentifier("realms.row.\(claim.id)")
                     }
                 }
             }

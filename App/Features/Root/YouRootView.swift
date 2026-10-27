@@ -10,6 +10,7 @@ struct YouRootView: View {
 
     @State private var waiting = 0
     @State private var confirmSignOut = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         List {
@@ -19,29 +20,29 @@ struct YouRootView: View {
             }.hvListRow()
 
             Section(header: HVSectionHeader(title: "Keep")) {
-                link(.library, symbol: "folder", tint: Palette.blue, title: "Library", subtitle: "Everything kept, with its graph")
-                link(.vaultItems, symbol: "lock.rectangle.stack", tint: Palette.violet, title: "Logins, cards & keys", subtitle: "Saved once, used by your agents")
-                link(.taskBoards, symbol: "checklist", tint: Palette.mint, title: "Task boards", subtitle: "Lists you share with your agents")
+                link(.library, id: "library", symbol: "folder", tint: Palette.blue, title: "Library", subtitle: "Everything kept, with its graph")
+                link(.vaultItems, id: "vaultItems", symbol: "lock.rectangle.stack", tint: Palette.violet, title: "Logins, cards & keys", subtitle: "Saved once, used by your agents")
+                link(.taskBoards, id: "taskBoards", symbol: "checklist", tint: Palette.mint, title: "Task boards", subtitle: "Lists you share with your agents")
             }.hvListRow()
 
             Section(header: HVSectionHeader(title: "Agents")) {
-                link(.agentsAndKeys, symbol: "key.horizontal", tint: Palette.amber, title: "Account & keys", subtitle: "Connect an agent, manage its keys")
-                link(.tools, symbol: "wrench.and.screwdriver", tint: Palette.coral, title: "Tools", subtitle: "Services your chats can use")
-                link(.mail, symbol: "tray.full", tint: Palette.sky, title: "Mail", subtitle: "Notes between you and your agents")
+                link(.agentsAndKeys, id: "agentsAndKeys", symbol: "key.horizontal", tint: Palette.amber, title: "Account & keys", subtitle: "Connect an agent, manage its keys")
+                link(.tools, id: "tools", symbol: "wrench.and.screwdriver", tint: Palette.coral, title: "Tools", subtitle: "Services your chats can use")
+                link(.mail, id: "mail", symbol: "tray.full", tint: Palette.sky, title: "Mail", subtitle: "Notes between you and your agents")
             }.hvListRow()
 
             Section(header: HVSectionHeader(title: "Think")) {
-                link(.dreams, symbol: "moon.stars", tint: Palette.violet, title: "Dreams", subtitle: "Connections found overnight")
-                link(.digest, symbol: "scissors", tint: Palette.cyan, title: "Digest", subtitle: "Split big memories into small ones")
-                link(.truth, symbol: "checkmark.seal", tint: Palette.mint, title: "Truth", subtitle: "What you have asserted, and what rests on it")
+                link(.dreams, id: "dreams", symbol: "moon.stars", tint: Palette.violet, title: "Dreams", subtitle: "Connections found overnight")
+                link(.digest, id: "digest", symbol: "scissors", tint: Palette.cyan, title: "Digest", subtitle: "Split big memories into small ones")
+                link(.truth, id: "truth", symbol: "checkmark.seal", tint: Palette.mint, title: "Truth", subtitle: "What you have asserted, and what rests on it")
             }.hvListRow()
 
             Section(header: HVSectionHeader(title: "Account")) {
-                link(.realms, symbol: "globe", tint: Palette.blue, title: "Your address", subtitle: "Claim you.vault.cool and more")
-                link(.importHistory, symbol: "square.and.arrow.down", tint: Palette.coral, title: "Import", subtitle: "Bring a ChatGPT, Claude, Gemini or Grok history")
-                link(.settings, symbol: "gearshape", tint: Palette.textSecondary, title: "Settings", subtitle: "Look, security, server")
+                link(.realms, id: "realms", symbol: "globe", tint: Palette.blue, title: "Your address", subtitle: "Claim you.vault.cool and more")
+                link(.importHistory, id: "importHistory", symbol: "square.and.arrow.down", tint: Palette.coral, title: "Import", subtitle: "Bring a ChatGPT, Claude, Gemini or Grok history")
+                link(.settings, id: "settings", symbol: "gearshape", tint: Palette.textSecondary, title: "Settings", subtitle: "Look, security, server")
                 if env.isAdmin {
-                    link(.admin, symbol: "person.badge.shield.checkmark", tint: Palette.rose, title: "Admin", subtitle: "Invites, waitlist, accounts")
+                    link(.admin, id: "admin", symbol: "person.badge.shield.checkmark", tint: Palette.rose, title: "Admin", subtitle: "Invites, waitlist, accounts")
                 }
             }.hvListRow()
 
@@ -57,6 +58,7 @@ struct YouRootView: View {
                 } label: {
                     Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
                 }
+                .accessibilityIdentifier("you.signOut")
             } footer: {
                 Text("HyperVault \(Self.versionText)")
                     .font(.hvCaption)
@@ -80,14 +82,20 @@ struct YouRootView: View {
         }
     }
 
-    private func link(_ route: Route, symbol: String, tint: Color, title: String, subtitle: String) -> some View {
+    private func link(_ route: Route, id: String, symbol: String, tint: Color, title: String, subtitle: String) -> some View {
         NavigationLink(value: route) {
             HVRow(symbol: symbol, tint: tint, title: title, subtitle: subtitle)
         }
+        .accessibilityIdentifier("you.\(id)")
     }
 
     private var profileCard: some View {
-        HStack(spacing: HV.Space.m) {
+        // Beside the words while they have the room. At an accessibility size the avatar would leave them a narrow
+        // column, and an email address would be broken mid-word ("sam@ex-ample.com"), so it goes above them.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: HV.Space.s))
+            : AnyLayout(HStackLayout(spacing: HV.Space.m))
+        return layout {
             HVAvatar(
                 name: env.user.displayName ?? env.user.email ?? "?",
                 imageURL: env.user.avatarUrl.flatMap(URL.init(string:)),
@@ -97,12 +105,21 @@ struct YouRootView: View {
                 Text(env.user.displayName ?? env.user.firstName ?? "You")
                     .font(.hvTitle3)
                 if let email = env.user.email {
-                    Text(email).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
+                    // An address is one word: on a line of its own it shrinks a little, and when it still does not fit its
+                    // middle is left out, rather than wrapping at a dot with a hyphen ("sam@example.-/com").
+                    Text(email)
+                        .font(.hvFootnote)
+                        .foregroundStyle(Palette.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .truncationMode(.middle)
                 }
             }
-            Spacer()
+            if !dynamicTypeSize.isAccessibilitySize { Spacer() }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("you.profile")
     }
 
     private static var versionText: String {

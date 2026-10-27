@@ -101,14 +101,27 @@ struct VaultItemDetailView: View {
     }
 
     private func header(_ secret: VaultSecret) -> some View {
-        HStack(spacing: HV.Space.m) {
+        // Beside the words while they have the room. At an accessibility size the tile would leave them a narrow column
+        // and a name or an address would be broken in two with a hyphen ("github.-/com"), so the tile goes above them and
+        // the second line (an address, a card's last digits) is kept on one line, a little smaller if it must be.
+        let stacked = dynamicTypeSize.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: HV.Space.s))
+            : AnyLayout(HStackLayout(spacing: HV.Space.m))
+        return layout {
             VaultTile(secret: secret, size: 48)
             VStack(alignment: .leading, spacing: 2) {
-                Text(secret.name).font(.hvTitle3).lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
-                Text(secret.subtitle).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
+                Text(secret.name).font(.hvTitle3).lineLimit(stacked ? nil : 2)
+                Text(secret.subtitle)
+                    .font(.hvFootnote)
+                    .foregroundStyle(Palette.textSecondary)
+                    .lineLimit(stacked ? 1 : nil)
+                    .minimumScaleFactor(stacked ? 0.6 : 1)
+                    .truncationMode(.middle)
             }
-            Spacer(minLength: 0)
+            if !stacked { Spacer(minLength: 0) }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 

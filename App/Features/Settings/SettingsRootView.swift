@@ -27,6 +27,7 @@ struct SettingsRootView: View {
                         Text(choice.title).tag(choice)
                     }
                 }
+                .accessibilityIdentifier("settings.appearance")
 
                 VStack(alignment: .leading, spacing: HV.Space.s) {
                     Text("Accent").font(.hvBody)
@@ -41,11 +42,13 @@ struct SettingsRootView: View {
 
             Section(header: HVSectionHeader(title: "Feel")) {
                 Toggle("Haptics", isOn: $haptics)
+                    .accessibilityIdentifier("settings.haptics")
             }.hvListRow()
 
             Section(header: HVSectionHeader(title: "Search"), footer: Text("Find your pages and memories from your Home Screen. Names and short summaries are kept on this phone for search; keys are never included.")) {
                 // Search is switched off while the lock is on; the choice comes back with it.
                 Toggle("Show in Spotlight", isOn: Binding(get: { spotlight && !biometricLock }, set: { spotlight = $0 }))
+                    .accessibilityIdentifier("settings.spotlight")
                     .disabled(biometricLock)
                     .onChange(of: spotlight) { _, on in if !on { SpotlightIndexer.clear() } }
             }.hvListRow()

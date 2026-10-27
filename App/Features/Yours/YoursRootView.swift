@@ -32,11 +32,13 @@ private struct YoursTab: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel("New")
+                    .accessibilityIdentifier("yours.new")
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink(value: Route.library) {
                         Text("Library").font(.system(.subheadline, design: .rounded, weight: .semibold))
                     }
+                    .accessibilityIdentifier("yours.library")
                 }
             }
     }
@@ -113,6 +115,7 @@ struct YoursListView: View {
     let baseURL: URL
     let onSelect: (KeptItem) -> Void
     let onPull: (KeptItem) -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         List {
@@ -122,6 +125,7 @@ struct YoursListView: View {
                         Text(filter.title).tag(filter)
                     }
                 }
+                .accessibilityIdentifier("yours.filter")
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
             }
@@ -189,10 +193,17 @@ struct YoursListView: View {
     }
 
     private func row(_ item: KeptItem) -> some View {
-        Button { onSelect(item) } label: {
-            HVRow(symbol: item.kind.symbol, tint: item.kind.tint, title: item.name, subtitle: subtitle(for: item)) {
-                if let when = item.lastOpenedAt ?? item.updatedAt {
-                    Text(HVCopy.ago(since: when)).font(.hvCaption).foregroundStyle(Palette.textTertiary)
+        let ago = (item.lastOpenedAt ?? item.updatedAt).map { HVCopy.ago(since: $0) }
+        // At an accessibility size the time beside the words would leave the name a sliver ("land-/ing", "30 / min ago"),
+        // so it follows the line under the name instead, as the Library's rows do.
+        let stacksTime = dynamicTypeSize.isAccessibilitySize
+        return Button { onSelect(item) } label: {
+            HVRow(
+                symbol: item.kind.symbol, tint: item.kind.tint, title: item.name,
+                subtitle: stacksTime ? [subtitle(for: item), ago].compactMap { $0 }.joined(separator: " \u{00B7} ") : subtitle(for: item)
+            ) {
+                if !stacksTime, let ago {
+                    Text(ago).font(.hvCaption).foregroundStyle(Palette.textTertiary)
                 }
             }
         }
@@ -206,6 +217,7 @@ struct YoursListView: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("yours.row.\(item.id)")
     }
 
     private func subtitle(for item: KeptItem) -> String {

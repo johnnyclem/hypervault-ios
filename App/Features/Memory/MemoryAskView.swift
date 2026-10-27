@@ -84,6 +84,7 @@ struct MemoryAskView: View {
             }
             HStack(alignment: .bottom, spacing: HV.Space.xs) {
                 TextField("Ask your memory", text: $draft, axis: .vertical)
+                    .accessibilityIdentifier("ask.field")
                     .lineLimit(1...4)
                     .focused($focused)
                     .submitLabel(.send)

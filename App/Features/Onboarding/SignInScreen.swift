@@ -41,58 +41,72 @@ struct SignInContent: View {
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel("Back")
+                    .accessibilityIdentifier("signin.back")
                 }
                 Spacer()
             }
             .padding(.horizontal, HV.Space.xs)
             .frame(height: 44)
 
-            Spacer(minLength: HV.Space.l)
+            // The way in scrolls when its words need more room than the screen has (a large text size, a small phone):
+            // without it the words and the buttons were cut short ("Welcome...", "Continue with e..."). When they fit,
+            // it is the same page as before, the mark and the words in the middle and the buttons at the foot.
+            GeometryReader { proxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        Spacer(minLength: HV.Space.l)
 
-            VStack(spacing: HV.Space.l) {
-                BrandMark(size: 84)
-                VStack(spacing: HV.Space.xs) {
-                    Text("Welcome to HyperVault")
-                        .font(.hvHero)
-                        .multilineTextAlignment(.center)
-                    Text("Keep what your AI just made. Only you can open it.")
-                        .font(.hvBody)
-                        .foregroundStyle(Palette.textSecondary)
-                        .multilineTextAlignment(.center)
+                        VStack(spacing: HV.Space.l) {
+                            BrandMark(size: 84)
+                            VStack(spacing: HV.Space.xs) {
+                                Text("Welcome to HyperVault")
+                                    .font(.hvHero)
+                                    .multilineTextAlignment(.center)
+                                Text("Keep what your AI just made. Only you can open it.")
+                                    .font(.hvBody)
+                                    .foregroundStyle(Palette.textSecondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                        }
+                        .padding(.horizontal, HV.Space.xl)
+
+                        Spacer(minLength: HV.Space.l)
+
+                        VStack(spacing: HV.Space.s + 2) {
+                            if providers.apple { appleButton }
+                            if providers.google { googleButton }
+                            if providers.email { emailButton }
+                            if !providers.apple && !providers.google && !providers.email {
+                                Text("Sign-in is not available on this server right now.")
+                                    .font(.hvCallout)
+                                    .foregroundStyle(Palette.textSecondary)
+                                    .accessibilityIdentifier("signin.unavailable")
+                            }
+
+                            if let message = controller.message {
+                                Text(message)
+                                    .font(.hvFootnote)
+                                    .foregroundStyle(Palette.danger)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.top, HV.Space.xs)
+                                    .transition(.opacity)
+                            }
+
+                            Text("Only you can open what you keep.")
+                                .font(.hvCaption)
+                                .foregroundStyle(Palette.textTertiary)
+                                .multilineTextAlignment(.center)
+                                .padding(.top, HV.Space.s)
+                        }
+                        .padding(.horizontal, HV.Space.l)
+                        .padding(.bottom, HV.Space.l)
+                        .hvReadableWidth()
+                        .animation(.easeOut(duration: 0.2), value: controller.message)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height)
                 }
+                .scrollBounceBehavior(.basedOnSize)
             }
-            .padding(.horizontal, HV.Space.xl)
-
-            Spacer(minLength: HV.Space.l)
-
-            VStack(spacing: HV.Space.s + 2) {
-                if providers.apple { appleButton }
-                if providers.google { googleButton }
-                if providers.email { emailButton }
-                if !providers.apple && !providers.google && !providers.email {
-                    Text("Sign-in is not available on this server right now.")
-                        .font(.hvCallout)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-
-                if let message = controller.message {
-                    Text(message)
-                        .font(.hvFootnote)
-                        .foregroundStyle(Palette.danger)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, HV.Space.xs)
-                        .transition(.opacity)
-                }
-
-                Text("Only you can open what you keep.")
-                    .font(.hvCaption)
-                    .foregroundStyle(Palette.textTertiary)
-                    .padding(.top, HV.Space.s)
-            }
-            .padding(.horizontal, HV.Space.l)
-            .padding(.bottom, HV.Space.l)
-            .hvReadableWidth()
-            .animation(.easeOut(duration: 0.2), value: controller.message)
         }
         .sheet(isPresented: $showEmail) {
             EmailCodeSheet(controller: controller)
@@ -114,6 +128,7 @@ struct SignInContent: View {
         .clipShape(Capsule())
         .disabled(controller.isWorking)
         .opacity(controller.work == .apple ? 0.6 : 1)
+        .accessibilityIdentifier("signin.apple")
     }
 
     private var googleButton: some View {
@@ -133,6 +148,7 @@ struct SignInContent: View {
         }
         .buttonStyle(.hvSecondary)
         .disabled(controller.isWorking)
+        .accessibilityIdentifier("signin.google")
     }
 
     private var emailButton: some View {
@@ -148,6 +164,7 @@ struct SignInContent: View {
         }
         .buttonStyle(.hvSecondary)
         .disabled(controller.isWorking)
+        .accessibilityIdentifier("signin.email")
     }
 }
 
@@ -181,6 +198,7 @@ struct EmailCodeSheet: View {
                     .submitLabel(.send)
                     .onSubmit { send() }
                     .accessibilityHint(controller.message ?? "")
+                    .accessibilityIdentifier("email.address")
                     .hvFieldChrome(isFocused: focus == .email)
                 errorLine
 
@@ -191,6 +209,7 @@ struct EmailCodeSheet: View {
                 }
                 .buttonStyle(.hvPrimary)
                 .disabled(email.isEmpty || controller.isWorking)
+                .accessibilityIdentifier("email.send")
             } else {
                 TextField("Six-digit code", text: $code, prompt: .hvPrompt("123456"))
                     .textContentType(.oneTimeCode)
@@ -199,6 +218,7 @@ struct EmailCodeSheet: View {
                     .multilineTextAlignment(.center)
                     .focused($focus, equals: .code)
                     .accessibilityHint(controller.message ?? "")
+                    .accessibilityIdentifier("email.code")
                     .hvFieldChrome(isFocused: focus == .code)
                     .onChange(of: code) { _, newValue in
                         let digits = newValue.filter(\.isNumber)
@@ -214,16 +234,19 @@ struct EmailCodeSheet: View {
                 }
                 .buttonStyle(.hvPrimary)
                 .disabled(code.count < 6 || controller.isWorking)
+                .accessibilityIdentifier("email.verify")
 
                 HStack {
                     Button("Use a different email") {
                         code = ""
                         controller.resetEmail()
                     }
+                    .accessibilityIdentifier("email.change")
                     Spacer()
                     Button("Send again") {
                         Task { _ = await controller.sendEmailCode(controller.emailSentTo ?? email) }
                     }
+                    .accessibilityIdentifier("email.resend")
                 }
                 .buttonStyle(.hvGhost)
             }
@@ -242,6 +265,7 @@ struct EmailCodeSheet: View {
     private var errorLine: some View {
         if let message = controller.message {
             Text(message).font(.hvFootnote).foregroundStyle(Palette.danger)
+                .accessibilityIdentifier("email.error")
         }
     }
 

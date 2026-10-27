@@ -94,6 +94,8 @@ private struct LibraryRowTime: View {
 /// and when it was last in use.
 struct LibraryItemRow: View {
     let item: KeptItem
+    /// The row is a button that pushes a screen, so it draws the arrow a link would.
+    var showsChevron = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
@@ -102,7 +104,15 @@ struct LibraryItemRow: View {
         } meta: {
             EmptyView()
         } trailing: {
-            LibraryRowTime(text: ago)
+            HStack(spacing: HV.Space.xs) {
+                LibraryRowTime(text: ago)
+                if showsChevron {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Palette.textTertiary)
+                        .accessibilityHidden(true)
+                }
+            }
         }
     }
 

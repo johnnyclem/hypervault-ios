@@ -72,6 +72,7 @@ struct AdminScreen: View {
                     NavigationLink(value: AdminRoute.invite(invite.id)) {
                         AdminInviteRow(invite: invite)
                     }
+                    .accessibilityIdentifier("admin.invite.\(invite.id)")
                 }
             }
             .hvListRow()
@@ -123,9 +124,11 @@ struct AdminScreen: View {
             HVLabeledField(title: "Uses", footnote: "How many people can join with this code.") {
                 TextField("How many people can use the code", text: $model.usesText, prompt: Text(verbatim: "1"))
                     .keyboardType(.numberPad)
+                    .accessibilityIdentifier("admin.uses")
             }
             HVLabeledField(title: "Note (optional)") {
                 TextField("Note", text: $model.note, prompt: Text(verbatim: "Launch batch"))
+                    .accessibilityIdentifier("admin.note")
                     .focused($noteFocused)
                     .submitLabel(.done)
             }

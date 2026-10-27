@@ -54,6 +54,7 @@ struct MemorySearchView: View {
                         }
                         .buttonStyle(.plain)
                         .id("list-\(item.id)")
+                        .accessibilityIdentifier("memory.row.\(item.id)")
                     }
                 }
             }
@@ -149,6 +150,7 @@ struct MemorySearchField: View {
                 .autocorrectionDisabled()
                 .submitLabel(.search)
                 .focused($focused)
+                .accessibilityIdentifier("memory.search")
             if isBusy {
                 ProgressView().controlSize(.small)
             }

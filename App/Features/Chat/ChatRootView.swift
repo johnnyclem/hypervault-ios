@@ -20,6 +20,7 @@ struct ChatRootView: View {
             HVChoicePicker(title: "Chats or rooms", selection: $section) {
                 ForEach(Half.allCases) { Text($0.rawValue).tag($0) }
             }
+            .accessibilityIdentifier("chat.section")
             .padding(.horizontal, HV.Space.m)
             .padding(.vertical, HV.Space.xs)
             .hvReadableWidth()

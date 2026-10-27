@@ -16,6 +16,7 @@ struct ChatRoomContent: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let env: AppEnvironment
     @State private var model: ChatRoomModel
     @State private var showMembers = false
@@ -210,6 +211,7 @@ struct ChatRoomContent: View {
             VStack(alignment: .leading, spacing: 0) {
                 mentionChips
                 TextField("Message", text: $model.draft, prompt: Text(model.composerPrompt).foregroundStyle(Palette.textSecondary), axis: .vertical)
+                    .accessibilityIdentifier("room.field")
                     .font(.hvBody)
                     .lineLimit(1...6)
                     .focused($focused)
@@ -220,7 +222,7 @@ struct ChatRoomContent: View {
                     Text(addressLine)
                         .font(.hvCaption)
                         .foregroundStyle(Palette.textSecondary)
-                        .lineLimit(2)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                     Spacer(minLength: 0)
                     if model.isDriving {
                         Button { model.stop() } label: { Image(systemName: "stop.fill") }

@@ -169,6 +169,73 @@ And one snapshot test per main screen in `Tests/AppTests/<Feature>SnapshotTests.
 publishes the PNGs to a `snapshots-<branch>` branch, which is how a screen is
 looked at before anyone opens Xcode.
 
+## Journeys: UI tests of the whole app
+
+A snapshot draws one screen. A journey launches the real app on the simulator and walks its navigation with taps
+and typing, which is what catches a crash on launch, a tab that does nothing, a sheet that never presents or a control
+nothing can reach. They live in `Tests/UITests` (the `HyperVaultUITests` target, part of the `HyperVault` scheme).
+
+**The UI-test mode.** A debug build launched with `-HV_UITEST -HV_UITEST_SCENARIO <name>` builds its `AppModel` on a
+canned server instead of the real one (`App/Core/UITestHarness.swift`, one call in `HyperVaultApp`, compiled out of
+release builds). The scenarios are `signedOut` (the welcome story and the way in), `signedIn` (a few things kept, memories,
+chats, a connected model), `signedInEmpty` (the first run), `waitlisted` and `signedInAdmin` (`signedIn`, for a person the
+server knows as an admin; for everyone else the admin check gets the 403 the real routes send). The network is a
+`MockTransport` over the routes in `App/Core/UITestWorld.swift` and `UITestWorld+Screens.swift` (the keys, the address,
+a room, Truth, the task boards, the import, sharing, admin: what changes while a journey plays, such as a key being made
+or revoked, lives in a small object that one launch owns), the secure store is in memory, the cache and the shared defaults are scratch, and the
+canned hosts end in `.invalid`; anything that builds its own `URLSession` request is answered or refused by
+`UITestURLProtocol`. Animations are off, so the app settles at once after every tap. Release is never built in CI, so
+`scripts/check_debug_only.py` (a step of the CI job) fails if any of this is not inside `#if DEBUG`. A run never reaches a real server, the Keychain or anything a person left on the phone.
+
+**Adding a journey.**
+
+1. Give the control an identifier: `.accessibilityIdentifier("storey.thing")` (`canvas.send`, `yours.row.<id>`,
+   `welcome.continue`). A plain-text button or a title is found by its real label instead, which also tests what
+   VoiceOver reads. Put the identifier on the control itself (the button, the field, a row that combines its words),
+   not on a container.
+2. If the screen reads a route the scenarios do not answer, add it to `UITestWorld` (or `UITestWorld+Screens.swift`) in the
+   shape the real route sends, or reuse the screen's `*PreviewData.routes`. Routes are tried in order and the first
+   match wins, and only the path is matched, so two reads of one path (`/rest/v1/artifacts`) are told apart in the route.
+   An unmatched route is a 404, which a screen shows as an error: add the route rather than accept that screen.
+   `UITestWorldTests` and `UITestScreensTests` decode the canned answers through the Kit's own endpoints, so a route
+   that drifts fails there in seconds.
+3. Write the journey in `Tests/UITests`, subclassing `HyperVaultUITestCase`: `launch(.signedIn)`, then `step("...") { }`
+   blocks that `tap`, `enter`, `require` an element or `waitUntil` something holds. Every wait is long because CI
+   simulators are slow, every failure says what was missing, and each step keeps a screenshot with the result. Wait
+   for the right element rather than sleeping, and fix a flaky journey at its cause (an identifier, a better wait),
+   never by skipping it.
+
+**The layout sweep.** `LayoutSweepTests` and `LayoutSweepScreensTests` launch the app in the dark appearance and at the
+largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the You tab
+opens (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
+anything drawn off the screen) beside it. Dark is the app's own Appearance preference given as a launch argument
+(`-pref.appearance dark`, which is what Settings stores); `-AppleInterfaceStyle Dark` and the device's `appearance` left
+the app light on CI. So that a sweep of the dark never looks at light screens, each dark screenshot is first checked: the
+brightness of a strip down the left edge of the picture, which is the page's own background on every screen, must be low.
+The large text size is the system's own `-UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityXXXL`. Beyond
+that the sweep asserts only that the screen's key control can be tapped (a row is scrolled until its middle is clear of the
+tab bar first). The point is to look: fetch `ui-snapshots-<branch>` after a run and read the screenshots. A new screen belongs
+in the sweep when it has a layout of its own.
+
+**Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
+any iPhone simulator; `make test-unit` runs the rest. CI runs seven UI jobs beside the unit tests, each building and
+running on its own: `journeys` (everything not named below, so a new test class runs there until it is given a job),
+`screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
+`sweep-dark` (every sweep test in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
+large text size) and `sweep-large-keep` and `sweep-large-think` (the You tab's screens at the large text size, in two
+halves). A push waits for the slowest of them, which should stay at about 20 minutes. They have taken between 5 and 22
+minutes each, depending on the machine GitHub gives the job (the same job has taken twice as long on a slow one); the
+build and the simulator's start are about eight of those minutes, and the rest is the tests, of which the large text
+sizes, which scroll, are the slowest. A job that goes over 30 minutes is stopped; if one regularly nears 20, split it by
+test method the way the sweep is split. GitHub runs five macOS jobs at a time, so with the unit-test job the last ones start when
+others have finished. A job after them publishes all the step screenshots and layout notes to the
+`ui-snapshots-<branch>` branch (and each job uploads them as an artifact), and a job uploads its `.xcresult` when a test
+fails.
+
+XCUITest is slow where it looks: every query walks the screen, and `waitForExistence` always takes about a second.
+`HyperVaultUITestCase.require` looks first and waits only when the element is missing; keep to it, and to few
+queries per step, or a journey that takes seconds on a laptop takes minutes on CI.
+
 ## Definition of done
 
 - Every behaviour the web has for the feature that makes sense on a phone is
@@ -177,3 +244,4 @@ looked at before anyone opens Xcode.
   its tests pass in CI, snapshots look right in light and dark.
 - No hard-coded colours, no force-unwraps of server data, no secrets in logs,
   every list has its loading, empty and error states.
+- A new tab, sheet or main control can be reached in a journey (an identifier, and a step if it is a new place).

@@ -11,6 +11,9 @@ struct CanvasCardView: View {
     @State private var showFiles = false
     @State private var copied = false
     @State private var sealed = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.s + 2) {
@@ -31,22 +34,43 @@ struct CanvasCardView: View {
                 Text(card.title)
                     .font(.hvHeadline)
                     .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(2)
-                HStack(spacing: HV.Space.xs) {
-                    Text(card.kind.singular.uppercased())
-                        .font(.system(.caption2, design: .rounded, weight: .bold))
-                        .foregroundStyle(card.kind.tint)
-                        .tracking(0.6)
-                    if let subtitle = card.subtitle, !subtitle.isEmpty {
-                        Text("·").foregroundStyle(Palette.textTertiary)
-                        Text(subtitle)
-                            .font(.hvFootnote)
-                            .foregroundStyle(Palette.textSecondary)
-                            .lineLimit(2)
+                    .lineLimit(isLarge ? 4 : 2)
+                // Side by side while the words have the room. At an accessibility size each half would get a
+                // sliver of the card and be broken mid-word ("MEM-ORY", "Bud-get"), so the kind sits over the line.
+                if isLarge {
+                    VStack(alignment: .leading, spacing: 2) { kindLabel; subtitleLabel }
+                } else {
+                    HStack(spacing: HV.Space.xs) {
+                        kindLabel
+                        if hasSubtitle {
+                            Text("·").foregroundStyle(Palette.textTertiary)
+                            subtitleLabel
+                        }
                     }
                 }
             }
             Spacer(minLength: 0)
+        }
+    }
+
+    private var kindLabel: some View {
+        Text(card.kind.singular.uppercased())
+            .font(.system(.caption2, design: .rounded, weight: .bold))
+            .foregroundStyle(card.kind.tint)
+            .tracking(0.6)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var hasSubtitle: Bool { !(card.subtitle ?? "").isEmpty }
+
+    @ViewBuilder
+    private var subtitleLabel: some View {
+        if let subtitle = card.subtitle, !subtitle.isEmpty {
+            Text(subtitle)
+                .font(.hvFootnote)
+                .foregroundStyle(Palette.textSecondary)
+                .lineLimit(isLarge ? 6 : 2)
         }
     }
 
@@ -113,34 +137,61 @@ struct CanvasCardView: View {
         }
     }
 
+    /// One row when it fits. At a larger text size Hide drops to a row of its own, and at the largest
+    /// each action has one, so no label is ever broken across two lines.
     private var actions: some View {
-        HStack(spacing: HV.Space.xs) {
-            Button(HVCopy.cardOpenLabel, action: onOpen)
-                .buttonStyle(.hvGhost)
-                .accessibilityLabel("Open \(card.title)")
-            if let kept = card.kept, let url = URL(string: kept.link) {
-                Button(copied ? "Copied" : "Copy link") {
-                    UIPasteboard.general.string = kept.link
-                    Haptics.tap()
-                    copied = true
-                    Task {
-                        try? await Task.sleep(nanoseconds: 1_600_000_000)
-                        copied = false
-                    }
-                }
-                .buttonStyle(.hvGhost)
-                ShareLink(item: url) {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                }
-                .padding(.horizontal, HV.Space.s)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 0) {
+                leadingActions
+                Spacer(minLength: HV.Space.xs)
+                hideButton
             }
-            Spacer()
-            Button(HVCopy.cardHideLabel, action: onHide)
-                .buttonStyle(.hvGhost)
-                .foregroundStyle(Palette.textSecondary)
-                .accessibilityLabel("Hide \(card.title)")
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 0) { leadingActions }
+                hideButton
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                leadingActions
+                hideButton
+            }
         }
+        .lineLimit(1)
         .padding(.leading, -HV.Space.s)
+        // The buttons are 44 points tall with their words in the middle, which is already a dozen points of air under
+        // the words; the card's own padding is not added on top of it, or the card has twice as much room under its last
+        // line as over its first. (The buttons' tap areas still end inside the card.)
+        .padding(.bottom, -HV.Space.s)
+    }
+
+    /// Open, and for a thing that was just kept, its link. Every one is a ghost button, which already
+    /// carries its own padding and a 44-point target, so the row adds no spacing of its own.
+    @ViewBuilder
+    private var leadingActions: some View {
+        Button(HVCopy.cardOpenLabel, action: onOpen)
+            .buttonStyle(.hvGhost)
+            .accessibilityLabel("Open \(card.title)")
+        if let kept = card.kept, let url = URL(string: kept.link) {
+            Button(copied ? "Copied" : "Copy link") {
+                UIPasteboard.general.string = kept.link
+                Haptics.tap()
+                copied = true
+                Task {
+                    try? await Task.sleep(nanoseconds: 1_600_000_000)
+                    copied = false
+                }
+            }
+            .buttonStyle(.hvGhost)
+            ShareLink(item: url) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            .buttonStyle(.hvGhost)
+        }
+    }
+
+    private var hideButton: some View {
+        Button(HVCopy.cardHideLabel, action: onHide)
+            .buttonStyle(.hvGhost)
+            .foregroundStyle(Palette.textSecondary)
+            .accessibilityLabel("Hide \(card.title)")
     }
 }

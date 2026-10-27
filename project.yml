@@ -189,12 +189,28 @@ targets:
         BUNDLE_LOADER: $(TEST_HOST)
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/HyperVault.app/HyperVault
 
+  # Launches the real app on the simulator and drives it with taps and typing. The app is a debug build started with
+  # `-HV_UITEST -HV_UITEST_SCENARIO <name>`, which puts a canned server inside it (App/Core/UITestHarness.swift).
+  HyperVaultUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: Tests/UITests
+    dependencies:
+      - target: HyperVault
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(HV_BUNDLE_PREFIX).app.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: HyperVault
+
 schemes:
   HyperVault:
     build:
       targets:
         HyperVault: all
         HyperVaultTests: [test]
+        HyperVaultUITests: [test]
     run:
       config: Debug
     test:
@@ -202,6 +218,7 @@ schemes:
       gatherCoverageData: true
       targets:
         - HyperVaultTests
+        - HyperVaultUITests
     profile:
       config: Release
     archive:

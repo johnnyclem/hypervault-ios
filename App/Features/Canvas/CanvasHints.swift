@@ -31,6 +31,7 @@ struct CanvasHints: View {
                 Text(HVCopy.hintKeepLine)
                     .font(.hvCallout)
                     .foregroundStyle(Palette.textSecondary)
+                    .accessibilityIdentifier("canvas.hint")
 
                 // The system's paste control looks switched off when there is nothing on the pasteboard, which
                 // is how a first run finds it; it appears when there is something to paste.
@@ -70,6 +71,7 @@ struct CanvasHints: View {
                         Text(HVCopy.hintConnectLine).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                         Button(HVCopy.connectAILabel) { app.router.sheet = .connectAgent }
                             .buttonStyle(.hvGhost)
+                            .accessibilityIdentifier("canvas.connect")
                     }
                 }
             }
@@ -92,6 +94,7 @@ struct CanvasHints: View {
                     .font(.system(.subheadline, design: .rounded, weight: .semibold))
             }
             .buttonStyle(.hvGhost)
+            .accessibilityIdentifier("canvas.starter")
             if starterCopied {
                 Text(HVCopy.copyPromptNextLine)
                     .font(.hvFootnote)

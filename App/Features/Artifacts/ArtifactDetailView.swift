@@ -229,11 +229,14 @@ struct ArtifactActionBar: View {
         HStack(spacing: 0) {
             Button { sheet = .share } label: { item("Share", "square.and.arrow.up") }
                 .accessibilityHint("Share the link or add people")
+                .accessibilityIdentifier("artifact.share")
             visibilityMenu
             if model.isGroup {
                 Button { sheet = .files } label: { item("Files", "folder") }
+                    .accessibilityIdentifier("artifact.files")
             } else if !model.isStoredFile {
                 Button { sheet = .source } label: { item("Source", "chevron.left.forwardslash.chevron.right") }
+                    .accessibilityIdentifier("artifact.source")
             }
             moreMenu
         }
@@ -284,6 +287,7 @@ struct ArtifactActionBar: View {
                 item(current?.title ?? "Access", current?.symbol ?? "lock")
             }
             .accessibilityLabel("Who can open it: \(current?.title ?? "unknown")")
+            .accessibilityIdentifier("artifact.access")
             .disabled(model.summary == nil || model.summaryIsPlaceholder)
         }
     }

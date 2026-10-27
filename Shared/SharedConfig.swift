@@ -16,9 +16,18 @@ enum SharedConfig {
     /// Defaults shared through the app group; falls back to the app's own
     /// when the group is not available (an unsigned build).
     static var defaults: UserDefaults {
+        #if DEBUG
+        if let scratchDefaults { return scratchDefaults }
+        #endif
         if let appGroup, !appGroup.isEmpty, let shared = UserDefaults(suiteName: appGroup) { return shared }
         return .standard
     }
+
+    #if DEBUG
+    /// Set only by the UI-test mode (`UITestHarness`), so a run's shared state is a scratch suite of its own and never
+    /// the app group's. Always nil in a normal launch and absent from release builds.
+    static var scratchDefaults: UserDefaults?
+    #endif
 
     private static func string(_ key: String) -> String? {
         guard let value = Bundle.main.object(forInfoDictionaryKey: key) as? String, !value.isEmpty, !value.hasPrefix("$(") else {

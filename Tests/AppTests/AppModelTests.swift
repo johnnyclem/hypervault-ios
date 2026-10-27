@@ -267,7 +267,7 @@ final class AppModelTests: XCTestCase {
         XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.approvedUser), "the approval", file: file, line: line)
         XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.sessionUser), "the marker", file: file, line: line)
         XCTAssertEqual(app.router.path(for: .memory).wrappedValue.count, 0, "the pushed screens", file: file, line: line)
-        XCTAssertEqual(app.router.path(for: .you).wrappedValue.count, 0, "the screens pushed in a pane", file: file, line: line)
+        XCTAssertEqual(app.router.path(for: .you).wrappedValue.count, 1, "the screens pushed in a pane (the stack opens on the vault)", file: file, line: line)
         XCTAssertEqual(app.router.accountPane, .vault, "the pane", file: file, line: line)
         XCTAssertFalse(app.router.yoursPanel, "the panel waiting to open", file: file, line: line)
         XCTAssertFalse(app.router.groupChats, "the group chats waiting to show", file: file, line: line)

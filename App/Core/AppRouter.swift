@@ -30,9 +30,10 @@ final class AppRouter {
     /// The pane of the You tab that is showing, or that the list will open on.
     private(set) var accountPane: AccountPane = .default
 
-    /// How many times a link has asked for the You tab's panes. The tab watches it, so that a link to the pane it is
-    /// already on still brings it forward from the list.
-    private(set) var accountOpens = 0
+    /// Whether the You tab is one stack (a phone: the list, then a pane pushed on it) rather than a list beside a pane.
+    /// In a stack the tab's path starts with the pane, and what the pane pushes follows it; beside a list it holds only
+    /// what the pane pushes. The tab says which it is.
+    private(set) var youIsStack = true
 
     /// Text a link or a Shortcut wants in the canvas field. The canvas takes it
     /// (and clears it) when it appears.
@@ -44,7 +45,14 @@ final class AppRouter {
     /// A link or the Account menu asked for Group chats. Chat shows that half (and clears this) when it sees it.
     var groupChats = false
 
-    private var paths: [AppTab: NavigationPath] = [:]
+    private var paths: [AppTab: NavigationPath] = [.you: AppRouter.panePath(.default)]
+
+    /// A path that holds the pane a stack opens on.
+    private static func panePath(_ pane: AccountPane) -> NavigationPath {
+        var path = NavigationPath()
+        path.append(pane)
+        return path
+    }
 
     func path(for tab: AppTab) -> Binding<NavigationPath> {
         Binding(
@@ -95,18 +103,25 @@ final class AppRouter {
     /// Brings a pane of the You tab forward, from its first screen. The tab's list uses this too.
     func showPane(_ pane: AccountPane) {
         accountPane = pane
-        popToRoot(.you)
-        accountOpens += 1
+        paths[.you] = youIsStack ? Self.panePath(pane) : NavigationPath()
+    }
+
+    /// The You tab is a stack or a list beside a pane, and says so when it appears and when its width changes: what is
+    /// pushed moves to the shape of the path the new layout reads, and the pane stays.
+    func youLayout(isStack: Bool) {
+        guard isStack != youIsStack else { return }
+        youIsStack = isStack
+        paths[.you] = isStack ? Self.panePath(accountPane) : NavigationPath()
     }
 
     /// Back to a fresh canvas with nothing pushed, presented or waiting, for when the person who was here is gone.
     func reset() {
-        paths = [:]
+        accountPane = .default
+        paths = [.you: youIsStack ? Self.panePath(.default) : NavigationPath()]
         sheet = nil
         canvasDraft = nil
         yoursPanel = false
         groupChats = false
-        accountPane = .default
         tab = .canvas
     }
 }

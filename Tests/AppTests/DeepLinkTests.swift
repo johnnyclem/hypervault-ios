@@ -198,10 +198,28 @@ final class DeepLinkTests: XCTestCase {
         router.open(.account(.keys))
         XCTAssertEqual(router.tab, .you)
         XCTAssertEqual(router.accountPane, .keys)
-        XCTAssertEqual(router.path(for: .you).wrappedValue.count, 0, "the pane starts from its first screen")
+        XCTAssertEqual(router.path(for: .you).wrappedValue.count, 1, "the stack starts from the pane and nothing is pushed on it")
 
         router.open(.account(nil))
         XCTAssertEqual(router.accountPane, .vault, "no pane named is the vault")
+    }
+
+    @MainActor
+    func testBesideTheListThePaneIsTheRootAndNotOnThePath() {
+        let router = AppRouter()
+        XCTAssertEqual(router.path(for: .you).wrappedValue.count, 1, "a phone's stack opens on the vault")
+        router.youLayout(isStack: false)
+        XCTAssertEqual(router.path(for: .you).wrappedValue.count, 0)
+        router.push(.artifact(slug: "x"), on: .you)
+        router.open(.account(.domain))
+        XCTAssertEqual(router.accountPane, .domain)
+        XCTAssertEqual(router.path(for: .you).wrappedValue.count, 0, "the pane starts from its first screen")
+        router.youLayout(isStack: true)
+        XCTAssertEqual(router.accountPane, .domain, "the pane stays when the layout changes")
+        XCTAssertEqual(router.path(for: .you).wrappedValue.count, 1)
+        router.reset()
+        XCTAssertEqual(router.accountPane, .vault)
+        XCTAssertEqual(router.path(for: .you).wrappedValue.count, 1)
     }
 
     @MainActor

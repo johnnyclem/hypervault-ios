@@ -74,6 +74,9 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
             // The app is found the way a person finds one in a long list, by its name: the sheet's search field floats over the
             // list, and scrolling a row out from under it (and from the sheet's own pull-down to close) is not reliable.
             enter("Cursor", into: searchField("Search apps, like Cursor or curl"), "the app search")
+            // The keyboard goes away before the page is scrolled: a drag that starts on the keyboard types, and the list that was
+            // searched for is lost.
+            putTheKeyboardAway()
             open(element("connect.client.cursor"), "the Cursor row", until: { self.isShowingTitle("Cursor") }, clearOfSearch: true)
             attachScreenshot("\(mode) - the Cursor screen")
             open(button("Make the key"), "Make the key")

@@ -524,7 +524,7 @@ class HyperVaultUITestCase: XCTestCase {
     /// keyboard. Not for a field that grows with its text: its Return key starts a new line.
     func putTheKeyboardAway() {
         guard app.keyboards.count > 0 else { return }
-        for name in ["Return", "return", "Done", "done", "Go", "go", "Next", "next", "Continue", "continue"] {
+        for name in ["Return", "return", "Done", "done", "Go", "go", "Next", "next", "Continue", "continue", "Search", "search"] {
             let key = app.keyboards.buttons[name]
             if key.exists {
                 key.tap()

@@ -22,7 +22,7 @@ struct AccountMenuSheet: View {
                     row("accountAndKeys", AccountMenu.accountAndKeys, symbol: "key.horizontal", tint: Palette.amber, to: .account(nil))
                     row("groupChats", AccountMenu.groupChats, symbol: "person.2", tint: Palette.violet, to: .groupChats)
                     row("tools", AccountMenu.tools, symbol: "wrench.and.screwdriver", tint: Palette.coral, to: .route(.tools))
-                    row("import", AccountMenu.importAnything, symbol: "square.and.arrow.down", tint: Palette.coral, to: .account(.import))
+                    row("import", AccountMenu.importAnything, symbol: HVSymbol.importData, tint: Palette.coral, to: .account(.import))
                 }
                 .hvListRow()
 
@@ -53,7 +53,7 @@ struct AccountMenuSheet: View {
                     Button {
                         app.router.sheet = nil
                     } label: {
-                        Image(systemName: "xmark")
+                        Image(systemName: HVSymbol.close)
                     }
                     .accessibilityLabel("Close")
                     .accessibilityIdentifier("account.close")

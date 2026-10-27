@@ -122,13 +122,8 @@ struct InviteLinkSheet: View {
 
 extension View {
     /// The tab bar alone, on a phone and on an iPad: no sidebar made of the tabs. The You tab is a split view with a list
-    /// of its own, and a second sidebar beside it would leave the panes a sliver.
-    @ViewBuilder
+    /// of its own where there is the width, and a second sidebar beside it would leave the panes a sliver.
     func tabBarWithoutSidebar() -> some View {
-        if #available(iOS 18.0, *) {
-            tabViewStyle(.tabBarOnly)
-        } else {
-            self
-        }
+        tabViewStyle(.tabBarOnly)
     }
 }

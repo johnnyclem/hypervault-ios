@@ -51,8 +51,8 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
             let haptics = toggle("Haptics")
             reveal(haptics, "the Haptics switch")
             XCTAssertEqual(haptics.value as? String, "1", "Haptics start on.")
-            haptics.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
-            waitUntil("the Haptics switch to turn off") { (haptics.value as? String) == "0" }
+            flip(haptics, from: "1", "the Haptics switch")
+            XCTAssertEqual(haptics.value as? String, "0", "Haptics should be off.")
         }
 
         func choicesAreKept(_ when: String) {

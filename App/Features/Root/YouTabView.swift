@@ -55,7 +55,7 @@ struct YouTabView: View {
                             .foregroundStyle(Palette.textPrimary)
                         Spacer(minLength: HV.Space.xs)
                         if !besideThePane {
-                            Image(systemName: "chevron.right")
+                            Image(systemName: HVSymbol.open)
                                 .font(.hvCaption.weight(.semibold))
                                 .foregroundStyle(Palette.textTertiary)
                                 .accessibilityHidden(true)

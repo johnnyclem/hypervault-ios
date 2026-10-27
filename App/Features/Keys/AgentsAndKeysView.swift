@@ -29,8 +29,6 @@ struct AgentsAndKeysView: View {
             }
         }
         .hvScreenBackground()
-        .navigationTitle("Agent keys")
-        .keysLargeTitle()
         .navigationDestination(for: KeysDestination.self) { destination in
             switch destination {
             case .key(let key):

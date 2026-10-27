@@ -21,10 +21,10 @@ enum AppTab: String, CaseIterable, Identifiable, Hashable {
 
     var symbol: String {
         switch self {
-        case .canvas: return "house"
-        case .chat: return "bubble.left"
-        case .memory: return "brain"
-        case .you: return "person"
+        case .canvas: return HVSymbol.home
+        case .chat: return HVSymbol.chat
+        case .memory: return HVSymbol.memory
+        case .you: return HVSymbol.you
         }
     }
 }

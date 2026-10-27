@@ -307,6 +307,20 @@ class HyperVaultUITestCase: XCTestCase {
         }
     }
 
+    /// Turns a switch the way a person does: a tap on its knob, at the trailing edge of its row, and again (up to three
+    /// times) while it has not moved, because a tap that lands while the list is still settling is lost.
+    func flip(_ control: XCUIElement, from value: String, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
+        for _ in 1...3 {
+            guard (control.value as? String) == value else { return }
+            control.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+            let deadline = Date().addingTimeInterval(4)
+            while Date() < deadline, (control.value as? String) == value {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+            }
+        }
+        waitUntil("\(what) to change", file: file, line: line) { (control.value as? String) != value }
+    }
+
     /// Opens a tab. What it shows is for the journey to wait for.
     func openTab(_ title: String, file: StaticString = #filePath, line: UInt = #line) {
         tap(tab(title), "the \(title) tab", file: file, line: line)

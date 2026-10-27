@@ -165,7 +165,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
         }
 
         step("The import runs and says what it brought in") {
-            tap(button("Import 1 conversation"), "the import button")
+            tap(button("Import 1 conversation"), "the import button", until: { self.shows("All in").exists })
             require(shows("All in"), "the finish line")
             require(shows("Imported 1 conversation (2 messages)"), "the sentence about what came in")
             require(button("Open Chat"), "the way on to Chat")

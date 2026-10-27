@@ -343,7 +343,10 @@ class HyperVaultUITestCase: XCTestCase {
 
     /// Opens a tab. What it shows is for the journey to wait for.
     func openTab(_ title: String, file: StaticString = #filePath, line: UInt = #line) {
-        tap(tab(title), "the \(title) tab", file: file, line: line)
+        // A tap on the tab bar that lands while the app is still settling (right after the launch, or as a sheet goes) is
+        // lost, and a person would tap again: the tab is tapped (up to three times) until it is the one showing.
+        let item = tab(title)
+        tap(item, "the \(title) tab", until: { item.isSelected }, file: file, line: line)
     }
 
     /// Picks an option of a choice the app draws as segments, or as a menu at accessibility text sizes.

@@ -223,10 +223,11 @@ running on its own: `journeys` (everything not named below, so a new test class 
 `screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
 `sweep-dark` (every sweep test in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
 large text size) and `sweep-large-keep` and `sweep-large-think` (the You tab's screens at the large text size, in two
-halves). A push waits for the slowest of them, which should stay at about 20 minutes: at the last full run they took
-between 5 minutes (`screens-more`) and 20 (`sweep-dark`, on a slow machine), of which the build and the simulator's
-start are about eight, and the same job has taken twice as long on another machine. A job that goes over 30 minutes is
-stopped. GitHub runs five macOS jobs at a time, so with the unit-test job the last ones start when
+halves). A push waits for the slowest of them, which should stay at about 20 minutes. They have taken between 5 and 22
+minutes each, depending on the machine GitHub gives the job (the same job has taken twice as long on a slow one); the
+build and the simulator's start are about eight of those minutes, and the rest is the tests, of which the large text
+sizes, which scroll, are the slowest. A job that goes over 30 minutes is stopped; if one regularly nears 20, split it by
+test method the way the sweep is split. GitHub runs five macOS jobs at a time, so with the unit-test job the last ones start when
 others have finished. A job after them publishes all the step screenshots and layout notes to the
 `ui-snapshots-<branch>` branch (and each job uploads them as an artifact), and a job uploads its `.xcresult` when a test
 fails.

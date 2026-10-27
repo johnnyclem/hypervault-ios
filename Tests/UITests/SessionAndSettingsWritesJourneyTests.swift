@@ -1,9 +1,9 @@
 import XCTest
 
 /// What a person does to the session, to their phone's preferences and to their address, end to end: signing out (the app
-/// lands on the welcome story and a launch afterwards does not bring the session back), the choices in Settings (they stay
-/// when the screen is left and entered again, and when the app is closed and opened again), and the look and the home page
-/// of a claimed address (sent to the server, and there when the screen is entered again).
+/// lands on the welcome story and a launch afterwards does not bring the session back), the choices in General that belong
+/// to the phone (they stay when the pane is left and entered again, and when the app is closed and opened again), and the
+/// look and the home page of a claimed address (sent to the server, and there when the screen is entered again).
 ///
 /// A journey that closes the app and opens it again launches with `resuming`, which makes the debug-only canned world carry
 /// on from the launch before it (the session, which the app keeps in a secure store, and the preferences) instead of
@@ -21,8 +21,8 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
             require(element("canvas.field"), "the canvas, which a kept session opens on")
         }
 
-        step("Sign out in the You tab lands on the welcome story") {
-            openTab("You")
+        step("Sign out in General lands on the welcome story") {
+            openPane("general", title: "General")
             let signOut = element("you.signOut")
             reveal(signOut, "the Sign out row")
             tap(signOut, "Sign out")
@@ -45,15 +45,9 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
 
     func testTheChoicesInSettingsStayAfterLeavingAndAfterClosingTheApp() {
         launch(.signedIn)
-        openFromYou("settings", title: "Settings")
+        openPane("general", title: "General")
 
-        step("Appearance, the accent and haptics are changed") {
-            choose("Dark", from: "settings.appearance")
-            waitUntil("Dark to be the chosen appearance") { self.segment("Dark").isSelected }
-            let violet = button("Violet")
-            reveal(violet, "the Violet swatch")
-            tap(violet, "the Violet accent")
-            waitUntil("Violet to be the chosen accent") { violet.isSelected }
+        step("Haptics are turned off") {
             let haptics = toggle("Haptics")
             reveal(haptics, "the Haptics switch")
             XCTAssertEqual(haptics.value as? String, "1", "Haptics start on.")
@@ -62,21 +56,15 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
         }
 
         func choicesAreKept(_ when: String) {
-            require(element("settings.appearance"), "the appearance choice \(when)")
-            XCTAssertTrue(segment("Dark").isSelected, "Dark should still be the appearance \(when).")
-            let violet = button("Violet")
-            reveal(violet, "the Violet swatch \(when)")
-            XCTAssertTrue(violet.isSelected, "Violet should still be the accent \(when).")
-            XCTAssertFalse(button("Blue").isSelected, "Blue should no longer be the accent \(when).")
             let haptics = toggle("Haptics")
             reveal(haptics, "the Haptics switch \(when)")
             XCTAssertEqual(haptics.value as? String, "0", "Haptics should still be off \(when).")
         }
 
-        step("Leaving Settings and coming back shows the same choices") {
+        step("Leaving General and coming back shows the same choices") {
             goBack(until: { self.isShowingTitle("You") })
-            openFromYou("settings", title: "Settings")
-            choicesAreKept("after leaving Settings")
+            openPane("general", title: "General")
+            choicesAreKept("after leaving General")
         }
 
         step("Nothing was sent to the server: these choices belong to the phone") {
@@ -86,11 +74,12 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
         step("Closing the app and opening it again keeps them") {
             app.terminate()
             launch(.signedIn, resuming: true)
-            openFromYou("settings", title: "Settings")
+            openPane("general", title: "General")
             choicesAreKept("after closing the app")
             XCTAssertTrue(recordedWrites().isEmpty, "Preferences are local; the app sent \(recordedWrites()).")
         }
     }
+
     /// A row of a list whose choice is made on a screen of its own (a picker in the navigation-link style): it reads as
     /// a button or as a cell, and says its title and, after it, the choice it holds.
     private func choiceRow(_ title: String) -> XCUIElement {
@@ -102,7 +91,7 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
 
     func testAnAddressTakesANewLookAndHomePageAndKeepsThem() {
         launch(.signedIn)
-        openFromYou("realms", title: "Your address")
+        openPane("domain", title: "Domain")
 
         step("The second address has neither a look nor a home page") {
             tap(element("realms.row.c2"), "the nova.cleon.wiki address", until: { self.isShowingTitle("Address") })

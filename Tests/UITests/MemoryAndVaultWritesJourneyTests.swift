@@ -77,7 +77,7 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
         }
 
         step("Yours does not list it either") {
-            openTab("Yours")
+            openYours()
             require(element("yours.row.m1"), "the Yours list")
             requireGone(element("yours.row.m3"), "the forgotten memory in Yours")
         }
@@ -86,7 +86,7 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
     // MARK: Vault
 
     private func openTheVault() {
-        openFromYou("vaultItems", title: "Logins, cards & keys")
+        openPane("vault")
         require(element("vault.row.github.com"), "the saved logins")
     }
 

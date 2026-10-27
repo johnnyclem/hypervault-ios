@@ -1,13 +1,13 @@
 import XCTest
 
-/// Every screen the You tab opens, against canned answers that give it real things to show (not an error and not an empty
+/// Every screen the You panes and the Account menu open, against canned answers that give it real things to show (not an error and not an empty
 /// state): each journey opens the screen, checks one or two pieces of what it was given, goes one level further where
 /// the screen has one, and keeps a screenshot of how it looked.
 @MainActor
 final class YouScreensJourneyTests: HyperVaultUITestCase {
     func testVaultItemsListMaskedEntriesFilterThemAndOpenOne() {
         launch(.signedIn)
-        openFromYou("vaultItems", title: "Logins, cards & keys")
+        openPane("vault")
 
         step("The vault lists what is saved, with a masked line and never a value") {
             let github = element("vault.row.github.com")
@@ -43,7 +43,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testMailListsTheInboxAndOpensAThread() {
         launch(.signedIn)
-        openFromYou("mail", title: "Mail")
+        openFromAccount("mail", title: "Mail")
 
         let thread = "mail.thread.11111111-1111-4111-8111-111111111111"
         step("The inbox lists the mail from agents") {
@@ -71,7 +71,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testTruthShowsTheLedgerAnEntryAndItsReview() {
         launch(.signedIn)
-        openFromYou("truth", title: "Truth")
+        openFromAccount("truth", title: "Truth")
 
         let retryCap = "truth.entry.01M1E6JK8SQAJ8K0JBRHTD10YG"
         step("The ledger lists what stands and what is unverified") {
@@ -100,7 +100,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testToolsListsTheConnectedServersAndOpensOne() {
         launch(.signedIn)
-        openFromYou("tools", title: "Tools")
+        openFromAccount("tools", title: "Tools")
 
         step("The servers are listed with what they offer") {
             let linear = element("tools.server.s1")
@@ -118,9 +118,9 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
         }
     }
 
-    func testYourAddressListsTheClaimedAddressesAndOpensOne() {
+    func testDomainListsTheClaimedAddressesAndOpensOne() {
         launch(.signedIn)
-        openFromYou("realms", title: "Your address")
+        openPane("domain", title: "Domain")
 
         step("The claimed addresses are listed with the plan") {
             let first = element("realms.row.c1")
@@ -141,7 +141,8 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testImportReadsAPastedConversationAndSendsIt() {
         launch(.signedIn)
-        openFromYou("importHistory", title: "Import")
+        openPane("import", title: "Import")
+        tap(element("import.history"), "Import your AI history", until: { self.element("import.source.chatgpt").exists })
 
         step("Import offers the services a history comes from") {
             require(shows("Import your AI history"), "the introduction")
@@ -171,7 +172,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testDreamsAndDigestShowWhatWasFoundOvernight() {
         launch(.signedIn)
-        openFromYou("dreams", title: "Dreams")
+        openFromAccount("dreams", title: "Dreams")
 
         step("Dreams lists the connections found, each with its reason") {
             require(shows("Dream every night"), "the nightly switch")
@@ -180,10 +181,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
         }
 
         step("Digest lists the memory it would split") {
-            goBack()
-            reveal(element("you.digest"), "the Digest row")
-            tap(element("you.digest"), "the Digest row")
-            waitUntil("the Digest title") { isShowingTitle("Digest") }
+            openFromMemoryMenu("Digest", title: "Digest")
             require(shows("Planning chat with Sam"), "the memory to split")
             require(shows("Budget is set at 40k"), "the first piece it would make")
         }
@@ -191,7 +189,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testTaskBoardsListBoardsAndOpenOneWithItsTasks() {
         launch(.signedIn)
-        openFromYou("taskBoards", title: "Task boards")
+        openFromAccount("taskBoards", title: "Task boards")
 
         step("The boards are listed with how far along they are") {
             let choir = element("taskboards.row.eurorack-choir")

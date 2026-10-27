@@ -2,8 +2,8 @@ import HyperVaultKit
 import SwiftUI
 
 extension AppEnvironment {
-    /// Finds out whether this account is an admin and sets `isAdmin`. The You
-    /// tab calls it when it appears; it must be cheap and never show an error.
+    /// Finds out whether this account is an admin and sets `isAdmin`. The Account
+    /// menu calls it when it appears; it must be cheap and never show an error.
     ///
     /// There is no "am I an admin" read, and no GET route under `app/api/admin`,
     /// so this sends a PATCH with an empty body to an invite code that does not

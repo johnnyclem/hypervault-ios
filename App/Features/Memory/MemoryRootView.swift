@@ -158,6 +158,7 @@ struct MemoryTabScreen: View {
             Image(systemName: "ellipsis.circle")
         }
         .accessibilityLabel("More")
+        .accessibilityIdentifier("memory.more")
     }
 
     @ViewBuilder

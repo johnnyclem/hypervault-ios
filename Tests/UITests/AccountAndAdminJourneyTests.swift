@@ -6,7 +6,7 @@ import XCTest
 final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
     func testConnectingAnAgentMintsAKeyShownOnceAndRevokingAKeyRemovesIt() {
         launch(.signedIn)
-        openFromYou("agentsAndKeys", title: "Agent keys")
+        openPane("keys")
 
         step("Agent keys lists the keys the person has, with what the server states about each") {
             for id in ["k1", "k2", "k3"] { require(element("keys.row.\(id)"), "the key \(id)") }
@@ -80,7 +80,7 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
 
     func testAnAdminMintsAnInviteCodeAndManagesIt() {
         launch(.signedInAdmin)
-        openFromYou("admin", title: "Admin")
+        openFromAccount("admin", title: "Admin")
 
         step("Admin says what it can and cannot list") {
             require(shows("About the lists"), "the notice about the lists")

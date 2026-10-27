@@ -15,7 +15,7 @@ final class AppEnvironment {
     let server: ServerConfig
     @ObservationIgnored let cache: DiskCache
 
-    /// Set by the Admin feature's probe; the You tab shows the Admin row when true.
+    /// Set by the Admin feature's probe; the Account menu shows the Admin row when true.
     var isAdmin = false
 
     init(client: HVClient, auth: AuthService, capabilities: Capabilities, user: AuthUser, server: ServerConfig, cache: DiskCache) {

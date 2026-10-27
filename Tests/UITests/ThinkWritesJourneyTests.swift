@@ -10,7 +10,7 @@ import XCTest
 final class ThinkWritesJourneyTests: HyperVaultUITestCase {
     func testOneConnectionIsAcceptedAnotherRejectedAndTheRestWait() {
         launch(.signedIn)
-        openFromYou("dreams", title: "Dreams")
+        openFromAccount("dreams", title: "Dreams")
 
         step("The dream proposes four connections") {
             require(shows("4 proposed connections to review"), "the count of the dream")
@@ -39,8 +39,8 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
         }
 
         step("Leaving and coming back finds the same queue") {
-            goBack(until: { self.isShowingTitle("You") })
-            openFromYou("dreams", title: "Dreams")
+            goBack(until: { self.element("memory.more").exists })
+            openFromAccount("dreams", title: "Dreams")
             require(shows("2 proposed connections to review"), "the new count of the dream")
             reveal(element("dream.accept.d2"), "the second connection again")
             XCTAssertFalse(element("dream.accept.d1").exists, "The accepted connection should not come back.")
@@ -57,7 +57,7 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
 
     func testASplitIsAppliedAndMemoryHasTheSmallerMemories() {
         launch(.signedIn)
-        openFromYou("digest", title: "Digest")
+        openFromMemoryMenu("Digest", title: "Digest")
 
         step("Digest proposes splitting the Planning chat into three") {
             require(shows("Planning chat with Sam"), "the memory that is proposed to be split")
@@ -122,7 +122,7 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
     }
     func testABeliefIsAssertedIntoTheLedger() {
         launch(.signedIn)
-        openFromYou("truth", title: "Truth")
+        openFromAccount("truth", title: "Truth")
         let made = "truth.entry.01M2UITEST0000000000000001"
 
         step("The Team ledger is chosen, and Assert is in the menu") {
@@ -164,7 +164,7 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
 
     func testWhatIsOutOfDateIsDecidedOneByOne() {
         launch(.signedIn)
-        openFromYou("truth", title: "Truth")
+        openFromAccount("truth", title: "Truth")
 
         step("Out of date lists the memories and the page whose facts moved") {
             tap(button("More"), "the More menu")

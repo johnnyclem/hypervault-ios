@@ -13,7 +13,7 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
             require(element("canvas.hint"), "the line that says to paste anything")
             XCTAssertEqual(element("canvas.hint").label, "Paste anything here to keep it.")
             require(button("Account"), "the avatar, labelled \"Account\" for VoiceOver")
-            require(button("Open Yours"), "the corner icon, labelled \"Open Yours\" for VoiceOver")
+            require(button("Open panel"), "the corner icon, labelled \"Open panel\" for VoiceOver, as the web labels it")
         }
 
         step("A long paste waits above the field") {
@@ -83,7 +83,7 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
         }
 
         step("The Yours panel opens over the page") {
-            tap(button("Open Yours"), "Open Yours")
+            tap(button("Open panel"), "Open panel")
             require(button("Done"), "the panel's Done button")
             require(element("yours.row.a1"), "the panel's first row")
         }

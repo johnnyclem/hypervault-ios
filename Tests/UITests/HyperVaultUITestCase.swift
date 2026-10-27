@@ -332,6 +332,8 @@ class HyperVaultUITestCase: XCTestCase {
     func openPane(_ id: String, title: String? = nil, file: StaticString = #filePath, line: UInt = #line) {
         showPaneList(file: file, line: line)
         let row = element("you.pane.\(id)")
+        // (At a large text size the last panes are below the fold.)
+        reveal(row, "the \(id) pane", file: file, line: line)
         // The list can still be settling from the screen that was just popped off it, and a tap on it then comes to nothing.
         tap(row, "the \(id) pane", until: { title.map { isShowingTitle($0) } ?? !row.exists }, file: file, line: line)
         if let title {
@@ -369,6 +371,26 @@ class HyperVaultUITestCase: XCTestCase {
         showHome(file: file, line: line)
         tap(element("canvas.account"), "the Account button", file: file, line: line)
         require(element("account.close"), "the Account menu", file: file, line: line)
+    }
+
+    /// Opens an item of the More menu of Memory (`Dreams`, `Truth`, `Digest`) or of Chat (`Tools`, `Import your AI history`),
+    /// from the first screen of that tab, and waits for the screen it goes to to name itself.
+    func openFromMoreMenu(of tabTitle: String, _ item: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
+        let more = element(tabTitle == "Memory" ? "memory.more" : "chat.more")
+        openTab(tabTitle, file: file, line: line)
+        var goneBack = 0
+        while !more.exists, goneBack < 5 {
+            goBack(file: file, line: line)
+            goneBack += 1
+        }
+        tap(more, "the More menu of \(tabTitle)", file: file, line: line)
+        tap(button(item), "\(item) in the More menu", until: { isShowingTitle(title) }, file: file, line: line)
+        waitUntil("the \(title) screen", file: file, line: line) { isShowingTitle(title) }
+    }
+
+    /// Opens an item of Memory's More menu.
+    func openFromMemoryMenu(_ item: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
+        openFromMoreMenu(of: "Memory", item, title: title, file: file, line: line)
     }
 
     /// Opens the Yours panel over Home with the button in the corner.

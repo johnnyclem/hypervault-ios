@@ -20,27 +20,34 @@ final class LayoutSweepTests: LayoutSweepCase {
         launch(.signedIn, arguments: setting.arguments)
         continueAfterFailure = true
 
-        look(mode, "canvas with its hints", key: element("canvas.field"), "the canvas field", dumpTree: true)
+        look(mode, "Home with its hints", key: element("canvas.field"), "the canvas field", dumpTree: true)
 
-        openTab("Yours")
+        openYours()
         look(mode, "Yours", key: element("yours.row.a1"), "the Bakery landing page row")
-        openTab("Memory")
-        look(mode, "Memory", key: element("memory.row.m1"), "the Lisbon memory row")
+        tap(button("Done"), "Done")
         openTab("Chat")
         look(mode, "Chat", key: element("chat.row.c1"), "the Lisbon conversation row")
-        choose("Rooms", from: "chat.section")
-        look(mode, "Chat, rooms", key: element("chat.room.r1"), "the Features X and Y room row")
+        choose("Group chats", from: "chat.section")
+        look(mode, "Chat, group chats", key: element("chat.room.r1"), "the Features X and Y room row")
+        openTab("Memory")
+        look(mode, "Memory", key: element("memory.row.m1"), "the Lisbon memory row")
         openTab("You")
-        look(mode, "You", key: element("you.profile"), "the profile card")
+        look(mode, "You, the vault", key: element("vault.row.github.com"), "the github.com entry")
+        showPaneList()
+        look(mode, "You, the panes", key: element("you.pane.import"), "the Import pane")
+
+        openAccountMenu()
+        look(mode, "the Account menu", key: element("account.library"), "the Library row")
+        tap(element("account.close"), "Close")
 
         // Last, because typing brings the keyboard up over the tab bar.
-        openTab("Canvas")
+        openTab("Home")
         step("\(mode): the canvas puts memories on the page") {
             enter("show my memories", into: textField("canvas.field"), "the canvas field")
             tap(element("canvas.send"), "Send")
             require(button("Hide Trip to Lisbon: ferry and passports"), "the Lisbon memory's card")
         }
-        look(mode, "canvas with cards", key: element("canvas.field"), "the canvas field")
+        look(mode, "Home with cards", key: element("canvas.field"), "the canvas field")
     }
 
     // MARK: Memory, chat and a page
@@ -63,11 +70,11 @@ final class LayoutSweepTests: LayoutSweepCase {
         open(element("chat.row.c1"), "the Lisbon conversation")
         look(mode, "a conversation", key: textField("Message"), "the message field")
         goBack()
-        choose("Rooms", from: "chat.section")
+        choose("Group chats", from: "chat.section")
         open(element("chat.room.r1"), "the Features X and Y room")
         look(mode, "a room", key: textField("room.field"), "the message field")
 
-        openFromYou("library", title: "Library")
+        openFromAccount("library", title: "Library")
         open(element("library.row.a1"), "the Bakery landing page row")
         look(mode, "a page", key: element("artifact.share"), "the Share action")
         open(element("artifact.share"), "Share")

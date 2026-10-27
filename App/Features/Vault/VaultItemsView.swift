@@ -179,30 +179,12 @@ struct VaultItemsView: View {
             HVEmptyState(symbol: "magnifyingglass", title: "Nothing called that", message: "Try part of a name, a username or a card's last four digits.")
         } else {
             VStack(spacing: HV.Space.s) {
-                VaultEmptyLine(text: model.filter?.emptyLine ?? VaultScreenCopy.emptyVaultLine)
+                HVEmptyBox(message: model.filter?.emptyLine ?? VaultScreenCopy.emptyVaultLine)
                 if !model.isFull {
                     Button("Add", action: startAdding).buttonStyle(.hvGhost)
                 }
             }
         }
-    }
-}
-
-/// The web's empty state: one dashed box with one helpful line in it (`components/vault-pane/vault-pane.tsx:26-32`).
-private struct VaultEmptyLine: View {
-    let text: String
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: HV.Radius.surface, style: .continuous)
-        Text(text)
-            .font(.hvSubheadline)
-            .foregroundStyle(Palette.textSecondary)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, HV.Space.l)
-            .padding(.vertical, HV.Space.xl)
-            .background(Palette.surface, in: shape)
-            .overlay(shape.strokeBorder(Palette.border, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
     }
 }
 

@@ -321,8 +321,9 @@ public enum VaultItems {
         String(String.UnicodeScalarView(text.unicodeScalars.filter(isASCIIDigit)))
     }
 
+    /// JavaScript's `trim()` (see VaultText.swift), not Foundation's, which also trims U+0085 and keeps U+FEFF.
     private static func trimmed(_ text: String) -> String {
-        text.trimmingCharacters(in: .whitespacesAndNewlines)
+        jsTrim(text)
     }
 
     /// The canonical form of an entry: control characters removed (keeping the line breaks of notes and an
@@ -344,8 +345,9 @@ public enum VaultItems {
         return out
     }
 
+    /// What the web's `\s` matches, for the card number strip and Luhn.
     private static func isWhitespace(_ scalar: Unicode.Scalar) -> Bool {
-        scalar.properties.isWhitespace
+        isJSWhitespace(scalar)
     }
 
     // MARK: Validation
@@ -353,14 +355,27 @@ public enum VaultItems {
     /// The fewest digits a phone number may have. The hint shows the last four, so a number must be longer for it to stay a mask.
     public static let minPhoneDigits = 5
 
-    /// A shape check, not a deliverability check: something@something.something with no spaces.
+    /// A shape check, not a deliverability check: something@something.something with no spaces. The web's
+    /// `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` over Unicode scalars: no JavaScript white space and exactly one "@", something
+    /// before it, and in what follows a "." with a scalar on each side of it (so "a@b..c" and "a@.b.c" pass and
+    /// "a@b." and "a@.b" do not). Scalars and not Characters, so a combining mark glued to the dot or the "@"
+    /// does not change the answer, and "\r\n" is two white space scalars and not one Character.
     static func looksLikeEmail(_ text: String) -> Bool {
-        guard !text.unicodeScalars.contains(where: isWhitespace) else { return false }
-        let parts = text.split(separator: "@", omittingEmptySubsequences: false)
-        guard parts.count == 2, !parts[0].isEmpty else { return false }
-        let domain = Array(parts[1])
-        guard domain.count >= 3 else { return false }
-        // A dot with something before it and something after it.
+        var localCount = 0
+        var domain: [Unicode.Scalar] = []
+        var seenAt = false
+        for scalar in text.unicodeScalars {
+            if isJSWhitespace(scalar) { return false }
+            if scalar == "@" {
+                if seenAt { return false }
+                seenAt = true
+            } else if seenAt {
+                domain.append(scalar)
+            } else {
+                localCount += 1
+            }
+        }
+        guard seenAt, localCount > 0, domain.count >= 3 else { return false }
         return (1...(domain.count - 2)).contains { domain[$0] == "." }
     }
 

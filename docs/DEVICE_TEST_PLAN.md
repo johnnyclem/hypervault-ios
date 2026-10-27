@@ -7,12 +7,17 @@ that finds problems fastest. Each line says what should happen.
 
 ## Before you start
 
-1. **Server.** [hypervault#180](https://github.com/johnnyclem/hypervault/pull/180) is merged; make sure the
-   deployment you test against includes it (production deploys from `main`). On an older deployment the keys,
-   invite, pairing and admin screens show the server's own refusal, which is correct but not what you want to
-   test.
-2. **Supabase redirect.** Add `hypervault://auth/callback` to the project's redirect allow-list
-   (Authentication > URL Configuration). Without it Google sign-in lands on the site URL instead of the app.
+1. **Server.** Make sure the deployment you test against includes
+   [hypervault#180](https://github.com/johnnyclem/hypervault/pull/180) (the keys, invite, pairing and admin
+   routes accept the app's bearer token; on an older deployment those screens show the server's own refusal,
+   which is correct but not what you want to test) and
+   [hypervault#181](https://github.com/johnnyclem/hypervault/pull/181) (Google sign-in's way back to the app).
+   Production deploys from `main`, but a CLI deploy from an older checkout replaces it; look at the newest
+   production deployment's commit before testing.
+2. **Google's way back.** `curl -sI 'https://hypervault.store/auth/callback?client=app&code=x'` must answer `302`
+   with `location: hypervault://auth/callback?code=x`. Nothing needs adding to Supabase's Redirect URLs: the app
+   returns through the website's own callback, which Supabase already accepts. The app makes this same request
+   before it opens Google and says so if it fails.
 3. **Apple sign-in** (optional). The production project had the Apple provider off when this was written, so the
    button is hidden; turn it on, with the app's bundle ID in the authorized client IDs, to test it.
 4. **Build.** `cp Config/Local.xcconfig.example Config/Local.xcconfig`, put your `DEVELOPMENT_TEAM` in it,
@@ -31,8 +36,10 @@ that finds problems fastest. Each line says what should happen.
 ## 1. First run
 
 - Open the app signed out: the four-page story plays; Skip and "I already have an account" go to sign-in.
-- **Google:** the sheet opens, you sign in, you land in the app (or on the waitlist if the account is not
-  approved). If you land on the website instead, the redirect URL in step 2 is missing.
+- **Google:** the sheet opens, you sign in, the sheet closes by itself and you land in the app (or on the
+  waitlist if the account is not approved). If the sheet ends on the website's login page, with a line about a
+  stale sign-in cookie, the site has no `client=app` handling (step 2); the app should have said so before
+  opening the sheet, so tell me if it did not.
 - **Email code:** a six-digit code arrives, entering it signs you in; a wrong code says so in words.
 - **Waitlist:** an unapproved account sees the waitlist; pasting a valid invite code lets it in at once.
 - Kill and reopen the app: you are still signed in, with no flash of the story.

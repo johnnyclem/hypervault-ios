@@ -290,6 +290,12 @@ public actor AuthService: TokenProvider {
         return url
     }
 
+    /// Whether the website behind `returnURL` will hand a web sign-in back to the app. Ask before opening the
+    /// sign-in sheet: a site that will not leaves the person stranded in it. See `AppHandoff`.
+    public func appHandoff(returnURL: URL) async -> AppHandoff.Verdict {
+        await AppHandoff.check(returnURL: returnURL, transport: transport)
+    }
+
     /// Finishes a web sign-in from the URL the provider sent the app back to.
     @discardableResult
     public func completeOAuth(callbackURL: URL) async throws -> AuthSession {

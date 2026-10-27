@@ -61,7 +61,6 @@ extension UITestWorld {
                 if request.url?.query?.contains("type=neq.group") == true { return reply(raw: homeOptionsJSON) }
                 return reply(raw: KeysPreviewData.pagesJSON)
             },
-            .json(.get, "/rest/v1/artifact_versions", KeysPreviewData.versionsJSON),
             // The steps for the app a key is made for (the server's registry page for it).
             MockRoute(.get, "/connect.md") { _ in
                 HTTPResponse(status: 200, headers: ["content-type": "text/markdown"], data: Data(ConnectPreviewData.cursorMarkdown.utf8))

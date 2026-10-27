@@ -19,7 +19,7 @@ final class UITestScreensTests: XCTestCase {
         return AccountRest(client: tables, anonKey: UITestWorld.anonKey)
     }
 
-    // MARK: Account & keys
+    // MARK: Agent keys
 
     func testKeysAreListedMadeOnceAndRevoked() async throws {
         let net = transport()
@@ -28,9 +28,9 @@ final class UITestScreensTests: XCTestCase {
 
         let keys = try await AgentKeyDirectory.keys(rest: tables, userID: userID)
         XCTAssertEqual(keys.map(\.id), ["k1", "k2", "k3"])
-        let statuses = await AgentKeyDirectory.setupStatuses(rest: tables, userID: userID, keys: keys)
-        XCTAssertEqual(statuses["k1"]?.complete, true, "Claude Code finished its setup challenge.")
-        XCTAssertNil(statuses["k3"], "The default key has no challenge page.")
+        let slugs = await AgentKeyDirectory.challengeSlugs(rest: tables, userID: userID, keys: keys)
+        XCTAssertEqual(slugs["k1"], "agent-setup-1", "Claude Code has a challenge page to open.")
+        XCTAssertNil(slugs["k3"], "The default key has no challenge page.")
 
         let made = try await api.send(.createAgentKey(name: "Cursor"))
         XCTAssertTrue(AgentKeyRules.looksLikeKey(made.key), "A key is hv_ and 32 characters.")

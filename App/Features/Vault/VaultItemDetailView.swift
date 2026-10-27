@@ -211,7 +211,7 @@ struct VaultItemDetailView: View {
     // MARK: How an agent reads it
 
     private func fetchCommand(_ secret: VaultSecret) -> String {
-        "curl -s \"\(PairingCode.origin(of: env.server.baseURL))/api/secrets/\(secret.name)\" \\\n  -H \"X-HyperVault-Key: hv_YOUR_KEY\""
+        "curl -s \"\(ServerOrigin.string(of: env.server.baseURL))/api/secrets/\(secret.name)\" \\\n  -H \"X-HyperVault-Key: hv_YOUR_KEY\""
     }
 
     private func readsLine(_ secret: VaultSecret) -> String {

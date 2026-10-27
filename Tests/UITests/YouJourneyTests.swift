@@ -78,7 +78,7 @@ final class YouJourneyTests: HyperVaultUITestCase {
         step("Account & keys opens with the keys") {
             reveal(element("you.agentsAndKeys"), "the Account & keys row")
             tap(element("you.agentsAndKeys"), "the Account & keys row")
-            waitUntil("the Account & keys title") { isShowingTitle("Account & keys") }
+            waitUntil("the Agent keys title") { isShowingTitle("Agent keys") }
             require(element("keys.row.k1"), "the Claude Code key")
             XCTAssertTrue(element("keys.row.k1").label.contains("Claude Code"), "The key row says \"\(element("keys.row.k1").label)\".")
             require(element("keys.connect"), "Connect an agent")

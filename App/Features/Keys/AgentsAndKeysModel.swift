@@ -1,8 +1,10 @@
 import HyperVaultKit
 import SwiftUI
 
-/// The keys on Account & keys: loading them (saved copy first), what each agent's setup has come to,
-/// revoking and the "Can send mail" switch. The raw value of a key is never here: only its prefix.
+/// The keys on Agent keys: loading them (saved copy first), revoking and the "Can send mail" switch. What it
+/// holds about a key is what the server states: its name, prefix, dates and scopes, and the slug of its setup
+/// challenge page. Whether an agent finished the challenge is not worked out here. The raw value of a key is
+/// never here: only its prefix.
 @MainActor
 @Observable
 final class AgentsAndKeysModel {
@@ -16,10 +18,10 @@ final class AgentsAndKeysModel {
     private(set) var snapshot = AgentKeysSnapshot()
     /// What is on screen is the saved copy.
     private(set) var isStale = false
-    /// Whether the server has pairing on. Nil until the question has been answered.
-    private(set) var pairingOn: Bool?
     /// Keys with a change in flight.
     private(set) var changing: Set<String> = []
+    /// Keys being revoked.
+    private(set) var revoking: Set<String> = []
 
     private let client: HVClient
     private let rest: AccountRest
@@ -37,14 +39,14 @@ final class AgentsAndKeysModel {
 
     var keys: [AgentKey] { snapshot.keys }
 
-    func status(of key: AgentKey) -> AgentSetupStatus? { snapshot.statuses[key.id] }
+    /// The slug of the page the key's agent is asked to rewrite, where there is one.
+    func challengeSlug(of key: AgentKey) -> String? { snapshot.challengeSlugs[key.id] }
 
     // MARK: Loading
 
     func load() async {
         let rest = self.rest
         let userID = self.userID
-        async let pairing = PairingAvailability.probe(client: client)
         do {
             let stream = cachedLoad(cache: cache, namespace: userID, key: Self.cacheKey) {
                 try await AgentKeyDirectory.snapshot(rest: rest, userID: userID)
@@ -57,19 +59,6 @@ final class AgentsAndKeysModel {
         } catch {
             if case .loaded = phase {} else { phase = .failed(keysMessage(for: error)) }
         }
-        pairingOn = await pairing
-        recordConnectedOnce()
-    }
-
-    /// The first time an agent is seen connected, tell the server (best effort, silent): the profile
-    /// remembers it so the connect card on other devices stays away.
-    private func recordConnectedOnce() {
-        guard snapshot.connectedCount > 0 else { return }
-        let flag = "keys.onboarding.completed.\(userID)"
-        guard !UserDefaults.standard.bool(forKey: flag) else { return }
-        UserDefaults.standard.set(true, forKey: flag)
-        let client = self.client
-        Task { _ = try? await client.send(.recordOnboarding(connectCompleted: true)) }
     }
 
     // MARK: Changing
@@ -77,10 +66,14 @@ final class AgentsAndKeysModel {
     /// Revokes a key at once. The row goes only when the server has agreed.
     func revoke(_ key: AgentKey) async throws {
         changing.insert(key.id)
-        defer { changing.remove(key.id) }
+        revoking.insert(key.id)
+        defer {
+            changing.remove(key.id)
+            revoking.remove(key.id)
+        }
         _ = try await client.send(.revokeAgentKey(id: key.id))
         snapshot.keys.removeAll { $0.id == key.id }
-        snapshot.statuses[key.id] = nil
+        snapshot.challengeSlugs[key.id] = nil
         await cache.store(snapshot, key: Self.cacheKey, namespace: userID)
     }
 

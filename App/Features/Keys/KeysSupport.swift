@@ -4,7 +4,7 @@ import SafariServices
 import SwiftUI
 import UniformTypeIdentifiers
 
-// What the screens of Account & keys, the vault and Your address share: how
+// What the screens of Agent keys, the vault and Your address share: how
 // they reach the account lists, how a secret is copied, how a lock is honoured,
 // and how a web page is opened. Nothing here is a screen.
 
@@ -26,16 +26,28 @@ func keysMessage(for error: Error) -> String {
 }
 
 /// First-run state the connect card on the canvas keeps on the profile (PATCH /api/onboarding). Best effort and
-/// silent: a server that cannot record it just shows the card once per device.
+/// silent: a server that cannot record it just shows the card once per device. Only what the person does is
+/// recorded here; the app never records that an agent connected, since it has no check of that to go by.
 enum ConnectOnboarding {
     /// "I'll look around first": the connect card was dismissed. Call it from wherever that card lives.
     static func recordDismissed(client: HVClient) {
         Task { _ = try? await client.send(.recordOnboarding(connectDismissed: true)) }
     }
+}
 
-    /// An agent finished its setup challenge.
-    static func recordCompleted(client: HVClient) {
-        Task { _ = try? await client.send(.recordOnboarding(connectCompleted: true)) }
+/// The words of the Agent keys screens that more than one place says or that a test pins.
+enum KeysCopy {
+    /// The Agent keys pane's description, verbatim (brand book, section 4). It is the same whatever the keys have
+    /// done: no route reports whether an agent connected, so the web's "N agents connected." is never shown.
+    static let paneDescription = "One key per agent. A key is shown once, and comes with a setup challenge the agent completes to prove the link works."
+
+    /// Revoking asks twice, like the web's button: "Revoke", then "Really revoke?", then "Revoking...".
+    static let revoke = "Revoke"
+    static let reallyRevoke = "Really revoke?"
+    static let revoking = "Revoking..."
+
+    static func revokeMessage(for key: AgentKey) -> String {
+        "The agent using \(key.displayName ?? key.prefixLabel) stops working at once. This cannot be undone."
     }
 }
 
@@ -43,16 +55,18 @@ enum ConnectOnboarding {
 
 enum KeysPasteboard {
     /// How long a copied secret stays on the pasteboard.
-    static let secretLifetime: TimeInterval = 120
+    static let secretLifetime: TimeInterval = 60
+
+    /// What keeps a secret on this phone and takes it off the pasteboard by itself.
+    static func secretOptions(now: Date = Date()) -> [UIPasteboard.OptionsKey: Any] {
+        [.localOnly: true, .expirationDate: now.addingTimeInterval(secretLifetime)]
+    }
 
     /// Copies text. A secret (a key, a password, anything that carries one) is kept to this device and
     /// leaves the pasteboard by itself, so it does not ride Universal Clipboard or linger.
     static func copy(_ text: String, secret: Bool) {
         if secret {
-            UIPasteboard.general.setItems(
-                [[UTType.plainText.identifier: text]],
-                options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(secretLifetime)]
-            )
+            UIPasteboard.general.setItems([[UTType.plainText.identifier: text]], options: secretOptions())
         } else {
             UIPasteboard.general.string = text
         }
@@ -96,7 +110,7 @@ struct KeysCopyButton: View {
             Label(copied ? ConnectCopy.copiedLabel : title, systemImage: copied ? "checkmark" : "doc.on.doc")
         }
         .accessibilityLabel(copied ? "Copied" : title)
-        .accessibilityHint(accessibilityHint ?? (isSecret ? "Copies to this device only, and clears in two minutes." : ""))
+        .accessibilityHint(accessibilityHint ?? (isSecret ? "Copies to this device only, and clears in a minute." : ""))
     }
 }
 

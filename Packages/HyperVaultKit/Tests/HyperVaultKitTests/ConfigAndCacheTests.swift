@@ -63,6 +63,24 @@ final class ConfigAndCacheTests: XCTestCase {
         XCTAssertNil(cleared)
     }
 
+    func testProtectingWhatIsAlreadyCachedLosesNothingAndLeavesRoomForMore() async {
+        let cache = temporaryCache()
+        await cache.store(["a"], key: "yours", namespace: "user-1")
+        await cache.store(["b"], key: "memories", namespace: "user-2")
+
+        await cache.protectExistingFiles()
+
+        let first = await cache.entry([String].self, key: "yours", namespace: "user-1")
+        let second = await cache.entry([String].self, key: "memories", namespace: "user-2")
+        XCTAssertEqual(first?.value, ["a"])
+        XCTAssertEqual(second?.value, ["b"])
+        await cache.store(["c"], key: "yours", namespace: "user-1")
+        let rewritten = await cache.entry([String].self, key: "yours", namespace: "user-1")
+        XCTAssertEqual(rewritten?.value, ["c"], "a file written after protecting is written the same way")
+        await cache.clearAll()
+        await cache.protectExistingFiles()
+    }
+
     func testCachedLoadYieldsCacheThenNetwork() async throws {
         let cache = temporaryCache()
         await cache.store(["old"], key: "k", namespace: "n")

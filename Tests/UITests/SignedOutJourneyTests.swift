@@ -7,8 +7,8 @@ final class SignedOutJourneyTests: HyperVaultUITestCase {
     private let pageTitles = [
         "Keep what your AI just made.",
         "You talk to your AI like usual.",
-        "Not tied to one AI company.",
-        "Save a login, a card or a key once.",
+        "Save a login, a card, your contact info or an API key once.",
+        "Not tied to one AI company",
     ]
 
     func testTheStoryPlaysThroughToTheWayInAndBackAgain() {

@@ -94,9 +94,6 @@ struct ShareView: View {
                 .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
                 .frame(maxHeight: 260)
-            Text(HVCopy.onlyYouLine)
-                .font(.hvFootnote)
-                .foregroundStyle(Palette.textTertiary)
         }
     }
 

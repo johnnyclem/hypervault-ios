@@ -81,7 +81,7 @@ targets:
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         NSLocalNetworkUsageDescription: Connect to a model running on your own network, like Ollama or LM Studio.
-        NSFaceIDUsageDescription: Lock HyperVault so only you can open it.
+        NSFaceIDUsageDescription: Ask for Face ID when you open HyperVault.
         NSMicrophoneUsageDescription: Dictate into the canvas and chat with your voice.
         NSSpeechRecognitionUsageDescription: Turn what you say into text, on your device where possible.
         NSCameraUsageDescription: Scan a page or a document to keep it.

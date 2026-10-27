@@ -50,6 +50,7 @@ struct ConnectAgentSheet: View {
         }
         // A key that was never copied is not lost to a stray swipe: closing asks first.
         .interactiveDismissDisabled(model?.hasUncopiedKey ?? false)
+        .hvSensitive(model?.fresh != nil)
         .confirmationDialog("Close without copying the key?", isPresented: $confirmClose, titleVisibility: .visible) {
             Button("Close and lose the key", role: .destructive) { finish() }
             Button("Stay", role: .cancel) {}

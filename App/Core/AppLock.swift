@@ -2,8 +2,11 @@ import LocalAuthentication
 import SwiftUI
 
 /// An optional lock for the app: Face ID (or Touch ID, or the passcode) when it opens and after
-/// it has been away for a little while. Saved logins, cards and keys never leave the server, so
-/// the lock guards what is on screen, not a secret on the phone.
+/// it has been away for a little while. It gates what is on screen and nothing else: the device passcode
+/// opens it too, and it encrypts nothing on the phone.
+///
+/// The cover that blanks the app switcher is not the lock's alone. A screen that shows or takes a value
+/// (`hvSensitive()`) asks for the cover while it is up, and gets it with the lock off.
 @MainActor
 @Observable
 final class AppLock {
@@ -14,12 +17,15 @@ final class AppLock {
 
     @ObservationIgnored private var leftAt: Date?
     @ObservationIgnored private var isAuthenticating = false
+    /// The sensitive screens that are up, each by a token of its own, so one that reports twice still counts once.
+    @ObservationIgnored private var sensitiveScreens: Set<UUID> = []
     /// How long the app can be away before it asks again.
-    @ObservationIgnored private let grace: TimeInterval = 30
+    @ObservationIgnored private let grace: TimeInterval
 
     var isEnabled: Bool { UserDefaults.standard.bool(forKey: PrefKey.biometricLock) }
 
-    init() {
+    init(grace: TimeInterval = 30) {
+        self.grace = grace
         isLocked = UserDefaults.standard.bool(forKey: PrefKey.biometricLock)
         // The widgets and the Keep intent read the shared copy; refresh it so an update never leaves it behind.
         SharedConfig.isLockOn = isLocked
@@ -50,21 +56,37 @@ final class AppLock {
         }
     }
 
+    /// How many sensitive screens are up.
+    var sensitiveScreenCount: Int { sensitiveScreens.count }
+
+    /// A screen that shows or takes a value has come up. While any is, the app switcher gets the cover, lock or no lock.
+    func beginSensitive(_ screen: UUID) {
+        sensitiveScreens.insert(screen)
+    }
+
+    /// That screen has gone. Once none is left and the lock is off, nothing calls for the cover any more.
+    func endSensitive(_ screen: UUID) {
+        sensitiveScreens.remove(screen)
+        if sensitiveScreens.isEmpty, !isEnabled { isShielded = false }
+    }
+
     func scenePhaseChanged(_ phase: ScenePhase) {
-        guard isEnabled else {
+        let locking = isEnabled
+        guard locking || !sensitiveScreens.isEmpty else {
             isShielded = false
             return
         }
         switch phase {
         case .active:
             isShielded = false
-            if let leftAt, Date().timeIntervalSince(leftAt) > grace { isLocked = true }
+            // Only the lock locks. A sensitive screen with the lock off puts the cover up and nothing more.
+            if locking, let leftAt, Date().timeIntervalSince(leftAt) > grace { isLocked = true }
             leftAt = nil
         case .inactive:
             isShielded = true
         case .background:
             isShielded = true
-            if leftAt == nil { leftAt = Date() }
+            if locking, leftAt == nil { leftAt = Date() }
         @unknown default:
             break
         }
@@ -120,7 +142,7 @@ struct LockScreen: View {
                     VStack(spacing: HV.Space.l) {
                         BrandMark(size: 76)
                         Text("HyperVault is locked").font(.hvTitle).multilineTextAlignment(.center).accessibilityAddTraits(.isHeader)
-                        Text("Only you can open it.").font(.hvCallout).foregroundStyle(Palette.textSecondary).multilineTextAlignment(.center)
+                        Text("Unlock to continue.").font(.hvCallout).foregroundStyle(Palette.textSecondary).multilineTextAlignment(.center)
                         if let message = lock.failureMessage {
                             Text(message).font(.hvFootnote).foregroundStyle(Palette.danger).multilineTextAlignment(.center)
                         }

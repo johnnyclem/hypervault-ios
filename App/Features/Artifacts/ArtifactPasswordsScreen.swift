@@ -119,6 +119,7 @@ struct ArtifactPasswordsScreen: View {
         .navigationTitle("Passwords")
         .navigationBarTitleDisplayMode(.inline)
         .keysHidesWhenInactive(model.minted != nil)
+        .hvSensitive(model.minted != nil)
         .task { await model.load() }
         .onDisappear { model.clearMinted() }
         .confirmationDialog(

@@ -1,14 +1,12 @@
 import HyperVaultKit
 import SwiftUI
 
-/// Look, feel, security and the server. The things that belong to this phone
-/// rather than to the account.
+/// Feel, security and the server. The things that belong to this phone
+/// rather than to the account. The look is not one of them: the app is dark, with one accent.
 struct SettingsRootView: View {
     @Environment(AppModel.self) private var model
     @Environment(AppEnvironment.self) private var env
 
-    @AppStorage(PrefKey.appearance) private var appearance = AppearanceChoice.system
-    @AppStorage(PrefKey.accent) private var accent = AccentChoice.blue
     @AppStorage(PrefKey.haptics) private var haptics = true
     @AppStorage(PrefKey.biometricLock) private var biometricLock = false
     @AppStorage(SpotlightIndexer.preferenceKey) private var spotlight = true
@@ -21,25 +19,6 @@ struct SettingsRootView: View {
 
     var body: some View {
         Form {
-            Section(header: HVSectionHeader(title: "Look")) {
-                HVChoicePicker(title: "Appearance", selection: $appearance) {
-                    ForEach(AppearanceChoice.allCases) { choice in
-                        Text(choice.title).tag(choice)
-                    }
-                }
-                .accessibilityIdentifier("settings.appearance")
-
-                VStack(alignment: .leading, spacing: HV.Space.s) {
-                    Text("Accent").font(.hvBody)
-                    HStack(spacing: HV.Space.xs) {
-                        ForEach(AccentChoice.allCases) { choice in
-                            accentSwatch(choice)
-                        }
-                    }
-                }
-                .padding(.vertical, HV.Space.xs)
-            }.hvListRow()
-
             Section(header: HVSectionHeader(title: "Feel")) {
                 Toggle("Haptics", isOn: $haptics)
                     .accessibilityIdentifier("settings.haptics")
@@ -150,28 +129,6 @@ struct SettingsRootView: View {
                 Text(serverError).foregroundStyle(Palette.danger)
             }
         }
-    }
-
-    private func accentSwatch(_ choice: AccentChoice) -> some View {
-        Button {
-            accent = choice
-            Haptics.select()
-        } label: {
-            ZStack {
-                Circle().fill(choice.color).frame(width: 34, height: 34)
-                if accent == choice {
-                    Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)).foregroundStyle(Palette.background)
-                }
-            }
-            .overlay(Circle().strokeBorder(Palette.textTertiary.opacity(0.4), lineWidth: accent == choice ? 0 : 1))
-            .scaleEffect(accent == choice ? 1.08 : 1)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: accent)
-            .frame(minWidth: 44, minHeight: 44)
-            .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(choice.title)
-        .accessibilityAddTraits(accent == choice ? .isSelected : [])
     }
 
     private var versionText: String {

@@ -26,6 +26,16 @@ jobs:
         working-directory: Packages/HyperVaultKit
         run: swift test
 
+  # The colour catalog and HVTokens are generated from docs/brand/tokens.json (scripts/gen_tokens.py); this fails when
+  # either has drifted from it.
+  tokens:
+    name: Design tokens match tokens.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check
+        run: python3 scripts/gen_tokens.py --check
+
   # The app, its extensions and its tests, on a simulator.
   app:
     name: App build and tests (macOS)
@@ -145,8 +155,9 @@ jobs:
             tests: -only-testing:HyperVaultUITests/ThinkWritesJourneyTests
           # The layout sweep (see Tests/UITests/LayoutSweepTests.swift): every screen of it at the largest accessibility
           # text size, the You tab's screens in two halves because scrolling at that size is slow, and in the dark
-          # appearance in one job. The slowest are listed first, so that they start first when GitHub has fewer macOS
-          # machines free than there are jobs.
+          # in one job. The app is dark whatever the phone is set to (Info.plist declares it), so every job draws dark
+          # screens; this one is where each screenshot is also checked to be dark. The slowest are listed first, so that
+          # they start first when GitHub has fewer macOS machines free than there are jobs.
           - suite: sweep-large-keep
             tests: -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheKeepAndAgentScreensAtAnAccessibilityTextSize
           - suite: sweep-large-think

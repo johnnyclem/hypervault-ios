@@ -20,7 +20,6 @@ struct SignInContent: View {
     let providers: AuthProviders
     var onBack: (() -> Void)?
 
-    @Environment(\.colorScheme) private var scheme
     @State private var controller: SignInController
     @State private var nonce = AuthNonce.make()
     @State private var showEmail = false
@@ -117,7 +116,7 @@ struct SignInContent: View {
             let raw = nonce.raw
             Task { await controller.handleApple(result, rawNonce: raw) }
         }
-        .signInWithAppleButtonStyle(scheme == .dark ? .white : .black)
+        .signInWithAppleButtonStyle(.white)
         .frame(height: 52)
         .clipShape(Capsule())
         .disabled(controller.isWorking)
@@ -134,7 +133,7 @@ struct SignInContent: View {
                     ProgressView()
                 } else {
                     Text("G")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(Palette.brandGradient)
                 }
                 Text("Continue with Google")

@@ -95,8 +95,8 @@ private struct MindDiffRowView: View {
     // above 4.5:1 on its tint in dark mode where the plain red does not.
     private var textColor: Color {
         switch row.kind {
-        case .add: return Palette.success.hvInk()
-        case .del: return Palette.rose.hvInk()
+        case .add: return Palette.success
+        case .del: return Palette.rose
         default: return Palette.textSecondary
         }
     }

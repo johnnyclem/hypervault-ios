@@ -402,7 +402,6 @@ final class OnDeviceAssetFailureTests: XCTestCase {
         let dump = CatalogDump(text: raw)
         XCTAssertTrue(OnDeviceModelAssets.isMissing(dump))
         XCTAssertFalse(OnDeviceModelAssets.isMissing(CatalogDump(text: "The server is busy.")))
-        guard #available(iOS 26.0, *) else { return }
         let said = ChatFoundationModelsAdapter.explain(dump)
         XCTAssertEqual(said, OnDeviceModelAssets.explanation)
         XCTAssertFalse(said.contains("safety_guardrail"))

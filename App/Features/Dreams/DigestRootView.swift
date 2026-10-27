@@ -217,8 +217,8 @@ private struct DigestSegmentCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
             Text("\(segment.ordinal + 1)")
-                .font(.system(.footnote, design: .rounded, weight: .bold))
-                .foregroundStyle(Palette.cyan.hvInk())
+                .font(.system(.footnote, weight: .bold))
+                .foregroundStyle(Palette.cyan)
                 .frame(width: 26, height: 26)
                 .background(Palette.cyan.opacity(0.14), in: Circle())
                 .accessibilityHidden(true)

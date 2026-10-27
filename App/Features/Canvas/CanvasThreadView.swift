@@ -89,7 +89,7 @@ private struct MessageRow: View {
             }
             Button(action: keep) {
                 Label(HVCopy.keepReplyLabel, systemImage: "tray.and.arrow.down")
-                    .font(.system(.footnote, design: .rounded, weight: .semibold))
+                    .font(.system(.footnote, weight: .semibold))
             }
             .buttonStyle(.hvGhost)
             .disabled(!canKeep)

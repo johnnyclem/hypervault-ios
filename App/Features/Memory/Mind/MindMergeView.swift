@@ -194,7 +194,7 @@ struct MindBranchPill: View {
             Image(systemName: "arrow.triangle.branch")
                 .font(.system(size: 11, weight: .semibold))
             Text(name)
-                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                .font(.system(.subheadline, weight: .semibold))
         }
         .foregroundStyle(Palette.textPrimary)
         .padding(.horizontal, 12)

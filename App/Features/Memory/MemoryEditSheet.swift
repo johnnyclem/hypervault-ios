@@ -154,7 +154,7 @@ struct MemoryTagEditor: View {
                                 Image(systemName: "xmark")
                                     .font(.system(size: 9, weight: .bold))
                             }
-                            .font(.system(.footnote, design: .rounded, weight: .medium))
+                            .font(.system(.footnote, weight: .medium))
                             .foregroundStyle(Palette.textPrimary)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)

@@ -41,7 +41,7 @@ final class YouJourneyTests: HyperVaultUITestCase {
         }
     }
 
-    func testSettingsFlipsAToggleAndTheAppearancePicker() {
+    func testSettingsFlipsAToggle() {
         launch(.signedIn)
         openTab("You")
 
@@ -58,16 +58,6 @@ final class YouJourneyTests: HyperVaultUITestCase {
             // The knob is at the row's trailing edge.
             haptics.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
             waitUntil("the Haptics switch to turn off") { (haptics.value as? String) == "0" }
-        }
-
-        step("The appearance picker changes the whole app") {
-            let dark = segment("Dark")
-            tap(dark, "the Dark appearance")
-            waitUntil("Dark to be the chosen appearance") { dark.isSelected }
-            attachScreenshot("Settings in the dark appearance")
-            tap(segment("System"), "the System appearance")
-            waitUntil("System to be the chosen appearance") { segment("System").isSelected }
-            XCTAssertFalse(segment("Dark").isSelected)
         }
     }
 

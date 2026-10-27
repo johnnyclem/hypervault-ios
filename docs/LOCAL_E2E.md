@@ -126,7 +126,7 @@ that each timestamp the server sent is one the Kit's `HVDate` can read.
 | Area | Tests (class) | Covers |
 | --- | --- | --- |
 | Sign-in state, capabilities, keep, Yours | `LocalServerE2ETests` | anonymous and signed-in capabilities, 401 for no/bad/expired tokens, 403 waitlist, 404, keep (notes, HTML, React, duplicates), the Yours filters |
-| Session-only routes | `LocalE2ESessionRoutesTests` | agent keys (mint, list through the Kit's own PostgREST read, scopes, setup challenge, revoke), the artifact source route, onboarding flags, invite redeem, admin (probe, accounts, plans), the Kit's own sign-in (email code, refresh, sign-out, refresh on 401), pairing (approve, deny, poll interval) |
+| Session-only routes | `LocalE2ESessionRoutesTests` | agent keys (mint, list through the Kit's own PostgREST read, scopes, setup challenge, revoke), the artifact source route, onboarding flags, invite redeem, admin (probe, accounts, plans), the Kit's own sign-in (email code, refresh, sign-out, refresh on 401) |
 | Pages | `LocalE2EArtifactsTests` | save, versions, diff, revert, rebase, 428/409 conflicts, immutable pages, visibility, sharing roles, leaving a share, passwords, feedback, icons, connections, pins, deleting, groups and their files |
 | Memory and Mind | `LocalE2EMemoryTests` | memorize, search, edit, forget, bring back, file import, links and graph, size limit, branches, commits, compare, time travel, merge (clean and conflicting) and revert |
 | Account | `LocalE2EAccountTests` | the Kit's vault rules against the server's (accepted and refused alike), keys, webhooks, claimed addresses, dreams, digest, background jobs |

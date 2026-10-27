@@ -8,7 +8,7 @@ that finds problems fastest. Each line says what should happen.
 ## Before you start
 
 1. **Server.** Make sure the deployment you test against includes
-   [hypervault#180](https://github.com/johnnyclem/hypervault/pull/180) (the keys, invite, pairing and admin
+   [hypervault#180](https://github.com/johnnyclem/hypervault/pull/180) (the keys, invite and admin
    routes accept the app's bearer token; on an older deployment those screens show the server's own refusal,
    which is correct but not what you want to test) and
    [hypervault#181](https://github.com/johnnyclem/hypervault/pull/181) (Google sign-in's way back to the app).
@@ -62,6 +62,9 @@ that finds problems fastest. Each line says what should happen.
   something and the widget updates.
 - **Siri / Shortcuts:** "Keep this in HyperVault" with text.
 - **Spotlight:** search a page's name from the Home Screen; tapping opens it in the app. Keys never appear.
+- **Pairing link:** put `hypervault://pair?code=BCDF-2346` in a note and tap it. Agent keys opens with the website's
+  `/pair` page over it in Safari, the code in the link; the app never offers to approve. Sign in on the page if it
+  asks, and closing it returns to Agent keys.
 
 ## 4. Lock
 

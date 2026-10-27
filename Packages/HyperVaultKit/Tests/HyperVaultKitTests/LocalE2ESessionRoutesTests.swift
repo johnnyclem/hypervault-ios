@@ -5,7 +5,7 @@ import FoundationNetworking
 @testable import HyperVaultKit
 
 // The routes that took only a signed-in browser session until the server learned to read a bearer token
-// (hypervault#180): agent keys, invite redeem, onboarding, the artifact source, pairing and admin. Plus the
+// (hypervault#180): agent keys, invite redeem, onboarding, the artifact source and admin. Plus the
 // Kit's own sign-in and its direct reads of the database. Setup is in LocalServerE2ETests.swift.
 
 final class LocalE2ESessionRoutesTests: LocalE2ECase {
@@ -395,83 +395,6 @@ final class LocalE2ESessionRoutesTests: LocalE2ECase {
         XCTAssertEqual(refreshes, 1, "a 401 should refresh exactly once")
 
         _ = try await send(.deleteAccount(id: session.user.id), admin)
-    }
-
-    // MARK: Pairing
-
-    func testAnAgentPairsWithoutAKeyAndAPersonApprovesIt() async throws {
-        let (api, token) = member(8)
-        let userID = try await userId(of: token)
-        let rest = try rest(token: token)
-        let origin = PairingCode.origin(of: env.server.baseURL)
-        let available = await PairingAvailability.probe(client: client(nil))
-        XCTAssertEqual(available, true, "the stand-in runs with HYPERVAULT_PAIRING=1")
-
-        // The agent has no key: it asks.
-        let label = unique("E2E pairing")
-        let start = try await send(Endpoint<JSONValue>(.post, "/api/pair/start", body: .jsonValue(["label": .string(label)]), auth: .none), client(nil))
-        let deviceCode = try XCTUnwrap(start["device_code"]?.string)
-        let userCode = try XCTUnwrap(start["user_code"]?.string)
-        let normalized = try XCTUnwrap(PairingCode.normalize(userCode), "the Kit cannot read the code the server made: \(userCode)")
-        XCTAssertEqual(PairingCode.format(normalized), userCode)
-        XCTAssertEqual(PairingCode.extract(from: start["verification_url"]?.string ?? ""), userCode)
-        let interval = Double(start["interval"]?.int ?? 5)
-        func poll() async throws -> JSONValue {
-            try await send(Endpoint<JSONValue>(.post, "/api/pair/poll", body: .jsonValue(["device_code": .string(deviceCode)]), auth: .none), client(nil))
-        }
-        let pending = try await poll()
-        XCTAssertEqual(pending["status"]?.string, "pending")
-        // A poll that comes too soon is told to slow down, with the wait in Retry-After.
-        let tooSoon = await expectFailure(429, Endpoint<JSONValue>(.post, "/api/pair/poll", body: .jsonValue(["device_code": .string(deviceCode)]), auth: .none), client(nil))
-        XCTAssertEqual(tooSoon?.body?["status"]?.string, "slow_down")
-        XCTAssertNotNil(tooSoon?.retryAfter)
-
-        // Wrong code, a foreign Origin, a key instead of a person: all refused.
-        let approverKey = try await send(.createAgentKey(name: unique("not a person")), api).key
-        let unknown = await expectFailure(404, .pairApprove(userCode: "ZZZZ-ZZZZ", origin: origin), api)
-        XCTAssertEqual(PairingFailure.classify(HVError.api(try XCTUnwrap(unknown))), .refused(try XCTUnwrap(unknown).message), "a code nobody is waiting on is not 'pairing is off'")
-        await expectFailure(403, .pairApprove(userCode: userCode, origin: "https://elsewhere.example"), api)
-        await expectFailure(403, .pairApprove(userCode: userCode, origin: origin), client(approverKey), message: "key cannot approve")
-
-        // The person approves; only the agent's next poll carries the key.
-        let approval = try await send(.pairApprove(userCode: userCode, origin: origin), api)
-        XCTAssertTrue(approval.approved)
-        XCTAssertEqual(approval.label, label)
-        try await Task.sleep(nanoseconds: UInt64((interval + 0.5) * 1_000_000_000))   // the poll interval
-        let approved = try await poll()
-        XCTAssertEqual(approved["status"]?.string, "approved")
-        let key = try XCTUnwrap(approved["key"]?.string)
-        XCTAssertTrue(AgentKeyRules.looksLikeKey(key))
-        let paired = client(key)
-        let caps = try await send(.capabilities, paired)
-        XCTAssertEqual(caps.user?.id, userID)
-        XCTAssertEqual(caps.user?.via, "api-key")
-        try await Task.sleep(nanoseconds: UInt64((interval + 0.5) * 1_000_000_000))
-        let consumed = try await poll()
-        XCTAssertEqual(consumed["status"]?.string, "consumed", "a key must leave the server once")
-        XCTAssertNil(consumed["key"]?.string)
-
-        // The keys card shows where the key came from, and the person can revoke it.
-        let keys = try await AgentKeyDirectory.keys(rest: rest, userID: userID)
-        let row = try XCTUnwrap(keys.first { $0.keyPrefix == String(key.prefix(11)) })
-        XCTAssertTrue(row.isPaired)
-        XCTAssertEqual(row.name, "Paired: \(label)")
-        _ = try await send(.revokeAgentKey(id: row.id), api)
-    }
-
-    func testDenyingAPairingEndsItAndAnAnsweredCodeIsNotWaiting() async throws {
-        let (api, _) = member(8)
-        let origin = PairingCode.origin(of: env.server.baseURL)
-        let start = try await send(Endpoint<JSONValue>(.post, "/api/pair/start", body: .jsonValue(["label": .string(unique("Denied"))]), auth: .none), client(nil))
-        let deviceCode = try XCTUnwrap(start["device_code"]?.string)
-        let userCode = try XCTUnwrap(start["user_code"]?.string)
-        let denial = try await send(.pairDeny(userCode: userCode, origin: origin), api)
-        XCTAssertTrue(denial.denied)
-        try await Task.sleep(nanoseconds: UInt64(((start["interval"]?.double ?? 5) + 0.5) * 1_000_000_000))
-        let status = try await send(Endpoint<JSONValue>(.post, "/api/pair/poll", body: .jsonValue(["device_code": .string(deviceCode)]), auth: .none), client(nil))
-        XCTAssertEqual(status["status"]?.string, "denied")
-        let answered = await expectFailure(409, .pairApprove(userCode: userCode, origin: origin), api, message: "already answered")
-        XCTAssertEqual(PairingFailure.classify(HVError.api(try XCTUnwrap(answered))), .refused(try XCTUnwrap(answered).message))
     }
 }
 

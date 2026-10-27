@@ -4,7 +4,6 @@ import SwiftUI
 /// Where Account & keys can push to.
 private enum KeysDestination: Hashable {
     case key(AgentKey)
-    case pairing
     case webhooks
 }
 
@@ -35,7 +34,6 @@ struct AgentsAndKeysView: View {
             switch destination {
             case .key(let key):
                 if let model { KeyDetailView(keyID: key.id, model: model) }
-            case .pairing: PairApprovalScreen(code: nil)
             case .webhooks: WebhooksView()
             }
         }
@@ -92,18 +90,6 @@ struct AgentsAndKeysView: View {
                 }
             }
             .hvListRow()
-
-            if model.pairingOn == true {
-                Section(
-                    header: HVSectionHeader(title: "Waiting for an AI tool?"),
-                    footer: Text("If an AI tool showed you a code, enter it here to give it a key of its own.").font(.hvCaption)
-                ) {
-                    NavigationLink(value: KeysDestination.pairing) {
-                        HVRow(symbol: "link.badge.plus", tint: Palette.violet, title: "Approve an AI tool", subtitle: "Enter the code it is showing")
-                    }
-                }
-                .hvListRow()
-            }
 
             Section(header: HVSectionHeader(title: "Advanced")) {
                 NavigationLink(value: KeysDestination.webhooks) {
@@ -272,7 +258,6 @@ enum KeysPreviewData {
         .json(.get, "/rest/v1/api_keys", keysJSON),
         .json(.get, "/rest/v1/artifacts", pagesJSON),
         .json(.get, "/rest/v1/artifact_versions", versionsJSON),
-        .failure(.post, "/api/pair/poll", status: 400, message: "device_code is required: the one POST /api/pair/start gave you."),
     ]
 }
 

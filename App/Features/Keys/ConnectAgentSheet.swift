@@ -44,7 +44,7 @@ struct ConnectAgentSheet: View {
             if model == nil {
                 model = ConnectAgentModel(
                     client: env.client, rest: env.keysRest, cache: env.cache, userID: env.user.id,
-                    origin: PairingCode.origin(of: env.server.baseURL), existingKey: existingKey, challengeSlug: challengeSlug
+                    origin: ServerOrigin.string(of: env.server.baseURL), existingKey: existingKey, challengeSlug: challengeSlug
                 )
             }
         }
@@ -521,7 +521,7 @@ struct ConnectReadyPreview: View {
         .task {
             let made = ConnectAgentModel(
                 client: env.client, rest: env.keysRest, cache: env.cache, userID: env.user.id,
-                origin: PairingCode.origin(of: env.server.baseURL)
+                origin: ServerOrigin.string(of: env.server.baseURL)
             )
             if let info = AgentClientCatalog.client(id: clientID) {
                 made.keyName = info.name

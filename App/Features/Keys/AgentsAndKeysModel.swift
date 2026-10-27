@@ -16,8 +16,6 @@ final class AgentsAndKeysModel {
     private(set) var snapshot = AgentKeysSnapshot()
     /// What is on screen is the saved copy.
     private(set) var isStale = false
-    /// Whether the server has pairing on. Nil until the question has been answered.
-    private(set) var pairingOn: Bool?
     /// Keys with a change in flight.
     private(set) var changing: Set<String> = []
 
@@ -44,7 +42,6 @@ final class AgentsAndKeysModel {
     func load() async {
         let rest = self.rest
         let userID = self.userID
-        async let pairing = PairingAvailability.probe(client: client)
         do {
             let stream = cachedLoad(cache: cache, namespace: userID, key: Self.cacheKey) {
                 try await AgentKeyDirectory.snapshot(rest: rest, userID: userID)
@@ -57,7 +54,6 @@ final class AgentsAndKeysModel {
         } catch {
             if case .loaded = phase {} else { phase = .failed(keysMessage(for: error)) }
         }
-        pairingOn = await pairing
         recordConnectedOnce()
     }
 

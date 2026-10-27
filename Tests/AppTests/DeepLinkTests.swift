@@ -12,6 +12,14 @@ final class DeepLinkTests: XCTestCase {
         XCTAssertEqual(link("hypervault://pair?code=ABCD-EFGH"), .pair(code: "ABCD-EFGH"))
     }
 
+    func testAPairLinkLandsOnAgentKeysAndCarriesTheCodeToTheWebsitePage() throws {
+        let pair = try XCTUnwrap(link("https://hypervault.store/pair?user_code=BCDF-2346"))
+        XCTAssertEqual(pair, .pair(code: "BCDF-2346"))
+        XCTAssertEqual(pair.destination.tab, .you)
+        XCTAssertEqual(pair.destination.route, .agentsAndKeys)
+        XCTAssertEqual(link("hypervault://pair"), .pair(code: nil))
+    }
+
     func testWebLinks() {
         XCTAssertEqual(link("https://hypervault.store/a/trip-notes-abc123"), .route(.artifact(slug: "trip-notes-abc123")))
         XCTAssertEqual(link("https://sam.vault.cool/a/page-1"), .route(.artifact(slug: "page-1")))

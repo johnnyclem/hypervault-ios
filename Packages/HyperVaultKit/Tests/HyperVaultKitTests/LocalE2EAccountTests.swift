@@ -36,6 +36,8 @@ final class LocalE2EAccountTests: LocalE2ECase {
             Case(kind: .contact, fields: ["phone": "12345"], note: "shortest phone"),
             Case(kind: .contact, fields: ["address": "Somewhere"], note: "address only"),
             Case(kind: .contact, fields: ["fullName": "Grace"], note: "name only"),
+            Case(kind: .login, fields: ["url": "http:example.com", "username": "u", "password": "p"], note: "a url with no slashes, which new URL takes"),
+            Case(kind: .login, fields: ["username": "u", "password": "\u{85}"], note: "a password of U+0085, which is not white space to JavaScript"),
         ]
     }
 
@@ -59,6 +61,12 @@ final class LocalE2EAccountTests: LocalE2ECase {
             Case(kind: .contact, fields: ["email": "a@b"], note: "email without a dot"),
             Case(kind: .contact, fields: ["phone": "1234"], note: "short phone"),
             Case(kind: .contact, fields: ["fullName": "   "], note: "blank name"),
+            Case(kind: .card, fields: ["number": "\u{664}\u{662}\u{664}\u{662}\u{664}\u{662}\u{664}\u{662}\u{664}\u{662}\u{664}\u{662}\u{664}\u{662}\u{664}\u{662}", "expMonth": "12", "expYear": "2030"], note: "Arabic-Indic digits in the card number"),
+            Case(kind: .card, fields: ["number": "4242424242424242", "expMonth": "\u{661}\u{662}", "expYear": "2030"], note: "Arabic-Indic digits in the month"),
+            Case(kind: .login, fields: ["username": "u", "password": "p", "url": "https://exa%20mple.com"], note: "a url with an encoded space in the host"),
+            Case(kind: .login, fields: ["username": "u", "password": "p", "url": "https://exa\u{A0}mple.com"], note: "a url with a no-break space in the host"),
+            Case(kind: .login, fields: ["username": "u", "password": "p", "url": "https://example.com:99999"], note: "a url with a port over 65535"),
+            Case(kind: .login, fields: ["username": "u", "password": "\u{FEFF}"], note: "a password of only a byte order mark"),
         ]
     }
 

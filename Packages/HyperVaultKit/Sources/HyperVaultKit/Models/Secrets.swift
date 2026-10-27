@@ -196,6 +196,12 @@ public struct SecretGrant: Sendable, Decodable, Equatable, Identifiable, Hashabl
     public let id: String
     public let apiKeyId: String
     public let createdAt: Date?
+
+    public init(id: String, apiKeyId: String, createdAt: Date? = nil) {
+        self.id = id
+        self.apiKeyId = apiKeyId
+        self.createdAt = createdAt
+    }
 }
 
 public struct SecretGrantList: Sendable, Decodable, Equatable {
@@ -204,6 +210,10 @@ public struct SecretGrantList: Sendable, Decodable, Equatable {
 
 public struct SecretGrantResponse: Sendable, Decodable, Equatable {
     public let grant: SecretGrant
+
+    public init(grant: SecretGrant) {
+        self.grant = grant
+    }
 }
 
 // MARK: Endpoints
@@ -243,7 +253,9 @@ extension Endpoint where Response == NoContent {
         Endpoint(.delete, "/api/secrets/\(name)")
     }
 
-    /// `DELETE /api/secrets/[name]/grants`: stops one key reading the secret.
+    /// `DELETE /api/secrets/[name]/grants`: stops one key reading the secret. Not idempotent, and so never
+    /// retried: a revoke with no matching grant answers 404 "No such grant.", so a repeat that already went
+    /// through would look like a failure (handoff 5.10). `HVClient.setSecretGrant` is how a switch calls it.
     public static func revokeSecretGrant(name: String, keyID: String) -> Endpoint<NoContent> {
         Endpoint(.delete, "/api/secrets/\(name)/grants", body: .jsonValue(["api_key_id": .string(keyID)]))
     }
@@ -257,9 +269,18 @@ extension Endpoint where Response == SecretGrantList {
 }
 
 extension Endpoint where Response == SecretGrantResponse {
-    /// `POST /api/secrets/[name]/grants`: lets one of the person's keys read the secret.
+    /// `POST /api/secrets/[name]/grants`: lets one of the person's keys read the secret. An upsert, so it is safe
+    /// to repeat and is retried on a busy server (handoff 5.10). The handoff does not document the answer's
+    /// shape, so any 2xx is a success: a body that is not `{ grant: { id, api_key_id, created_at } }` gives a grant
+    /// with an empty `id` and the `keyID` that was asked for.
     public static func grantSecret(name: String, keyID: String) -> Endpoint<SecretGrantResponse> {
-        Endpoint(.post, "/api/secrets/\(name)/grants", body: .jsonValue(["api_key_id": .string(keyID)]))
+        Endpoint(
+            method: .post, path: "/api/secrets/\(name)/grants", body: .jsonValue(["api_key_id": .string(keyID)]),
+            idempotent: true
+        ) { response, keys in
+            if let granted = try? HVCoding.decoder(keys).decode(SecretGrantResponse.self, from: response.data) { return granted }
+            return SecretGrantResponse(grant: SecretGrant(id: "", apiKeyId: keyID))
+        }
     }
 }
 
@@ -321,8 +342,9 @@ public enum VaultItems {
         String(String.UnicodeScalarView(text.unicodeScalars.filter(isASCIIDigit)))
     }
 
+    /// JavaScript's `trim()` (see VaultText.swift), not Foundation's, which also trims U+0085 and keeps U+FEFF.
     private static func trimmed(_ text: String) -> String {
-        text.trimmingCharacters(in: .whitespacesAndNewlines)
+        jsTrim(text)
     }
 
     /// The canonical form of an entry: control characters removed (keeping the line breaks of notes and an
@@ -344,8 +366,9 @@ public enum VaultItems {
         return out
     }
 
+    /// What the web's `\s` matches, for the card number strip and Luhn.
     private static func isWhitespace(_ scalar: Unicode.Scalar) -> Bool {
-        scalar.properties.isWhitespace
+        isJSWhitespace(scalar)
     }
 
     // MARK: Validation
@@ -353,42 +376,35 @@ public enum VaultItems {
     /// The fewest digits a phone number may have. The hint shows the last four, so a number must be longer for it to stay a mask.
     public static let minPhoneDigits = 5
 
-    /// A shape check, not a deliverability check: something@something.something with no spaces.
+    /// A shape check, not a deliverability check: something@something.something with no spaces. The web's
+    /// `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` over Unicode scalars: no JavaScript white space and exactly one "@", something
+    /// before it, and in what follows a "." with a scalar on each side of it (so "a@b..c" and "a@.b.c" pass and
+    /// "a@b." and "a@.b" do not). Scalars and not Characters, so a combining mark glued to the dot or the "@"
+    /// does not change the answer, and "\r\n" is two white space scalars and not one Character.
     static func looksLikeEmail(_ text: String) -> Bool {
-        guard !text.unicodeScalars.contains(where: isWhitespace) else { return false }
-        let parts = text.split(separator: "@", omittingEmptySubsequences: false)
-        guard parts.count == 2, !parts[0].isEmpty else { return false }
-        let domain = Array(parts[1])
-        guard domain.count >= 3 else { return false }
-        // A dot with something before it and something after it.
+        var localCount = 0
+        var domain: [Unicode.Scalar] = []
+        var seenAt = false
+        for scalar in text.unicodeScalars {
+            if isJSWhitespace(scalar) { return false }
+            if scalar == "@" {
+                if seenAt { return false }
+                seenAt = true
+            } else if seenAt {
+                domain.append(scalar)
+            } else {
+                localCount += 1
+            }
+        }
+        guard seenAt, localCount > 0, domain.count >= 3 else { return false }
         return (1...(domain.count - 2)).contains { domain[$0] == "." }
     }
 
-    /// The host of an http(s) address, or nil when `url` is not one.
+    /// The host of an http(s) address as `new URL(url).hostname` writes it, or nil when `new URL` throws, the
+    /// scheme is not http(s) or there is no host. Not `URL(string:)`: that is RFC 3986 and its answer depends on
+    /// the OS. See VaultWebHost.swift.
     static func webHost(_ url: String) -> String? {
-        let lower = url.lowercased()
-        let prefixLength: Int
-        if lower.hasPrefix("https://") { prefixLength = 8 } else if lower.hasPrefix("http://") { prefixLength = 7 } else { return nil }
-        let rest = url.dropFirst(prefixLength)
-        let end = rest.firstIndex { "/?#\\".contains($0) } ?? rest.endIndex
-        var authority = String(rest[..<end])
-        if let at = authority.lastIndex(of: "@") { authority = String(authority[authority.index(after: at)...]) }
-
-        var host = authority
-        if host.hasPrefix("[") {
-            guard let close = host.firstIndex(of: "]") else { return nil }
-            let tail = host[host.index(after: close)...]
-            guard tail.isEmpty || (tail.hasPrefix(":") && tail.dropFirst().allSatisfy { $0.isASCII && $0.isNumber }) else { return nil }
-            host = String(host[...close])
-        } else if let colon = host.lastIndex(of: ":") {
-            let port = host[host.index(after: colon)...]
-            guard port.allSatisfy({ $0.isASCII && $0.isNumber }) else { return nil }
-            host = String(host[..<colon])
-        }
-        guard !host.isEmpty else { return nil }
-        let forbidden = Set("\"<>\\^`{|}".unicodeScalars)
-        if host.unicodeScalars.contains(where: { $0.value <= 0x20 || $0.value == 0x7F || forbidden.contains($0) }) { return nil }
-        return host.lowercased()
+        VaultWebHost.host(of: url)
     }
 
     /// The first problem with a canonical entry, worded for the person filling in the form.

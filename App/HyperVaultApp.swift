@@ -13,6 +13,9 @@ struct HyperVaultApp: App {
                 .environment(model)
                 .tint(accent.color)
                 .preferredColorScheme(appearance.colorScheme)
+                #if DEBUG
+                .overlay(alignment: .topLeading) { UITestWritesBeacon() }
+                #endif
                 .onOpenURL { url in model.handle(url: url) }
                 .onContinueUserActivity(CSSearchableItemActionType) { activity in
                     // A result tapped in Spotlight carries the hypervault:// link it was indexed with.

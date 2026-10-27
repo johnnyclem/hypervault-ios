@@ -162,6 +162,7 @@ struct VaultAddItemSheet: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("vault.add.\(choice.rawValue)")
     }
 }
 
@@ -209,6 +210,7 @@ private struct VaultNewItemForm: View {
                             .font(.system(.body, design: .monospaced))
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
+                            .accessibilityIdentifier("vault.add.name")
                     }
                     if !name.isEmpty, !VaultItems.isValidName(name) {
                         KeysInlineMessage(text: "Use letters, digits, dots, dashes and underscores. No spaces.")

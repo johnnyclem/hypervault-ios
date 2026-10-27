@@ -41,8 +41,17 @@ class HyperVaultUITestCase: XCTestCase {
     /// Launches the app into `scenario` and waits for its first screen. Every journey starts here, so this is also
     /// where the rules of a journey are set: the first failure ends it, and a system alert that appears over the app
     /// (a permission, a save-password offer) is dismissed rather than left to swallow the next tap.
+    ///
+    /// `resuming` is for a launch that carries on from the one before it (a journey that closes the app and opens it
+    /// again): the app keeps what that launch left, the session and the preferences, instead of starting like a first
+    /// run. `reaching` names the screen to wait for when it is not the scenario's first (a session that was ended opens
+    /// on the welcome story, whatever the scenario says).
     @discardableResult
-    func launch(_ scenario: Scenario, arguments extra: [String] = [], file: StaticString = #filePath, line: UInt = #line) -> XCUIApplication {
+    func launch(
+        _ scenario: Scenario, arguments extra: [String] = [], resuming: Bool = false,
+        reaching screen: (identifier: String, description: String)? = nil,
+        file: StaticString = #filePath, line: UInt = #line
+    ) -> XCUIApplication {
         continueAfterFailure = false
         _ = addUIInterruptionMonitor(withDescription: "System alert") { alert in
             for title in ["Not Now", "Don\u{2019}t Allow", "Don't Allow", "OK", "Cancel"] {
@@ -58,10 +67,10 @@ class HyperVaultUITestCase: XCTestCase {
         application.launchArguments = [
             "-HV_UITEST", "-HV_UITEST_SCENARIO", scenario.rawValue,
             "-AppleLanguages", "(en)", "-AppleLocale", "en_US",
-        ] + extra
+        ] + (resuming ? ["-HV_UITEST_RESUME"] : []) + extra
         start(application)
         app = application
-        let first = scenario.firstScreen
+        let first = screen ?? scenario.firstScreen
         require(element(first.identifier), "\(first.description) (\(first.identifier)) after launching \(scenario.rawValue)", file: file, line: line)
         return application
     }
@@ -345,6 +354,129 @@ class HyperVaultUITestCase: XCTestCase {
     private func backButton() -> XCUIElement {
         let identified = named("BackButton", in: app.navigationBars.buttons)
         return identified.waitForExistence(timeout: 5) ? identified : app.navigationBars.buttons.element(boundBy: 0)
+    }
+
+    // MARK: Typing
+
+    /// Types after what a field already holds: the finger goes down at the far right of the field, which puts the caret at
+    /// the end of a text shorter than the field is wide (or, for a tall field, below its last line). Typing at the middle
+    /// of a field, where a plain tap lands, would split the text.
+    func append(_ text: String, to field: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
+        require(field, what, file: file, line: line)
+        let settled = Date().addingTimeInterval(4)
+        while Date() < settled, !(field.exists && field.isHittable) {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+        }
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.9)).tap()
+        field.typeText(text)
+    }
+
+    /// Puts the keyboard away with its Return (or Done, Go) key, which a single-line field answers by letting go of the
+    /// keyboard. Not for a field that grows with its text: its Return key starts a new line.
+    func putTheKeyboardAway() {
+        guard app.keyboards.count > 0 else { return }
+        for name in ["Return", "return", "Done", "done", "Go", "go", "Next", "next", "Continue", "continue"] {
+            let key = app.keyboards.buttons[name]
+            if key.exists {
+                key.tap()
+                break
+            }
+        }
+        // (Not a failure if it stays: the next step finds out whether it was in the way.)
+        let deadline = Date().addingTimeInterval(5)
+        while Date() < deadline, app.keyboards.count > 0 {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+        }
+    }
+
+    /// Answers a confirmation the app asks for a destructive choice. On a phone the dialog is an action sheet, or a popover
+    /// that holds only the destructive button; either way the button is the one by this label that is not the control that
+    /// asked (`asked` is that control, when it is still on screen under the same label).
+    func confirm(_ label: String, whileStill asked: XCUIElement? = nil, file: StaticString = #filePath, line: UInt = #line) {
+        let inPopover = app.popovers.buttons[label]
+        let sameLabel = app.buttons.matching(NSPredicate(format: "label == %@", label))
+        let others = { (asked?.exists == true) ? 2 : 1 }
+        waitUntil("the confirmation asking for \(label)", file: file, line: line) { inPopover.exists || sameLabel.count >= others() }
+        let target = inPopover.exists ? inPopover : sameLabel.element(boundBy: max(sameLabel.count - 1, 0))
+        tap(target, "the \(label) confirmation", file: file, line: line)
+    }
+
+    // MARK: What the app sent
+
+    /// A write the app made, as the canned server received it (see `UITestWrites.swift`): the method, the path, and the
+    /// names of the body's fields with their values (a secret's value is `<redacted>`).
+    struct RecordedWrite: CustomStringConvertible {
+        let method: String
+        let path: String
+        let query: String
+        let fields: [String: String]
+
+        var description: String {
+            let shown = fields.keys.sorted().map { "\($0)=\(fields[$0] ?? "")" }.joined(separator: ", ")
+            return "\(method) \(path)\(query.isEmpty ? "" : "?" + query) {\(shown)}"
+        }
+
+        /// True when this write is what was asked for: the method, the path (a trailing `*` matches any ending), and
+        /// each field `equal` to the value given, or for `contains` holding the text.
+        func matches(_ method: String, _ path: String, equal: [String: String], contains: [String: String]) -> Bool {
+            guard self.method == method else { return false }
+            if path.hasSuffix("*") {
+                guard self.path.hasPrefix(String(path.dropLast())) else { return false }
+            } else if self.path != path {
+                return false
+            }
+            for (name, value) in equal where fields[name] != value { return false }
+            for (name, part) in contains where !(fields[name] ?? "").contains(part) { return false }
+            return true
+        }
+    }
+
+    /// Every write the app has sent since it was launched, oldest first.
+    func recordedWrites() -> [RecordedWrite] {
+        let beacon = element("uitest.writes")
+        guard beacon.exists else { return [] }
+        return beacon.label.components(separatedBy: "\n").compactMap { line in
+            guard let data = line.data(using: .utf8),
+                  let entry = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+                  let method = entry["method"] as? String, let path = entry["path"] as? String
+            else { return nil }
+            return RecordedWrite(
+                method: method, path: path, query: entry["query"] as? String ?? "",
+                fields: (entry["fields"] as? [String: String]) ?? [:]
+            )
+        }
+    }
+
+    /// Waits until the app has sent this write, and fails with everything it did send if it never does.
+    @discardableResult
+    func requireWrite(
+        _ method: String, _ path: String, equal: [String: String] = [:], contains: [String: String] = [:],
+        file: StaticString = #filePath, line: UInt = #line
+    ) -> RecordedWrite? {
+        var found: RecordedWrite?
+        let deadline = Date().addingTimeInterval(patience)
+        while Date() < deadline {
+            found = recordedWrites().first { $0.matches(method, path, equal: equal, contains: contains) }
+            if found != nil { return found }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+        }
+        let sent = recordedWrites().map(\.description).joined(separator: "\n  ")
+        attachScreenshot("Never sent - \(method) \(path)")
+        XCTFail("The app never sent \(method) \(path) with \(equal) \(contains). It sent:\n  \(sent.isEmpty ? "nothing" : sent)", file: file, line: line)
+        return nil
+    }
+
+    /// Fails if the app sent a write matching this (a secret that was typed must never be in one, a cancelled edit must not send one).
+    func requireNoWrite(
+        _ method: String, _ path: String, file: StaticString = #filePath, line: UInt = #line
+    ) {
+        let sent = recordedWrites().filter { $0.matches(method, path, equal: [:], contains: [:]) }
+        XCTAssertTrue(sent.isEmpty, "The app sent \(method) \(path) when it should not have: \(sent)", file: file, line: line)
+    }
+
+    /// The whole record as one text, for a check that something is nowhere in it.
+    func writeRecordText() -> String {
+        element("uitest.writes").label
     }
 
     // MARK: Showing what happened

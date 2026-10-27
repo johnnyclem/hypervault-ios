@@ -268,6 +268,7 @@ private struct VaultEditSheet: View {
                                 .font(.system(.body, design: .monospaced))
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
+                                .accessibilityIdentifier("vault.edit.name")
                         }
                         if !trimmedName.isEmpty, !VaultItems.isValidName(trimmedName) {
                             KeysInlineMessage(text: "Use letters, digits, dots, dashes and underscores. No spaces.")
@@ -275,6 +276,7 @@ private struct VaultEditSheet: View {
                     }
                     HVLabeledField(title: "Note (optional)") {
                         TextField("What is it for?", text: $note)
+                            .accessibilityIdentifier("vault.edit.note")
                     }
                     if let error { KeysInlineMessage(text: error) }
                 }

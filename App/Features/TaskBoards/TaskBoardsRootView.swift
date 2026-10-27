@@ -198,11 +198,13 @@ struct TaskBoardCreateView: View {
                     // The footnote says why the button below is off until there is a name.
                     HVLabeledField(title: "Name", footnote: draft.canCreate ? nil : "Give it a name to start.") {
                         TextField("What is it for?", text: $draft.title)
+                            .accessibilityIdentifier("taskboards.new.title")
                             .focused($focused)
                             .submitLabel(.next)
                     }
                     HVLabeledField(title: "A first plan (optional)", footnote: "One task per line. Your agents see them too.") {
                         TextField("Order the front panels", text: $draft.plan, axis: .vertical)
+                            .accessibilityIdentifier("taskboards.new.plan")
                             .lineLimit(5...12)
                     }
                     if let errorMessage {

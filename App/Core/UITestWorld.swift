@@ -50,16 +50,16 @@ enum UITestWorld {
             let own: [MockRoute] = [capabilitiesRoute(letIn: { false })]
             return signInRoutes + own + fallbackRoutes
         case .signedIn:
-            return sharedRoutes(letIn: { true }) + vaultRoutes + screenRoutes + previewRoutes + fallbackRoutes
+            return writeRoutes() + sharedRoutes(letIn: { true }) + vaultRoutes + screenRoutes + previewRoutes + fallbackRoutes
         case .signedInAdmin:
-            return sharedRoutes(letIn: { true }, admin: true) + vaultRoutes + screenRoutes + previewRoutes + fallbackRoutes
+            return writeRoutes() + sharedRoutes(letIn: { true }, admin: true) + vaultRoutes + screenRoutes + previewRoutes + fallbackRoutes
         case .signedInEmpty:
             return sharedRoutes(letIn: { true }) + emptyVaultRoutes + previewRoutes + fallbackRoutes
         case .waitlisted:
             // Signed in but not let in, until the invite code is redeemed: then the same vault as `signedIn`.
             let gate = UITestGate()
             let gated: [MockRoute] = [redeemRoute(gate: gate), yoursGateRoute(gate: gate)]
-            return gated + sharedRoutes(letIn: { gate.isOpen }) + vaultRoutes + screenRoutes + previewRoutes + fallbackRoutes
+            return gated + writeRoutes() + sharedRoutes(letIn: { gate.isOpen }) + vaultRoutes + screenRoutes + previewRoutes + fallbackRoutes
         }
     }
 
@@ -218,7 +218,7 @@ enum UITestWorld {
 
     // MARK: Things kept
 
-    private struct Thing {
+    struct Thing {
         let id: String
         let kind: String
         let name: String
@@ -257,7 +257,7 @@ enum UITestWorld {
         }
     }
 
-    private static let things: [Thing] = [
+    static let things: [Thing] = [
         Thing(id: "a1", kind: "page", name: "Bakery landing page", summary: "", href: "/a/bakery-landing-page-x1", updatedAgo: 7_200, openedAgo: 1_800),
         Thing(id: "m1", kind: "memory", name: "Trip to Lisbon: ferry and passports", summary: "Book the Friday ferry across the Tagus.", href: "/vault/memory?open=m1", updatedAgo: 90_000, openedAgo: 9_000),
         Thing(id: "k1", kind: "key", name: "OPENAI_API_KEY", summary: "2 agents allowed", href: "/vault/account", updatedAgo: 400_000, openedAgo: 20_000),
@@ -269,7 +269,7 @@ enum UITestWorld {
 
     /// `GET /api/yours?kind=&q=&limit=`: what is kept, narrowed the way the server narrows it. The head of the list
     /// (Recent) is only sent for the plain, unfiltered read.
-    private static func yours(request: URLRequest, things: [Thing]) -> HTTPResponse {
+    static func yours(request: URLRequest, things: [Thing]) -> HTTPResponse {
         let filter = request.queryValue("kind") ?? "all"
         let text = (request.queryValue("q") ?? "").lowercased()
         let limit = Int(request.queryValue("limit") ?? "") ?? 50
@@ -418,35 +418,38 @@ enum UITestWorld {
 
     /// `/api/artifacts/<slug>/content`, `/feedback` and the like, by what the path ends with.
     private static var artifactDetailRoute: MockRoute {
-        MockRoute(.get, "/api/artifacts/*") { request in
-            let path = request.url?.path ?? ""
-            let parts = path.split(separator: "/").map(String.init)
-            guard parts.count >= 4 else { return reply(.object(["error": .string("Not found")]), status: 404) }
-            let slug = parts[2]
-            switch parts[3] {
-            case "content":
-                return reply(.object([
-                    "slug": .string(slug),
-                    "title": .string("Bakery landing page"),
-                    "content": .string("<h1>Fresh bread daily</h1>\n<p>Open at seven.</p>"),
-                    "is_jsx": .bool(false),
-                    "mutable": .bool(true),
-                    "content_hash": .string("h1"),
-                    "head_version_id": .string("v1"),
-                ]))
-            case "source":
-                return reply(.object(["content": .string(pageHTML)]))
-            case "feedback":
-                return reply(.object(["feedback": .null]))
-            case "versions":
-                return reply(versionsJSON(slug: slug))
-            default:
-                return reply(.object(["error": .string("Not found")]), status: 404)
-            }
+        MockRoute(.get, "/api/artifacts/*", handler: artifactDetail)
+    }
+
+    /// The reads under a page, by what the path ends with (the page the journeys open is the Bakery page).
+    static func artifactDetail(_ request: URLRequest) -> HTTPResponse {
+        let path = request.url?.path ?? ""
+        let parts = path.split(separator: "/").map(String.init)
+        guard parts.count >= 4 else { return reply(.object(["error": .string("Not found")]), status: 404) }
+        let slug = parts[2]
+        switch parts[3] {
+        case "content":
+            return reply(.object([
+                "slug": .string(slug),
+                "title": .string("Bakery landing page"),
+                "content": .string("<h1>Fresh bread daily</h1>\n<p>Open at seven.</p>"),
+                "is_jsx": .bool(false),
+                "mutable": .bool(true),
+                "content_hash": .string("h1"),
+                "head_version_id": .string("v1"),
+            ]))
+        case "source":
+            return reply(.object(["content": .string(pageHTML)]))
+        case "feedback":
+            return reply(.object(["feedback": .null]))
+        case "versions":
+            return reply(versionsJSON(slug: slug))
+        default:
+            return reply(.object(["error": .string("Not found")]), status: 404)
         }
     }
 
-    private static let pageHTML = """
+    static let pageHTML = """
     <!doctype html>
     <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Bakery landing page</title></head>

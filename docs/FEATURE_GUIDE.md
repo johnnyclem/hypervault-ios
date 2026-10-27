@@ -205,6 +205,23 @@ canned hosts end in `.invalid`; anything that builds its own `URLSession` reques
    for the right element rather than sleeping, and fix a flaky journey at its cause (an identifier, a better wait),
    never by skipping it.
 
+**Journeys that write.** A journey that creates, edits or deletes something checks two things: what the screen shows
+afterwards, and that the app sent the write it should have. The first needs a canned server that remembers:
+`App/Core/UITestWorld+Writes.swift` has small stores (the pages, the memories, the vault entries, the boards, the mail)
+that a route reads and changes, built fresh for every launch and answering in the shape of the real route (the unit
+tests, `UITestWritesTests`, decode every answer through the Kit's own endpoints, as the others are). Its routes come
+before the static ones, so where one answers a path it answers for the whole launch. The second is the record of writes
+(`App/Core/UITestWrites.swift`): a recording transport notes every request that is not a read, as one line of JSON (method,
+path, query, and each field of the body with its value, an object one level down as `{name=value}`; a field that could be a
+secret, `value`, `password`, `token`, `number`, is `<redacted>`, so a typed password is in no record), and a hidden
+accessibility element, `uitest.writes`, carries the lines. In a journey, `requireWrite("PATCH", "/api/memories/m6",
+equal: ["title": "..."], contains: ["content": "..."])` waits until the app has sent it, and fails with everything the app did
+send; `requireNoWrite` and `writeRecordText()` check that something was not sent. Read the record with no sheet over the
+screen. A journey that closes the app and opens it again launches with `resuming: true` (`-HV_UITEST_RESUME`): the secure
+store and the preferences are read back instead of starting like a first run, so it can check that a signed-out app does not
+get its session back. When a flow is broken in the app (a screen that does not follow a rename, a list that does not
+update after a write), fix the app, not the journey. A write journey that fails is a finding.
+
 **The layout sweep.** `LayoutSweepTests` and `LayoutSweepScreensTests` launch the app in the dark appearance and at the
 largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the You tab
 opens (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
@@ -218,9 +235,11 @@ tab bar first). The point is to look: fetch `ui-snapshots-<branch>` after a run 
 in the sweep when it has a layout of its own.
 
 **Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
-any iPhone simulator; `make test-unit` runs the rest. CI runs seven UI jobs beside the unit tests, each building and
+any iPhone simulator; `make test-unit` runs the rest. CI runs nine UI jobs beside the unit tests, each building and
 running on its own: `journeys` (everything not named below, so a new test class runs there until it is given a job),
 `screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
+`writes-keep` (`MemoryAndVaultWritesJourneyTests` and `PagesWritesJourneyTests`), `writes-more`
+(`BoardsAndMailWritesJourneyTests` and `SessionAndSettingsWritesJourneyTests`),
 `sweep-dark` (every sweep test in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
 large text size) and `sweep-large-keep` and `sweep-large-think` (the You tab's screens at the large text size, in two
 halves). A push waits for the slowest of them, which should stay at about 20 minutes. They have taken between 5 and 22

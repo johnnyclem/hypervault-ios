@@ -3,7 +3,7 @@
 
     check_debug_only.py
 
-The mode (App/Core/UITestHarness.swift, UITestWorld.swift, UITestWorld+Screens.swift, and the scratch defaults in Shared/SharedConfig.swift) is
+The mode (App/Core/UITestHarness.swift, UITestWorld.swift, UITestWorld+Screens.swift, UITestWorld+Writes.swift, UITestWrites.swift, and the scratch defaults in Shared/SharedConfig.swift) is
 meant to exist only in debug builds. This reads the sources and fails if
 
   - a harness file is not wrapped, whole, in `#if DEBUG ... #endif`, or
@@ -20,8 +20,10 @@ HARNESS_FILES = [
     ROOT / "App/Core/UITestHarness.swift",
     ROOT / "App/Core/UITestWorld.swift",
     ROOT / "App/Core/UITestWorld+Screens.swift",
+    ROOT / "App/Core/UITestWorld+Writes.swift",
+    ROOT / "App/Core/UITestWrites.swift",
 ]
-SYMBOLS = re.compile(r"\b(UITestHarness|UITestWorld|UITestScenario|UITestURLProtocol|UITestSecureStore|scratchDefaults)\b")
+SYMBOLS = re.compile(r"\b(UITestHarness|UITestWorld|UITestScenario|UITestURLProtocol|UITestSecureStore|UITestWriteLog|UITestWritesModel|UITestWritesBeacon|UITestRecordingTransport|scratchDefaults)\b")
 
 
 def significant(lines):

@@ -27,9 +27,12 @@ import Foundation
 // outside ASCII is lower-cased and kept, and only the classes that matter in a pasted address are refused: the
 // separators and controls that turn into or hold a space (U+00A0, U+3000, U+0085 ...), format characters other
 // than the ignorable ones, private use, U+FFFD, and the fullwidth forms of ASCII are read as the ASCII they stand
-// for (so a fullwidth "：" is the forbidden ":"). Where the two differ, this accepts what Node refuses (Save is
-// enabled and the server answers 400, which the form shows) and never the reverse. Unassigned code points are
-// accepted for the same reason: the Unicode tables differ between OS versions.
+// for (so a fullwidth "：" is the forbidden ":"). The zero-width joiners (U+200C, U+200D) are kept where `joinerStands`
+// lets them: Persian, Sinhala and Indic spelling needs them and Node takes them there. Where the two differ, this
+// accepts what Node refuses (Save is enabled and the server answers 400, which the form shows) and is meant never
+// to refuse what Node accepts; the exceptions are rare (Cherokee "xn--" labels, labels that begin with some
+// combining marks) and are not ported. Unassigned code points are accepted for the same reason: the Unicode
+// tables differ between OS versions.
 
 enum VaultWebHost {
     /// The host `new URL(address).hostname` gives for an http(s) address, or nil.
@@ -137,7 +140,7 @@ enum VaultWebHost {
 
     private static func domainToASCII(_ domain: [UInt32]) -> [UInt32]? {
         var mapped: [UInt32] = []
-        for value in domain {
+        for (index, value) in domain.enumerated() {
             if value < 0x80 {
                 mapped.append(lowercasedASCII(value))
             } else if value >= 0xFF01, value <= 0xFF5E {
@@ -146,6 +149,9 @@ enum VaultWebHost {
                 mapped.append(0x2E)  // the ideographic and halfwidth ideographic full stops separate labels
             } else if isIgnored(value) {
                 continue
+            } else if isJoiner(value) {
+                guard joinerStands(at: index, in: domain) else { return nil }
+                mapped.append(value)
             } else {
                 guard let scalar = Unicode.Scalar(value), !isRefused(scalar) else { return nil }
                 mapped.append(contentsOf: scalar.properties.lowercaseMapping.unicodeScalars.map { $0.value })
@@ -159,7 +165,11 @@ enum VaultWebHost {
             if isASCII, label.starts(with: punycodePrefix) {
                 // An "xn--" label has to decode, to something that is a label as it stands.
                 guard let decoded = decodePunycode(Array(label.dropFirst(4))), !decoded.isEmpty else { return nil }
-                for value in decoded where value >= 0x80 {
+                for (index, value) in decoded.enumerated() where value >= 0x80 {
+                    if isJoiner(value) {
+                        guard joinerStands(at: index, in: decoded) else { return nil }
+                        continue
+                    }
                     guard let scalar = Unicode.Scalar(value), !isRefused(scalar), !isIgnored(value) else { return nil }
                     guard scalar.properties.lowercaseMapping.unicodeScalars.map({ $0.value }) == [value] else { return nil }
                 }
@@ -190,8 +200,23 @@ enum VaultWebHost {
         }
     }
 
+    private static func isJoiner(_ value: UInt32) -> Bool { value == 0x200C || value == 0x200D }
+
+    /// Whether the joiner at `index` is in a place where spelling needs one. UTS 46 allows it after a virama, and
+    /// the zero-width non-joiner between letters that join. Joining types are not in Swift's Unicode properties,
+    /// so the second case is read as: inside a label, with a letter outside ASCII on at least one side. That is
+    /// looser than Node (see the header), and it keeps a joiner out of a Latin label, where Node refuses it.
+    private static func joinerStands(at index: Int, in values: [UInt32]) -> Bool {
+        guard index > 0, index + 1 < values.count else { return false }
+        let before = values[index - 1]
+        let after = values[index + 1]
+        if before == 0x2E || after == 0x2E || isJoiner(before) || isJoiner(after) { return false }
+        if let scalar = Unicode.Scalar(before), scalar.properties.canonicalCombiningClass.rawValue == 9 { return true }
+        return before >= 0x80 || after >= 0x80
+    }
+
     /// A character outside ASCII that no host may hold: controls, every kind of space and separator, private use,
-    /// format characters (the joiners and bidi controls among them) and U+FFFD, which is what bytes that are not
+    /// format characters (the joiners and bidi controls among them; `joinerStands` lets a joiner through) and U+FFFD, which is what bytes that are not
     /// UTF-8 decode to.
     private static func isRefused(_ scalar: Unicode.Scalar) -> Bool {
         if scalar.value == 0xFFFD { return true }

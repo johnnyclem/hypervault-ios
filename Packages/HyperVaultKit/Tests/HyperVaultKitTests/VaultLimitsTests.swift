@@ -79,25 +79,29 @@ final class VaultLimitsTests: XCTestCase {
 
     // MARK: Description
 
-    func testTheDescriptionIsCountedInCodePoints() {
+    func testTheDescriptionIsCountedInUTF16Units() {
+        // The server cuts with `slice(0, 500)`, which counts UTF-16 units.
         XCTAssertEqual(VaultLimits.descriptionLength(""), 0)
         XCTAssertEqual(VaultLimits.descriptionLength("abc"), 3)
-        // An emoji is one code point, two UTF-16 units and one Character; a flag is two code points and one Character.
-        XCTAssertEqual(VaultLimits.descriptionLength("\u{1F600}"), 1)
-        XCTAssertEqual(VaultLimits.descriptionLength("\u{1F1FA}\u{1F1F8}"), 2)
+        XCTAssertEqual(VaultLimits.descriptionLength("\u{1F600}"), 2)
+        XCTAssertEqual(VaultLimits.descriptionLength("\u{1F1FA}\u{1F1F8}"), 4)
         XCTAssertEqual(VaultLimits.descriptionLength("e\u{301}"), 2)
-        let atLimit = String(repeating: "\u{1F600}", count: 500)
-        XCTAssertFalse(VaultLimits.descriptionTooLong(atLimit))
-        XCTAssertTrue(VaultLimits.descriptionTooLong(atLimit + "a"))
+        XCTAssertFalse(VaultLimits.descriptionTooLong(String(repeating: "\u{1F600}", count: 250)))
+        XCTAssertTrue(VaultLimits.descriptionTooLong(String(repeating: "\u{1F600}", count: 251)))
         XCTAssertFalse(VaultLimits.descriptionTooLong(String(repeating: "a", count: 500)))
         XCTAssertTrue(VaultLimits.descriptionTooLong(String(repeating: "a", count: 501)))
     }
 
-    func testClampingNeverSplitsACodePoint() {
+    func testClampingKeepsWhatTheServerWouldKeepAndNeverSplitsAPair() {
         let long = String(repeating: "\u{1F600}", count: 600)
         let clamped = VaultLimits.clampedDescription(long)
-        XCTAssertEqual(clamped.unicodeScalars.count, 500)
+        XCTAssertEqual(clamped.unicodeScalars.count, 250)
+        XCTAssertEqual(clamped.utf16.count, 500)
         XCTAssertTrue(clamped.unicodeScalars.allSatisfy { $0.value == 0x1F600 })
+        // 499 units and an emoji that needs two: it does not fit, so it is dropped whole (the server would keep
+        // its high half).
+        let edge = String(repeating: "a", count: 499) + "\u{1F600}"
+        XCTAssertEqual(VaultLimits.clampedDescription(edge), String(repeating: "a", count: 499))
         let short = "hello"
         XCTAssertEqual(VaultLimits.clampedDescription(short), short)
         XCTAssertEqual(VaultLimits.clampedDescription(String(repeating: "a", count: 500)).count, 500)

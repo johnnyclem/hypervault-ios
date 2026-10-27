@@ -61,10 +61,9 @@ enum ChatFoundationModelsAdapter {
     }
 
     static func isAssetFailure(_ error: Error) -> Bool {
+        // The iOS 27 SDK's own `SystemLanguageModel.Error.assetsUnavailable` is caught here too: `isMissing` reads
+        // its description. Naming the type would break the build on an Xcode whose SDK does not have it yet.
         if OnDeviceModelAssets.isMissing(error) { return true }
-        if #available(iOS 27.0, *), let failure = error as? SystemLanguageModel.Error, case .assetsUnavailable = failure {
-            return true
-        }
         if let failure = error as? LanguageModelSession.GenerationError, case .assetsUnavailable = failure {
             return true
         }

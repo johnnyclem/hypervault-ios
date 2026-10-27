@@ -80,9 +80,11 @@ struct HVGhostButtonStyle: ButtonStyle {
     }
 }
 
-/// A round icon button, for toolbars and the composer.
+/// A round icon button, for toolbars and the composer. Pressed is a small spring; with Reduce Motion on it is a dimmer
+/// fill instead, as the other styles have it.
 struct HVIconButtonStyle: ButtonStyle {
     var prominent = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -93,8 +95,9 @@ struct HVIconButtonStyle: ButtonStyle {
                 Circle().fill(prominent ? AnyShapeStyle(Palette.softGradient) : AnyShapeStyle(Palette.surfaceRaised))
             )
             .overlay(Circle().strokeBorder(prominent ? Color.white.opacity(0.18) : Palette.border, lineWidth: 1))
-            .scaleEffect(configuration.isPressed ? 0.94 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
+            .opacity(configuration.isPressed && reduceMotion ? 0.85 : 1)
+            .hvAnimation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
 
@@ -203,7 +206,7 @@ struct HVChip: View {
     var body: some View {
         HStack(spacing: 6) {
             if let symbol {
-                Image(systemName: symbol).font(.system(size: 12, weight: .semibold))
+                HVIcon(symbol).font(.system(size: 12, weight: .semibold))
             }
             Text(title).font(.system(.subheadline, weight: .medium))
         }
@@ -214,7 +217,7 @@ struct HVChip: View {
             Capsule().fill(isSelected ? AnyShapeStyle(Palette.textPrimary) : AnyShapeStyle(Palette.surfaceRaised))
         )
         .overlay(Capsule().strokeBorder(isSelected ? Color.clear : Palette.border, lineWidth: 1))
-        .animation(.easeOut(duration: 0.15), value: isSelected)
+        .hvAnimation(.easeOut(duration: 0.15), value: isSelected)
         .frame(minHeight: minTarget)
         .contentShape(Rectangle())
     }
@@ -385,7 +388,7 @@ struct HVSheetHeader: View {
             Spacer()
             if let onClose {
                 Button(action: onClose) {
-                    Image(systemName: "xmark")
+                    Image(systemName: HVSymbol.close)
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(Palette.textSecondary)
                         .frame(width: 30, height: 30)

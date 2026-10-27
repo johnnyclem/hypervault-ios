@@ -101,7 +101,7 @@ struct ToolsScreen: View {
             Button { sheet = .catalog } label: { Label("Browse the catalog", systemImage: "square.grid.2x2") }
             Button { sheet = .add(nil) } label: { Label("Add by address", systemImage: "link") }
         } label: {
-            Image(systemName: "plus")
+            Image(systemName: HVSymbol.add)
                 .frame(width: 44, height: 44)
         }
         .accessibilityLabel("Add a server")

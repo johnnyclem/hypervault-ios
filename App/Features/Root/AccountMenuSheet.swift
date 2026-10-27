@@ -19,7 +19,7 @@ struct AccountMenuSheet: View {
                     row("library", AccountMenu.library, symbol: "folder", tint: Palette.blue, to: .route(.library))
                     row("mail", AccountMenu.mail, symbol: "tray.full", tint: Palette.sky, to: .route(.mail), badge: unread)
                     row("taskBoards", AccountMenu.taskBoards, symbol: "checklist", tint: Palette.mint, to: .route(.taskBoards))
-                    row("accountAndKeys", AccountMenu.accountAndKeys, symbol: "key.horizontal", tint: Palette.amber, to: .account(nil))
+                    row("accountAndKeys", AccountMenu.accountAndKeys, symbol: HVSymbol.agentKeys, tint: Palette.amber, to: .account(nil))
                     row("groupChats", AccountMenu.groupChats, symbol: "person.2", tint: Palette.violet, to: .groupChats)
                     row("tools", AccountMenu.tools, symbol: "wrench.and.screwdriver", tint: Palette.coral, to: .route(.tools))
                     row("import", AccountMenu.importAnything, symbol: HVSymbol.importData, tint: Palette.coral, to: .account(.import))

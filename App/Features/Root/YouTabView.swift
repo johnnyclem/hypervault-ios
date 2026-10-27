@@ -55,10 +55,9 @@ struct YouTabView: View {
                             .foregroundStyle(Palette.textPrimary)
                         Spacer(minLength: HV.Space.xs)
                         if !besideThePane {
-                            Image(systemName: HVSymbol.open)
+                            HVIcon(HVSymbol.open)
                                 .font(.hvCaption.weight(.semibold))
                                 .foregroundStyle(Palette.textTertiary)
-                                .accessibilityHidden(true)
                         }
                     }
                     .frame(minHeight: 44)
@@ -81,27 +80,30 @@ struct YouTabView: View {
 /// One pane of the You tab: the screen already built for it, under the pane's name. The web's panes are Settings, the
 /// Vault, Agent keys, Models, Domain, Appearance and Import; the heading is the navigation title, and a pane whose
 /// screen has a line to say under it says it above its first group.
+///
+/// The Vault and Domain screens name themselves (the same word, with the large title, and the Vault's own add button and
+/// search), so the pane puts no second title on them. Every pane is shown inside a navigation stack, which those screens
+/// need for their own toolbar and pushes.
 struct AccountPaneView: View {
     let pane: AccountPane
 
     @Environment(AppEnvironment.self) private var env
 
     var body: some View {
+        switch pane {
+        case .vault: VaultItemsView()
+        case .domain: RealmsRootView()
+        case .general: titled(GeneralPane())
+        case .keys: titled(AgentsAndKeysView())
+        case .backends: titled(ChatModelsContent(env: env, onChange: nil, embedded: true))
+        case .appearance: titled(AppearancePane())
+        case .import: titled(ImportPane())
+        }
+    }
+
+    private func titled<Content: View>(_ content: Content) -> some View {
         content
             .navigationTitle(pane.label)
             .keysLargeTitle()
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        switch pane {
-        case .general: GeneralPane()
-        case .vault: VaultItemsView()
-        case .keys: AgentsAndKeysView()
-        case .backends: ChatModelsContent(env: env, onChange: nil, embedded: true)
-        case .domain: RealmsRootView()
-        case .appearance: AppearancePane()
-        case .import: ImportPane()
-        }
     }
 }

@@ -60,7 +60,7 @@ final class ToolsCatalogModel {
                 if verdict.state == .dead { self.knownDead.insert(key) }
                 if verdict.state == .alive { self.knownDead.remove(key) }
             }
-            withAnimation(.easeInOut(duration: 0.25)) {
+            HV.Motion.animate(.easeInOut(duration: 0.25)) {
                 self.results = McpRegistryEntry.applying(answer.results, to: self.results, knownDead: self.knownDead)
             }
         }
@@ -244,7 +244,7 @@ struct ToolsCatalogRow: View {
         if isAdded {
             // The same capsule as "Add", in mint and not tappable, so every row ends the same way.
             HStack(spacing: 4) {
-                Image(systemName: "checkmark").font(.system(size: 11, weight: .bold))
+                HVIcon("checkmark").font(.system(size: 11, weight: .bold))
                 Text("Added")
             }
             .font(.system(.footnote, weight: .semibold))

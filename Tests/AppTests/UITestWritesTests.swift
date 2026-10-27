@@ -169,6 +169,44 @@ final class UITestWritesTests: XCTestCase {
         }
     }
 
+    func testAllowingAndRevokingAKeyChangesWhatTheGrantsListSays() async {
+        let api = client()
+        var outcome = await api.setSecretGrant(name: "visa-4242", keyID: "k2", allowed: true)
+        XCTAssertEqual(outcome, .applied)
+        let allowed = await api.loadSecretGrants(name: "visa-4242")
+        XCTAssertEqual(allowed, .loaded(["k1", "k2"]))
+
+        outcome = await api.setSecretGrant(name: "visa-4242", keyID: "k2", allowed: false)
+        XCTAssertEqual(outcome, .applied)
+        // A repeat of a revoke finds nothing to revoke, and the entry is still there.
+        outcome = await api.setSecretGrant(name: "visa-4242", keyID: "k2", allowed: false)
+        XCTAssertEqual(outcome, .alreadyOff)
+        // A key the server does not know.
+        outcome = await api.setSecretGrant(name: "visa-4242", keyID: "k9", allowed: true)
+        XCTAssertEqual(outcome, .keyGone)
+    }
+
+    func testTheStaleKeyIsListedOnceAndTurningItOffIsAlreadyOff() async {
+        let api = client()
+        let first = await api.loadSecretGrants(name: "github.com")
+        XCTAssertEqual(first, .loaded(["k1", "k3"]), "the first read still shows a key another device revoked")
+
+        let outcome = await api.setSecretGrant(name: "github.com", keyID: UITestSecrets.staleKey, allowed: false)
+        XCTAssertEqual(outcome, .alreadyOff)
+        let again = await api.loadSecretGrants(name: "github.com")
+        XCTAssertEqual(again, .loaded(["k1"]))
+    }
+
+    func testTheVanishingEntryIsFoundDeletedByItsFirstChange() async throws {
+        let api = client()
+        let outcome = await api.setSecretGrant(name: UITestSecrets.vanishingEntry, keyID: "k2", allowed: true)
+        XCTAssertEqual(outcome, .entryGone)
+        let grants = await api.loadSecretGrants(name: UITestSecrets.vanishingEntry)
+        XCTAssertEqual(grants, .entryGone)
+        let listed = try await api.send(.vaultSecrets).secrets.map(\.name)
+        XCTAssertFalse(listed.contains(UITestSecrets.vanishingEntry))
+    }
+
     func testACardEntryShowsItsBrandAndLastFourDigits() async throws {
         let api = client()
         let value = VaultItems.serialize(.card, ["number": "4242 4242 4242 4242", "expMonth": "12", "expYear": "2030"])

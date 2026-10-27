@@ -40,13 +40,13 @@ enum MemoryStyle {
     static func symbol(forSource source: String) -> String {
         switch source {
         case "manual": return "square.and.pencil"
-        case "chat": return "bubble.left"
+        case "chat": return HVSymbol.chat
         case "coding": return "chevron.left.forwardslash.chevron.right"
         case "agent": return "sparkles"
         case "file": return "doc.text"
         case "github": return "shippingbox"
         case "web": return "globe"
-        default: return "brain.head.profile"
+        default: return HVSymbol.memory
         }
     }
 
@@ -72,7 +72,7 @@ extension MindCommitKind {
         case .forget: return "minus.circle"
         case .merge: return "arrow.triangle.merge"
         case .revert: return "arrow.uturn.backward.circle"
-        case .importing: return "square.and.arrow.down"
+        case .importing: return HVSymbol.importData
         case .link: return "link"
         case .other: return "circle.dashed"
         }
@@ -180,7 +180,7 @@ struct MemorySourceChip: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: MemoryStyle.symbol(forSource: source))
+            HVIcon(MemoryStyle.symbol(forSource: source))
                 .font(.system(size: 10, weight: .semibold))
             Text(MemorySource.label(source))
                 .font(.system(.caption2, weight: .semibold))
@@ -206,7 +206,7 @@ struct MemoryRowDivider: View {
 /// The small arrow at the end of a row that opens something.
 struct MemoryChevron: View {
     var body: some View {
-        Image(systemName: "chevron.right")
+        Image(systemName: HVSymbol.open)
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(Palette.textTertiary)
             .accessibilityHidden(true)

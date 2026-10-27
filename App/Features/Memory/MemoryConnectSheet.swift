@@ -72,7 +72,7 @@ struct MemoryConnectSheet: View {
             connect(id)
         } label: {
             HVRow(symbol: kind.symbol, tint: kind.tint, title: title, subtitle: subtitle) {
-                if connecting == id { ProgressView() } else { Image(systemName: "plus.circle").foregroundStyle(Color.accentColor) }
+                if connecting == id { ProgressView() } else { HVIcon("plus.circle").foregroundStyle(Color.accentColor) }
             }
             .padding(.vertical, 6)
             .frame(minHeight: 44)

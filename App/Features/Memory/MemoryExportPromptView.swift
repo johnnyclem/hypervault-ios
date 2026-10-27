@@ -56,11 +56,11 @@ struct MemoryExportPromptView: View {
                     copied = true
                     app.toasts.success("Prompt copied.")
                     Task {
-                        try? await Task.sleep(nanoseconds: 1_800_000_000)
+                        try? await Task.sleep(nanoseconds: UInt64(HV.Motion.copiedHold * 1_000_000_000))
                         copied = false
                     }
                 } label: {
-                    Label(copied ? "Copied" : "Copy prompt", systemImage: copied ? "checkmark" : "doc.on.doc")
+                    Label(copied ? "Copied" : "Copy prompt", systemImage: copied ? HVSymbol.copied : HVSymbol.copy)
                 }
                 .buttonStyle(.hvPrimary)
 

@@ -79,7 +79,7 @@ struct MemoryTabScreen: View {
                 Button {
                     showMemorize = true
                 } label: {
-                    Image(systemName: "plus")
+                    Image(systemName: HVSymbol.add)
                 }
                 .accessibilityLabel("Memorize something")
                 .accessibilityIdentifier("memory.memorize")
@@ -152,7 +152,7 @@ struct MemoryTabScreen: View {
             }
             Section {
                 Button { app.router.push(.digest) } label: { Label("Digest", systemImage: "scissors") }
-                Button { destination = .exportPrompt } label: { Label("Bring memories from another AI", systemImage: "square.and.arrow.down") }
+                Button { destination = .exportPrompt } label: { Label("Bring memories from another AI", systemImage: HVSymbol.importData) }
             }
         } label: {
             Image(systemName: "ellipsis.circle")

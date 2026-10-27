@@ -252,11 +252,11 @@ struct TruthScreen: View {
             } header: {
                 Button {
                     Haptics.select()
-                    withAnimation(.easeOut(duration: 0.2)) { historyOpen.toggle() }
+                    HV.Motion.animate { historyOpen.toggle() }
                 } label: {
                     HStack {
                         HVSectionHeader(title: "History", detail: "\(rows.count)")
-                        Image(systemName: "chevron.down")
+                        HVIcon(HVSymbol.fold)
                             .font(.system(size: 11, weight: .bold))
                             .rotationEffect(.degrees(historyOpen ? 0 : -90))
                             .foregroundStyle(Palette.textSecondary)
@@ -290,7 +290,7 @@ struct TruthScreen: View {
                 if model.active?.isHosted == true {
                     Button { showAssert = true } label: { Label("Assert a TB or UV", systemImage: "plus.circle") }
                 }
-                Button { showImport = true } label: { Label("Import", systemImage: "square.and.arrow.down") }
+                Button { showImport = true } label: { Label("Import", systemImage: HVSymbol.importData) }
                 Button { exportStream() } label: { Label("Export this ledger", systemImage: "square.and.arrow.up") }
                 Divider()
                 Button { more = .drafts } label: { Label("Drafts", systemImage: "doc.text") }
@@ -322,13 +322,13 @@ struct TruthScreen: View {
                 }
             }
             Divider()
-            Button { showNewLedger = true } label: { Label("New ledger", systemImage: "plus") }
+            Button { showNewLedger = true } label: { Label("New ledger", systemImage: HVSymbol.add) }
         } label: {
             VStack(spacing: 0) {
                 Text("Truth").font(.hvHeadline).foregroundStyle(Palette.textPrimary)
                 HStack(spacing: 3) {
                     Text(model.active?.name ?? "Ledger").lineLimit(1)
-                    Image(systemName: "chevron.down").font(.system(size: 8, weight: .bold))
+                    HVIcon(HVSymbol.fold).font(.system(size: 8, weight: .bold))
                 }
                 .font(.hvCaption)
                 .foregroundStyle(Palette.textSecondary)

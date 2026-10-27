@@ -43,9 +43,6 @@ struct ChatRoomContent: View {
             .hvScreenBackground()
             .navigationTitle(model.title)
             .navigationBarTitleDisplayMode(.inline)
-            // The thread scrolls under the bar; paper behind it keeps the title readable.
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(Palette.background, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
@@ -55,7 +52,7 @@ struct ChatRoomContent: View {
                             showRename = true
                         } label: { Label("Rename", systemImage: "pencil") }
                         Divider()
-                        Button(role: .destructive) { confirmDelete = true } label: { Label("Delete room", systemImage: "trash") }
+                        Button(role: .destructive) { confirmDelete = true } label: { Label("Delete room", systemImage: HVSymbol.delete) }
                     } label: {
                         Image(systemName: "ellipsis.circle").frame(width: 44, height: 44)
                     }
@@ -135,7 +132,7 @@ struct ChatRoomContent: View {
     }
 
     private func scroll(_ proxy: ScrollViewProxy) {
-        withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(Self.bottomID, anchor: .bottom) }
+        HV.Motion.animate(.easeOut(duration: 0.25)) { proxy.scrollTo(Self.bottomID, anchor: .bottom) }
     }
 
     private var roster: some View {
@@ -197,7 +194,7 @@ struct ChatRoomContent: View {
                 HStack(alignment: .top) {
                     Text(notice).font(.hvFootnote).foregroundStyle(Palette.textSecondary).frame(maxWidth: .infinity, alignment: .leading)
                     Button { model.dismissNotice() } label: {
-                        Image(systemName: "xmark").font(.hvCaption.weight(.bold)).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                        Image(systemName: HVSymbol.close).font(.hvCaption.weight(.bold)).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(Palette.textSecondary)
@@ -245,8 +242,8 @@ struct ChatRoomContent: View {
         .padding(.top, HV.Space.xs)
         .padding(.bottom, HV.Space.xs)
         .hvReadableWidth()
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: model.canSend)
-        .animation(.easeOut(duration: 0.2), value: model.notice)
+        .hvAnimation(.spring(response: 0.3, dampingFraction: 0.8), value: model.canSend)
+        .hvAnimation(HV.Motion.entrance, value: model.notice)
     }
 
     private var mentionChips: some View {
@@ -379,7 +376,7 @@ struct ChatRoomMessageView: View {
 
     private func toolLine(_ turn: ChatRoomToolTurn) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Image(systemName: "wrench.and.screwdriver").font(.hvCaption)
+            HVIcon("wrench.and.screwdriver").font(.hvCaption)
             Text(turn.tool).font(.hvMono)
             Text(turn.summary).font(.hvCaption).foregroundStyle(turn.ok ? Palette.textSecondary : Palette.danger)
             if let slug = turn.slug {

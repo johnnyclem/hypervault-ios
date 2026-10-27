@@ -131,11 +131,11 @@ struct ClaimRealmView: View {
             .disabled(flow.availability != .available || flow.claiming)
             .accessibilityHint(flow.availability == .available ? "" : "Pick a name that is free first.")
         }
-        .padding(.horizontal, HV.Space.m)
-        .padding(.top, HV.Space.s)
-        .padding(.bottom, HV.Space.s)
+        .padding(HV.Space.s)
         .frame(maxWidth: .infinity)
-        .background(.bar)
+        .hvGlass(radius: 26)
+        .padding(.horizontal, HV.Space.m)
+        .padding(.vertical, HV.Space.xs)
     }
 
     private func domainCard(_ domain: Capabilities.PortfolioDomain) -> some View {

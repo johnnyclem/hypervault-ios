@@ -113,7 +113,7 @@ private struct ConnectPickerScreen: View {
             if model.fresh == nil, model.existingKey == nil, model.query.isEmpty {
                 Section {
                     NavigationLink(value: ConnectRoute.justAKey) {
-                        HVRow(symbol: "key.horizontal", tint: Palette.amber, title: "Just make a key", subtitle: "For anything not listed. You choose where it goes.")
+                        HVRow(symbol: HVSymbol.key, tint: Palette.amber, title: "Just make a key", subtitle: "For anything not listed. You choose where it goes.")
                     }
                 }
                 .hvListRow()

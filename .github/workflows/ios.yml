@@ -147,6 +147,9 @@ jobs:
             tests: >-
               -only-testing:HyperVaultUITests/MemoryAndVaultWritesJourneyTests
               -only-testing:HyperVaultUITests/PagesWritesJourneyTests
+          # The vault's own journeys: who may read an entry, a sheet that asks before it drops what was typed, a taken name.
+          - suite: writes-vault
+            tests: -only-testing:HyperVaultUITests/VaultWritesJourneyTests
           - suite: writes-more
             tests: >-
               -only-testing:HyperVaultUITests/BoardsAndMailWritesJourneyTests
@@ -181,6 +184,7 @@ jobs:
               -skip-testing:HyperVaultUITests/LayoutSweepTests
               -skip-testing:HyperVaultUITests/LayoutSweepScreensTests
               -skip-testing:HyperVaultUITests/MemoryAndVaultWritesJourneyTests
+              -skip-testing:HyperVaultUITests/VaultWritesJourneyTests
               -skip-testing:HyperVaultUITests/PagesWritesJourneyTests
               -skip-testing:HyperVaultUITests/BoardsAndMailWritesJourneyTests
               -skip-testing:HyperVaultUITests/SessionAndSettingsWritesJourneyTests

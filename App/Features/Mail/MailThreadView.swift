@@ -101,7 +101,7 @@ struct MailThreadScreen: View {
 
     private func scrollToNewest(_ proxy: ScrollViewProxy) {
         guard let id = model.newest?.id, model.messages.count > 1 else { return }
-        withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(id, anchor: .top) }
+        HV.Motion.animate(.easeOut(duration: 0.25)) { proxy.scrollTo(id, anchor: .top) }
     }
 
     private var composer: some View {
@@ -130,9 +130,10 @@ struct MailThreadScreen: View {
                 .accessibilityLabel("Send reply")
             }
         }
+        .padding(HV.Space.s)
+        .hvGlass(radius: 26)
         .padding(.horizontal, HV.Space.m)
-        .padding(.vertical, HV.Space.s)
-        .background(.bar)
+        .padding(.vertical, HV.Space.xs)
     }
 
     private var trimmedDraft: String { draft.trimmingCharacters(in: .whitespacesAndNewlines) }

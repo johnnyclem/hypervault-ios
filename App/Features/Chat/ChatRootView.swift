@@ -55,7 +55,7 @@ struct ChatRootView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button { app.router.push(.tools) } label: { Label(AccountMenu.tools, systemImage: "wrench.and.screwdriver") }
-                    Button { app.router.push(.importHistory) } label: { Label("Import your AI history", systemImage: "square.and.arrow.down") }
+                    Button { app.router.push(.importHistory) } label: { Label("Import your AI history", systemImage: HVSymbol.importData) }
                 } label: {
                     Image(systemName: "ellipsis.circle").frame(width: 44, height: 44)
                 }

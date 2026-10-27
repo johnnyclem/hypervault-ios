@@ -86,7 +86,7 @@ struct ChatModelsContent: View {
                             form = .connect
                         }
                     } label: {
-                        Image(systemName: "plus").frame(width: 44, height: 44)
+                        Image(systemName: HVSymbol.add).frame(width: 44, height: 44)
                     }
                     .accessibilityLabel("Connect a model")
                 }
@@ -212,7 +212,7 @@ struct ChatModelsContent: View {
                                 .lineLimit(nil)
                         }
                         Spacer(minLength: HV.Space.xs)
-                        Image(systemName: "chevron.right").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
+                        HVIcon(HVSymbol.open).font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
                     }
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
@@ -220,7 +220,7 @@ struct ChatModelsContent: View {
                 .buttonStyle(.plain)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) { pendingLocalRemoval = local } label: {
-                        Label("Remove", systemImage: "trash")
+                        Label("Remove", systemImage: HVSymbol.delete)
                     }
                 }
             }
@@ -355,7 +355,7 @@ struct ChatBackendRow: View {
                 Text(usage).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(lineLimit)
             }
             Spacer(minLength: HV.Space.xs)
-            Image(systemName: "chevron.right").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
+            HVIcon(HVSymbol.open).font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
         }
         .frame(minHeight: 44)
         .contentShape(Rectangle())

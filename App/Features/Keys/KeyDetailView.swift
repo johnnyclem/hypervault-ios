@@ -22,7 +22,7 @@ struct KeyDetailView: View {
                 details(key)
             } else {
                 // Revoked (here or elsewhere): there is nothing left to show.
-                HVEmptyState(symbol: "key.horizontal", title: "This key is gone", message: "It was revoked.", actionTitle: "Back") { dismiss() }
+                HVEmptyState(symbol: HVSymbol.key, title: "This key is gone", message: "It was revoked.", actionTitle: "Back") { dismiss() }
                     .frame(maxHeight: .infinity)
             }
         }
@@ -104,7 +104,7 @@ struct KeyDetailView: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: HV.Space.s))
             : AnyLayout(HStackLayout(alignment: .center, spacing: HV.Space.m))
         return layout {
-            HVIconBadge(symbol: key.isPaired ? "link" : "key.horizontal", tint: Palette.amber, size: 48)
+            HVIconBadge(symbol: key.isPaired ? "link" : HVSymbol.key, tint: Palette.amber, size: 48)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(key.displayName ?? "Untitled key").font(.hvTitle3)
                 if key.isPaired {

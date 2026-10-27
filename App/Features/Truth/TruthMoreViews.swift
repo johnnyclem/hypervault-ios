@@ -246,10 +246,10 @@ struct TruthStaleScreen: View {
                 open(item)
             } label: {
                 HStack(spacing: HV.Space.xs) {
-                    Image(systemName: item.item?.isMemory == true ? "brain.head.profile" : "doc.text")
+                    HVIcon(item.item?.isMemory == true ? HVSymbol.memory : "doc.text")
                     Text(verbatim: item.item?.title ?? "Untitled").font(.hvHeadline).lineLimit(2)
                     Spacer(minLength: 0)
-                    if canOpen(item) { Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)) }
+                    if canOpen(item) { HVIcon(HVSymbol.open).font(.system(size: 12, weight: .semibold)) }
                 }
                 .foregroundStyle(Palette.textPrimary)
                 .frame(minHeight: 44)

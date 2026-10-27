@@ -2,8 +2,9 @@ import HyperVaultKit
 import SwiftUI
 
 /// The four tabs, in the order of the web's dock: Home, Chat, Memory, You. Each has its own navigation stack, kept alive
-/// while another tab shows, and every stack resolves the same `Route`s. The You tab is a split view of its own, so its
-/// stack is the one inside its detail column.
+/// while another tab shows, and every stack resolves the same `Route`s. The You tab is one stack too on a phone (its list
+/// of panes, then the pane pushed on it); where there is the width, a list beside the pane, with the stack in the pane's
+/// column (`YouTabView`).
 struct MainTabView: View {
     @Environment(AppModel.self) private var model
     @Environment(AppEnvironment.self) private var env

@@ -142,13 +142,13 @@ final class DreamsModel {
     /// Files one connection away for good: it is never proposed again.
     func reject(_ id: String) async throws {
         var removal: DreamReview.Removal?
-        withAnimation(.easeOut(duration: 0.25)) {
+        HV.Motion.animate(.easeOut(duration: 0.25)) {
             removal = review.remove(connection: id, verdict: .reject)
         }
         do {
             _ = try await env.client.send(.dreamDecide(connection: id, .reject))
         } catch {
-            if let removal { withAnimation { review.restore(removal, verdict: .reject) } }
+            if let removal { HV.Motion.animate(.default) { review.restore(removal, verdict: .reject) } }
             throw error
         }
     }

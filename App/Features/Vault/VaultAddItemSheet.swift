@@ -289,7 +289,13 @@ private struct VaultNewItemForm: View {
             ) {
                 TextField(type.namePlaceholder, text: Binding(
                     get: { draft.typedName ?? draft.suggestedName },
-                    set: { draft.typedName = $0; nameError = nil }
+                    // The field writes its text back when it takes the cursor, and a taken name's line must survive the
+                    // cursor being moved there: only a change is an edit.
+                    set: { text in
+                        guard text != (draft.typedName ?? draft.suggestedName) else { return }
+                        draft.typedName = text
+                        nameError = nil
+                    }
                 ))
                 .font(.system(.body, design: .monospaced))
                 .keyboardType(.asciiCapable)

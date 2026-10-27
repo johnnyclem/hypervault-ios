@@ -51,7 +51,16 @@ struct VaultRenameSheet: View {
                         ) {
                             TextField(
                                 "github.com",
-                                text: Binding(get: { newName }, set: { newName = $0; nameError = nil })
+                                // Only a change is an edit: the field writes its text back when it takes the cursor, and a taken
+                                // name's line must survive the cursor being moved there.
+                                text: Binding(
+                                    get: { newName },
+                                    set: { text in
+                                        guard text != newName else { return }
+                                        newName = text
+                                        nameError = nil
+                                    }
+                                )
                             )
                             .font(.system(.body, design: .monospaced))
                             .keyboardType(.asciiCapable)

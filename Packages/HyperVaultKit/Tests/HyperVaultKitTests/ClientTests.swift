@@ -45,6 +45,15 @@ final class ClientTests: XCTestCase {
         XCTAssertEqual(sent.first?.value(forHTTPHeaderField: "Accept"), "application/json")
     }
 
+    func testAnEndpointCannotSetOrigin() async throws {
+        let transport = MockTransport(routes: [.json(.post, "/api/thing", #"{"item_name":"ok"}"#)])
+        let api = client(transport, tokens: FakeTokens(token: "t1"))
+        let _: Thing = try await api.send(Endpoint(.post, "/api/thing", headers: ["Origin": "https://hv.test", "origin": "https://hv.test", "X-Test": "kept"]))
+        let sent = await transport.requests
+        XCTAssertNil(sent.first?.value(forHTTPHeaderField: "Origin"), "the app never forges the browser's Origin header")
+        XCTAssertEqual(sent.first?.value(forHTTPHeaderField: "X-Test"), "kept")
+    }
+
     func testSignedOutFailsWithoutCallingTheNetwork() async {
         let transport = MockTransport()
         let api = client(transport, tokens: FakeTokens(token: nil))

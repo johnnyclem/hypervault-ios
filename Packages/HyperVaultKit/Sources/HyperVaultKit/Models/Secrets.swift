@@ -196,6 +196,12 @@ public struct SecretGrant: Sendable, Decodable, Equatable, Identifiable, Hashabl
     public let id: String
     public let apiKeyId: String
     public let createdAt: Date?
+
+    public init(id: String, apiKeyId: String, createdAt: Date? = nil) {
+        self.id = id
+        self.apiKeyId = apiKeyId
+        self.createdAt = createdAt
+    }
 }
 
 public struct SecretGrantList: Sendable, Decodable, Equatable {
@@ -204,6 +210,10 @@ public struct SecretGrantList: Sendable, Decodable, Equatable {
 
 public struct SecretGrantResponse: Sendable, Decodable, Equatable {
     public let grant: SecretGrant
+
+    public init(grant: SecretGrant) {
+        self.grant = grant
+    }
 }
 
 // MARK: Endpoints
@@ -243,7 +253,9 @@ extension Endpoint where Response == NoContent {
         Endpoint(.delete, "/api/secrets/\(name)")
     }
 
-    /// `DELETE /api/secrets/[name]/grants`: stops one key reading the secret.
+    /// `DELETE /api/secrets/[name]/grants`: stops one key reading the secret. Not idempotent, and so never
+    /// retried: a revoke with no matching grant answers 404 "No such grant.", so a repeat that already went
+    /// through would look like a failure (handoff 5.10). `HVClient.setSecretGrant` is how a switch calls it.
     public static func revokeSecretGrant(name: String, keyID: String) -> Endpoint<NoContent> {
         Endpoint(.delete, "/api/secrets/\(name)/grants", body: .jsonValue(["api_key_id": .string(keyID)]))
     }
@@ -257,9 +269,18 @@ extension Endpoint where Response == SecretGrantList {
 }
 
 extension Endpoint where Response == SecretGrantResponse {
-    /// `POST /api/secrets/[name]/grants`: lets one of the person's keys read the secret.
+    /// `POST /api/secrets/[name]/grants`: lets one of the person's keys read the secret. An upsert, so it is safe
+    /// to repeat and is retried on a busy server (handoff 5.10). The handoff does not document the answer's
+    /// shape, so any 2xx is a success: a body that is not `{ grant: { id, api_key_id, created_at } }` gives a grant
+    /// with an empty `id` and the `keyID` that was asked for.
     public static func grantSecret(name: String, keyID: String) -> Endpoint<SecretGrantResponse> {
-        Endpoint(.post, "/api/secrets/\(name)/grants", body: .jsonValue(["api_key_id": .string(keyID)]))
+        Endpoint(
+            method: .post, path: "/api/secrets/\(name)/grants", body: .jsonValue(["api_key_id": .string(keyID)]),
+            idempotent: true
+        ) { response, keys in
+            if let granted = try? HVCoding.decoder(keys).decode(SecretGrantResponse.self, from: response.data) { return granted }
+            return SecretGrantResponse(grant: SecretGrant(id: "", apiKeyId: keyID))
+        }
     }
 }
 

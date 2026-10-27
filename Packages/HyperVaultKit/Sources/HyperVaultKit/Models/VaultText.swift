@@ -11,7 +11,8 @@ extension VaultItems {
     /// Whether JavaScript counts `scalar` as white space: what `trim()` removes and what `\s` matches. That is the
     /// tab, line feed, vertical tab, form feed and carriage return (U+0009 to U+000D), the space, U+00A0, U+1680,
     /// U+2000 to U+200A, the line and paragraph separators (U+2028, U+2029), U+202F, U+205F, U+3000 and the byte
-    /// order mark (U+FEFF). Foundation's `.whitespacesAndNewlines` also holds U+0085 and lacks U+FEFF.
+    /// order mark (U+FEFF). Foundation's `.whitespacesAndNewlines` also holds U+0085 (and, on Linux, U+200B) and
+    /// lacks U+FEFF.
     public static func isJSWhitespace(_ scalar: Unicode.Scalar) -> Bool {
         switch scalar.value {
         case 0x0009...0x000D, 0x0020, 0x00A0, 0x1680, 0x2000...0x200A, 0x2028, 0x2029, 0x202F, 0x205F, 0x3000, 0xFEFF:

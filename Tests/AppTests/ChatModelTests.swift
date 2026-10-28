@@ -186,6 +186,21 @@ final class ChatModelTests: XCTestCase {
         XCTAssertEqual(sent.all.first?["title"] as? String, "Ferry times")
     }
 
+    func testAReplyThatCameAfterToolStepsIsNamedFromItsOwnFirstLineAsOnTheWeb() async throws {
+        let sent = ChatSentBodies()
+        let model = makeModel(routes: [recording(.post, "/api/memories", memoryKept, into: sent)])
+        let reply = ChatThreadRow(id: "a1", kind: .assistant, text: "## Ferry times\nHourly from nine.")
+        model.seed(rows: [
+            ChatThreadRow(id: "u1", kind: .user, text: "when are the ferries"),
+            ChatThreadRow(kind: .tool, toolTurn: ChatToolTurn(intent: "look it up")),
+            reply,
+        ])
+
+        _ = try await model.saveAsMemory(reply)
+
+        XCTAssertEqual(sent.all.first?["title"] as? String, "Ferry times", "the web's source prompt is the row right above the reply")
+    }
+
     func testAReplyOfOnlyBlanksIsNotSent() async {
         let sent = ChatSentBodies()
         let model = makeModel(routes: [recording(.post, "/api/memories", memoryKept, into: sent)])

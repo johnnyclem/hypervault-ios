@@ -705,7 +705,7 @@ final class ChatConversationModel {
             throw ChatActionError(message: HVCopy.nothingToKeepLine)
         }
         let draft = MemoryDraft(
-            content: row.text, title: ChatShare.title(content: row.text, sourcePrompt: promptBefore(row)),
+            content: row.text, title: ChatShare.title(content: row.text, sourcePrompt: promptDirectlyBefore(row)),
             tagsText: "chat", source: "chat"
         )
         do {
@@ -714,6 +714,13 @@ final class ChatConversationModel {
         } catch let error as HVError {
             throw ChatActionError(message: error.sentence(offline: HVCopy.keepOfflineLine))
         }
+    }
+
+    /// The message the person sent, when it is the row just above the reply: the web names a memory after the question only
+    /// then (a reply that came after tool steps is named from its own first line).
+    private func promptDirectlyBefore(_ row: ChatThreadRow) -> String? {
+        guard let index = rows.firstIndex(where: { $0.id == row.id }), index > 0, rows[index - 1].kind == .user else { return nil }
+        return rows[index - 1].text
     }
 
     /// The last message the person sent before a reply: what it answers.

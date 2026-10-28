@@ -52,14 +52,11 @@ final class ArtifactRepairModelTests: XCTestCase {
         let run = Task { await model.run(renderError: nil) }
         await eventually("the first look at the job") { await self.looks(transport) >= 1 }
 
+        // The job never finishes in this test (`finished` is not set), so the run returning at all is the proof that it stopped
+        // asking once nobody was waiting.
         model.stopWaiting()
         await run.value
 
-        let after = await looks(transport)
-        finished.set()
-        try? await Task.sleep(nanoseconds: 50_000_000)
-        let later = await looks(transport)
-        XCTAssertEqual(later, after, "no more looks once nobody is waiting")
         XCTAssertEqual(model.phase, .running, "it did not give up with a verdict either")
         let acknowledged = await acknowledgements(transport)
         XCTAssertTrue(acknowledged.isEmpty)

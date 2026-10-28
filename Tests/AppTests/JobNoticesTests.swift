@@ -143,6 +143,7 @@ final class JobNoticesTests: XCTestCase {
 
         // A stale answer that lists it once more finds it already told about.
         server.keepListingAcknowledgedJobs = true
+        server.list([repairWorked])
         await notices.poll()
         await pause(0.05)
         XCTAssertEqual(server.acknowledgements.count, 2)

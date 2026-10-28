@@ -14,9 +14,9 @@ struct ConnectGuideView: View {
     /// that the key will be lost.
     var onCopySecret: (() -> Void)?
 
-    /// Whether the notes were opened or closed by hand, and if so to which. Two plain values, not an optional one: a Release
-    /// build with Xcode 26.6 crashed the compiler (a SIL verification error while optimizing `notesSection`) on an optional
-    /// assigned inside the animation closure below.
+    /// Whether the notes were opened or closed by hand, and if so to which. (Two plain values, and the change is animated by
+    /// `hvAnimation` on the section, not by a closure: a Release build with Xcode 26.6 crashed the compiler, a SIL
+    /// verification error while optimizing, on an animation closure that set the state here.)
     @State private var notesToggled = false
     @State private var notesToggledOpen = false
 
@@ -154,7 +154,8 @@ struct ConnectGuideView: View {
         let isOpen = notesToggled ? notesToggledOpen : (!info.verified || info.keyInUrl)
         return VStack(alignment: .leading, spacing: HV.Space.xs) {
             Button {
-                toggleNotes(wasOpen: isOpen)
+                notesToggledOpen = !isOpen
+                notesToggled = true
             } label: {
                 HStack {
                     sectionTitle(ConnectCopy.notesHeading)
@@ -182,17 +183,8 @@ struct ConnectGuideView: View {
                 .padding(.top, HV.Space.xs)
             }
         }
+        .hvAnimation(HV.Motion.entrance, value: isOpen)
         .hvCard()
-    }
-
-    /// A method of its own, kept out of the view builder's code: the animation closure sits in a function the optimizer takes
-    /// on its own.
-    @inline(never)
-    private func toggleNotes(wasOpen: Bool) {
-        HV.Motion.animate {
-            notesToggledOpen = !wasOpen
-            notesToggled = true
-        }
     }
 
     private var sourcesSection: some View {

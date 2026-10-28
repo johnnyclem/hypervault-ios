@@ -141,15 +141,26 @@ jobs:
           grep -qE "^ +PRODUCT_BUNDLE_IDENTIFIER = com\.example\.cloud\.app$" settings.txt
           rm -f Config/Local.xcconfig
 
-      # What Xcode asks a project for to offer the products it can build with Xcode Cloud, printed to be read: its format
-      # has not been seen here, so nothing is asserted about it yet.
-      - name: Archivable products (for reading)
-        continue-on-error: true
+      # What Xcode asks a project for to offer the products it can build with Xcode Cloud: the app, with the bundle id and the
+      # team the hook gave it, and the HyperVaultCloud scheme among the ones that archive it. (The Kit shows up as a library
+      # beside it; Xcode Cloud's list has two entries, and the app is the one to pick.)
+      - name: Archivable products
         run: |
           rm -f Config/Local.xcconfig
           CI_PRIMARY_REPOSITORY_PATH="$PWD" DEVELOPMENT_TEAM=ABCDE12345 HV_BUNDLE_PREFIX=com.example.cloud \
             ci_scripts/ci_post_clone.sh > /dev/null
-          xcodebuild -project HyperVault.xcodeproj -describeAllArchivableProducts -json
+          xcodebuild -project HyperVault.xcodeproj -describeAllArchivableProducts -json > products.json
+          python3 - <<'EOF'
+          import json
+          apps = [p for p in json.load(open("products.json")) if p.get("productType") == "app"]
+          print(json.dumps(apps, indent=2))
+          assert any(
+              p.get("bundleIdentifier") == "com.example.cloud.app"
+              and p.get("team") == "ABCDE12345"
+              and "HyperVaultCloud" in p.get("containingSchemes", [])
+              for p in apps
+          ), "the app is not offered with the identity the hook gave it, or HyperVaultCloud does not archive it"
+          EOF
           rm -f Config/Local.xcconfig
 
       # The archive Xcode Cloud makes is the Release configuration built for a device, which nothing above builds (the

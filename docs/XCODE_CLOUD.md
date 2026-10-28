@@ -30,9 +30,10 @@ GitHub Actions stays the gate for pull requests. Xcode Cloud is the part that sh
 - `Config/Local.xcconfig` is in `.gitignore` now. `Config/Base.xcconfig` always said it was not committed, but nothing ignored it.
 - Checks at the end of the GitHub Actions `app` job: the hook is run (all but its Homebrew install, since XcodeGen is already
   on the runner) and the project it makes is checked for the scheme, the team and the bundle id; what
-  `xcodebuild -describeAllArchivableProducts` (what Xcode uses to find the products to offer) says is printed in the log; and
-  the Release configuration is built for a device, unsigned. That last one is what the archive needs: the simulator builds are
-  Debug, so without it the first archive would also be the first Release compile.
+  `xcodebuild -describeAllArchivableProducts` (what Xcode uses to find the products to offer) says is checked too: the app, with
+  that bundle id and team, and `HyperVaultCloud` among the schemes that archive it; and the Release configuration is built for a
+  device, unsigned. That last one is what the archive needs: the simulator builds are Debug, so without it the first archive
+  would also have been the first Release compile (and it was: it crashed the compiler, which is fixed).
 
 ## Decide first: the bundle id
 
@@ -65,8 +66,8 @@ owner, or admin on a personal repository).
 1. `make open` generates the project and opens it. Because the bundle id comes from an `.xcconfig` file, Apple asks for an extra
    step first: in the project editor, **Signing & Capabilities**, set the app target's bundle identifier to the id you chose, as
    plain text. That edit is in the generated project only; do not commit it.
-2. In the **Report navigator**, click the **Cloud** tab and **Get Started**. Pick the *HyperVault* product, let Xcode make or
-   find the app record, and grant access to the repository (this installs the Xcode Cloud GitHub app). Apple's tip is to keep
+2. In the **Report navigator**, click the **Cloud** tab and **Get Started**. Pick the *HyperVault* product (Xcode lists two, the
+   app and *HyperVaultKit*, the local package as a library; the app is the one), let Xcode make or find the app record, and grant access to the repository (this installs the Xcode Cloud GitHub app). Apple's tip is to keep
    the first workflow simple, so make it the one that runs the tests: in the editor, the scheme `HyperVaultCloud`, the action
    **Test** (with *Use Scheme Settings* and an iPhone simulator; nothing is signed), the latest released Xcode and macOS (the
    app needs the iOS 26 SDK), and under **Environment** the variables below.

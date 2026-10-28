@@ -7,10 +7,11 @@ any can be reversed.
 
 ## Decisions taken (the handoff's recommendations, adopted)
 
-1. **Dark only.** The stock look is the web's, and the web has no light palette (handoff 2.2). `UIUserInterfaceStyle` is
-   `Dark`; the 15 stock colours are single-appearance asset-catalog colour sets generated from `docs/brand/tokens.json`
-   (`scripts/gen_tokens.py`, checked in CI). The System/Light/Dark and accent pickers are gone. To add a light look later:
-   fill each colour set's Any slot, move the stock value to Dark, and drop the Info.plist key.
+1. **Dark-native, light-ready.** The dark look is the web's stock tokens. The light look is the mirror in the iOS
+   guides (the same roles, the proposed values). Each colour set has a light slot, a dark slot, and an Any slot that
+   repeats the dark value (`scripts/gen_tokens.py`; `UIColor(named:)` is nil without Any). The app
+   follows the system: there is no `UIUserInterfaceStyle` override and no appearance picker. A UI-test launch pins dark
+   so the layout sweep still measures a dark page.
 2. **Themes.** Stock only. The Appearance pane is the web dashboard's theme (`profiles.theme`, `PATCH /api/dashboard-theme`),
    labelled as such, and it never claims the app restyled. The wording is new copy for the owner.
 3. **iOS 26 minimum** (set in the Xcode project by the owner; `project.yml` follows). Liquid Glass is the system's on tab

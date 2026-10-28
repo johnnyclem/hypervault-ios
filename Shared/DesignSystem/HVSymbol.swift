@@ -5,8 +5,9 @@ enum HVSymbol {
     // The dock.
     static let home = "house"
     static let chat = "bubble.left"
-    static let memory = "brain"
-    static let you = "person"
+    /// The memory graph. The iconography guide names the family `point.3.connected`; this is the symbol that draws it.
+    static let memory = "point.3.connected.trianglepath.dotted"
+    static let you = "person.crop.circle"
 
     // The panes of You.
     static let general = "gearshape"

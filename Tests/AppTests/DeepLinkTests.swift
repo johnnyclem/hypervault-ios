@@ -187,7 +187,7 @@ final class DeepLinkTests: XCTestCase {
     func testTheDockIsHomeChatMemoryYouWithTheWebsSymbols() {
         XCTAssertEqual(AppTab.allCases, [.canvas, .chat, .memory, .you])
         XCTAssertEqual(AppTab.allCases.map(\.title), ["Home", "Chat", "Memory", "You"])
-        XCTAssertEqual(AppTab.allCases.map(\.symbol), ["house", "bubble.left", "brain", "person"])
+        XCTAssertEqual(AppTab.allCases.map(\.symbol), ["house", "bubble.left", "point.3.connected.trianglepath.dotted", "person.crop.circle"])
     }
 
     // MARK: What the router does with a link

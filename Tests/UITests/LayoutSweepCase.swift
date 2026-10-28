@@ -5,9 +5,9 @@ import XCTest
 /// is looked at (a screenshot, a note of what its tree says about the layout, a check that its key control can be tapped).
 @MainActor
 class LayoutSweepCase: HyperVaultUITestCase {
-    /// How a sweep launches the app. The app is dark whatever the phone is set to (Info.plist declares
-    /// `UIUserInterfaceStyle = Dark`), so the dark sweep needs no argument: it is the one that proves, screen by screen,
-    /// that the declaration reaches every screen. The large text size is the system's own launch argument.
+    /// How a sweep launches the app. A UI-test launch pins the dark look, so the dark sweep needs no argument: it is
+    /// the one that proves, screen by screen, that the page is the dark background. The large text size is the system's
+    /// own launch argument. A phone that is not under test follows the system, light or dark.
     struct Mode {
         let name: String
         let arguments: [String]

@@ -3,12 +3,11 @@ import UIKit
 import XCTest
 @testable import HyperVault
 
-/// The stock look is the web's, kept in docs/brand/tokens.json. CI's `gen_tokens.py --check` holds the generated files to
-/// that file; these hold what the app compiled to the generated numbers, so a colour set that was edited by hand, left
-/// out of a target, or given a white Any slot fails here and not on a user's phone.
+/// The stock look is the web's, kept in docs/brand/tokens.json, and the light look is the iOS guide's mirror of it.
+/// CI's `gen_tokens.py --check` holds the generated files to that file; these hold what the app compiled to the
+/// generated numbers, so a colour set that was edited by hand or left out of a target fails here and not on a phone.
 final class DesignTokensTests: XCTestCase {
     private let bundle = Bundle(for: AppModel.self)
-    private let styles: [UIUserInterfaceStyle] = [.light, .dark, .unspecified]
 
     /// The colour a name resolves to under a style, as 0xRRGGBB.
     private func resolved(_ named: String, _ style: UIUserInterfaceStyle) throws -> UInt32 {
@@ -36,22 +35,32 @@ final class DesignTokensTests: XCTestCase {
         }
     }
 
-    func testEveryColourSetHoldsItsTokenWhateverTheStyle() throws {
+    func testEveryColourSetHoldsItsTokenInEachLook() throws {
         XCTAssertEqual(HVTokens.stockColors.count, 15, "tokens.json has 15 stock colours.")
-        for (name, expected) in HVTokens.stockColors.merging(HVTokens.appColors, uniquingKeysWith: { first, _ in first }) {
-            for style in styles {
-                Self.assertSame(try resolved(name, style), expected, "\(name) under \(style.rawValue)")
-            }
+        let colors = HVTokens.stockColors.merging(HVTokens.appColors, uniquingKeysWith: { first, _ in first })
+        XCTAssertEqual(Set(HVTokens.lightColors.keys), Set(colors.keys), "Every colour set has a light slot.")
+        for (name, dark) in colors {
+            let light = try XCTUnwrap(HVTokens.lightColors[name], "No light value for \(name).")
+            Self.assertSame(try resolved(name, .dark), dark, "\(name) in the dark look")
+            Self.assertSame(try resolved(name, .light), light, "\(name) in the light look")
+            // No appearance named: the Any slot, which is the dark value. Without it UIColor(named:) is nil.
+            Self.assertSame(try resolved(name, .unspecified), dark, "\(name) when the style is unspecified")
         }
     }
 
     func testTheSystemsOwnColoursFollowTheTokens() throws {
-        let primary = try XCTUnwrap(HVTokens.stockColors["primary"])
-        let background = try XCTUnwrap(HVTokens.stockColors["background"])
-        for style in styles {
-            Self.assertSame(try resolved("AccentColor", style), primary, "AccentColor is the web's primary under \(style.rawValue)")
-            Self.assertSame(try resolved("LaunchBackground", style), background, "LaunchBackground is the web's background under \(style.rawValue)")
+        for style in [UIUserInterfaceStyle.dark, .light] {
+            let source = style == .dark ? HVTokens.stockColors : HVTokens.lightColors
+            let primary = try XCTUnwrap(source["primary"])
+            let background = try XCTUnwrap(source["background"])
+            let look = style == .dark ? "dark" : "light"
+            Self.assertSame(try resolved("AccentColor", style), primary, "AccentColor is primary in the \(look) look")
+            Self.assertSame(try resolved("LaunchBackground", style), background, "LaunchBackground is the page in the \(look) look")
         }
+        let darkPrimary = try XCTUnwrap(HVTokens.stockColors["primary"])
+        let darkPage = try XCTUnwrap(HVTokens.stockColors["background"])
+        Self.assertSame(try resolved("AccentColor", .unspecified), darkPrimary, "AccentColor is primary when the style is unspecified")
+        Self.assertSame(try resolved("LaunchBackground", .unspecified), darkPage, "LaunchBackground is the page when the style is unspecified")
     }
 
     /// `HVColor` loads by name, and a misspelt name draws nothing and says nothing.
@@ -65,6 +74,7 @@ final class DesignTokensTests: XCTestCase {
             ("accent", HVColor.accent), ("accent-foreground", HVColor.accentForeground),
             ("border", HVColor.border), ("ring", HVColor.ring), ("destructive", HVColor.destructive),
             ("emerald-400", HVColor.emerald400), ("amber-400", HVColor.amber400),
+            ("memory", HVColor.memory),
         ]
         XCTAssertEqual(members.count, HVTokens.stockColors.count + HVTokens.appColors.count)
         let traits = UITraitCollection(userInterfaceStyle: .dark)

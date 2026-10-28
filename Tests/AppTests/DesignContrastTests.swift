@@ -11,8 +11,9 @@ final class DesignContrastTests: XCTestCase {
         try XCTUnwrap(HVTokens.stockColors[token] ?? HVTokens.appColors[token], "No colour called \(token).")
     }
 
+    /// A `Color` resolved in the dark look. Decorative tints that are colour sets would otherwise follow the host.
     private func hex(of color: Color) -> UInt32 {
-        DesignTokensTests.hex(of: UIColor(color))
+        DesignTokensTests.hex(of: UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark)))
     }
 
     /// WCAG 2.x relative luminance of 0xRRGGBB.
@@ -126,6 +127,33 @@ final class DesignContrastTests: XCTestCase {
         XCTAssertEqual(contrast(primary, paper), 4.08, accuracy: 0.02, "Primary text on its own 14% tint over card.")
         let raised = composite(primary, over: try hex("muted"), alpha: 0.14)
         XCTAssertEqual(contrast(primary, raised), 3.66, accuracy: 0.02, "Primary text on its own 14% tint over muted.")
+    }
+
+    /// The light look (the iOS guide's mirror). Body text holds 4.5:1 on the page, on paper and on raised paper,
+    /// except the four pairs recorded underneath, which fall short by a little and are chosen, not stumbled on.
+    /// White on the light `primary` and `destructive` fills clears 4.5:1, unlike the dark look's bold-only exception.
+    func testTheLightLookHoldsBodyTextExceptTheRecordedLows() throws {
+        let light = HVTokens.lightColors
+        func value(_ name: String) throws -> UInt32 { try XCTUnwrap(light[name]) }
+        let surfaces = ["background", "card", "muted"]
+        let lows: Set<String> = [
+            "primary on muted", "destructive on background", "destructive on muted", "amber-400 on muted",
+        ]
+        for text in ["foreground", "muted-foreground", "accent", "emerald-400", "amber-400", "memory", "primary", "destructive"] {
+            for surface in surfaces {
+                let pair = "\(text) on \(surface)"
+                let ratio = contrast(try value(text), try value(surface))
+                if lows.contains(pair) { continue }
+                XCTAssertGreaterThanOrEqual(ratio, 4.5, "\(pair) is \(ratio):1 in the light look.")
+            }
+        }
+        XCTAssertEqual(contrast(try value("primary"), try value("muted")), 4.43, accuracy: 0.02)
+        XCTAssertEqual(contrast(try value("destructive"), try value("background")), 4.50, accuracy: 0.02)
+        XCTAssertEqual(contrast(try value("destructive"), try value("muted")), 4.14, accuracy: 0.02)
+        XCTAssertEqual(contrast(try value("amber-400"), try value("muted")), 4.31, accuracy: 0.02)
+        XCTAssertGreaterThanOrEqual(contrast(try value("primary-foreground"), try value("primary")), 4.5)
+        XCTAssertGreaterThanOrEqual(contrast(try value("primary-foreground"), try value("destructive")), 4.5)
+        XCTAssertGreaterThanOrEqual(contrast(try value("accent-foreground"), try value("accent")), 4.5)
     }
 
     func testTextOnTheAccentFillIsBodyText() throws {

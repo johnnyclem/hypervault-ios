@@ -55,9 +55,10 @@ extension Color {
     }
 }
 
-/// The HyperVault palette: the web's stock look, which is dark only (handoff 2.2). Every member is one value built
-/// from the stock tokens in `HVColor`, so nothing here follows the colour scheme and a screen never branches on it.
-/// The names are the app's own and stay as they are; the tokens they stand for are named in each comment.
+/// The HyperVault palette. Dark is the stock look from the web's tokens; light is the same roles with the iOS
+/// guide's mirror values. Every member is a colour set in `HVColor`, so a screen never branches on the colour scheme
+/// and both looks keep the same hierarchy. The names are the app's own and stay as they are; the tokens they stand
+/// for are named in each comment.
 ///
 /// Contrast (WCAG, held by `DesignContrastTests`): `textPrimary` is 13.7:1 or better on the page, paper and raised
 /// paper, and the grey text is 5.4:1 or better. Every accent below is 4.5:1 or better on all three, except `blue` as
@@ -90,9 +91,9 @@ enum Palette {
     /// The block a loading placeholder is drawn in: `border`, clearly there on the page and quiet beside content.
     static let skeleton = HVColor.border
 
-    // The accents. The stock ones are the web's tokens; violet, cyan, coral and rose are the app's own decorative
-    // tints (the web has no token for them) and stay as single dark values.
-    static let violet = Color(hex: 0xA78BFA)
+    // The accents. The stock ones are the web's tokens and follow the appearance. Violet is the memory kind (a colour
+    // set, so it follows too). Cyan, coral and rose are decorative and stay one dark value.
+    static let violet = HVColor.memory
     /// The web's `primary`, which is also the accent colour of the app.
     static let blue = HVColor.primary
     /// The web's `accent`: tinted text on raised paper, where `blue` falls under 4.5:1.

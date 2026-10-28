@@ -6,6 +6,32 @@
         "components" : { "alpha" : "1.000", "blue" : "0.176471", "green" : "0.133333", "red" : "0.101961" }
       },
       "idiom" : "universal"
+    },
+    {
+      "color" : {
+        "color-space" : "srgb",
+        "components" : { "alpha" : "1.000", "blue" : "0.176471", "green" : "0.133333", "red" : "0.101961" }
+      },
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "idiom" : "universal"
+    },
+    {
+      "color" : {
+        "color-space" : "srgb",
+        "components" : { "alpha" : "1.000", "blue" : "0.960784", "green" : "0.933333", "red" : "0.913725" }
+      },
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "light"
+        }
+      ],
+      "idiom" : "universal"
     }
   ],
   "info" : {

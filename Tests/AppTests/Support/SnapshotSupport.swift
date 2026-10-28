@@ -4,8 +4,8 @@ import XCTest
 
 /// Renders a SwiftUI screen the way the device would (inside a real window, so
 /// List, NavigationStack and TabView draw) and writes it as a PNG. CI uploads
-/// the folder, so a screen can be looked at without running a simulator. The stock look is dark only, so each
-/// screen is drawn once, in the dark; `schemes` stays for a light look, should the app ever have one.
+/// the folder, so a screen can be looked at without running a simulator. The app follows the system. These
+/// renders stay in the dark, the look the published PNGs are read against; pass `schemes` to draw the light look too.
 ///
 ///     @MainActor func testYours() throws {
 ///         try snapshot(PreviewHost(routes: [...]) { YoursRootView() }, named: "yours")

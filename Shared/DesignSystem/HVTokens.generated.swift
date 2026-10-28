@@ -34,10 +34,33 @@ enum HVTokens {
         "destructive": 0xEF4444,
     ]
 
-    /// Colours of the app's own that the web has no token for, by colour set name.
+    /// Colours of the app's own that the web has no token for, by colour set name. The dark slot.
     static let appColors: [String: UInt32] = [
         "emerald-400": 0x00D492,
         "amber-400": 0xFFB900,
+        "memory": 0xA78BFA,
+    ]
+
+    /// The light slot of every colour set: the iOS guide's mirror of the dark value.
+    static let lightColors: [String: UInt32] = [
+        "background": 0xF5F7FA,
+        "foreground": 0x0B0F14,
+        "card": 0xFFFFFF,
+        "card-foreground": 0x0B0F14,
+        "muted": 0xE9EEF5,
+        "muted-foreground": 0x536176,
+        "primary": 0x2563EB,
+        "primary-foreground": 0xFFFFFF,
+        "secondary": 0x64748B,
+        "secondary-foreground": 0xF8FAFC,
+        "accent": 0x0369A1,
+        "accent-foreground": 0xFFFFFF,
+        "border": 0xD3DCE8,
+        "ring": 0x2563EB,
+        "destructive": 0xDC2626,
+        "emerald-400": 0x047857,
+        "amber-400": 0xB45309,
+        "memory": 0x6D28D9,
     ]
 
     /// `fixed`: colours drawn outside the tokens, which no theme changes.

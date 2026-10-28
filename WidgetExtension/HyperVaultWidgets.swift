@@ -136,6 +136,9 @@ struct KeepWidgetView: View {
                     AccessoryWidgetBackground()
                     Text("H").font(.system(size: 24, weight: .semibold, design: .monospaced)).foregroundStyle(.primary)
                 }
+                // The H is the mark, not a word: the widget says what it does, as its other sizes do.
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Keep something")
             } else if family == .accessoryInline {
                 Label("Keep something", systemImage: "tray.and.arrow.down")
             } else {

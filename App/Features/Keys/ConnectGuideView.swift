@@ -60,7 +60,7 @@ struct ConnectGuideView: View {
                 HStack(alignment: .firstTextBaseline, spacing: HV.Space.s) {
                     Text("\(index + 1)")
                         .font(.system(.footnote, weight: .bold))
-                        .foregroundStyle(Palette.blue)
+                        .foregroundStyle(Palette.sky)
                         .frame(width: 26, height: 26)
                         .background(Palette.blue.opacity(0.14), in: Circle())
                         .accessibilityHidden(true)

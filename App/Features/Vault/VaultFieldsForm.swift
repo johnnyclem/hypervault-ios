@@ -2,9 +2,10 @@ import HyperVaultKit
 import SwiftUI
 
 /// The fields for one kind, with the keyboards and content types that fit. Every field has its label above
-/// it, because a placeholder is faint and goes the moment someone types. Secrets (a password, a security
-/// code, a key's value) are secure fields with a Show switch for checking what was typed; they never ask
-/// the system to remember anything: no `.newPassword` (which offers to save it), no autocorrection.
+/// it, because a placeholder is faint and goes the moment someone types; the prompt in an empty one is `hvPrompt`, as the
+/// system's own is under 2:1. Secrets (a password, a security code, a key's value) are secure fields with a Show switch
+/// for checking what was typed; they never ask the system to remember anything: no `.newPassword` (which offers to save
+/// it), no autocorrection.
 ///
 /// It is a stack of fields, not Form rows: the screen that holds it scrolls it with the rest of its content.
 struct VaultFieldsForm: View {
@@ -51,8 +52,8 @@ struct VaultFieldsForm: View {
             "Website (optional)",
             footnote: "Include the full address, starting with https://, so an agent knows where it signs in."
         ) {
-            // Verbatim: a plain string is read as Markdown, and an address in it is drawn as a link.
-            TextField("Website", text: binding("url"), prompt: Text(verbatim: "https://github.com"))
+            // `hvPrompt` takes the string as it is: a literal `Text` reads Markdown and would draw the address as a link.
+            TextField("Website", text: binding("url"), prompt: .hvPrompt("https://github.com"))
                 .accessibilityIdentifier("vault.field.website")
                 .keyboardType(.URL)
                 .textContentType(.URL)
@@ -60,7 +61,7 @@ struct VaultFieldsForm: View {
                 .autocorrectionDisabled()
         }
         labelled("Username") {
-            TextField("Username or email", text: binding("username"))
+            TextField("Username", text: binding("username"), prompt: .hvPrompt("Username or email"))
                 .accessibilityIdentifier("vault.field.username")
                 .textContentType(.username)
                 .textInputAutocapitalization(.never)
@@ -70,7 +71,7 @@ struct VaultFieldsForm: View {
             VaultSecretField(title: "Password", identifier: "password", spokenName: "password", text: binding("password"), contentType: .password)
         }
         labelled("Notes (optional)") {
-            TextField("Anything an agent should know", text: binding("notes"), axis: .vertical)
+            TextField("Notes", text: binding("notes"), prompt: .hvPrompt("Anything an agent should know"), axis: .vertical)
                 .lineLimit(2...5)
         }
     }
@@ -89,11 +90,11 @@ struct VaultFieldsForm: View {
                 isFocused: numberFocused, isInvalid: numberProblem != nil
             ) {
                 HStack {
-                    TextField("1234 5678 9012 3456", text: Binding(
+                    TextField("Card number", text: Binding(
                         get: { draft.fields["number"] ?? "" },
                         // Digits only, and only ASCII ones: an Arabic number pad types others, which the server refuses.
                         set: { draft.fields["number"] = VaultItems.formatCardNumber(VaultItems.asciiDigits($0, transliterating: true)) }
-                    ))
+                    ), prompt: .hvPrompt("1234 5678 9012 3456"))
                     .accessibilityIdentifier("vault.field.card-number")
                     .keyboardType(.numberPad)
                     .textContentType(.creditCardNumber)
@@ -124,7 +125,7 @@ struct VaultFieldsForm: View {
             )
         }
         labelled("Cardholder (optional)") {
-            TextField("Name on the card", text: binding("cardholder"))
+            TextField("Cardholder", text: binding("cardholder"), prompt: .hvPrompt("Name on the card"))
                 .textContentType(.creditCardName)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
@@ -133,7 +134,7 @@ struct VaultFieldsForm: View {
 
     private var monthField: some View {
         labelled("Month") {
-            TextField("MM", text: limited("expMonth", 2))
+            TextField("Month", text: limited("expMonth", 2), prompt: .hvPrompt("MM"))
                 .keyboardType(.numberPad)
                 .textContentType(.creditCardExpirationMonth)
                 .monospacedDigit()
@@ -142,7 +143,7 @@ struct VaultFieldsForm: View {
 
     private var yearField: some View {
         labelled("Year") {
-            TextField("YY", text: limited("expYear", 4))
+            TextField("Year", text: limited("expYear", 4), prompt: .hvPrompt("YY"))
                 .keyboardType(.numberPad)
                 .textContentType(.creditCardExpirationYear)
                 .monospacedDigit()
@@ -163,24 +164,24 @@ struct VaultFieldsForm: View {
     @ViewBuilder
     private var contactFields: some View {
         labelled("Full name (optional)") {
-            TextField("Jane Appleseed", text: binding("fullName"))
+            TextField("Full name", text: binding("fullName"), prompt: .hvPrompt("Jane Appleseed"))
                 .textContentType(.name)
                 .textInputAutocapitalization(.words)
         }
         labelled("Email (optional)") {
-            TextField("jane@appleseed.dev", text: binding("email"))
+            TextField("Email", text: binding("email"), prompt: .hvPrompt("jane@appleseed.dev"))
                 .keyboardType(.emailAddress)
                 .textContentType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
         }
         labelled("Phone (optional)") {
-            TextField("+1 555 0100", text: binding("phone"))
+            TextField("Phone", text: binding("phone"), prompt: .hvPrompt("+1 555 0100"))
                 .keyboardType(.phonePad)
                 .textContentType(.telephoneNumber)
         }
         labelled("Address (optional)") {
-            TextField("Street, city, postcode", text: binding("address"), axis: .vertical)
+            TextField("Address", text: binding("address"), prompt: .hvPrompt("Street, city, postcode"), axis: .vertical)
                 .lineLimit(2...5)
                 .textContentType(.fullStreetAddress)
         }
@@ -260,10 +261,10 @@ struct VaultSecretField: View {
     @ViewBuilder
     private var field: some View {
         if revealed {
-            TextField(title, text: $text)
+            TextField(title, text: $text, prompt: .hvPrompt(title))
                 .accessibilityIdentifier("vault.field.\(identifier)")
         } else {
-            SecureField(title, text: $text)
+            SecureField(title, text: $text, prompt: .hvPrompt(title))
                 .accessibilityIdentifier("vault.field.\(identifier)")
         }
     }

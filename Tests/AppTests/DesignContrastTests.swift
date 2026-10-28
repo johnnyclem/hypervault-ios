@@ -110,6 +110,24 @@ final class DesignContrastTests: XCTestCase {
         }
     }
 
+    /// Small text on a 12 to 14% `primary` tint (the chip of a manual memory, the Add capsule of the Tools catalog, the
+    /// numbered step badges) is `accent`: `primary` over its own 14% fill is 4.08:1 on paper and 3.66:1 on raised paper, the
+    /// same known low as above, here recorded where the fill is the tint and not the surface.
+    func testSmallTextOnAPrimaryTintIsAccentBecausePrimaryFallsShort() throws {
+        let primary = try hex("primary"), accent = try hex("accent")
+        for alpha in [0.12, 0.14] {
+            for surface in surfaces {
+                let fill = composite(primary, over: try hex(surface), alpha: alpha)
+                let ratio = contrast(accent, fill)
+                XCTAssertGreaterThanOrEqual(ratio, 4.5, "Accent text on primary at \(alpha) over \(surface) is \(ratio):1.")
+            }
+        }
+        let paper = composite(primary, over: try hex("card"), alpha: 0.14)
+        XCTAssertEqual(contrast(primary, paper), 4.08, accuracy: 0.02, "Primary text on its own 14% tint over card.")
+        let raised = composite(primary, over: try hex("muted"), alpha: 0.14)
+        XCTAssertEqual(contrast(primary, raised), 3.66, accuracy: 0.02, "Primary text on its own 14% tint over muted.")
+    }
+
     func testTextOnTheAccentFillIsBodyText() throws {
         XCTAssertGreaterThanOrEqual(contrast(try hex("accent-foreground"), try hex("accent")), 4.5)
     }
@@ -136,6 +154,8 @@ final class DesignContrastTests: XCTestCase {
         DesignTokensTests.assertSame(resolved(Palette.surfaceRaised), try hex("muted"), "Palette.surfaceRaised")
         DesignTokensTests.assertSame(resolved(Palette.textPrimary), try hex("foreground"), "Palette.textPrimary")
         DesignTokensTests.assertSame(resolved(Palette.textSecondary), try hex("muted-foreground"), "Palette.textSecondary")
+        // The colour of a field's prompt (`Text.hvPrompt`): the same token, so the 4.5:1 above holds it on every surface.
+        DesignTokensTests.assertSame(resolved(Palette.textTertiary), try hex("muted-foreground"), "Palette.textTertiary")
         DesignTokensTests.assertSame(resolved(Palette.blue), try hex("primary"), "Palette.blue")
         DesignTokensTests.assertSame(resolved(Palette.sky), try hex("accent"), "Palette.sky")
         DesignTokensTests.assertSame(resolved(Palette.danger), try hex("destructive"), "Palette.danger")

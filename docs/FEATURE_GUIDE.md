@@ -179,7 +179,8 @@ floating chrome (composer, bars), never for lists. Lists are plain paper.
   extensions are off in `project.yml` because the sets share the web's names (`primary`, `background`).
 - Contrast is checked, not assumed: `DesignContrastTests` holds the pairs the app draws text in to 4.5:1, and records
   the exceptions (white on `primary` is 3.68:1, so a label on the flat primary fill is bold; `primary` and
-  `destructive` as text on raised paper fall under 4.5, so tinted text there uses `accent`).
+  `destructive` as text on raised paper fall under 4.5, so tinted text there uses `accent`; `primary` text on its own 12
+  to 14% tint is 4.08:1 on paper, so small text on a `primary` tint, such as the step numbers, is `accent` too).
 - Shapes, type and borders are the web's (handoff 2.4 and 2.5). Corner radii are named for their role in `HV.Radius`
   (`control` 8 for buttons and inputs, `card` 16, `surface` 20, `brandTile` 5), always `.continuous`. Type is the system
   face; no `design: .rounded` anywhere, and monospace only for what is typed or matched (`hvMono`) and for code

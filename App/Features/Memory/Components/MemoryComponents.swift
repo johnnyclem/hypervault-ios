@@ -62,6 +62,12 @@ enum MemoryStyle {
         default: return Palette.textSecondary
         }
     }
+
+    /// What a source's words are drawn in on its own 14% tint. The tint itself, except for manual's `primary`, which is only
+    /// 4.08:1 on paper over its own fill: that one is `accent` (7.0:1), as for any small text on a `primary` tint.
+    static func ink(forSource source: String) -> Color {
+        source == "manual" ? Palette.sky : tint(forSource: source)
+    }
 }
 
 extension MindCommitKind {
@@ -186,7 +192,7 @@ struct MemorySourceChip: View {
                 .font(.system(.caption2, weight: .semibold))
         }
         // Inked like HVTag: in light mode the accent on a tint of itself needs the darker shade to read.
-        .foregroundStyle(MemoryStyle.tint(forSource: source))
+        .foregroundStyle(MemoryStyle.ink(forSource: source))
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(MemoryStyle.tint(forSource: source).opacity(0.14), in: Capsule())

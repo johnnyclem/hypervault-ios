@@ -62,7 +62,8 @@ extension Color {
 /// Contrast (WCAG, held by `DesignContrastTests`): `textPrimary` is 13.7:1 or better on the page, paper and raised
 /// paper, and the grey text is 5.4:1 or better. Every accent below is 4.5:1 or better on all three, except `blue` as
 /// text on raised paper (4.36) and `danger` as text on raised paper (4.26). White on `blue` is 3.68:1, which holds
-/// bold text only; anything that carries body-size white text is filled with `softGradient` instead.
+/// bold text only; anything that carries body-size white text is filled with `softGradient` instead. `blue` over its own
+/// 14% tint is 4.08:1 on paper, so small text on a tint of `blue` is `sky`.
 enum Palette {
     /// The page: `background`.
     static let background = HVColor.background

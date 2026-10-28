@@ -263,7 +263,7 @@ struct ToolsCatalogRow: View {
                     .padding(.horizontal, HV.Space.m)
                     .frame(minHeight: 44)
                     .background(Palette.blue.opacity(0.14), in: Capsule())
-                    .foregroundStyle(Palette.blue)
+                    .foregroundStyle(Palette.sky)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Add \(entry.displayName)")

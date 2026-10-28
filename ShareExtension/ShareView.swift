@@ -18,6 +18,8 @@ struct ShareView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .background(Palette.background.ignoresSafeArea())
+        // The one accent: the extension has no AccentColor asset, so Cancel, Keep and the caret would be system blue.
+        .tint(HVColor.primary)
         .task { await model.load(from: context) }
     }
 

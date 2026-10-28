@@ -34,7 +34,7 @@ final class SignedOutJourneyTests: HyperVaultUITestCase {
         }
 
         step("Get started leads to the way in") {
-            tap(element("welcome.continue"), "Get started")
+            tap(element("welcome.continue"), "Get started", until: { element("signin.email").exists })
             require(text("Welcome to HyperVault"), "the sign-in screen")
             let google = element("signin.google")
             require(google, "Continue with Google")

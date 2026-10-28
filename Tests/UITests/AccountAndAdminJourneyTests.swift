@@ -120,7 +120,7 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
             let accepting = toggle("Accepting new sign-ups")
             require(accepting, "the switch for accepting sign-ups")
             XCTAssertEqual(accepting.value as? String, "1", "A new code accepts sign-ups.")
-            accepting.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+            flip(accepting, from: "1", "the switch for accepting sign-ups")
             waitUntil("the code to be switched off") { (accepting.value as? String) == "0" }
         }
 

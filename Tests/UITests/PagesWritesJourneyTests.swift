@@ -24,7 +24,7 @@ final class PagesWritesJourneyTests: HyperVaultUITestCase {
             let living = toggle("Keep versions, so it can be rewritten")
             reveal(living, "the Keep versions switch")
             XCTAssertEqual(living.value as? String, "0", "Versions are off until asked for.")
-            living.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+            flip(living, from: "0", "the Keep versions switch")
             waitUntil("the Keep versions switch to turn on") { (living.value as? String) == "1" }
         }
 

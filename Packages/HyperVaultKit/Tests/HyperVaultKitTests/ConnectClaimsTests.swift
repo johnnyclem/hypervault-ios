@@ -73,6 +73,47 @@ final class ConnectClaimsTests: XCTestCase {
         )
     }
 
+    // MARK: The instruction in front of the claim stays
+
+    /// The sentence the live page of Amazon Bedrock AgentCore Gateway ends its check with: no comma before "and".
+    func testTheInstructionBeforeAnAndWithNoCommaStays() {
+        let check = "After the target reaches READY, send tools/list to the gateway's MCP endpoint. Then ask your agent to run setup_challenge through the gateway; a result with the key's challenge slug means the key works. Finish the challenge and the key's row in the Agent keys card on the Account page reads Agent connected."
+        let guide = ConnectGuide(steps: ["Do it."], check: check).withoutVerdictClaims()
+        XCTAssertEqual(
+            guide.check,
+            "After the target reaches READY, send tools/list to the gateway's MCP endpoint. Then ask your agent to run setup_challenge through the gateway; a result with the key's challenge slug means the key works. Finish the challenge."
+        )
+    }
+
+    /// Each way the web (or a page like it) can join the instruction to the claim, and the instruction that has to survive.
+    func testNoSentenceLosesItsInstructionToTheClaimThatFollowsIt() {
+        let cases: [(sentence: String, kept: String)] = [
+            ("Finish the challenge and the key's row reads Agent connected.", "Finish the challenge."),
+            ("Finish the challenge, and the key's row reads Agent connected.", "Finish the challenge."),
+            ("Run the tool; the key's row then shows Agent connected.", "Run the tool."),
+            ("Complete it, then check that the row says Agent connected.", "Complete it."),
+            ("Complete it, then check that the row says Agent connected; if not, retry.", "Complete it."),
+            ("Send the request: the key's row in the Agent keys card shows Agent connected.", "Send the request."),
+            ("Then let the agent finish the challenge (read_artifact, edit, write_artifact), and the key's row in the Agent keys card on the Account page reads Agent connected.", "Then let the agent finish the challenge (read_artifact, edit, write_artifact)."),
+            // The join inside the claim's own clause is not where the instruction ends.
+            ("Finish it and the key's row and its card read Agent connected.", "Finish it."),
+        ]
+        for (sentence, kept) in cases {
+            XCTAssertEqual(ConnectGuide.removingVerdictClaims(sentence), kept, sentence)
+        }
+    }
+
+    func testASentenceThatIsOnlyTheClaimStillGoesWholeEvenWithAJoinInIt() {
+        for sentence in [
+            "Once the challenge is written, the key's row in the Agent keys card on the Account page reads Agent connected.",
+            "The key's row in the Agent keys card now shows Agent connected.",
+            // A lead-in between the join and the claim: the words before the join would be left hanging.
+            "Once you finish and open the page, the key's row reads Agent connected.",
+        ] {
+            XCTAssertNil(ConnectGuide.removingVerdictClaims(sentence), sentence)
+        }
+    }
+
     func testStringsToPasteAreNeverTouched() {
         let paste = ConnectGuide.Paste(label: "A line", language: "text", text: "The row reads Agent connected.")
         let guide = ConnectGuide(steps: ["One."], pastes: [paste]).withoutVerdictClaims()

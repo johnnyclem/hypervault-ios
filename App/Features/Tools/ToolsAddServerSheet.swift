@@ -395,7 +395,7 @@ struct ToolsAddServerSheet: View {
                 HVIconBadge(symbol: "server.rack", tint: Palette.blue, size: 44)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(preview.name).font(.hvTitle3)
-                    Text(URL(string: preview.url)?.host ?? preview.url)
+                    HVAddressText(URL(string: preview.url)?.host ?? preview.url)
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                 }

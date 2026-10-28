@@ -330,6 +330,8 @@ struct HVRow<Trailing: View>: View {
     var tint: Color = Palette.blue
     let title: String
     var subtitle: String?
+    /// The subtitle is a host, a URL or an email, which breaks between its parts and not inside one (`HVAddressText`).
+    var subtitleIsAddress = false
     @ViewBuilder var trailing: () -> Trailing
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -338,12 +340,14 @@ struct HVRow<Trailing: View>: View {
         tint: Color = Palette.blue,
         title: String,
         subtitle: String? = nil,
+        subtitleIsAddress: Bool = false,
         @ViewBuilder trailing: @escaping () -> Trailing
     ) {
         self.symbol = symbol
         self.tint = tint
         self.title = title
         self.subtitle = subtitle
+        self.subtitleIsAddress = subtitleIsAddress
         self.trailing = trailing
     }
 
@@ -356,7 +360,7 @@ struct HVRow<Trailing: View>: View {
                     .foregroundStyle(Palette.textPrimary)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
+                    subtitleText(subtitle)
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
@@ -367,11 +371,16 @@ struct HVRow<Trailing: View>: View {
         }
         .contentShape(Rectangle())
     }
+
+    @ViewBuilder
+    private func subtitleText(_ subtitle: String) -> some View {
+        if subtitleIsAddress { HVAddressText(subtitle) } else { Text(subtitle) }
+    }
 }
 
 extension HVRow where Trailing == EmptyView {
-    init(symbol: String, tint: Color = Palette.blue, title: String, subtitle: String? = nil) {
-        self.init(symbol: symbol, tint: tint, title: title, subtitle: subtitle) { EmptyView() }
+    init(symbol: String, tint: Color = Palette.blue, title: String, subtitle: String? = nil, subtitleIsAddress: Bool = false) {
+        self.init(symbol: symbol, tint: tint, title: title, subtitle: subtitle, subtitleIsAddress: subtitleIsAddress) { EmptyView() }
     }
 }
 

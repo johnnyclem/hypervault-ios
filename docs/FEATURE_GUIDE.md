@@ -214,6 +214,11 @@ floating chrome (composer, bars), never for lists. Lists are plain paper.
   accessibility size it keeps the symbol in a column of its own so wrapped words hang beside it and not under it; a
   row built by hand sets its symbol in `.hvIconSlot(_:)`, a column that grows with the type, never a fixed `.frame(width:)`.
   A `Label` in a menu, a swipe action, a toolbar or a filled button is left alone.
+- A host, a URL or an email that may wrap is drawn with `HVAddressText` (an `HVRow`'s subtitle with
+  `subtitleIsAddress: true`), not `Text`: at an accessibility size it breaks after the dots, the "@" and the slashes
+  (`AddressText` in the Kit), where a plain `Text` breaks inside a word and adds a hyphen that reads as part of the
+  address. The breaks are drawn only; VoiceOver is given the real string. Where the text is selectable, or is copied from
+  what is drawn, use `Text` and keep the address on one line.
 - Motion (handoff 2.6): never write a bare `withAnimation` or `.animation(_:value:)`. `.hvAnimation(_:value:)` and
   `HV.Motion.animate { }` are those two with Reduce Motion in front, `.hvBounce(value:)` is a symbol bounce that holds
   still under it, and `HV.Motion.entrance` is the web's entrance (ease-out, 0.2s). A looping or decorative animation

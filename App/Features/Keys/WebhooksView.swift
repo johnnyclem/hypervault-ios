@@ -154,7 +154,7 @@ private struct WebhookRow: View {
             HVIconBadge(symbol: "dot.radiowaves.left.and.right", tint: tint, size: min(tile, 56))
         } words: {
             VStack(alignment: .leading, spacing: 2) {
-                Text(hook.title).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(isLarge ? nil : 1)
+                HVAddressText(hook.title).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(isLarge ? nil : 1)
                 Text(summary).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(isLarge ? nil : 2)
                 if isLarge, let statusTag { statusTag.padding(.top, 2) }
             }
@@ -212,7 +212,7 @@ private struct WebhookDetailView: View {
                 LabeledContent("Name", value: hook.title)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Posts to").font(.hvFootnote).foregroundStyle(Palette.textSecondary)
-                    Text(hook.url).font(.hvMono).foregroundStyle(Palette.textPrimary).fixedSize(horizontal: false, vertical: true)
+                    HVAddressText(hook.url).font(.hvMono).foregroundStyle(Palette.textPrimary).fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .combine)
                 LabeledContent("Events", value: hook.events.contains("truth.*") ? "Everything" : hook.events.map(WebhookRules.eventTitle).joined(separator: ", "))

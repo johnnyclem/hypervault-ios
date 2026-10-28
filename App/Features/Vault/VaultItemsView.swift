@@ -214,11 +214,11 @@ struct VaultRow: View {
                 VaultTile(secret: secret, size: tileSize)
             } words: {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(secret.name)
+                    HVAddressText(secret.name)
                         .font(.hvBody)
                         .foregroundStyle(Palette.textPrimary)
                         .lineLimit(isLarge ? nil : 1)
-                    Text(secret.subtitle)
+                    HVAddressText(secret.subtitle)
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                         .lineLimit(isLarge ? nil : 1)

@@ -148,12 +148,12 @@ struct ClaimRealmView: View {
             VStack(alignment: .leading, spacing: HV.Space.xs) {
                 ViewThatFits(in: .horizontal) {
                     HStack {
-                        Text(domain.domain).font(.system(.body, design: .monospaced, weight: .semibold)).foregroundStyle(Palette.textPrimary)
+                        HVAddressText(domain.domain).font(.system(.body, design: .monospaced, weight: .semibold)).foregroundStyle(Palette.textPrimary)
                         Spacer(minLength: HV.Space.xs)
                         domainTags(domain)
                     }
                     VStack(alignment: .leading, spacing: HV.Space.xxs) {
-                        Text(domain.domain).font(.system(.body, design: .monospaced, weight: .semibold)).foregroundStyle(Palette.textPrimary)
+                        HVAddressText(domain.domain).font(.system(.body, design: .monospaced, weight: .semibold)).foregroundStyle(Palette.textPrimary)
                         HStack { domainTags(domain) }
                     }
                 }

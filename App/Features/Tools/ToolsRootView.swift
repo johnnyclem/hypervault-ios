@@ -215,12 +215,12 @@ struct ToolsServerRow: View {
                 // The tag and the key take the room the name needs, so at these sizes they sit under it,
                 // lined up with the name.
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
-                    HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle)
+                    HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle, subtitleIsAddress: true)
                     HStack(spacing: HV.Space.xs) { markers }
                         .padding(.leading, 36 + HV.Space.s + 2)
                 }
             } else {
-                HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle) {
+                HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle, subtitleIsAddress: true) {
                     HStack(spacing: HV.Space.xs) { markers }
                 }
             }

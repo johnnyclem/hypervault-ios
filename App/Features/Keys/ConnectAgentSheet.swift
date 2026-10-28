@@ -380,7 +380,9 @@ private struct ConnectClientScreen: View {
                     }
                 case .loaded:
                     if let guide = model.guide(for: info) {
-                        ConnectGuideView(guide: guide, info: info, key: model.fresh?.key)
+                        ConnectGuideView(
+                            guide: guide, info: info, key: model.fresh?.key, onCopySecret: { model.markCopied() }
+                        )
                     }
                 }
             } else {

@@ -119,7 +119,8 @@ struct ArtifactPasswordsScreen: View {
         .navigationTitle("Passwords")
         .navigationBarTitleDisplayMode(.inline)
         .keysHidesWhenInactive(model.minted != nil)
-        .hvSensitive(model.minted != nil)
+        // A password being typed is as much a value as the one just made: neither may be in the app switcher's picture.
+        .hvSensitive(model.minted != nil || !password.isEmpty)
         .task { await model.load() }
         .onDisappear { model.clearMinted() }
         .confirmationDialog(

@@ -10,6 +10,9 @@ struct ConnectGuideView: View {
     let info: AgentClientInfo
     /// The real key the strings carry, when there is one: a string that holds it is copied as a secret.
     let key: String?
+    /// Called when a string that holds the key has been copied: it counts as copying the key, so the sheet stops warning
+    /// that the key will be lost.
+    var onCopySecret: (() -> Void)?
 
     @State private var notesOverride: Bool?
 
@@ -102,7 +105,9 @@ struct ConnectGuideView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(paste.label). Code, \(isSecret ? "holds your key" : "\(paste.text.split(separator: "\n").count) lines").")
                 .keysHidesWhenInactive(isSecret)
-            KeysCopyButton(title: ConnectCopy.copyLabel, text: paste.text, isSecret: isSecret)
+            KeysCopyButton(title: ConnectCopy.copyLabel, text: paste.text, isSecret: isSecret) {
+                if isSecret { onCopySecret?() }
+            }
         }
     }
 

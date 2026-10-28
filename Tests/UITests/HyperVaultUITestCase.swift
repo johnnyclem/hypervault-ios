@@ -206,6 +206,8 @@ class HyperVaultUITestCase: XCTestCase {
     /// scrolled out of view is tapped anyway: XCUITest scrolls it into view first.
     func tap(_ element: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
         require(element, what, file: file, line: line)
+        // Something over the element (the keyboard's first-use tip, for one) is put away before the tap, as a person would.
+        if !(element.exists && element.isHittable) { dismissTheKeyboardTip() }
         let settled = Date().addingTimeInterval(4)
         while Date() < settled, !(element.exists && element.isHittable) {
             RunLoop.current.run(until: Date().addingTimeInterval(0.25))
@@ -243,6 +245,28 @@ class HyperVaultUITestCase: XCTestCase {
             print("[journey] \(what) did not take the keyboard (attempt \(attempt))")
         }
         field.typeText(text)
+        dismissTheKeyboardTip()
+    }
+
+    /// Presses Continue on the tip the keyboard shows the first time it is typed on in a simulator ("Speed up your typing by
+    /// sliding your finger across the letters to compose a word"). It covers the lower half of the screen, and a tap on what
+    /// is under it (the keyboard's Return, a sheet's button) never arrives. Any step that types can meet it.
+    func dismissTheKeyboardTip() {
+        let tip = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "Speed up your typing")).firstMatch
+        guard tip.exists else { return }
+        let window = app.windows.firstMatch.frame
+        // The app has Continue buttons of its own: the tip's is the one in the lower part of the screen.
+        let lower = app.buttons.matching(NSPredicate(format: "label == %@", "Continue")).allElementsBoundByIndex
+            .last { $0.frame.midY > window.height * 0.6 }
+        if let lower {
+            lower.tap()
+        } else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.945)).tap()
+        }
+        let deadline = Date().addingTimeInterval(3)
+        while Date() < deadline, tip.exists {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+        }
     }
 
     private func hasKeyboardFocus(_ element: XCUIElement) -> Bool {
@@ -530,6 +554,7 @@ class HyperVaultUITestCase: XCTestCase {
     /// Puts the keyboard away with its Return (or Done, Go) key, which a single-line field answers by letting go of the
     /// keyboard. Not for a field that grows with its text: its Return key starts a new line.
     func putTheKeyboardAway() {
+        dismissTheKeyboardTip()
         guard app.keyboards.count > 0 else { return }
         for name in ["Return", "return", "Done", "done", "Go", "go", "Next", "next", "Continue", "continue", "Search", "search"] {
             let key = app.keyboards.buttons[name]

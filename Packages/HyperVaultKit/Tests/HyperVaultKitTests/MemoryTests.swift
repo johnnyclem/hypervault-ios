@@ -564,16 +564,28 @@ final class MemoryTests: XCTestCase {
         XCTAssertEqual(answer.tools, .off)
     }
 
-    func testToolsAreOnForAnAskUnlessTheyAreSwitchedOff() async throws {
+    func testTheToolsSwitchIsSentWhicheverWayItIsSet() async throws {
         let reply = #"{"conversation_id":"conv-1","reply":{"id":"m","content":"Ferries run hourly."},"recalled_memories":[]}"#
         let (api, transport) = client([.json(.post, "/api/chat", reply)])
-        _ = try await api.send(.memoryAsk(backendId: "b1", message: "With tools by default"))
+        _ = try await api.send(.memoryAsk(backendId: "b1", message: "Someone with no tools"))
         _ = try await api.send(.memoryAsk(backendId: "b1", message: "With tools off", useTools: false))
+        _ = try await api.send(.memoryAsk(backendId: "b1", message: "And on again", conversationId: "conv-1", useTools: true))
         let sent = try await transport.requests.map { try XCTUnwrap($0.httpBody) }
         let bodies = try sent.map { try XCTUnwrap(JSONSerialization.jsonObject(with: $0) as? [String: Any]) }
-        XCTAssertNil(bodies[0]["use_tools"], "the route lets the model use tools unless it is told not to")
+        XCTAssertNil(bodies[0]["use_tools"], "nothing is said to the route for someone who has no tools")
         XCTAssertEqual(bodies[1]["use_tools"] as? Bool, false)
         XCTAssertEqual(bodies[1]["use_recall"] as? Bool, true, "switching tools off leaves recall on")
+        XCTAssertEqual(
+            bodies[2]["use_tools"] as? Bool, true,
+            "a conversation begun with tools off has no toolkit, and the route attaches one again only when told true"
+        )
+    }
+
+    func testTheReasoningAModelWroteIsNotPartOfTheAnswer() async throws {
+        let reply = #"{"conversation_id":"conv-1","reply":{"id":"m","content":"<think>The notes say Friday.</think>\nBook the Friday ferry."}}"#
+        let (api, _) = client([.json(.post, "/api/chat", reply)])
+        let answer = try await api.send(.memoryAsk(backendId: "b1", message: "When is the ferry?"))
+        XCTAssertEqual(answer.text, "Book the Friday ferry.", "what is copied, kept and read aloud is the answer")
     }
 
     func testRecallAndListEndpointsCarryTheBranch() async throws {

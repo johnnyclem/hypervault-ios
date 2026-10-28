@@ -39,6 +39,8 @@ final class MemoryAskModel {
     private(set) var conversationID: String?
     /// Whether the person has compiled tools, which the model may use to answer.
     private(set) var hasToolkit = false
+    /// Tools can be used only by a model that answers: with none connected there is only recall to show.
+    var offersTools: Bool { hasToolkit && selectedBackend != nil }
     var selectedBackendID: String?
     /// Tools are on for an Ask, as they are for a chat, until the person switches them off.
     var useTools = true
@@ -107,7 +109,7 @@ final class MemoryAskModel {
         do {
             // The answer is written from the branch the sources came from.
             let answer = try await client.send(.memoryAsk(
-                backendId: backend.id, message: text, conversationId: conversationID, recallBranch: branch, useTools: !hasToolkit || useTools
+                backendId: backend.id, message: text, conversationId: conversationID, recallBranch: branch, useTools: hasToolkit ? useTools : nil
             ))
             if !answer.conversationId.isEmpty { conversationID = answer.conversationId }
             update(id) { $0.answer = answer }

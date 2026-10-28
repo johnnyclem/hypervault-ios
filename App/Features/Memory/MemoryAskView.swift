@@ -35,15 +35,30 @@ struct MemoryAskView: View {
                     .hvReadableWidth()
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .onChange(of: model.turns.last) { _, last in
-                    guard let last else { return }
-                    HV.Motion.animate(.easeOut(duration: 0.25)) { proxy.scrollTo(last.id, anchor: .bottom) }
+                // New content at the bottom is followed; a thumb or a Keep on the answer is not, which would take the page
+                // away from the buttons that were just used.
+                .onChange(of: scrollKey) { _, key in
+                    guard let key else { return }
+                    HV.Motion.animate(.easeOut(duration: 0.25)) { proxy.scrollTo(key.id, anchor: .bottom) }
                 }
             }
             composer
         }
         .task { await model.loadBackends() }
         .onDisappear { speech.stop() }
+    }
+
+    /// What of the last turn calls for a scroll to it: it arrives, its sources arrive, it is answered or it fails.
+    private struct ScrollKey: Equatable {
+        let id: UUID
+        let phase: MemoryAskModel.Turn.Phase
+        let hits: Int
+        let answered: Bool
+        let failed: Bool
+    }
+
+    private var scrollKey: ScrollKey? {
+        model.turns.last.map { ScrollKey(id: $0.id, phase: $0.phase, hits: $0.hits.count, answered: $0.answer != nil, failed: $0.failure != nil) }
     }
 
     private var intro: some View {
@@ -69,7 +84,7 @@ struct MemoryAskView: View {
 
     private var composer: some View {
         VStack(spacing: HV.Space.xs) {
-            if model.backends.count > 1 || model.hasToolkit {
+            if model.backends.count > 1 || model.offersTools {
                 HStack(spacing: HV.Space.m) {
                     if model.backends.count > 1 {
                         Menu {
@@ -83,7 +98,7 @@ struct MemoryAskView: View {
                                 .font(.hvCaption)
                         }
                     }
-                    if model.hasToolkit {
+                    if model.offersTools {
                         // The model may act through the person's tools, as in a chat, unless this is off.
                         Menu {
                             Toggle("Use my tools", isOn: Binding(get: { model.useTools }, set: { model.useTools = $0 }))

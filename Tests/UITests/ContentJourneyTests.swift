@@ -42,6 +42,10 @@ final class ContentJourneyTests: HyperVaultUITestCase {
             require(button("Read aloud"), "Read aloud on the answer")
             tap(button("Keep this answer"), "Keep this answer", until: { self.text("Kept. Here's the link.").exists })
             require(text("Kept. Here's the link."), "what Keep made of the answer")
+            requireWrite("POST", "/api/keep", equal: [
+                "content": "Your Lisbon notes say to book the Friday ferry across the Tagus and to bring both passports.",
+                "source_prompt": "What did I plan for the ferry?",
+            ])
         }
     }
 

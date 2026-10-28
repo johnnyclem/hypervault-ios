@@ -1050,7 +1050,8 @@ extension MemoryAnswer: Decodable {
         let c = try decoder.container(keyedBy: Keys.self)
         conversationId = try c.decodeIfPresent(String.self, forKey: .conversationId) ?? ""
         let reply = try c.decodeIfPresent(Reply.self, forKey: .reply)
-        text = reply?.content ?? ""
+        // The reasoning a model wrote ahead of its answer is not part of it: it is not what is copied, kept or read aloud.
+        text = Thinking.strip(reply?.content ?? "").shown
         model = reply?.model
         truncated = reply?.truncated ?? false
         messageId = reply?.id
@@ -1149,10 +1150,11 @@ extension Endpoint where Response == MemoryConnected {
 
 extension Endpoint where Response == MemoryAnswer {
     /// One turn of chat with wiki recall on, as the web's Ask mode sends it. `recallBranch` is the branch the
-    /// answer is written from; the route reads main when it is left out. `useTools` is sent only when it is false:
-    /// the route lets the model use the person's tools unless it is told not to.
+    /// answer is written from; the route reads main when it is left out. `useTools` is the person's choice when they have
+    /// tools, as a chat sends it: said either way it is sent either way, because a conversation that began with tools
+    /// off has no toolkit and the route gives it one again only when it is told true. Nil leaves it to the route.
     public static func memoryAsk(
-        backendId: String, message: String, conversationId: String? = nil, recallBranch: String? = nil, useTools: Bool = true
+        backendId: String, message: String, conversationId: String? = nil, recallBranch: String? = nil, useTools: Bool? = nil
     ) -> Endpoint<MemoryAnswer> {
         var body: [String: JSONValue] = [
             "backend_id": .string(backendId),
@@ -1161,7 +1163,7 @@ extension Endpoint where Response == MemoryAnswer {
         ]
         if let conversationId { body["conversation_id"] = .string(conversationId) }
         if let recallBranch, !recallBranch.isEmpty, recallBranch != MindBranchName.defaultName { body["recall_branch"] = .string(recallBranch) }
-        if !useTools { body["use_tools"] = .bool(false) }
+        if let useTools { body["use_tools"] = .bool(useTools) }
         return Endpoint(.post, "/api/chat", body: .jsonValue(.object(body)), keys: .verbatim, timeout: 120)
     }
 }

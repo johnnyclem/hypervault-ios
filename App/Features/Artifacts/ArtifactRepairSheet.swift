@@ -21,11 +21,19 @@ final class ArtifactRepairModel {
     private let pollInterval: UInt64
     /// How long to keep asking before saying it is still working: three minutes.
     private let maxPolls = 90
+    /// The sheet has been closed, so no one is waiting for the answer any more.
+    @ObservationIgnored private var closed = false
 
     init(client: HVClient, slug: String, pollInterval: UInt64 = 2_000_000_000) {
         self.client = client
         self.slug = slug
         self.pollInterval = pollInterval
+    }
+
+    /// The sheet was closed. The job goes on, but the answer would reach no one here, so this stops asking and does not
+    /// acknowledge it: the job notice (`JobNotices`) tells of it the next time Home or the Library is showing.
+    func stopWaiting() {
+        closed = true
     }
 
     func run(renderError: String?) async {
@@ -42,8 +50,9 @@ final class ArtifactRepairModel {
         }
 
         for _ in 0..<maxPolls {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, !closed else { return }
             if let job = try? await client.send(.artifactJob(id: start.jobId)), job.isFinished {
+                guard !closed else { return }
                 // Tell the server it has been seen, so it stops being announced.
                 _ = try? await client.send(.acknowledgeArtifactJob(id: job.id))
                 if job.status == .succeeded {
@@ -110,6 +119,7 @@ struct ArtifactRepairSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .onDisappear { model.stopWaiting() }
     }
 
     private var explanation: String {

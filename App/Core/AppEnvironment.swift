@@ -14,6 +14,8 @@ final class AppEnvironment {
     let user: AuthUser
     let server: ServerConfig
     @ObservationIgnored let cache: DiskCache
+    /// Tells of background jobs (a page repair) that finished while nobody was watching: on the Home canvas and the Library.
+    let jobNotices: JobNotices
 
     /// Set by the Admin feature's probe; the Account menu shows the Admin row when true.
     var isAdmin = false
@@ -25,6 +27,7 @@ final class AppEnvironment {
         self.user = user
         self.server = server
         self.cache = cache
+        self.jobNotices = JobNotices(client: client)
     }
 
     var limits: Capabilities.Limits { capabilities.limits }

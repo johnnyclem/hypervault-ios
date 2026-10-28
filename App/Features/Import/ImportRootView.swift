@@ -55,8 +55,8 @@ struct ImportScreen: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom) {
-            if pinsChooseAction, let source = model.source { chooseActionBar(source) }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if pinsChooseAction, let source = model.source { chooseAction(source).hvActionBar() }
         }
         .hvScreenBackground()
         .navigationTitle("Import")
@@ -150,15 +150,6 @@ struct ImportScreen: View {
                     .multilineTextAlignment(.center)
             }
         }
-    }
-
-    private func chooseActionBar(_ source: ImportPlatform) -> some View {
-        chooseAction(source)
-            .padding(HV.Space.m)
-            .hvGlass()
-            .padding(.horizontal, HV.Space.s)
-            .padding(.bottom, HV.Space.xxs)
-            .hvReadableWidth()
     }
 
     private var pasteArea: some View {

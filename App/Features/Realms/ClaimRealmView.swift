@@ -121,21 +121,15 @@ struct ClaimRealmView: View {
 
     /// The one filled action, pinned where the thumb is, so it is there whatever the portfolio's length.
     private var claimBar: some View {
-        VStack(spacing: HV.Space.xs) {
-            Button {
-                Task { await flow.claim(name: name, base: chosenBase) }
-            } label: {
-                if flow.claiming { ProgressView().tint(.white) } else { Text("Claim my address") }
-            }
-            .buttonStyle(.hvPrimary)
-            .disabled(flow.availability != .available || flow.claiming)
-            .accessibilityHint(flow.availability == .available ? "" : "Pick a name that is free first.")
+        Button {
+            Task { await flow.claim(name: name, base: chosenBase) }
+        } label: {
+            if flow.claiming { ProgressView().tint(.white) } else { Text("Claim my address") }
         }
-        .padding(HV.Space.s)
-        .frame(maxWidth: .infinity)
-        .hvGlass(radius: 26)
-        .padding(.horizontal, HV.Space.m)
-        .padding(.vertical, HV.Space.xs)
+        .buttonStyle(.hvPrimary)
+        .disabled(flow.availability != .available || flow.claiming)
+        .accessibilityHint(flow.availability == .available ? "" : "Pick a name that is free first.")
+        .hvActionBar()
     }
 
     private func domainCard(_ domain: Capabilities.PortfolioDomain) -> some View {

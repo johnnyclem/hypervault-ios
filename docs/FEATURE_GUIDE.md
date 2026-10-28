@@ -225,9 +225,12 @@ floating chrome (composer, bars), never for lists. Lists are plain paper.
   reads `accessibilityReduceMotion` itself (Aurora, the thinking dots, the confetti). The icon button style swaps its
   spring for a dimmer fill, and the toast fades in place of sliding. A button says "Copied" for `HV.Motion.copiedHold`
   (1.5s), as the web's copy button does. System sheet and push animations are left to the system.
-- Glass and bars: `hvGlass` is for floating chrome (a composer, an action bar, a legend), never a `.background(.bar)` or
+- Glass and bars: `hvGlass` is for floating chrome (a composer, a legend, a bar of icons), never a `.background(.bar)` or
   a material, and the system's navigation bar is not repainted (no `toolbarBackground`): on iOS 26 it carries its own
-  scroll-edge effect.
+  scroll-edge effect. A filled button pinned under something that scrolls (Import, Claim an address, Compile tools) is
+  not glass: rows under glass show through as smeared ghost text, and a glass pill round a button has two radii and two
+  borders. It is `.hvActionBar()` as the content of `safeAreaInset(edge: .bottom, spacing: 0)`: the page's colour, solid,
+  with a fade above it, and the inset keeps the end of the list clear of it.
 - Sheets: every sheet has a visible way out (handoff 4.4 and 9). Most already have a `Cancel`, a `Done` or a `Close` in
   the navigation bar, or an `HVSheetHeader` with its xmark; a sheet that has none puts `.hvSheetClose(isDirty:)` on its
   root view inside the `NavigationStack`. It adds a "Close" button (xmark, `.cancellationAction`); while `isDirty` it

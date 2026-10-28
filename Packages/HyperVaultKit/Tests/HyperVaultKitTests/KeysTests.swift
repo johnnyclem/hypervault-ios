@@ -4,8 +4,8 @@ import FoundationNetworking
 #endif
 @testable import HyperVaultKit
 
-/// Agent keys: app/api/keys/route.ts, lib/api-keys.ts, lib/agent-setup.ts, and the PostgREST read the
-/// account page does on the server (app/vault/account/page.tsx).
+/// Agent keys: app/api/keys/route.ts, lib/api-keys.ts, lib/agent-setup.ts (whose verdict the app does not work out
+/// again), and the PostgREST read the account page does on the server (app/vault/account/page.tsx).
 final class KeysTests: XCTestCase {
     func api(_ transport: MockTransport) -> HVClient {
         HVClient(baseURL: URL(string: "https://hv.test")!, transport: transport, tokens: StaticTokenProvider(), retry: .none)
@@ -212,103 +212,64 @@ final class KeysTests: XCTestCase {
         }
     }
 
-    // MARK: Setup status
+    // MARK: Setup challenge pages
 
-    static func challengePage(prefix: String, status: String, id: String = "art-1", slug: String = "agent-setup-1") -> AgentSetup.ChallengePage {
-        AgentSetup.ChallengePage(
-            id: id, slug: slug, tags: [AgentSetup.challengeTag, prefix],
-            content: "<!doctype html><html><head><title>t</title></head>\n<body data-setup-status=\"\(status)\">\n<!-- On the <body> tag, change data-setup-status from incomplete to complete -->\n</body></html>"
-        )
-    }
+    static let challengeTag = SetupChallengePages.tag
 
-    func testTheCompleteMarkerIsAnchoredToTheBodyTag() {
-        XCTAssertTrue(AgentSetup.isComplete(content: "<html><body data-setup-status=\"complete\">"))
-        XCTAssertTrue(AgentSetup.isComplete(content: "<BODY class='x' data-setup-status = 'complete'>"))
-        XCTAssertFalse(AgentSetup.isComplete(content: "<body data-setup-status=\"incomplete\">"))
-        // The instructions inside the page describe the edit and must never satisfy the check.
-        XCTAssertFalse(AgentSetup.isComplete(content: "<body data-setup-status=\"incomplete\"><!-- set data-setup-status=\"complete\" -->"))
-        XCTAssertFalse(AgentSetup.isComplete(content: "<div data-setup-status=\"complete\">"))
-    }
-
-    func testAKeyIsConnectedOnlyWhenItsOwnAgentWroteTheCompletedPage() throws {
-        let k1 = AgentKey(id: "k1", keyPrefix: "hv_Zk3pQ9vL")
-        let k2 = AgentKey(id: "k2", keyPrefix: "hv_Aa1Bb2Cc")
-        let k3 = AgentKey(id: "k3", keyPrefix: "hv_Dd3Ee4Ff")
-        let done = Self.challengePage(prefix: "hv_Zk3pQ9vL", status: "complete", id: "a1", slug: "s1")
-        let pending = Self.challengePage(prefix: "hv_Aa1Bb2Cc", status: "incomplete", id: "a2", slug: "s2")
-        let editedByHand = Self.challengePage(prefix: "hv_Dd3Ee4Ff", status: "complete", id: "a3", slug: "s3")
-        let when = Date(timeIntervalSince1970: 1_800_000_000)
-        let heads = [
-            "a1": AgentSetup.HeadVersion(artifactId: "a1", authorKind: "agent", authorKeyId: "k1", createdAt: when),
-            "a2": AgentSetup.HeadVersion(artifactId: "a2", authorKind: "system", authorKeyId: nil, createdAt: when),
-            "a3": AgentSetup.HeadVersion(artifactId: "a3", authorKind: "user", authorKeyId: nil, createdAt: when),
+    func testEachKeyFindsItsOwnChallengePageByPrefixAndTheNewestWins() {
+        let keys = [
+            AgentKey(id: "k1", keyPrefix: "hv_Zk3pQ9vL"), AgentKey(id: "k2", keyPrefix: "hv_Aa1Bb2Cc"), AgentKey(id: "k3", keyPrefix: "hv_Dd3Ee4Ff"),
         ]
-        let statuses = AgentSetup.resolve(keys: [k1, k2, k3], pages: [done, pending, editedByHand], heads: heads)
-        XCTAssertEqual(statuses["k1"], AgentSetupStatus(slug: "s1", complete: true, completedAt: when))
-        XCTAssertEqual(statuses["k2"], AgentSetupStatus(slug: "s2", complete: false))
-        XCTAssertEqual(statuses["k3"]?.complete, false, "a dashboard edit cannot pass for a working agent")
-
-        // A database from before commits: the marker alone decides.
-        XCTAssertEqual(AgentSetup.resolve(keys: [k3], pages: [editedByHand], heads: nil)["k3"]?.complete, true)
-        // A key with no challenge (minted before challenges existed) has no status at all.
-        XCTAssertNil(AgentSetup.resolve(keys: [AgentKey(id: "k9", keyPrefix: "hv_Zz9Zz9Zz")], pages: [done], heads: heads)["k9"])
+        let pages = [
+            SetupChallengePages.Page(slug: "newer", tags: [Self.challengeTag, "hv_Zk3pQ9vL"]),
+            SetupChallengePages.Page(slug: "second", tags: [Self.challengeTag, "hv_Aa1Bb2Cc"]),
+            SetupChallengePages.Page(slug: "older", tags: [Self.challengeTag, "hv_Zk3pQ9vL"]),
+        ]
+        let slugs = SetupChallengePages.slugs(keys: keys, pages: pages)
+        XCTAssertEqual(slugs, ["k1": "newer", "k2": "second"], "the key with no page has no entry, and says nothing about its setup")
     }
 
-    func testTheNewestChallengePerPrefixWins() {
-        let key = AgentKey(id: "k1", keyPrefix: "hv_Zk3pQ9vL")
-        let newer = Self.challengePage(prefix: "hv_Zk3pQ9vL", status: "complete", id: "new", slug: "newer")
-        let older = Self.challengePage(prefix: "hv_Zk3pQ9vL", status: "incomplete", id: "old", slug: "older")
-        let heads = ["new": AgentSetup.HeadVersion(artifactId: "new", authorKind: "agent", authorKeyId: "k1", createdAt: nil)]
-        XCTAssertEqual(AgentSetup.resolve(keys: [key], pages: [newer, older], heads: heads)["k1"]?.slug, "newer")
-    }
-
-    func testSnapshotReadsKeysPagesAndCommits() async throws {
+    func testSnapshotReadsKeysAndOnlyTheSlugsAndTagsOfTheirPages() async throws {
         let pagesJSON = """
-        [{"id":"a1","slug":"agent-setup-1","tags":["agent-setup-challenge","hv_Zk3pQ9vL"],"content":"<body data-setup-status=\\"complete\\">"},
-         {"id":"a2","slug":"agent-setup-2","tags":["agent-setup-challenge","hv_Aa1Bb2Cc"],"content":"<body data-setup-status=\\"incomplete\\">"}]
+        [{"slug":"agent-setup-1","tags":["agent-setup-challenge","hv_Zk3pQ9vL"]},
+         {"slug":"agent-setup-2","tags":["agent-setup-challenge","hv_Aa1Bb2Cc"]}]
         """
-        let versionsJSON = #"[{"artifact_id":"a1","author_kind":"agent","author_key_id":"k1","created_at":"2026-10-25T09:00:00.5+00:00"},{"artifact_id":"a1","author_kind":"system","author_key_id":null,"created_at":"2026-10-20T10:00:00Z"}]"#
         let transport = MockTransport(routes: [
             .json(.get, "/rest/v1/api_keys", Self.keysJSON),
             .json(.get, "/rest/v1/artifacts", pagesJSON),
-            .json(.get, "/rest/v1/artifact_versions", versionsJSON),
         ])
         let snapshot = try await AgentKeyDirectory.snapshot(rest: rest(transport), userID: "user-1")
         XCTAssertEqual(snapshot.keys.count, 2)
-        XCTAssertEqual(snapshot.statuses["k1"]?.complete, true)
-        XCTAssertNotNil(snapshot.statuses["k1"]?.completedAt)
-        XCTAssertEqual(snapshot.statuses["k2"]?.complete, false)
-        XCTAssertEqual(snapshot.connectedCount, 1)
+        XCTAssertEqual(snapshot.challengeSlugs, ["k1": "agent-setup-1", "k2": "agent-setup-2"])
 
         let artifactRequests = await transport.requests(matching: "/rest/v1/artifacts")
         let artifactRequest = try XCTUnwrap(artifactRequests.first)
         let items = Dictionary(uniqueKeysWithValues: (URLComponents(url: try XCTUnwrap(artifactRequest.url), resolvingAgainstBaseURL: false)?.queryItems ?? []).map { ($0.name, $0.value ?? "") })
         XCTAssertEqual(items["tags"], "cs.{agent-setup-challenge}")
+        XCTAssertEqual(items["select"], "slug,tags", "a page's content is never read, so the app cannot work out whether an agent finished")
         let versionRequests = await transport.requests(matching: "/rest/v1/artifact_versions")
-        let versionRequest = try XCTUnwrap(versionRequests.first)
-        let versionItems = Dictionary(uniqueKeysWithValues: (URLComponents(url: try XCTUnwrap(versionRequest.url), resolvingAgainstBaseURL: false)?.queryItems ?? []).map { ($0.name, $0.value ?? "") })
-        XCTAssertEqual(versionItems["artifact_id"], "in.(a1,a2)")
+        XCTAssertTrue(versionRequests.isEmpty, "who wrote a page is not read either")
     }
 
-    func testStatusIsLeftOutWhenTheChallengePagesCannotBeRead() async throws {
+    func testNoSlugsWhenTheChallengePagesCannotBeRead() async throws {
         let transport = MockTransport(routes: [
             .json(.get, "/rest/v1/api_keys", Self.keysJSON),
             .failure(.get, "/rest/v1/artifacts", status: 500, message: "boom"),
         ])
         let snapshot = try await AgentKeyDirectory.snapshot(rest: rest(transport), userID: "user-1")
         XCTAssertEqual(snapshot.keys.count, 2)
-        XCTAssertTrue(snapshot.statuses.isEmpty, "no status rather than a wrong one")
+        XCTAssertTrue(snapshot.challengeSlugs.isEmpty)
     }
 
-    func testStatusFallsBackToTheMarkerWhenCommitsDoNotExist() async throws {
-        let pagesJSON = #"[{"id":"a1","slug":"agent-setup-1","tags":["agent-setup-challenge","hv_Zk3pQ9vL"],"content":"<body data-setup-status=\"complete\">"}]"#
-        let transport = MockTransport(routes: [
-            .json(.get, "/rest/v1/api_keys", Self.keysJSON),
-            .json(.get, "/rest/v1/artifacts", pagesJSON),
-            .json(.get, "/rest/v1/artifact_versions", #"{"code":"PGRST205","message":"Could not find the table 'public.artifact_versions' in the schema cache"}"#, status: 404),
-        ])
-        let snapshot = try await AgentKeyDirectory.snapshot(rest: rest(transport), userID: "user-1")
-        XCTAssertEqual(snapshot.statuses["k1"]?.complete, true)
+    func testASnapshotSavedByAnOlderVersionStillReads() throws {
+        // The saved copy used to carry a verdict per key. It is ignored, not shown.
+        let saved = #"{"keys":[{"id":"k1","keyPrefix":"hv_Zk3pQ9vL","name":"Claude Code","mailPinCleared":false}],"statuses":{"k1":{"slug":"s1","complete":true}}}"#
+        let snapshot = try HVCoding.decoder().decode(AgentKeysSnapshot.self, from: Data(saved.utf8))
+        XCTAssertEqual(snapshot.keys.map(\.id), ["k1"])
+        XCTAssertTrue(snapshot.challengeSlugs.isEmpty)
+
+        let round = try HVCoding.decoder().decode(AgentKeysSnapshot.self, from: try HVCoding.encoder().encode(AgentKeysSnapshot(keys: snapshot.keys, challengeSlugs: ["k1": "s1"])))
+        XCTAssertEqual(round.challengeSlugs, ["k1": "s1"])
     }
 
     // MARK: Onboarding

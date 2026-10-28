@@ -33,7 +33,7 @@ struct RecentWidgetView: View {
             case .signedOut:
                 message("Open HyperVault to sign in.")
             case .locked:
-                message("Locked. Open HyperVault to see what you kept.")
+                message("Hidden while the lock is on. Open HyperVault to see what you kept.")
             case .empty:
                 message("Nothing kept yet.")
             case .items(let things):
@@ -57,7 +57,7 @@ struct RecentWidgetView: View {
             HStack(spacing: 6) {
                 if family != .accessoryRectangular { BrandMark(size: 18) }
                 Text("Yours.")
-                    .font(.system(.footnote, design: .rounded, weight: .bold))
+                    .font(.system(.footnote, weight: .bold))
                     .foregroundStyle(family == .accessoryRectangular ? Color.primary : Palette.textSecondary)
             }
             ForEach(things.prefix(limit)) { thing in
@@ -79,7 +79,7 @@ struct RecentWidgetView: View {
                 HVIconBadge(symbol: thing.kind.symbol, tint: thing.kind.tint, size: family == .systemSmall ? 22 : 28)
             }
             Text(thing.name)
-                .font(.system(family == .accessoryRectangular ? .caption : .subheadline, design: .rounded, weight: .medium))
+                .font(.system(family == .accessoryRectangular ? .caption : .subheadline, weight: .medium))
                 .foregroundStyle(Palette.textPrimary)
                 .lineLimit(1)
                 // Names are redacted while the phone is locked, on the Lock Screen and in StandBy, whether or not the app lock is on.
@@ -92,7 +92,7 @@ struct RecentWidgetView: View {
         VStack(spacing: 8) {
             BrandMark(size: 30)
             Text(text)
-                .font(.system(.footnote, design: .rounded, weight: .medium))
+                .font(.system(.footnote, weight: .medium))
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -134,15 +134,18 @@ struct KeepWidgetView: View {
             if family == .accessoryCircular {
                 ZStack {
                     AccessoryWidgetBackground()
-                    HMarkShape().fill(.primary).padding(10)
+                    Text("H").font(.system(size: 24, weight: .semibold, design: .monospaced)).foregroundStyle(.primary)
                 }
+                // The H is the mark, not a word: the widget says what it does, as its other sizes do.
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Keep something")
             } else if family == .accessoryInline {
                 Label("Keep something", systemImage: "tray.and.arrow.down")
             } else {
                 VStack(spacing: 10) {
                     BrandMark(size: 46)
                     Text("Keep something")
-                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                         .foregroundStyle(Palette.textPrimary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -159,7 +162,7 @@ struct KeepWidget: Widget {
             KeepWidgetView()
         }
         .configurationDisplayName("Keep")
-        .description("Open the canvas, ready to keep something.")
+        .description("Open HyperVault, ready to keep something.")
         .supportedFamilies([.systemSmall, .accessoryCircular, .accessoryInline])
     }
 }

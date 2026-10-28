@@ -1,111 +1,87 @@
 import HyperVaultKit
 import SwiftUI
 
-/// The second tab: everything that has been kept, newest used first.
-struct YoursRootView: View {
-    @Environment(AppEnvironment.self) private var env
-
-    var body: some View {
-        YoursTab(client: env.client, cache: env.cache, namespace: env.user.id, baseURL: env.server.baseURL)
-    }
-}
-
-private struct YoursTab: View {
-    @Environment(AppModel.self) private var app
-    @State private var model: YoursModel
-    let baseURL: URL
-
-    init(client: HVClient, cache: DiskCache, namespace: String, baseURL: URL) {
-        _model = State(initialValue: YoursModel(client: client, cache: cache, namespace: namespace))
-        self.baseURL = baseURL
-    }
-
-    var body: some View {
-        YoursListView(model: model, baseURL: baseURL, onSelect: open, onPull: pull)
-            .navigationTitle(HVCopy.panelTitle)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        app.router.canvasAsk = true
-                        app.router.tab = .canvas
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("New")
-                    .accessibilityIdentifier("yours.new")
-                }
-                ToolbarItem(placement: .topBarLeading) {
-                    NavigationLink(value: Route.library) {
-                        Text("Library").font(.system(.subheadline, design: .rounded, weight: .semibold))
-                    }
-                    .accessibilityIdentifier("yours.library")
-                }
-            }
-    }
-
-    private func open(_ item: KeptItem) {
-        model.markOpened(item)
-        switch item.kind {
-        case .page, .file, .group:
-            if let slug = item.slug { app.router.push(.artifact(slug: slug), on: .yours) }
-        case .memory:
-            app.router.open(.route(.memory(id: item.id)))
-        case .key:
-            app.router.open(.route(.vaultItems))
-        }
-    }
-
-    private func pull(_ item: KeptItem) {
-        app.router.canvasPull = item
-        app.router.tab = .canvas
-    }
-}
-
-/// The panel the canvas opens from its corner icon. Tapping a thing, or choosing "Put on the canvas"
-/// on it, puts it on the page; `onPull` is where that notes the open.
+/// Yours, the panel Home opens from its corner icon: everything that has been kept, newest used first. Tapping a thing, or
+/// choosing "Put on the page" on it, puts it on the page; "Open" opens it where it lives. The Library, the longer list,
+/// is under More.
 struct YoursSheet: View {
     let onPull: (KeptItem) -> Void
     let onNew: () -> Void
+    let onLibrary: () -> Void
 
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        YoursSheetContent(client: env.client, cache: env.cache, namespace: env.user.id, baseURL: env.server.baseURL, onPull: onPull, onNew: onNew, onClose: { dismiss() })
+        YoursSheetContent(
+            client: env.client, cache: env.cache, namespace: env.user.id, baseURL: env.server.baseURL,
+            onPull: onPull, onNew: onNew, onLibrary: onLibrary, onClose: { dismiss() }
+        )
     }
 }
 
 private struct YoursSheetContent: View {
+    @Environment(AppModel.self) private var app
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var model: YoursModel
     let baseURL: URL
     let onPull: (KeptItem) -> Void
     let onNew: () -> Void
+    let onLibrary: () -> Void
     let onClose: () -> Void
 
-    init(client: HVClient, cache: DiskCache, namespace: String, baseURL: URL, onPull: @escaping (KeptItem) -> Void, onNew: @escaping () -> Void, onClose: @escaping () -> Void) {
+    init(
+        client: HVClient, cache: DiskCache, namespace: String, baseURL: URL,
+        onPull: @escaping (KeptItem) -> Void, onNew: @escaping () -> Void, onLibrary: @escaping () -> Void,
+        onClose: @escaping () -> Void
+    ) {
         _model = State(initialValue: YoursModel(client: client, cache: cache, namespace: namespace))
         self.baseURL = baseURL
         self.onPull = onPull
         self.onNew = onNew
+        self.onLibrary = onLibrary
         self.onClose = onClose
     }
 
     var body: some View {
         NavigationStack {
-            YoursListView(model: model, baseURL: baseURL, onSelect: onPull, onPull: onPull)
+            YoursListView(model: model, baseURL: baseURL, onSelect: onPull, onPull: onPull, onOpen: open)
             .navigationTitle(HVCopy.panelTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("New", action: onNew)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Menu {
+                        Button(action: onLibrary) { Label("Library", systemImage: "folder") }
+                            .accessibilityIdentifier("yours.library")
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .accessibilityLabel("More")
+                    .accessibilityIdentifier("yours.more")
                     Button("Done", action: onClose)
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        // Half height shows no row at accessibility text sizes, where the search and the filter fill it: open at full height.
+        .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+
+    /// Opens the thing where it lives, and closes the panel so what opens is not under it.
+    private func open(_ item: KeptItem) {
+        model.markOpened(item)
+        onClose()
+        switch item.kind {
+        case .page, .file, .group:
+            if let slug = item.slug { app.router.open(.route(.artifact(slug: slug))) }
+        case .memory:
+            app.router.open(.route(.memory(id: item.id)))
+        case .key:
+            app.router.open(.account(.vault))
+        }
     }
 }
 
@@ -115,6 +91,8 @@ struct YoursListView: View {
     let baseURL: URL
     let onSelect: (KeptItem) -> Void
     let onPull: (KeptItem) -> Void
+    /// Opens the thing where it lives, for the row's menu.
+    let onOpen: (KeptItem) -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
@@ -168,7 +146,7 @@ struct YoursListView: View {
                 HVEmptyState(
                     symbol: model.isEmptyVault ? "tray" : "magnifyingglass",
                     title: model.isEmptyVault ? HVCopy.emptyPanel : HVCopy.yoursNothingHereLine,
-                    message: model.isEmptyVault ? "Ask your AI to keep something, or paste it on the canvas." : nil
+                    message: model.isEmptyVault ? "Ask your AI to keep something, or paste it on the page." : nil
                 )
                 .listRowBackground(Color.clear)
             }
@@ -210,7 +188,8 @@ struct YoursListView: View {
         .buttonStyle(.plain)
         .hvListRow()
         .contextMenu {
-            Button("Put on the canvas", systemImage: "rectangle.on.rectangle") { onPull(item) }
+            Button("Put on the page", systemImage: "rectangle.on.rectangle") { onPull(item) }
+            Button("Open", systemImage: "arrow.up.forward.square") { onOpen(item) }
             if let url = link(for: item) {
                 ShareLink(item: url) { Label("Share link", systemImage: "square.and.arrow.up") }
                 Button("Copy link", systemImage: "link") { UIPasteboard.general.string = url.absoluteString }

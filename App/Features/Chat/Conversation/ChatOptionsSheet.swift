@@ -87,7 +87,7 @@ struct ChatOptionsSheet: View {
             }
             Spacer(minLength: 0)
             if selected {
-                Image(systemName: "checkmark").font(.hvCallout.weight(.bold)).foregroundStyle(Color.accentColor)
+                HVIcon("checkmark").font(.hvCallout.weight(.bold)).foregroundStyle(Color.accentColor)
             }
         }
         .frame(minHeight: 44)
@@ -145,7 +145,7 @@ struct ChatOptionsSheet: View {
             } else {
                 Button {
                     dismiss()
-                    app.router.open(.route(.tools))
+                    app.router.push(.tools)
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 1) {
@@ -155,7 +155,7 @@ struct ChatOptionsSheet: View {
                                 .foregroundStyle(Palette.textSecondary)
                         }
                         Spacer()
-                        Image(systemName: "chevron.right").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
+                        HVIcon(HVSymbol.open).font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
                     }
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
@@ -218,7 +218,7 @@ struct ChatVisibilitySheet: View {
                                 if working == visibility {
                                     ProgressView()
                                 } else if current == visibility {
-                                    Image(systemName: "checkmark").font(.hvCallout.weight(.bold)).foregroundStyle(Color.accentColor)
+                                    HVIcon("checkmark").font(.hvCallout.weight(.bold)).foregroundStyle(Color.accentColor)
                                 }
                             }
                             .frame(minHeight: 44)
@@ -243,7 +243,7 @@ struct ChatVisibilitySheet: View {
                             UIPasteboard.general.string = url.absoluteString
                             app.toasts.success("Link copied.")
                         } label: {
-                            Label("Copy link", systemImage: "doc.on.doc").frame(minHeight: 44, alignment: .leading)
+                            Label("Copy link", systemImage: HVSymbol.copy).frame(minHeight: 44, alignment: .leading)
                         }
                     }
                     .hvListRow()

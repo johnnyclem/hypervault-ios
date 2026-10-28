@@ -56,7 +56,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
     func testARoomOpensAndTakesAMessage() {
         launch(.signedIn)
         openTab("Chat")
-        tap(segment("Rooms"), "the Rooms half")
+        tap(segment("Group chats"), "the Group chats half")
 
         step("A room opens to what its members said") {
             tap(element("chat.room.r1"), "the Features X and Y room")
@@ -75,7 +75,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
 
     func testAPageFromTheLibraryShowsWhoCanOpenItAndItsHistory() {
         launch(.signedIn)
-        openFromYou("library", title: "Library")
+        openFromAccount("library", title: "Library")
 
         step("The page opens from the Library") {
             tap(element("library.row.a1"), "the Bakery landing page row", until: { isShowingTitle("Bakery landing page") })

@@ -3,8 +3,6 @@ import SwiftUI
 
 /// Preference keys, shared by `@AppStorage` in views and plain code.
 enum PrefKey {
-    static let appearance = "pref.appearance"
-    static let accent = "pref.accent"
     static let haptics = Haptics.preferenceKey
     static let biometricLock = "pref.biometricLock"
     static let onboarded = "pref.onboarded.v1"
@@ -54,7 +52,7 @@ final class AppModel {
     private(set) var server: ServerConfig
 
     let toasts = ToastCenter()
-    let router = AppRouter()
+    let router: AppRouter
     let lock = AppLock()
     /// Puts the lock screen and the app-switcher shield in a window above every sheet.
     let privacy: PrivacyCoverController
@@ -65,6 +63,7 @@ final class AppModel {
     @ObservationIgnored private let secureStore: SecureStore
     @ObservationIgnored private let transport: HTTPTransport
     @ObservationIgnored private let cache: DiskCache
+    @ObservationIgnored private let installMarker: InstallMarker
     @ObservationIgnored private var capabilities: Capabilities?
     @ObservationIgnored private var observer: Task<Void, Never>?
     @ObservationIgnored private var started = false
@@ -75,17 +74,22 @@ final class AppModel {
     /// the first thing launch reports with no session is only the absence of one.
     @ObservationIgnored private var sawSession = false
 
-    /// The defaults are the real app's; tests pass a mock transport, an in-memory store and a scratch folder.
+    /// The defaults are the real app's; tests pass a mock transport, an in-memory store, a scratch folder and a marker of
+    /// their own.
     init(
         secureStore: SecureStore = KeychainSecureStore(),
         server: ServerConfig = SharedConfig.server,
         transport: HTTPTransport = URLSessionTransport(),
-        cacheDirectory: URL = AppModel.cacheDirectory()
+        cacheDirectory: URL = AppModel.cacheDirectory(),
+        installMarker: InstallMarker = InstallMarker(),
+        router: AppRouter? = nil
     ) {
+        self.router = router ?? AppRouter()
         self.secureStore = secureStore
         self.server = server
         self.transport = transport
         self.cache = DiskCache(directory: cacheDirectory)
+        self.installMarker = installMarker
         self.privacy = PrivacyCoverController(lock: lock, presenter: SceneCoverPresenter(lock: lock))
     }
 
@@ -100,6 +104,8 @@ final class AppModel {
     func start() async {
         guard !started else { return }
         started = true
+        // What an older build cached carries the system's default protection; this gives it the rule new files get.
+        Task { [cache] in await cache.protectExistingFiles() }
         await bootstrap()
     }
 
@@ -211,6 +217,9 @@ final class AppModel {
 
         let service = AuthService(config: supabase, transport: transport, store: secureStore)
         auth = service
+        // The Keychain outlives an uninstall: a session found on the first launch of a new install is the last one's.
+        if installMarker.isNewInstall { await service.signOut() }
+        installMarker.mark()
         providers = await service.providers()
         await service.restore()
 

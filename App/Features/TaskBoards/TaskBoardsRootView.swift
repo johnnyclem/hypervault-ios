@@ -35,7 +35,7 @@ struct TaskBoardsScreen: View {
                     Button {
                         showCreate = true
                     } label: {
-                        Image(systemName: "plus").frame(minWidth: 44, minHeight: 44)
+                        Image(systemName: HVSymbol.add).frame(minWidth: 44, minHeight: 44)
                     }
                     .accessibilityLabel("New board")
                 }

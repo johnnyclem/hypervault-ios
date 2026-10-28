@@ -31,10 +31,10 @@ final class CanvasSnapshotTests: XCTestCase {
     }
 
     func testYours() throws {
-        try snapshot(PreviewHost(routes: [.json(.get, "/api/yours", Fixtures.yours)]) { YoursRootView() }, named: "yours")
+        try snapshot(PreviewHost(routes: [.json(.get, "/api/yours", Fixtures.yours)], embedInNavigation: false) { YoursSheet(onPull: { _ in }, onNew: {}, onLibrary: {}) }, named: "yours")
     }
 
     func testYoursEmpty() throws {
-        try snapshot(PreviewHost(routes: [.json(.get, "/api/yours", #"{"recent":[],"results":[]}"#)]) { YoursRootView() }, named: "yours-empty")
+        try snapshot(PreviewHost(routes: [.json(.get, "/api/yours", #"{"recent":[],"results":[]}"#)], embedInNavigation: false) { YoursSheet(onPull: { _ in }, onNew: {}, onLibrary: {}) }, named: "yours-empty")
     }
 }

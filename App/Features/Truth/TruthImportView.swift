@@ -75,7 +75,7 @@ struct TruthImportView: View {
                     runStream()
                 } label: {
                     HStack {
-                        Label("Import into \(ledger.name)", systemImage: "square.and.arrow.down").fontWeight(.semibold)
+                        Label("Import into \(ledger.name)", systemImage: HVSymbol.importData).fontWeight(.semibold)
                         Spacer()
                         if isWorking { ProgressView() }
                     }

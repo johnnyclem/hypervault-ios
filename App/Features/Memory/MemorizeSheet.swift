@@ -74,7 +74,7 @@ struct MemorizeSheet: View {
                     NavigationLink {
                         MemoryExportPromptView()
                     } label: {
-                        HVRow(symbol: "square.and.arrow.down", tint: Palette.coral, title: "Bring memories from another AI", subtitle: "Ask ChatGPT, Gemini or Grok to hand over what it knows")
+                        HVRow(symbol: HVSymbol.importData, tint: Palette.coral, title: "Bring memories from another AI", subtitle: "Ask ChatGPT, Gemini or Grok to hand over what it knows")
                     }
                     .buttonStyle(.plain)
                     .padding(.top, HV.Space.xs)
@@ -175,7 +175,7 @@ struct MemorizeSheet: View {
                 showImporter = true
             } label: {
                 HStack(spacing: HV.Space.s) {
-                    Image(systemName: picked == nil ? "doc.badge.plus" : "doc.text.fill")
+                    HVIcon(picked == nil ? "doc.badge.plus" : "doc.text.fill")
                         .font(.system(size: 20))
                         .foregroundStyle(Palette.coral)
                     VStack(alignment: .leading, spacing: 2) {

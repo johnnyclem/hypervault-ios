@@ -153,7 +153,7 @@ struct TaskBoardScreen: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .refreshable { await model.refreshAndReport() }
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: model.board)
+        .hvAnimation(.spring(response: 0.4, dampingFraction: 0.85), value: model.board)
     }
 
     /// How far along the board is, and when it last moved. The row sits on the page, not on paper: it is
@@ -185,7 +185,7 @@ struct TaskBoardScreen: View {
     private func progressFigures(_ summary: TaskBoardSummary) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
             Text("\(summary.progress)%")
-                .font(.system(.title, design: .rounded, weight: .bold))
+                .font(.system(.title, weight: .bold))
             Text("\(summary.done) of \(summary.countable) done")
                 .font(.hvSubheadline)
                 .foregroundStyle(Palette.textSecondary)
@@ -262,15 +262,15 @@ struct TaskBoardScreen: View {
         let isCollapsed = collapsed.contains(group.status)
         return Button {
             Haptics.select()
-            withAnimation(.easeOut(duration: 0.2)) {
+            HV.Motion.animate {
                 if isCollapsed { collapsed.remove(group.status) } else { collapsed.insert(group.status) }
             }
         } label: {
             HStack(spacing: HV.Space.xs) {
-                Image(systemName: group.status.symbol).foregroundStyle(group.status.tint)
+                HVIcon(group.status.symbol).foregroundStyle(group.status.tint)
                 HVSectionHeader(title: group.status.title, detail: "\(group.rows.count)")
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "chevron.down")
+                HVIcon(HVSymbol.fold)
                     .font(.system(.caption2, weight: .bold))
                     .rotationEffect(.degrees(isCollapsed ? -90 : 0))
                     .foregroundStyle(Palette.textSecondary)
@@ -360,7 +360,7 @@ struct TaskCheck: View {
             Image(systemName: status.symbol)
                 .font(.system(size: 24, weight: .regular))
                 .foregroundStyle(status.tint)
-                .symbolEffect(.bounce, value: status == .done)
+                .hvBounce(value: status == .done)
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
@@ -393,7 +393,7 @@ struct TaskRowBody: View {
             }
             if let holder = task.holder {
                 HStack(spacing: 4) {
-                    Image(systemName: task.assignee.isAgent ? "sparkle" : "person.fill").font(.system(size: 10, weight: .bold))
+                    HVIcon(task.assignee.isAgent ? "sparkle" : "person.fill").font(.system(size: 10, weight: .bold))
                     Text(holder).lineLimit(1)
                 }
                 .font(.hvCaption)

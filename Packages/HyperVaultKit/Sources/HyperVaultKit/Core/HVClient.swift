@@ -140,7 +140,18 @@ public final class HVClient: Sendable {
         return result
     }
 
+    /// Whether a path has a "." or ".." segment, spelled with dots or with %2e. A proxy or a server resolves those
+    /// away before routing, so `/api/secrets/..` reaches `/api/`: a secret called ".." (which its name rule
+    /// allows) cannot be addressed, and asking for it would read, change or delete something else.
+    static func hasDotSegment(_ path: String) -> Bool {
+        path.split(separator: "/", omittingEmptySubsequences: false).contains { segment in
+            let decoded = segment.replacingOccurrences(of: "%2e", with: ".", options: .caseInsensitive)
+            return decoded == "." || decoded == ".."
+        }
+    }
+
     func makeRequest<Response>(_ endpoint: Endpoint<Response>, token: String?) throws -> URLRequest {
+        if Self.hasDotSegment(endpoint.path) { throw HVError.invalidRequest(Self.defaultMessage(for: 400)) }
         guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
             throw HVError.invalidRequest("Bad server address.")
         }
@@ -180,7 +191,11 @@ public final class HVClient: Sendable {
             request.setValue(contentType, forHTTPHeaderField: "Content-Type")
             request.httpBody = data
         }
-        for (name, value) in endpoint.headers { request.setValue(value, forHTTPHeaderField: name) }
+        // `Origin` is the browser's word that a person at one of our pages asked for this (the server's pairing approval
+        // checks it), so the app never says it: a header the app wrote by hand would be a forged one.
+        for (name, value) in endpoint.headers where name.caseInsensitiveCompare("Origin") != .orderedSame {
+            request.setValue(value, forHTTPHeaderField: name)
+        }
         return request
     }
 

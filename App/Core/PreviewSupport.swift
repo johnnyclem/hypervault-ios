@@ -5,7 +5,7 @@ import SwiftUI
 /// Everything a SwiftUI preview or a snapshot test needs to stand a screen up
 /// without a network: an environment whose client answers from canned routes.
 ///
-///     #Preview { PreviewHost(routes: [.json(.get, "/api/yours", yoursJSON)]) { YoursRootView() } }
+///     #Preview { PreviewHost(routes: [.json(.get, "/api/yours", yoursJSON)]) { YoursSheet(onPull: { _ in }, onNew: {}, onLibrary: {}) } }
 extension AppEnvironment {
     @MainActor
     static func preview(
@@ -28,9 +28,14 @@ extension AppEnvironment {
 }
 
 extension AppModel {
+    /// `youIsStack` sets the You tab's layout (nil is the device's): a snapshot of the iPad's wide layout asks for it.
     @MainActor
-    static func preview() -> AppModel {
-        AppModel(secureStore: InMemorySecureStore(), server: ServerConfig(baseURL: URL(string: "https://preview.hypervault.test")!))
+    static func preview(youIsStack: Bool? = nil) -> AppModel {
+        AppModel(
+            secureStore: InMemorySecureStore(),
+            server: ServerConfig(baseURL: URL(string: "https://preview.hypervault.test")!),
+            router: youIsStack.map { AppRouter(youIsStack: $0) }
+        )
     }
 }
 
@@ -38,7 +43,7 @@ extension AppModel {
 /// navigation stack, ready for `#Preview` and snapshot tests.
 struct PreviewHost<Content: View>: View {
     @State private var env: AppEnvironment
-    @State private var model = AppModel.preview()
+    @State private var model: AppModel
     private let content: Content
     private let embedInNavigation: Bool
 
@@ -47,9 +52,11 @@ struct PreviewHost<Content: View>: View {
         capabilities: Capabilities = Capabilities(),
         delay: TimeInterval = 0.2,
         embedInNavigation: Bool = true,
+        youIsStack: Bool? = nil,
         @ViewBuilder content: () -> Content
     ) {
         _env = State(initialValue: AppEnvironment.preview(routes: routes, delay: delay, capabilities: capabilities))
+        _model = State(initialValue: AppModel.preview(youIsStack: youIsStack))
         self.content = content()
         self.embedInNavigation = embedInNavigation
     }
@@ -64,7 +71,8 @@ struct PreviewHost<Content: View>: View {
         }
         .environment(env)
         .environment(model)
-        .tint(Palette.blue)
+        .tint(HVColor.primary)
+        .preferredColorScheme(.dark)
     }
 }
 #endif

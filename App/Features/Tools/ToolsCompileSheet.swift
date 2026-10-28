@@ -157,7 +157,7 @@ struct ToolsCompileSheet: View {
 
     private func stat(_ value: Int, _ title: String, _ help: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("\(value)").font(.system(.title, design: .rounded, weight: .bold))
+            Text("\(value)").font(.system(.title, weight: .bold))
             Text(title).font(.hvFootnote).foregroundStyle(Palette.textPrimary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -167,7 +167,7 @@ struct ToolsCompileSheet: View {
 
     private func note(symbol: String, tint: Color, text: String) -> some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
-            Image(systemName: symbol).foregroundStyle(tint)
+            HVIcon(symbol).foregroundStyle(tint)
             Text(text).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

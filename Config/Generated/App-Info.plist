@@ -49,7 +49,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Scan a page or a document to keep it.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Lock HyperVault so only you can open it.</string>
+	<string>Ask for Face ID when you open HyperVault.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Connect to a model running on your own network, like Ollama or LM Studio.</string>
 	<key>NSMicrophoneUsageDescription</key>
@@ -84,5 +84,7 @@
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 	</array>
+	<key>UIUserInterfaceStyle</key>
+	<string>Dark</string>
 </dict>
 </plist>

@@ -107,7 +107,7 @@ struct LibraryItemRow: View {
             HStack(spacing: HV.Space.xs) {
                 LibraryRowTime(text: ago)
                 if showsChevron {
-                    Image(systemName: "chevron.right")
+                    Image(systemName: HVSymbol.open)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Palette.textTertiary)
                         .accessibilityHidden(true)
@@ -200,7 +200,7 @@ struct LibraryPinnedRow: View {
         } trailing: {
             // The section is headed Pinned, so at the sizes where the name needs the room the glyph goes.
             if !dynamicTypeSize.isAccessibilitySize {
-                Image(systemName: "pin.fill")
+                HVIcon("pin.fill")
                     .font(.system(size: 12))
                     .foregroundStyle(Palette.textTertiary)
             }

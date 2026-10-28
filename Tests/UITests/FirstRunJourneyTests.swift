@@ -28,9 +28,9 @@ final class FirstRunJourneyTests: HyperVaultUITestCase {
         }
 
         step("Yours says it is empty") {
-            openTab("Yours")
+            openYours()
             require(text("Nothing kept yet."), "Yours' empty state")
-            require(text("Ask your AI to keep something, or paste it on the canvas."), "the empty state's hint")
+            require(text("Ask your AI to keep something, or paste it on the page."), "the empty state's hint")
         }
     }
 }

@@ -79,7 +79,7 @@ struct MemoryTabScreen: View {
                 Button {
                     showMemorize = true
                 } label: {
-                    Image(systemName: "plus")
+                    Image(systemName: HVSymbol.add)
                 }
                 .accessibilityLabel("Memorize something")
                 .accessibilityIdentifier("memory.memorize")
@@ -125,7 +125,7 @@ struct MemoryTabScreen: View {
                 Text(list.branch)
                     .lineLimit(1)
             }
-            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+            .font(.system(.subheadline, weight: .semibold))
         }
         .accessibilityLabel("Branch: \(list.branch)")
         .accessibilityHint("Switch the branch of your memory you are reading")
@@ -146,17 +146,19 @@ struct MemoryTabScreen: View {
                 Button { destination = .timeTravel } label: { Label("Time travel", systemImage: "calendar.badge.clock") }
                 Button { destination = .branches } label: { Label("Branches", systemImage: "arrow.triangle.branch") }
             }
-            Section("Think") {
-                Button { app.router.push(.dreams) } label: { Label("Dreams", systemImage: "moon.stars") }
-                Button { app.router.push(.digest) } label: { Label("Digest", systemImage: "scissors") }
+            Section(AccountMenu.beta) {
+                Button { app.router.push(.dreams) } label: { Label(AccountMenu.dreams, systemImage: "moon.stars") }
+                Button { app.router.push(.truth) } label: { Label(AccountMenu.truth, systemImage: "checkmark.seal") }
             }
             Section {
-                Button { destination = .exportPrompt } label: { Label("Bring memories from another AI", systemImage: "square.and.arrow.down") }
+                Button { app.router.push(.digest) } label: { Label("Digest", systemImage: "scissors") }
+                Button { destination = .exportPrompt } label: { Label("Bring memories from another AI", systemImage: HVSymbol.importData) }
             }
         } label: {
             Image(systemName: "ellipsis.circle")
         }
         .accessibilityLabel("More")
+        .accessibilityIdentifier("memory.more")
     }
 
     @ViewBuilder

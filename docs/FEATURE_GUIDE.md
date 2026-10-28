@@ -30,6 +30,17 @@ machine) belongs there with a test. Views stay thin.
   says the same thing. On first-run surfaces never use the words in
   `FIRST_RUN_BANNED` (MCP, tombstone, GraphRAG, grant, subdomain, AgentVault,
   wiki, vault item); power-user screens may.
+- A line claims no more than a check that can fail has shown. The sentence "Only you
+  can open it." on its own (`HVCopy.onlyYouLine`) goes only under a kept card whose
+  response said the thing is private: not about a link, and not as a paraphrase on
+  any screen. The web's landing line (`HVCopy.landingLine`), which carries the same
+  words, is used verbatim on the first welcome page and on the sign-in screen and
+  nowhere else before something is kept. The Face ID lock gates the screen and the device passcode
+  opens it too, so nothing says "protected", "secure", "safe" or "encrypted on this
+  phone" about it, and "locked" describes the lock screen and nothing else. A line
+  about who can read a saved value names Claude Code, Codex, Cursor, Gemini CLI,
+  Grok Build or your own script (`HVCopy.landingVaultAgents`), never a chat app: a
+  chat app can connect but cannot read a value.
 
 `docs/mobile/` in that repo is an older plan. Where it disagrees with the code,
 the code wins. Do not invent endpoints.
@@ -105,7 +116,7 @@ struct WidgetsView: View {
 - The init of a model is cheap and has no side effects (the parent may build
   throwaway copies); loading happens in `.task` or `.refreshable`.
 - Entry points get `env` from `@Environment(AppEnvironment.self)` and pass
-  `env.client` (and `env.cache`) down. See `App/Features/Root/YouRootView.swift`.
+  `env.client` (and `env.cache`) down. See `AccountPaneView` in `App/Features/Root/YouTabView.swift`.
 - Lists use `env.load(key) { try await client.send(...) }` for cached-then-fresh
   loading, and show `HVStaleBanner` when the first answer was the saved copy.
 - Every screen that fetches has all four states: loading (`HVListSkeleton` or
@@ -115,13 +126,33 @@ struct WidgetsView: View {
   sentence is shown verbatim. Success is a light haptic (`Haptics.success()`)
   and, when the result is not obvious, a toast.
 - Destructive actions ask first with `.confirmationDialog` (never `.alert` for
-  choices). Optimistic updates roll back on failure.
+  choices). Optimistic updates roll back on failure, except for a switch that grants access: it moves only when the
+  server agrees (`VaultAllowedKeysModel`, handoff 4.6), because a thumb that shows an allow nobody confirmed is a claim.
 - Navigation: push local screens with `NavigationLink(value:)` and
   `.navigationDestination(for:)` on local `Hashable` types. To reach another
   feature use the router: `app.router.open(.route(.memory(id: id)))`. The set
   of cross-feature routes is `Route` in `App/Core/DeepLink.swift`.
 - Secrets are never shown after creation and are never logged. A value shown
   once is copied with `UIPasteboard.general.setItems([[...]], options: [.localOnly: true, .expirationDate: ...])`.
+
+## Secrets on the phone
+
+- The session is in the Keychain as `AfterFirstUnlockThisDeviceOnly`, not synchronised
+  (`Shared/KeychainSecureStore.swift`; the extensions read the same item). An item stored
+  by an older build moves to that class when it is read. The Keychain outlives an uninstall,
+  so the first launch of a new install ends whatever session it finds (`InstallMarker`,
+  kept in the app's own preferences, which an uninstall removes). Tests that seed a session
+  call `SharedState.begin()`, and the UI-test mode marks the install itself, or launch would
+  end the seeded session as a leftover.
+- A screen that shows or takes a value applies `.hvSensitive()` (or `.hvSensitive(model.key != nil)`
+  for one that holds a value only sometimes). While one is up, the app switcher gets the blank
+  card whether or not the Face ID lock is on; it never locks anyone.
+- `DiskCache` files are written readable only after the first unlock, and nothing the server said
+  to a signed-in person is kept in the system's URL cache (`HVURLCache`).
+- Each bundle has its own `PrivacyInfo.xcprivacy` (app, share extension, widgets). A bundle that
+  starts to use a required-reason API (user defaults, file timestamps, disk space, system boot
+  time, active keyboards) declares its reason there; `PrivacyManifestTests` reads the sources and
+  fails when a manifest and the code disagree.
 
 ## Look and feel
 
@@ -132,7 +163,62 @@ fonts. `Palette` (colour), `Font.hv*` (type, all Dynamic Type), `HV.Space` /
 `.hvSecondary`, `.hvGhost`), `.hvFieldChrome()` for inputs, `.hvGlass()` only for
 floating chrome (composer, bars), never for lists. Lists are plain paper.
 
-- Everything works in light and dark, at the largest Dynamic Type size, with
+- The look is the web's stock look, and it is dark only (handoff 2.2): Info.plist declares
+  `UIUserInterfaceStyle = Dark`, `Palette` is one value per member, and no view branches on the colour scheme. There is
+  no light palette, no Appearance setting and no accent picker; the one accent is the web's `primary` (the root
+  `.tint(HVColor.primary)` and the `AccentColor` asset), and the selected tab takes `accent` through
+  `UITabBarAppearance` (`HVTabBarStyle`), never a background, so the bar stays Liquid Glass. A light look later means
+  filling each colour set's Any slot and dropping the Info.plist key.
+- Colours are the web's tokens. `docs/brand/tokens.json` (a copy of the web repo's file) is turned into
+  `Shared/DesignSystem/Colors.xcassets` (one single-appearance colour set per token, named for it, in a catalog under
+  `Shared/` so the Share extension and the widgets get it too) and `HVTokens.generated.swift` by
+  `scripts/gen_tokens.py` (`make tokens`). `HVColor` loads them by name (`HVColor.mutedForeground`), `Palette` is
+  built from `HVColor`, and a colour that is not a token is a decision, not a convenience. Take a new copy of
+  tokens.json when the web changes, run `make tokens`, and commit what it writes; CI's `tokens` job and
+  `DesignTokensTests` fail when the file, the generated code and the compiled catalog disagree. The asset symbols
+  and their SwiftUI extensions are off in `project.yml` because the sets share the web's names (`primary`, `background`,
+  and `accent`, which also meets the global `AccentColor`).
+- Contrast is checked, not assumed: `DesignContrastTests` holds the pairs the app draws text in to 4.5:1, and records
+  the exceptions (white on `primary` is 3.68:1, so a label on the flat primary fill is bold; `primary` and
+  `destructive` as text on raised paper fall under 4.5, so tinted text there uses `accent`; `primary` text on its own 12
+  to 14% tint is 4.08:1 on paper, so small text on a `primary` tint, such as the step numbers, is `accent` too).
+- Shapes, type and borders are the web's (handoff 2.4 and 2.5). Corner radii are named for their role in `HV.Radius`
+  (`control` 8 for buttons and inputs, `card` 16, `surface` 20, `brandTile` 5), always `.continuous`. Type is the system
+  face; no `design: .rounded` anywhere, and monospace only for what is typed or matched (`hvMono`) and for code
+  (`HVCodePanel`). Section headings (`HVSectionHeader`) are sentence case. Borders are the border token at reduced
+  strength: `Palette.border` (60%) on surfaces, `Palette.controlBorder` (70%) on controls, `Palette.divider` (50%)
+  between rows.
+- Buttons: `.hvPrimary` is flat `primary` with a bold label (white on it is 3.68:1, which only bold text passes),
+  `.hvSecondary` is `muted` with a control border, `.hvDestructive` is `destructive`, none of them with a glow, and none
+  with a spring (pressed is a dimmer fill). `hvFieldChrome` is the web's input: the page's own colour, 8pt, at least
+  44pt high, a half-strength ring when focused and a `destructive` outline when `isInvalid` (with the reason in words).
+  `HVTag` is the web's status chip (the colour as text, at 10% as the fill and at 40% as the border); `Palette.success`
+  and `Palette.warning` are its emerald and amber.
+- For the Vault and the settings panes: `HVTile` and `HVCardBrandTile` (tiles), `HVFilterPill` with `HVCount`,
+  `HVCodePanel`, `HVEmptyBox`, and `HVSymbol` for the SF Symbol of each concept. `hvGlass` is `.glassEffect`, and solid
+  `card` under Reduce Transparency.
+- Symbols: `HVSymbol` names the SF Symbol of each concept (handoff 2.7), so the same idea draws the same glyph
+  everywhere: a login is `globe`, a card `creditcard`, a key `key`, delete `trash`, copy `doc.on.doc` and copied
+  `checkmark`, close `xmark`. A symbol beside words is decoration, so draw it with `HVIcon(name)` (or add
+  `.hvDecorative()`), which VoiceOver skips; a `Label(title, systemImage:)` already hides its symbol. A symbol that is
+  the whole label of a control is not decoration: the control gets an `accessibilityLabel`. One that carries a state the
+  words do not (a failure triangle, a selected check without the `isSelected` trait) is left readable.
+- Motion (handoff 2.6): never write a bare `withAnimation` or `.animation(_:value:)`. `.hvAnimation(_:value:)` and
+  `HV.Motion.animate { }` are those two with Reduce Motion in front, `.hvBounce(value:)` is a symbol bounce that holds
+  still under it, and `HV.Motion.entrance` is the web's entrance (ease-out, 0.2s). A looping or decorative animation
+  reads `accessibilityReduceMotion` itself (Aurora, the thinking dots, the confetti). The icon button style swaps its
+  spring for a dimmer fill, and the toast fades in place of sliding. A button says "Copied" for `HV.Motion.copiedHold`
+  (1.5s), as the web's copy button does. System sheet and push animations are left to the system.
+- Glass and bars: `hvGlass` is for floating chrome (a composer, an action bar, a legend), never a `.background(.bar)` or
+  a material, and the system's navigation bar is not repainted (no `toolbarBackground`): on iOS 26 it carries its own
+  scroll-edge effect.
+- Sheets: every sheet has a visible way out (handoff 4.4 and 9). Most already have a `Cancel`, a `Done` or a `Close` in
+  the navigation bar, or an `HVSheetHeader` with its xmark; a sheet that has none puts `.hvSheetClose(isDirty:)` on its
+  root view inside the `NavigationStack`. It adds a "Close" button (xmark, `.cancellationAction`); while `isDirty` it
+  also turns off the swipe and asks "Discard your changes?" first, because the web drops typed values on close without
+  a word and the phone should not. Do not add it beside a Cancel, a Done or a Close that already does the job: two ways
+  out read as a mistake, and a UI test that taps "Close" would find two buttons.
+- Everything works at the largest Dynamic Type size, with
   VoiceOver (labels on icon-only buttons; combine row elements), with reduce
   motion, and with 44-point touch targets.
 - Calm over clever. One filled action per screen. Motion that explains
@@ -144,8 +230,8 @@ floating chrome (composer, bars), never for lists. Lists are plain paper.
 
 The macOS CI job is the compiler. Keep it happy on the first push:
 
-- Swift 5 language mode, iOS 17 minimum. Newer APIs go behind
-  `if #available(iOS 26, *)` and `#if canImport(...)`.
+- Swift 5 language mode, iOS 26 minimum, so there are no availability checks for 26 or earlier. Anything newer goes
+  behind `if #available` and `#if canImport(...)`.
 - Small views. A `body` over about 40 lines becomes sub-views or computed
   properties; long `ViewBuilder` expressions are what type checkers time out on.
 - Give closures and large literals explicit types when inference might guess.
@@ -165,7 +251,7 @@ which stands the screen up on canned routes:
 ```
 
 And one snapshot test per main screen in `Tests/AppTests/<Feature>SnapshotTests.swift`
-(see `OnboardingSnapshotTests.swift`). CI renders them in light and dark and
+(see `OnboardingSnapshotTests.swift`). CI renders them in the dark (the app's only look) and
 publishes the PNGs to a `snapshots-<branch>` branch, which is how a screen is
 looked at before anyone opens Xcode.
 
@@ -186,6 +272,13 @@ or revoked, lives in a small object that one launch owns), the secure store is i
 canned hosts end in `.invalid`; anything that builds its own `URLSession` request is answered or refused by
 `UITestURLProtocol`. Animations are off, so the app settles at once after every tap. Release is never built in CI, so
 `scripts/check_debug_only.py` (a step of the CI job) fails if any of this is not inside `#if DEBUG`. A run never reaches a real server, the Keychain or anything a person left on the phone.
+
+**Getting to a screen.** The app has four tabs, Home, Chat, Memory and You, and the helpers of `HyperVaultUITestCase` follow
+them: `openPane("keys")` opens a pane of the You tab by its id (`general`, `vault`, `keys`, `backends`, `domain`,
+`appearance`, `import`; on a phone the tab opens on the vault, so the helper goes back to the list first, which is the case
+that a pane chosen again from the list has to open), `openFromAccount("library", title: "Library")` opens a row of the
+Account menu behind the avatar on Home (`account.<row>`), `openFromMemoryMenu("Digest", title: "Digest")` opens an item of
+Memory's More menu, and `openYours()` opens the Yours panel.
 
 **Adding a journey.**
 
@@ -222,33 +315,35 @@ store and the preferences are read back instead of starting like a first run, so
 get its session back. When a flow is broken in the app (a screen that does not follow a rename, a list that does not
 update after a write), fix the app, not the journey. A write journey that fails is a finding.
 
-**The layout sweep.** `LayoutSweepTests` and `LayoutSweepScreensTests` launch the app in the dark appearance and at the
-largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the You tab
-opens (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
-anything drawn off the screen) beside it. Dark is the app's own Appearance preference given as a launch argument
-(`-pref.appearance dark`, which is what Settings stores); `-AppleInterfaceStyle Dark` and the device's `appearance` left
-the app light on CI. So that a sweep of the dark never looks at light screens, each dark screenshot is first checked: the
-brightness of a strip down the left edge of the picture, which is the page's own background on every screen, must be low.
+**The layout sweep.** `LayoutSweepTests` and `LayoutSweepScreensTests` launch the app dark and at the
+largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the You panes
+and the Account menu open (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
+anything drawn off the screen) beside it. The app is dark whatever the phone is set to (Info.plist declares it), so the
+dark sweep takes no launch argument. So that a sweep of the dark never looks at light screens, each dark screenshot is
+first checked: the brightness of a strip down the left edge of the picture, which is the page's own background on every
+screen, must be low; it is what proves the declaration reaches every screen.
 The large text size is the system's own `-UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityXXXL`. Beyond
 that the sweep asserts only that the screen's key control can be tapped (a row is scrolled until its middle is clear of the
 tab bar first). The point is to look: fetch `ui-snapshots-<branch>` after a run and read the screenshots. A new screen belongs
 in the sweep when it has a layout of its own.
 
 **Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
-any iPhone simulator; `make test-unit` runs the rest. CI runs ten UI jobs beside the unit tests, each building and
+any iPhone simulator; `make test-unit` runs the rest. CI runs thirteen UI jobs beside the unit tests, each building and
 running on its own: `journeys` (everything not named below, so a new test class runs there until it is given a job),
-`screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
-`writes-keep` (`MemoryAndVaultWritesJourneyTests` and `PagesWritesJourneyTests`), `writes-more`
+`tabs-you` (`YouJourneyTests` and `TabsJourneyTests`), `screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
+`writes-keep` (`MemoryAndVaultWritesJourneyTests` and `PagesWritesJourneyTests`), `writes-vault` (`VaultWritesJourneyTests`),
+`writes-more`
 (`BoardsAndMailWritesJourneyTests` and `SessionAndSettingsWritesJourneyTests`), `writes-think`
 (`ThinkWritesJourneyTests`),
-`sweep-dark` (every sweep test in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
-large text size) and `sweep-large-keep` and `sweep-large-think` (the You tab's screens at the large text size, in two
-halves). A push waits for the slowest of them, which should stay at about 20 minutes. They have taken between 5 and 22
-minutes each, depending on the machine GitHub gives the job (the same job has taken twice as long on a slow one); the
-build and the simulator's start are about eight of those minutes, and the rest is the tests, of which the large text
-sizes, which scroll, are the slowest. A job that goes over 30 minutes is stopped; if one regularly nears 20, split it by
-test method the way the sweep is split. GitHub runs five macOS jobs at a time, so with the unit-test job the last ones start when
-others have finished. A job after them publishes all the step screenshots and layout notes to the
+`sweep-dark` (the tabs, what they open, the welcome and the waitlist in the dark), `sweep-dark-screens` (the screens of the
+You panes and the Account menu in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
+large text size) and `sweep-large-keep` and `sweep-large-think` (the screens of the You panes and the Account menu at the large
+text size, in two halves). They have taken between 5 and 22 minutes each, depending on the machine GitHub gives the
+job (the same job has taken twice as long on a slow one); the build and the simulator's start are about eight of those
+minutes, and the rest is the tests, of which the large text sizes, which scroll, are the slowest. A job that goes over 30
+minutes is stopped; if one regularly nears 20, split it by test method the way the sweep is split. GitHub runs five macOS
+jobs at a time, and with the unit-test job there are fourteen, so the last ones start when others have finished: a push
+waits for the queue as well as for the slowest job, and a whole run has taken about 50 minutes. A job after them publishes all the step screenshots and layout notes to the
 `ui-snapshots-<branch>` branch (and each job uploads them as an artifact), and a job uploads its `.xcresult` when a test
 fails.
 
@@ -261,7 +356,7 @@ queries per step, or a journey that takes seconds on a laptop takes minutes on C
 - Every behaviour the web has for the feature that makes sense on a phone is
   there; what is deliberately left out is listed in the feature's README note.
 - Kit tests pass (`cd Packages/HyperVaultKit && swift test`), the app builds and
-  its tests pass in CI, snapshots look right in light and dark.
+  its tests pass in CI, snapshots look right in the dark.
 - No hard-coded colours, no force-unwraps of server data, no secrets in logs,
   every list has its loading, empty and error states.
 - A new tab, sheet or main control can be reached in a journey (an identifier, and a step if it is a new place).

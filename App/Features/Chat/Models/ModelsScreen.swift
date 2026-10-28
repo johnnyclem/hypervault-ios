@@ -52,12 +52,16 @@ struct ChatModelsContent: View {
         }
     }
 
+    /// The Models pane of the You tab: its heading is a large one, and the web's line about the pane stands above the list.
+    private let embedded: Bool
+
     init(
         env: AppEnvironment, onChange: (([ChatBackend]) -> Void)?, onLocalChange: (([ChatLocalModel]) -> Void)? = nil,
-        onDevice: ChatOnDeviceSupport = .system
+        onDevice: ChatOnDeviceSupport = .system, embedded: Bool = false
     ) {
         self.env = env
         self.onDevice = onDevice
+        self.embedded = embedded
         self.onLocalChange = onLocalChange
         let backends = ChatBackendsModel(client: env.client, cache: env.cache, namespace: env.user.id)
         backends.onChange = onChange
@@ -72,7 +76,7 @@ struct ChatModelsContent: View {
         content
             .hvScreenBackground()
             .navigationTitle("Models")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(embedded ? .large : .inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -82,7 +86,7 @@ struct ChatModelsContent: View {
                             form = .connect
                         }
                     } label: {
-                        Image(systemName: "plus").frame(width: 44, height: 44)
+                        Image(systemName: HVSymbol.add).frame(width: 44, height: 44)
                     }
                     .accessibilityLabel("Connect a model")
                 }
@@ -138,6 +142,14 @@ struct ChatModelsContent: View {
 
     private var list: some View {
         List {
+            if embedded {
+                Text(AccountPane.backends.descriptionLine)
+                    .font(.hvCallout)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
             if model.isStale {
                 HVStaleBanner()
                     .listRowSeparator(.hidden)
@@ -200,7 +212,7 @@ struct ChatModelsContent: View {
                                 .lineLimit(nil)
                         }
                         Spacer(minLength: HV.Space.xs)
-                        Image(systemName: "chevron.right").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
+                        HVIcon(HVSymbol.open).font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
                     }
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
@@ -208,7 +220,7 @@ struct ChatModelsContent: View {
                 .buttonStyle(.plain)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) { pendingLocalRemoval = local } label: {
-                        Label("Remove", systemImage: "trash")
+                        Label("Remove", systemImage: HVSymbol.delete)
                     }
                 }
             }
@@ -343,7 +355,7 @@ struct ChatBackendRow: View {
                 Text(usage).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(lineLimit)
             }
             Spacer(minLength: HV.Space.xs)
-            Image(systemName: "chevron.right").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
+            HVIcon(HVSymbol.open).font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
         }
         .frame(minHeight: 44)
         .contentShape(Rectangle())

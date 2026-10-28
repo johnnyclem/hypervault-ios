@@ -19,14 +19,10 @@ extension AppLock {
     }
 }
 
-/// What the cover window draws. It is a hierarchy of its own, so it takes the person's look and accent from their
-/// preferences the way the app's root does.
+/// What the cover window draws. It is a hierarchy of its own, so it sets the app's tint the way the root does.
 struct PrivacyCoverView: View {
     let cover: PrivacyCover
     let lock: AppLock
-
-    @AppStorage(PrefKey.appearance) private var appearance = AppearanceChoice.system
-    @AppStorage(PrefKey.accent) private var accent = AccentChoice.blue
 
     var body: some View {
         Group {
@@ -36,8 +32,7 @@ struct PrivacyCoverView: View {
             case .none: Color.clear
             }
         }
-        .tint(accent.color)
-        .preferredColorScheme(appearance.colorScheme)
+        .tint(HVColor.primary)
     }
 }
 

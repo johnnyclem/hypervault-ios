@@ -5,9 +5,9 @@ private enum RealmsDestination: Hashable {
     case realm(String)
 }
 
-/// Your address: claim you.vault.cool (or another address from the portfolio), give each one a look and a
+/// Domain, a pane of the You tab: claim you.vault.cool (or another address from the portfolio), give each one a look and a
 /// home page, and see what Pro includes. Payment happens on the web: the upgrade page opens in Safari. The
-/// native version of the web's Domain and Appearance panes and /upgrade.
+/// native version of the web's Domain pane and /upgrade, and of the look each address wears.
 struct RealmsRootView: View {
     @Environment(AppEnvironment.self) private var env
 
@@ -25,7 +25,7 @@ struct RealmsRootView: View {
             }
         }
         .hvScreenBackground()
-        .navigationTitle("Your address")
+        .navigationTitle(AccountPane.domain.label)
         .keysLargeTitle()
         .navigationDestination(for: RealmsDestination.self) { destination in
             if let model {
@@ -139,7 +139,7 @@ struct RealmsRootView: View {
             // Not a DisclosureGroup: its chevron is drawn bold in the primary colour, heavier than the muted
             // ones on every other row. This is the same row with the same quiet chevron.
             Button {
-                withAnimation(.easeOut(duration: 0.2)) { showsPlans.toggle() }
+                HV.Motion.animate { showsPlans.toggle() }
             } label: {
                 HStack {
                     Text("What Pro includes").font(.hvBody).foregroundStyle(Palette.textPrimary)
@@ -201,7 +201,7 @@ struct RealmRow: View {
 
     var body: some View {
         KeysRowLayout {
-            HVIconBadge(symbol: "globe", tint: Palette.blue, size: min(tile, 56))
+            HVIconBadge(symbol: HVSymbol.domain, tint: Palette.blue, size: min(tile, 56))
         } words: {
             VStack(alignment: .leading, spacing: 2) {
                 // An address is one word: it shrinks to fit before it is allowed to break in the middle.

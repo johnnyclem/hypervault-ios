@@ -7,7 +7,7 @@ import HyperVaultKit
 /// vault: the text waits in the outbox until the app has been opened and unlocked.
 struct KeepTextIntent: AppIntent {
     static let title: LocalizedStringResource = "Keep in HyperVault"
-    static let description = IntentDescription("Keeps some text and gives you its private link.")
+    static let description = IntentDescription("Keeps some text and gives you the link.")
 
     @Parameter(title: "Text", requestValueDialog: "What do you want to keep?")
     var text: String
@@ -56,7 +56,7 @@ struct KeepTextIntent: AppIntent {
 }
 
 struct OpenCanvasIntent: AppIntent {
-    static let title: LocalizedStringResource = "Open the canvas"
+    static let title: LocalizedStringResource = "Open Home"
     static let description = IntentDescription("Opens HyperVault, ready to keep or ask.")
     static let openAppWhenRun = true
 
@@ -88,7 +88,7 @@ struct HyperVaultShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: OpenCanvasIntent(),
             phrases: ["Open \(.applicationName)"],
-            shortTitle: "Open canvas",
+            shortTitle: "Open Home",
             systemImageName: "sparkles"
         )
     }

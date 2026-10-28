@@ -46,7 +46,7 @@ struct ImportScreen: View {
             }
             .padding(HV.Space.m)
             .hvReadableWidth()
-            .animation(.easeInOut(duration: 0.2), value: model.stage)
+            .hvAnimation(.easeInOut(duration: 0.2), value: model.stage)
         }
         .onChange(of: model.stage) { _, stage in
             switch stage {
@@ -356,6 +356,7 @@ struct ImportScreen: View {
                     .multilineTextAlignment(.center)
             }
             VStack(spacing: HV.Space.xs) {
+                // A link to a tab starts the tab from its first screen, so this closes Import where it was pushed on Chat too.
                 Button("Open Chat") { app.router.open(.tab(.chat)) }.buttonStyle(.hvPrimary)
                 Button("Import another") { model.startOver() }.buttonStyle(.hvGhost)
             }
@@ -380,7 +381,7 @@ struct ImportScreen: View {
 
     private func count(_ value: Int, _ label: String) -> some View {
         VStack(spacing: 2) {
-            Text(value.formatted()).font(.system(.title2, design: .rounded, weight: .bold))
+            Text(value.formatted()).font(.system(.title2, weight: .bold))
             Text(label).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
         }
         .frame(maxWidth: .infinity)
@@ -454,8 +455,8 @@ struct ImportGuideCard: View {
                 ForEach(Array(guide.steps.enumerated()), id: \.offset) { index, step in
                     HStack(alignment: .top, spacing: HV.Space.s) {
                         Text("\(index + 1)")
-                            .font(.system(.footnote, design: .rounded, weight: .bold))
-                            .foregroundStyle(guide.tint.hvInk())
+                            .font(.system(.footnote, weight: .bold))
+                            .foregroundStyle(guide.tint)
                             .frame(width: 24, height: 24)
                             .background(guide.tint.opacity(0.14), in: Circle())
                             .accessibilityHidden(true)

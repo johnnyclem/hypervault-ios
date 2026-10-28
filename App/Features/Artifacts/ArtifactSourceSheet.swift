@@ -250,7 +250,7 @@ struct ArtifactSourceSheet: View {
                     Haptics.tap()
                     app.toasts.show("Copied", style: .info)
                 } label: {
-                    Label("Copy prompt", systemImage: "doc.on.doc")
+                    Label("Copy prompt", systemImage: HVSymbol.copy)
                 }
                 .buttonStyle(.hvSecondary)
             }
@@ -291,7 +291,7 @@ struct ArtifactSourceSheet: View {
                     Haptics.tap()
                     app.toasts.show("Copied", style: .info)
                 } label: {
-                    Image(systemName: "doc.on.doc")
+                    Image(systemName: HVSymbol.copy)
                 }
                 .accessibilityLabel("Copy source")
 

@@ -144,11 +144,11 @@ final class LibrarySnapshotTests: XCTestCase {
     func testLibraryAtTheLargestType() throws {
         try snapshot(
             PreviewHost(routes: Self.routes) { LibraryHost(filter: .all).environment(\.dynamicTypeSize, .accessibility3) },
-            named: "library-large", schemes: [.light]
+            named: "library-large"
         )
         try snapshot(
             PreviewHost(routes: Self.routes) { LibraryHost(filter: .file).environment(\.dynamicTypeSize, .accessibility3) },
-            named: "library-files-large", schemes: [.light]
+            named: "library-files-large"
         )
     }
 
@@ -194,7 +194,7 @@ final class LibrarySnapshotTests: XCTestCase {
         ]
         try snapshot(
             PreviewHost(routes: routes, embedInNavigation: false) { SheetHost { ArtifactShareSheet(detail: $0) }.environment(\.dynamicTypeSize, .accessibility2) },
-            named: "page-share-large", settle: 3, schemes: [.light]
+            named: "page-share-large", settle: 3
         )
     }
 

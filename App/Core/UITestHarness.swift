@@ -108,6 +108,9 @@ enum UITestHarness {
         if !resumes, let bundle = Bundle.main.bundleIdentifier {
             UserDefaults.standard.removePersistentDomain(forName: bundle)
         }
+        // Emptied preferences look like a new install, and a new install ends the session it finds. The seeded session is
+        // this launch's own.
+        InstallMarker().mark()
         let suite = "hv.uitest"
         let scratch = UserDefaults(suiteName: suite)
         if !resumes { scratch?.removePersistentDomain(forName: suite) }

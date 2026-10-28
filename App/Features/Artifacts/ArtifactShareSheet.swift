@@ -170,7 +170,7 @@ struct ArtifactShareSheet: View {
                 Haptics.tap()
                 app.toasts.show(LibraryCopy.linkCopied, style: .info)
             } label: {
-                Label(LibraryCopy.copyLink, systemImage: "doc.on.doc")
+                Label(LibraryCopy.copyLink, systemImage: HVSymbol.copy)
             }
             .buttonStyle(.hvSecondary)
         }

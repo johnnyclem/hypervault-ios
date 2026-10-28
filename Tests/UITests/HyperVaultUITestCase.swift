@@ -206,6 +206,8 @@ class HyperVaultUITestCase: XCTestCase {
     /// scrolled out of view is tapped anyway: XCUITest scrolls it into view first.
     func tap(_ element: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
         require(element, what, file: file, line: line)
+        // Something over the element (the keyboard's first-use tip, for one) is put away before the tap, as a person would.
+        if !(element.exists && element.isHittable) { dismissTheKeyboardTip() }
         let settled = Date().addingTimeInterval(4)
         while Date() < settled, !(element.exists && element.isHittable) {
             RunLoop.current.run(until: Date().addingTimeInterval(0.25))
@@ -243,6 +245,28 @@ class HyperVaultUITestCase: XCTestCase {
             print("[journey] \(what) did not take the keyboard (attempt \(attempt))")
         }
         field.typeText(text)
+        dismissTheKeyboardTip()
+    }
+
+    /// Presses Continue on the tip the keyboard shows the first time it is typed on in a simulator ("Speed up your typing by
+    /// sliding your finger across the letters to compose a word"). It covers the lower half of the screen, and a tap on what
+    /// is under it (the keyboard's Return, a sheet's button) never arrives. Any step that types can meet it.
+    func dismissTheKeyboardTip() {
+        let tip = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "Speed up your typing")).firstMatch
+        guard tip.exists else { return }
+        let window = app.windows.firstMatch.frame
+        // The app has Continue buttons of its own: the tip's is the one in the lower part of the screen.
+        let lower = app.buttons.matching(NSPredicate(format: "label == %@", "Continue")).allElementsBoundByIndex
+            .last { $0.frame.midY > window.height * 0.6 }
+        if let lower {
+            lower.tap()
+        } else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.945)).tap()
+        }
+        let deadline = Date().addingTimeInterval(3)
+        while Date() < deadline, tip.exists {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+        }
     }
 
     private func hasKeyboardFocus(_ element: XCUIElement) -> Bool {
@@ -267,7 +291,7 @@ class HyperVaultUITestCase: XCTestCase {
     /// page first, then back up it. A drag stops where the finger stops (a swipe flings, and at a large text size a fling
     /// carries a row past the screen without ever letting it be seen), and moves the page by about three fifths of its
     /// height. A row that is only just in view sits under the tab bar, and a tap on it would land on the tab bar.
-    func reveal(_ element: XCUIElement, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
+    func reveal(_ element: XCUIElement, _ what: String, clearOfSearch: Bool = false, file: StaticString = #filePath, line: UInt = #line) {
         func hittable() -> Bool { element.exists && element.isHittable }
         if !hittable() {
             for _ in 0..<14 where !hittable() { drag(towardsEnd: true) }
@@ -276,18 +300,24 @@ class HyperVaultUITestCase: XCTestCase {
             for _ in 0..<20 where !hittable() { drag(towardsEnd: false) }
         }
         require(element, what, timeout: 5, file: file, line: line)
-        moveClearOfTheBars(element)
+        moveClearOfTheBars(element, clearOfSearch: clearOfSearch)
     }
 
     /// Moves the page until the middle of `element` is between the navigation bar and the tab bar, if the page can
     /// be moved that far: a tap lands in the middle of an element. (A page that does not move, a sheet's fixed button
     /// for one, is left as it is.)
-    private func moveClearOfTheBars(_ element: XCUIElement) {
+    private func moveClearOfTheBars(_ element: XCUIElement, clearOfSearch: Bool) {
         let window = app.windows.firstMatch.frame
         // The status and navigation bars take about 110 points of an iPhone's top, the floating tab bar and the home
         // indicator about 90 of its bottom.
-        let top = window.minY + 112
+        var top = window.minY + 112
         let bottom = window.maxY - 92
+        // A search field that floats over the list (the Connect your AI sheet has one) is as much in the way as the bars: a row
+        // whose middle is under it is tapped through it.
+        if clearOfSearch {
+            let search = app.searchFields.firstMatch
+            if search.exists, search.frame.minY < window.midY, search.frame.maxY > top { top = search.frame.maxY + 4 }
+        }
         var previous: CGFloat?
         for _ in 0..<4 {
             guard element.exists else { return }
@@ -312,8 +342,8 @@ class HyperVaultUITestCase: XCTestCase {
     /// Scrolls to an element, clear of the bars, then taps it: for rows that a larger text size has pushed below the fold.
     /// With `reached`, a tap that comes to nothing (a list that was still settling after a screen was popped) is repeated, as
     /// `tap(_:_:until:)` does.
-    func open(_ element: XCUIElement, _ what: String, until reached: (() -> Bool)? = nil, file: StaticString = #filePath, line: UInt = #line) {
-        reveal(element, what, file: file, line: line)
+    func open(_ element: XCUIElement, _ what: String, until reached: (() -> Bool)? = nil, clearOfSearch: Bool = false, file: StaticString = #filePath, line: UInt = #line) {
+        reveal(element, what, clearOfSearch: clearOfSearch, file: file, line: line)
         if let reached {
             tap(element, what, until: reached, file: file, line: line)
         } else {
@@ -321,9 +351,26 @@ class HyperVaultUITestCase: XCTestCase {
         }
     }
 
+    /// Turns a switch the way a person does: a tap on its knob, at the trailing edge of its row, and again (up to three
+    /// times) while it has not moved, because a tap that lands while the list is still settling is lost.
+    func flip(_ control: XCUIElement, from value: String, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
+        for _ in 1...3 {
+            guard (control.value as? String) == value else { return }
+            control.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+            let deadline = Date().addingTimeInterval(4)
+            while Date() < deadline, (control.value as? String) == value {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+            }
+        }
+        waitUntil("\(what) to change", file: file, line: line) { (control.value as? String) != value }
+    }
+
     /// Opens a tab. What it shows is for the journey to wait for.
     func openTab(_ title: String, file: StaticString = #filePath, line: UInt = #line) {
-        tap(tab(title), "the \(title) tab", file: file, line: line)
+        // A tap on the tab bar that lands while the app is still settling (right after the launch, or as a sheet goes) is
+        // lost, and a person would tap again: the tab is tapped (up to three times) until it is the one showing.
+        let item = tab(title)
+        tap(item, "the \(title) tab", until: { item.isSelected }, file: file, line: line)
     }
 
     /// Picks an option of a choice the app draws as segments, or as a menu at accessibility text sizes.
@@ -337,20 +384,146 @@ class HyperVaultUITestCase: XCTestCase {
         tap(button(option), "the \(option) choice", file: file, line: line)
     }
 
-    /// Opens a row of the You tab, scrolling to it first, and waits for the screen to name itself.
-    func openFromYou(_ id: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
+    /// Opens a pane of the You tab by its id (`general`, `vault`, `keys`, `backends`, `domain`, `appearance`, `import`):
+    /// back to the list the tab opens on a phone, then the pane's row. A row of the list that is already open still
+    /// opens, which is what going back and choosing the same pane again checks.
+    ///
+    /// With a `title` it waits for the pane's heading. Without one it waits for the list to go, which is enough for a
+    /// pane whose screen names itself (the caller then looks for what the pane holds).
+    func openPane(_ id: String, title: String? = nil, file: StaticString = #filePath, line: UInt = #line) {
+        showPaneList(file: file, line: line)
+        let row = element("you.pane.\(id)")
+        // (At a large text size the last panes are below the fold.)
+        reveal(row, "the \(id) pane", file: file, line: line)
+        // The list can still be settling from the screen that was just popped off it, and a tap on it then comes to nothing.
+        tap(row, "the \(id) pane", until: { title.map { isShowingTitle($0) } ?? !row.exists }, file: file, line: line)
+        if let title {
+            waitUntil("the \(title) pane", file: file, line: line) { isShowingTitle(title) }
+        } else {
+            requireGone(row, "the list of panes, once \(id) is open", file: file, line: line)
+        }
+    }
+
+    /// The list of panes the You tab opens on a phone one step behind the pane: opens the tab, and goes back until the
+    /// list shows (choosing the tab again takes the person back to the first screen of the pane that is open).
+    func showPaneList(file: StaticString = #filePath, line: UInt = #line) {
         openTab("You", file: file, line: line)
-        // Choosing the tab again takes the person back to its first screen; if it has not, go back until it is.
+        // The list is showing when any of its rows is, not only the first: at a large text size the rows are tall, and a list
+        // that was scrolled down to a pane does not draw the rows above it, so a missing first row does not say that the person
+        // is somewhere else (and there is no back button to tap on the list itself).
+        let row = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "you.pane.")).firstMatch
         var goneBack = 0
-        while !isShowingTitle("You"), goneBack < 4 {
+        while !row.exists, goneBack < 5 {
             goBack(file: file, line: line)
             goneBack += 1
         }
-        let row = element("you.\(id)")
-        reveal(row, "the \(id) row of the You tab", file: file, line: line)
-        // The list can still be settling from the screen that was just popped off it, and a tap on it then comes to nothing.
+        require(row, "the list of panes", file: file, line: line)
+    }
+
+    /// Opens a row of the Account menu behind the avatar on Home (`library`, `mail`, `taskBoards`, `accountAndKeys`,
+    /// `groupChats`, `tools`, `import`, `dreams`, `truth`, `admin`), scrolling to it first, and waits for the screen it goes
+    /// to to name itself.
+    func openFromAccount(_ id: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
+        openAccountMenu(file: file, line: line)
+        let row = element("account.\(id)")
+        reveal(row, "the \(id) row of the Account menu", file: file, line: line)
         tap(row, "the \(id) row", until: { isShowingTitle(title) }, file: file, line: line)
         waitUntil("the \(title) screen", file: file, line: line) { isShowingTitle(title) }
+    }
+
+    /// Opens the Account menu with the avatar on Home, from wherever the person is.
+    func openAccountMenu(file: StaticString = #filePath, line: UInt = #line) {
+        showHome(file: file, line: line)
+        // A tap that lands while the page is still settling (after the launch, or as the tab changes) is lost, and a person
+        // would tap again.
+        RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+        tap(element("canvas.account"), "the Account button", until: { element("account.close").exists }, file: file, line: line)
+        require(element("account.close"), "the Account menu", file: file, line: line)
+    }
+
+    /// Opens an item of the More menu of Memory (`Dreams`, `Truth`, `Digest`) or of Chat (`Tools`, `Import your AI history`),
+    /// from the first screen of that tab, and waits for the screen it goes to to name itself.
+    func openFromMoreMenu(of tabTitle: String, _ item: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
+        let more = element(tabTitle == "Memory" ? "memory.more" : "chat.more")
+        openTab(tabTitle, file: file, line: line)
+        var goneBack = 0
+        while !more.exists, goneBack < 5 {
+            goBack(file: file, line: line)
+            goneBack += 1
+        }
+        // A tap that lands while the tab is still settling is lost, and the drag below would then scroll the page behind a menu
+        // that never opened. The menu is open once one of its items is there (the first ones are drawn at any text size; the
+        // ones below the card's fold are not, so every item is named, the first ones above all), and the button is tapped
+        // again, as a person would, until then.
+        let items = tabTitle == "Memory"
+            ? ["History", "Compare", "Time travel", "Branches", "Dreams", "Truth", "Digest"]
+            : ["Tools", "Import your AI history"]
+        tap(more, "the More menu of \(tabTitle)", until: { items.contains { button($0).exists } }, file: file, line: line)
+        // At the largest text sizes every item of the menu is over a hundred points tall, and the card the menu is drawn in
+        // ends about two thirds of the way down the screen: the items below its fold are not drawn until the menu is scrolled,
+        // and the ones just past it exist but sit under the card's edge, where a tap would land on the page and put the menu
+        // away. The finger goes down inside the card (a drag that starts outside it puts the menu away too) and is drawn up.
+        let window = app.windows.firstMatch.frame
+        func reachable() -> Bool {
+            let target = button(item)
+            guard target.exists else { return false }
+            return target.frame.height < 90 || target.frame.midY < window.height * 0.55
+        }
+        var scrolled = 0
+        while !reachable(), scrolled < 8 {
+            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.17))
+            from.press(forDuration: 0.01, thenDragTo: to, withVelocity: XCUIGestureVelocity(rawValue: 400), thenHoldForDuration: 0)
+            scrolled += 1
+        }
+        tap(button(item), "\(item) in the More menu", until: { isShowingTitle(title) }, file: file, line: line)
+        waitUntil("the \(title) screen", file: file, line: line) { isShowingTitle(title) }
+    }
+
+    /// Opens an item of Memory's More menu.
+    func openFromMemoryMenu(_ item: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
+        openFromMoreMenu(of: "Memory", item, title: title, file: file, line: line)
+    }
+
+    /// Opens the Yours panel over Home with the button in the corner.
+    func openYours(file: StaticString = #filePath, line: UInt = #line) {
+        showHome(file: file, line: line)
+        RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+        tap(element("canvas.yours"), "the panel button", until: { element("yours.filter").exists }, file: file, line: line)
+        require(element("yours.filter"), "the Yours panel", file: file, line: line)
+    }
+
+    /// Takes the Yours panel from half the height of the screen to the whole of it, the way a person does: a finger on its
+    /// navigation bar, drawn up. (A drag on the rows would scroll them, and a drag back down that starts above a panel of half
+    /// the height lands on Home and puts the panel away.)
+    func expandThePanel(file: StaticString = #filePath, line: UInt = #line) {
+        let more = element("yours.more")
+        require(more, "the panel's More menu", file: file, line: line)
+        let height = max(app.windows.firstMatch.frame.height, 1)
+        let filter = element("yours.filter")
+        // The panel has moved when the filter at the top of its list is in the upper third of the screen. (A drag that
+        // comes to nothing is made again; what the journey looks for next says whether the rows can be seen.)
+        for _ in 1...2 {
+            if filter.exists, filter.frame.minY < height * 0.33 { return }
+            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: more.frame.midY / height))
+            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08))
+            from.press(forDuration: 0.05, thenDragTo: to, withVelocity: XCUIGestureVelocity(rawValue: 500), thenHoldForDuration: 0.2)
+            let deadline = Date().addingTimeInterval(3)
+            while Date() < deadline, !(filter.exists && filter.frame.minY < height * 0.33) {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+            }
+        }
+    }
+
+    /// Home, on its first screen: the tab, and back from anything pushed on it.
+    func showHome(file: StaticString = #filePath, line: UInt = #line) {
+        openTab("Home", file: file, line: line)
+        var goneBack = 0
+        while !element("canvas.account").exists, goneBack < 5 {
+            goBack(file: file, line: line)
+            goneBack += 1
+        }
+        require(element("canvas.account"), "Home, on its first screen", file: file, line: line)
     }
 
     /// Goes back one screen with the navigation bar's back button.
@@ -388,8 +561,9 @@ class HyperVaultUITestCase: XCTestCase {
     /// Puts the keyboard away with its Return (or Done, Go) key, which a single-line field answers by letting go of the
     /// keyboard. Not for a field that grows with its text: its Return key starts a new line.
     func putTheKeyboardAway() {
+        dismissTheKeyboardTip()
         guard app.keyboards.count > 0 else { return }
-        for name in ["Return", "return", "Done", "done", "Go", "go", "Next", "next", "Continue", "continue"] {
+        for name in ["Return", "return", "Done", "done", "Go", "go", "Next", "next", "Continue", "continue", "Search", "search"] {
             let key = app.keyboards.buttons[name]
             if key.exists {
                 key.tap()

@@ -60,7 +60,7 @@ final class ToolsCatalogModel {
                 if verdict.state == .dead { self.knownDead.insert(key) }
                 if verdict.state == .alive { self.knownDead.remove(key) }
             }
-            withAnimation(.easeInOut(duration: 0.25)) {
+            HV.Motion.animate(.easeInOut(duration: 0.25)) {
                 self.results = McpRegistryEntry.applying(answer.results, to: self.results, knownDead: self.knownDead)
             }
         }
@@ -244,11 +244,11 @@ struct ToolsCatalogRow: View {
         if isAdded {
             // The same capsule as "Add", in mint and not tappable, so every row ends the same way.
             HStack(spacing: 4) {
-                Image(systemName: "checkmark").font(.system(size: 11, weight: .bold))
+                HVIcon("checkmark").font(.system(size: 11, weight: .bold))
                 Text("Added")
             }
-            .font(.system(.footnote, design: .rounded, weight: .semibold))
-            .foregroundStyle(Palette.mint.hvInk())
+            .font(.system(.footnote, weight: .semibold))
+            .foregroundStyle(Palette.mint)
             .padding(.horizontal, HV.Space.m)
             .frame(minHeight: 44)
             .background(Palette.mint.opacity(0.14), in: Capsule())
@@ -259,11 +259,11 @@ struct ToolsCatalogRow: View {
         } else {
             Button(action: onAdd) {
                 Text("Add")
-                    .font(.system(.footnote, design: .rounded, weight: .semibold))
+                    .font(.system(.footnote, weight: .semibold))
                     .padding(.horizontal, HV.Space.m)
                     .frame(minHeight: 44)
                     .background(Palette.blue.opacity(0.14), in: Capsule())
-                    .foregroundStyle(Palette.blue.hvInk())
+                    .foregroundStyle(Palette.sky)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Add \(entry.displayName)")

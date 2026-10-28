@@ -20,7 +20,6 @@ struct SignInContent: View {
     let providers: AuthProviders
     var onBack: (() -> Void)?
 
-    @Environment(\.colorScheme) private var scheme
     @State private var controller: SignInController
     @State private var nonce = AuthNonce.make()
     @State private var showEmail = false
@@ -91,17 +90,11 @@ struct SignInContent: View {
                                     .padding(.top, HV.Space.xs)
                                     .transition(.opacity)
                             }
-
-                            Text("Only you can open what you keep.")
-                                .font(.hvCaption)
-                                .foregroundStyle(Palette.textTertiary)
-                                .multilineTextAlignment(.center)
-                                .padding(.top, HV.Space.s)
                         }
                         .padding(.horizontal, HV.Space.l)
                         .padding(.bottom, HV.Space.l)
                         .hvReadableWidth()
-                        .animation(.easeOut(duration: 0.2), value: controller.message)
+                        .hvAnimation(HV.Motion.entrance, value: controller.message)
                     }
                     .frame(maxWidth: .infinity, minHeight: proxy.size.height)
                 }
@@ -123,7 +116,7 @@ struct SignInContent: View {
             let raw = nonce.raw
             Task { await controller.handleApple(result, rawNonce: raw) }
         }
-        .signInWithAppleButtonStyle(scheme == .dark ? .white : .black)
+        .signInWithAppleButtonStyle(.white)
         .frame(height: 52)
         .clipShape(Capsule())
         .disabled(controller.isWorking)
@@ -140,7 +133,7 @@ struct SignInContent: View {
                     ProgressView()
                 } else {
                     Text("G")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(Palette.brandGradient)
                 }
                 Text("Continue with Google")
@@ -158,7 +151,7 @@ struct SignInContent: View {
             showEmail = true
         } label: {
             HStack(spacing: HV.Space.s) {
-                Image(systemName: "envelope")
+                HVIcon("envelope")
                 Text("Continue with email")
             }
         }

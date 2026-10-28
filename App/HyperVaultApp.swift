@@ -4,15 +4,20 @@ import SwiftUI
 @main
 struct HyperVaultApp: App {
     @State private var model = HyperVaultApp.makeModel()
-    @AppStorage(PrefKey.appearance) private var appearance = AppearanceChoice.system
-    @AppStorage(PrefKey.accent) private var accent = AccentChoice.blue
+
+    init() {
+        RetiredPreferences.remove()
+        HVTabBarStyle.install()
+    }
 
     var body: some Scene {
         WindowGroup {
+            // The stock look is dark and has one accent, the web's primary (Info.plist declares the dark style, so the
+            // launch screen, alerts and keyboard are dark from the first frame). The tint is set outright: a
+            // Toggle with none draws system green.
             RootView()
                 .environment(model)
-                .tint(accent.color)
-                .preferredColorScheme(appearance.colorScheme)
+                .tint(HVColor.primary)
                 #if DEBUG
                 .overlay(alignment: .topLeading) { UITestWritesBeacon() }
                 #endif
@@ -34,6 +39,8 @@ struct HyperVaultApp: App {
     /// The real app's model. A debug build launched by the UI tests (`-HV_UITEST`) gets one wired to canned answers
     /// instead; see `UITestHarness`.
     private static func makeModel() -> AppModel {
+        // Before the first request: the system's cache keeps nothing the server said to a signed-in person.
+        HVURLCache.install()
         #if DEBUG
         if let canned = UITestHarness.makeModel() { return canned }
         #endif

@@ -7,7 +7,7 @@ import XCTest
 final class PagesWritesJourneyTests: HyperVaultUITestCase {
     func testAPageIsMadeFromTextAndItsSourceIsEdited() {
         launch(.signedIn)
-        openFromYou("library", title: "Library")
+        openFromAccount("library", title: "Library")
         let slug = "balcony-notes-p1"
 
         step("New offers a page from text") {
@@ -88,7 +88,7 @@ final class PagesWritesJourneyTests: HyperVaultUITestCase {
 
     func testAPageIsMadePublicItsLinkIsShownAndThenItIsDeleted() {
         launch(.signedIn)
-        openFromYou("library", title: "Library")
+        openFromAccount("library", title: "Library")
 
         step("The Trip to Lisbon page opens") {
             open(element("library.row.a2"), "the Trip to Lisbon row", until: { self.isShowingTitle("Trip to Lisbon") })
@@ -127,7 +127,7 @@ final class PagesWritesJourneyTests: HyperVaultUITestCase {
     }
     func testAPageIsSharedWithAPersonAndTheyAreRemoved() {
         launch(.signedIn)
-        openFromYou("library", title: "Library")
+        openFromAccount("library", title: "Library")
         let email = "sam@home.invalid"
         // The sheet opens at half height, which shows the link and not the people under it: its handle is pulled up to full
         // height. (Scrolling it would not do: a drag that goes down on a sheet closes it.)

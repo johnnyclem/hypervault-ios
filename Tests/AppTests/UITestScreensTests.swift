@@ -19,7 +19,7 @@ final class UITestScreensTests: XCTestCase {
         return AccountRest(client: tables, anonKey: UITestWorld.anonKey)
     }
 
-    // MARK: Account & keys
+    // MARK: Agent keys
 
     func testKeysAreListedMadeOnceAndRevoked() async throws {
         let net = transport()
@@ -28,9 +28,9 @@ final class UITestScreensTests: XCTestCase {
 
         let keys = try await AgentKeyDirectory.keys(rest: tables, userID: userID)
         XCTAssertEqual(keys.map(\.id), ["k1", "k2", "k3"])
-        let statuses = await AgentKeyDirectory.setupStatuses(rest: tables, userID: userID, keys: keys)
-        XCTAssertEqual(statuses["k1"]?.complete, true, "Claude Code finished its setup challenge.")
-        XCTAssertNil(statuses["k3"], "The default key has no challenge page.")
+        let slugs = await AgentKeyDirectory.challengeSlugs(rest: tables, userID: userID, keys: keys)
+        XCTAssertEqual(slugs["k1"], "agent-setup-1", "Claude Code has a challenge page to open.")
+        XCTAssertNil(slugs["k3"], "The default key has no challenge page.")
 
         let made = try await api.send(.createAgentKey(name: "Cursor"))
         XCTAssertTrue(AgentKeyRules.looksLikeKey(made.key), "A key is hv_ and 32 characters.")
@@ -83,6 +83,34 @@ final class UITestScreensTests: XCTestCase {
         let caps = try await client(net).send(.capabilities)
         XCTAssertEqual(caps.domains.filter(\.available).count, 3)
         XCTAssertTrue(caps.themes.contains { $0.id == "glassmorphism" })
+    }
+
+    func testTheWebsiteWearsAThemeAndTakesAnother() async throws {
+        let net = transport()
+        let profiles = rest(net)
+        let before = try await profiles.dashboardTheme(userID: UITestWorld.user.id)
+        XCTAssertEqual(before, "glassmorphism")
+
+        let saved = try await client(net).send(.setDashboardTheme("newsprint"))
+        XCTAssertEqual(saved.theme, "newsprint")
+        let after = try await profiles.dashboardTheme(userID: UITestWorld.user.id)
+        XCTAssertEqual(after, "newsprint", "the profile holds what the server agreed to")
+        let plan = try await profiles.profile(userID: UITestWorld.user.id)
+        XCTAssertEqual(plan?.isPro, true, "the plan is still read from the same row")
+
+        let stock = try await client(net).send(.setDashboardTheme(nil))
+        XCTAssertNil(stock.theme)
+        let none = try await profiles.dashboardTheme(userID: UITestWorld.user.id)
+        XCTAssertNil(none)
+    }
+
+    func testAnUnknownThemeIsRefusedWithTheServersSentence() async {
+        do {
+            _ = try await client(transport()).send(.setDashboardTheme("not-a-theme"))
+            XCTFail("The canned server refuses a theme it does not list.")
+        } catch {
+            XCTAssertEqual((error as? HVError)?.failure?.status, 400)
+        }
     }
 
     // MARK: Rooms and chat

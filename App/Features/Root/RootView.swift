@@ -20,7 +20,7 @@ struct RootView: View {
         }
         .accessibilityHidden(model.lock.isLocked)
         .disabled(model.lock.isLocked)
-        .animation(.easeInOut(duration: 0.35), value: model.phase)
+        .hvAnimation(.easeInOut(duration: 0.35), value: model.phase)
         .onAppear { model.privacy.start() }
         .onChange(of: scenePhase) { _, phase in
             model.lock.scenePhaseChanged(phase)

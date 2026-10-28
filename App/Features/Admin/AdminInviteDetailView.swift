@@ -78,7 +78,7 @@ struct AdminInviteDetailView: View {
                 .disabled(model.busy.contains(invite.id))
 
                 Button(role: .destructive) { confirmDestroy = true } label: {
-                    Label("Destroy this code", systemImage: "trash")
+                    Label("Destroy this code", systemImage: HVSymbol.delete)
                 }
                 .confirmationDialog("Destroy \(invite.code)?", isPresented: $confirmDestroy, titleVisibility: .visible) {
                     Button("Destroy the code", role: .destructive) {

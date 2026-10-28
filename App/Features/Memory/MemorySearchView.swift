@@ -40,7 +40,7 @@ struct MemorySearchView: View {
             default:
                 if list.items.isEmpty {
                     HVEmptyState(
-                        symbol: "brain.head.profile",
+                        symbol: HVSymbol.memory,
                         title: "Nothing in memory yet",
                         message: "Ask your AI to keep something, or write a note here.",
                         actionTitle: "Memorize something",
@@ -234,7 +234,7 @@ struct MemoryRelevance: View {
                         .frame(width: 36 * fraction, height: 5)
                 }
             Text(scoreText)
-                .font(.system(.caption2, design: .rounded, weight: .semibold))
+                .font(.system(.caption2, weight: .semibold))
                 .foregroundStyle(Palette.textTertiary)
         }
         .fixedSize()

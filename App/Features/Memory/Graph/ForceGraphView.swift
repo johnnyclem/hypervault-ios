@@ -160,12 +160,12 @@ struct ForceGraphView: View {
                     ForceGraphShapeView(shape: item.shape, color: item.color)
                         .frame(width: 9, height: 9)
                     Text(item.title)
-                        .font(.system(.caption2, design: .rounded, weight: .semibold))
+                        .font(.system(.caption2, weight: .semibold))
                         .foregroundStyle(Palette.textSecondary)
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(.ultraThinMaterial, in: Capsule())
+                .hvGlass(in: Capsule())
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -237,7 +237,7 @@ struct ForceGraphView: View {
                 onOpen(node.id)
             } label: {
                 Text("Open")
-                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .font(.system(.subheadline, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, HV.Space.m)
                     .frame(minHeight: 44)
@@ -416,7 +416,7 @@ struct ForceGraphView: View {
             }
         case .pan:
             if moved <= 6, selection != nil {
-                withAnimation(.easeOut(duration: 0.15)) { selection = nil }
+                HV.Motion.animate(.easeOut(duration: 0.15)) { selection = nil }
             }
         case .undecided:
             break
@@ -429,7 +429,7 @@ struct ForceGraphView: View {
         if selection == id {
             onOpen(id)
         } else {
-            withAnimation(.easeOut(duration: 0.18)) { selection = id }
+            HV.Motion.animate(.easeOut(duration: 0.18)) { selection = id }
         }
     }
 
@@ -538,7 +538,7 @@ enum ForceGraphRenderer {
             let center = camera.screen(points[i])
             guard canvas.contains(center), let reach = reaches[node.id] else { continue }
             let text = Text(truncated(node.label))
-                .font(.system(size: 11, weight: priority >= 500 ? .semibold : .medium, design: .rounded))
+                .font(.system(size: 11, weight: priority >= 500 ? .semibold : .medium))
                 .foregroundStyle(Palette.textPrimary)
             let label = context.resolve(text)
             resolved[node.id] = label

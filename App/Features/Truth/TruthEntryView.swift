@@ -205,7 +205,7 @@ struct TruthEntryScreen: View {
             open?()
         } label: {
             HStack(alignment: .top, spacing: HV.Space.s) {
-                Image(systemName: context.kind == "memory" ? "brain.head.profile" : "doc.text")
+                Image(systemName: context.kind == "memory" ? HVSymbol.memory : "doc.text")
                     .foregroundStyle(Palette.textSecondary)
                     .frame(width: 24)
                     .accessibilityHidden(true)
@@ -226,8 +226,8 @@ struct TruthEntryScreen: View {
 
     private func openAction(_ context: TruthRippleContext) -> (() -> Void)? {
         guard let item = context.item else { return nil }
-        if item.isMemory { return { app.router.open(.route(.memory(id: item.id))) } }
-        if let slug = item.slug { return { app.router.open(.route(.artifact(slug: slug))) } }
+        if item.isMemory { return { app.router.push(.memory(id: item.id)) } }
+        if let slug = item.slug { return { app.router.push(.artifact(slug: slug)) } }
         return nil
     }
 

@@ -26,6 +26,16 @@ jobs:
         working-directory: Packages/HyperVaultKit
         run: swift test
 
+  # The colour catalog and HVTokens are generated from docs/brand/tokens.json (scripts/gen_tokens.py); this fails when
+  # either has drifted from it.
+  tokens:
+    name: Design tokens match tokens.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check
+        run: python3 scripts/gen_tokens.py --check
+
   # The app, its extensions and its tests, on a simulator.
   app:
     name: App build and tests (macOS)
@@ -119,10 +129,11 @@ jobs:
           grep -hE "error:|\*\* (BUILD|TEST) FAILED|Test Case .* failed" build.log test.log 2>/dev/null | sort -u | head -80
 
   # The journeys: the real app launched on a simulator and driven with taps and typing, through the welcome story,
-  # sign-in, the canvas, each tab, every screen the You tab opens, and the waitlist; and a sweep of the main screens in
-  # the dark appearance and at an accessibility text size. The app is a debug build whose network is canned inside it
-  # (App/Core/UITestHarness.swift); nothing here reaches a real server. Ten jobs run side by side (each builds the
-  # app for itself), so a push waits for the slowest of them and none of them for the others.
+  # sign-in, Home, each tab, the Account menu, every pane of the You tab and every screen they open, and the waitlist;
+  # and a sweep of the main screens in the dark and at an accessibility text size. The app is a debug build whose network
+  # is canned inside it (App/Core/UITestHarness.swift); nothing here reaches a real server. Thirteen jobs run side by side
+  # (each builds the app for itself), but GitHub gives a repository five macOS machines at a time and the unit-test job
+  # takes one, so the last of them start when others finish: a whole run has taken about 50 minutes.
   ui:
     name: UI tests (macOS, ${{ matrix.suite }})
     runs-on: macos-latest
@@ -137,6 +148,9 @@ jobs:
             tests: >-
               -only-testing:HyperVaultUITests/MemoryAndVaultWritesJourneyTests
               -only-testing:HyperVaultUITests/PagesWritesJourneyTests
+          # The vault's own journeys: who may read an entry, a sheet that asks before it drops what was typed, a taken name.
+          - suite: writes-vault
+            tests: -only-testing:HyperVaultUITests/VaultWritesJourneyTests
           - suite: writes-more
             tests: >-
               -only-testing:HyperVaultUITests/BoardsAndMailWritesJourneyTests
@@ -144,9 +158,10 @@ jobs:
           - suite: writes-think
             tests: -only-testing:HyperVaultUITests/ThinkWritesJourneyTests
           # The layout sweep (see Tests/UITests/LayoutSweepTests.swift): every screen of it at the largest accessibility
-          # text size, the You tab's screens in two halves because scrolling at that size is slow, and in the dark
-          # appearance in one job. The slowest are listed first, so that they start first when GitHub has fewer macOS
-          # machines free than there are jobs.
+          # text size, the screens of the You panes and the Account menu in two halves because scrolling at that size is slow, and
+          # in the dark in two jobs. The app is dark whatever the phone is set to (Info.plist declares it), so every job draws dark
+          # screens; these two are where each screenshot is also checked to be dark. The slowest are listed first, so that
+          # they start first when GitHub has fewer macOS machines free than there are jobs.
           - suite: sweep-large-keep
             tests: -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheKeepAndAgentScreensAtAnAccessibilityTextSize
           - suite: sweep-large-think
@@ -156,7 +171,8 @@ jobs:
               -only-testing:HyperVaultUITests/LayoutSweepTests/testTheTabsInTheDark
               -only-testing:HyperVaultUITests/LayoutSweepTests/testWhatTheTabsOpenInTheDark
               -only-testing:HyperVaultUITests/LayoutSweepTests/testTheWelcomeAndTheWaitlistInTheDark
-              -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheYouScreensInTheDark
+          - suite: sweep-dark-screens
+            tests: -only-testing:HyperVaultUITests/LayoutSweepScreensTests/testTheYouScreensInTheDark
           # Everything a class does not list in another job. A new test class runs here until it is given a job of its own.
           - suite: journeys
             tests: >-
@@ -164,15 +180,22 @@ jobs:
               -skip-testing:HyperVaultUITests/YouScreensJourneyTests
               -skip-testing:HyperVaultUITests/AccountAndAdminJourneyTests
               -skip-testing:HyperVaultUITests/ContentJourneyTests
+              -skip-testing:HyperVaultUITests/YouJourneyTests
+              -skip-testing:HyperVaultUITests/TabsJourneyTests
               -skip-testing:HyperVaultUITests/LayoutSweepTests
               -skip-testing:HyperVaultUITests/LayoutSweepScreensTests
               -skip-testing:HyperVaultUITests/MemoryAndVaultWritesJourneyTests
+              -skip-testing:HyperVaultUITests/VaultWritesJourneyTests
               -skip-testing:HyperVaultUITests/PagesWritesJourneyTests
               -skip-testing:HyperVaultUITests/BoardsAndMailWritesJourneyTests
               -skip-testing:HyperVaultUITests/SessionAndSettingsWritesJourneyTests
               -skip-testing:HyperVaultUITests/ThinkWritesJourneyTests
           - suite: screens-you
             tests: -only-testing:HyperVaultUITests/YouScreensJourneyTests
+          - suite: tabs-you
+            tests: >-
+              -only-testing:HyperVaultUITests/YouJourneyTests
+              -only-testing:HyperVaultUITests/TabsJourneyTests
           - suite: sweep-large
             tests: >-
               -only-testing:HyperVaultUITests/LayoutSweepTests/testTheTabsAtAnAccessibilityTextSize

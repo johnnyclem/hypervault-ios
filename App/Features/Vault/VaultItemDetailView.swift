@@ -1,7 +1,7 @@
 import HyperVaultKit
 import SwiftUI
 
-/// One saved entry, opened from its row: what it is, when it was saved and last read, which agent keys may
+/// One saved entry, in the sheet its row opens: what it is, when it was saved and last read, which agent keys may
 /// read it, the request an agent makes, and the ways to change it. Never the value: it is write-only once
 /// saved. Replacing it asks for the whole entry again.
 struct VaultItemDetailView: View {
@@ -10,17 +10,14 @@ struct VaultItemDetailView: View {
     let name: String
     let model: VaultItemsModel
     @State private var id: String?
+    @State private var allowed: VaultAllowedKeysModel
 
     @Environment(AppEnvironment.self) private var env
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    @State private var grants = VaultGrantsPhase.loading
-    /// Why the last switch change was refused, in the server's words. A failed read has its own sentence.
-    @State private var grantsError: String?
-    @State private var pending: Set<String> = []
-    @State private var editing = false
+    @State private var renaming = false
     @State private var replacing = false
     @State private var confirmDelete = false
     @State private var connecting = false
@@ -29,6 +26,7 @@ struct VaultItemDetailView: View {
         self.name = name
         self.model = model
         _id = State(initialValue: model.secret(named: name)?.id)
+        _allowed = State(initialValue: model.makeAllowedKeys())
     }
 
     private var current: VaultSecret? {
@@ -48,6 +46,13 @@ struct VaultItemDetailView: View {
         .hvScreenBackground()
         .navigationTitle(current?.name ?? name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) { VaultCloseButton { dismiss() } }
+        }
+        // The entry left the list while this page was up (deleted here or somewhere else): there is nothing to show.
+        .onChange(of: current == nil) { _, isGone in
+            if isGone { dismiss() }
+        }
     }
 
     private func details(_ secret: VaultSecret) -> some View {
@@ -60,57 +65,54 @@ struct VaultItemDetailView: View {
 
             Section {
                 LabeledContent("Type", value: secret.kind.label)
-                LabeledContent("Saved", value: secret.createdAt?.keysDay ?? "Unknown")
-                LabeledContent("Last used", value: secret.lastAccessedAt.map { AccountWords.agoLine(seconds: Date().timeIntervalSince($0)) } ?? "Never")
-                if let note = secret.description, !note.isEmpty { LabeledContent("Note", value: note) }
+                LabeledContent(VaultCopy.createdLabel, value: secret.createdAt?.keysDay ?? "Unknown")
+                LabeledContent("Last used", value: VaultCopy.sheetLastUsedLine(secret.lastAccessedAt))
             } footer: {
-                Label("The value is encrypted and never shown again.", systemImage: "lock.fill")
+                Label(VaultCopy.valueNeverShownLine, systemImage: "lock.fill")
                     .font(.hvFootnote)
             }
             .hvListRow()
 
-            allowedKeys(secret)
+            VaultAllowedKeysSection(allowed: allowed, secret: secret, onConnect: { connecting = true })
 
             Section {
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
                     Text(readsLine(secret)).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
-                    Text(fetchCommand(secret))
-                        .font(.hvMono)
-                        .foregroundStyle(Palette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(HV.Space.s)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.s, style: .continuous))
+                    // Both lines of the command, wrapped: a list row does not give the panel the height its text needs.
+                    HVCodePanel(fetchCommand(secret)).fixedSize(horizontal: false, vertical: true)
                 }
-                KeysCopyButton(title: "Copy", text: fetchCommand(secret))
+                VaultCopyButton(text: fetchCommand(secret))
             } header: {
-                HVSectionHeader(title: "How an agent reads it")
+                HVSectionHeader(title: VaultCopy.howAgentReadsHeading)
             }
             .hvListRow()
 
             Section {
-                Button { editing = true } label: { Label("Rename or add a note", systemImage: "pencil") }
+                Button { renaming = true } label: { Label(VaultCopy.renameLabel, systemImage: "pencil") }
                 Button { Task { await startReplacing() } } label: { Label("Replace the value", systemImage: "arrow.triangle.2.circlepath") }
             }
             .hvListRow()
 
             Section {
-                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: "trash").foregroundStyle(Palette.danger) }
+                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: HVSymbol.delete).foregroundStyle(Palette.danger) }
             } footer: {
                 Text("Deleting it cuts off every agent at once.")
             }
             .hvListRow()
         }
         .scrollContentBackground(.hidden)
-        .task(id: secret.id) { await loadGrants(secret) }
-        .sheet(isPresented: $editing) { VaultEditSheet(secret: secret, model: model) }
+        .task(id: secret.id) { await allowed.load(name: secret.name) }
+        .onChange(of: allowed.entryIsGone) { _, isGone in
+            if isGone { model.forget(secret) }
+        }
+        .sheet(isPresented: $renaming) { VaultRenameSheet(secret: secret, model: model) }
         .sheet(isPresented: $replacing) { VaultReplaceSheet(secret: secret, model: model) }
-        .sheet(isPresented: $connecting, onDismiss: { Task { await model.load() } }) { ConnectAgentSheet() }
+        .sheet(isPresented: $connecting, onDismiss: { Task { await allowed.load(name: secret.name, quietly: true) } }) { ConnectAgentSheet() }
         .confirmationDialog("Delete \(secret.name)?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Delete", role: .destructive) { delete(secret) }
             Button("Keep it", role: .cancel) {}
         } message: {
-            Text("Every agent allowed to read it loses it at once. This cannot be undone.")
+            Text(VaultCopy.deleteConfirmationMessage)
         }
     }
 
@@ -125,7 +127,8 @@ struct VaultItemDetailView: View {
         return layout {
             VaultTile(secret: secret, size: 48)
             VStack(alignment: .leading, spacing: 2) {
-                Text(secret.name).font(.hvTitle3).lineLimit(stacked ? nil : 2)
+                // The name is what tells two entries apart, so it wraps as far as it needs.
+                Text(secret.name).font(.hvTitle3)
                 Text(secret.subtitle)
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.textSecondary)
@@ -137,91 +140,26 @@ struct VaultItemDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
-    }
-
-    // MARK: Which agents may read it
-
-    @ViewBuilder
-    private func allowedKeys(_ secret: VaultSecret) -> some View {
-        Section {
-            if model.keys.isEmpty {
-                VStack(alignment: .leading, spacing: HV.Space.s) {
-                    Text("No agent keys yet. Connect an agent, then allow it here.")
-                        .font(.hvFootnote)
-                        .foregroundStyle(Palette.textSecondary)
-                    Button("Connect an agent") { connecting = true }.buttonStyle(.hvGhost).padding(.leading, -HV.Space.s)
-                }
-            } else if grants.hasFailed {
-                // No switches at all: a row of them would read as "none allowed" when nobody knows.
-                VStack(alignment: .leading, spacing: HV.Space.xs) {
-                    Label(VaultGrantsCopy.loadFailed, systemImage: "exclamationmark.circle")
-                        .font(.hvFootnote)
-                        .foregroundStyle(Palette.textSecondary)
-                    Button("Try again") { Task { await loadGrants(secret) } }.buttonStyle(.hvGhost).padding(.leading, -HV.Space.s)
-                }
-            } else {
-                ForEach(model.keys) { key in
-                    Toggle(isOn: Binding(
-                        get: { grants.granted.contains(key.id) },
-                        set: { toggle(key, on: $0, secret: secret) }
-                    )) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(key.displayName ?? "Untitled key").font(.hvBody)
-                            Text(key.prefixLabel).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
-                        }
-                    }
-                    .disabled(!grants.isLoaded || pending.contains(key.id))
-                }
-                if let grantsError { KeysInlineMessage(text: grantsError) }
-            }
-        } header: {
-            HVSectionHeader(title: "Allowed keys")
-        } footer: {
-            Text("Only the agent keys switched on here can read it.")
-        }
-        .hvListRow()
-    }
-
-    private func loadGrants(_ secret: VaultSecret) async {
-        grantsError = nil
-        grants = .loading
-        grants = await model.grantsPhase(for: secret)
-    }
-
-    /// The switch moves at once and goes back if the server says no. Only that switch goes back: another
-    /// one may have been turned and accepted while this one waited, and a copy taken before would undo it.
-    private func toggle(_ key: AgentKey, on: Bool, secret: VaultSecret) {
-        guard grants.isLoaded else { return }
-        grants = grants.setting(key.id, to: on)
-        pending.insert(key.id)
-        grantsError = nil
-        Task {
-            defer { pending.remove(key.id) }
-            do {
-                try await model.setGranted(on, keyID: key.id, for: secret)
-                Haptics.select()
-            } catch {
-                grants = grants.setting(key.id, to: !on)
-                grantsError = keysMessage(for: error)
-                Haptics.failure()
-            }
-        }
+        // The card's mask reads as "ending in 4242", not as four bullets.
+        .accessibilityLabel("\(secret.name), \(secret.spokenSubtitle)")
     }
 
     // MARK: How an agent reads it
 
+    /// The command to copy, with the public origin the agent has to call (`capabilities.app_url`) and not the host this
+    /// phone happens to be talking to.
     private func fetchCommand(_ secret: VaultSecret) -> String {
-        "curl -s \"\(PairingCode.origin(of: env.server.baseURL))/api/secrets/\(secret.name)\" \\\n  -H \"X-HyperVault-Key: hv_YOUR_KEY\""
+        VaultItems.fetchCommand(appURL: env.capabilities.appUrl, fallbackOrigin: ServerOrigin.string(of: env.server.baseURL), name: secret.name)
     }
 
     private func readsLine(_ secret: VaultSecret) -> String {
-        var line = "An allowed key gets back { name, kind, value }. "
+        let reads: String
         if let kind = secret.kind.vaultItemKind {
-            line += "The value is JSON with \(VaultItems.valueFieldsLine(kind)); empty fields are left out."
+            reads = VaultCopy.jsonValueLine(fields: VaultItems.valueFieldsLine(kind))
         } else {
-            line += "The value is exactly what you saved."
+            reads = VaultCopy.exactValueLine
         }
-        return line
+        return VaultCopy.allowedKeyGetsLine + " " + reads
     }
 
     // MARK: Changing it
@@ -230,173 +168,44 @@ struct VaultItemDetailView: View {
         if await KeysBiometricGate.confirm(reason: "Replace a saved value") { replacing = true }
     }
 
+    /// Deletes the entry. When it goes, off the list or already gone elsewhere, `current` turns nil and the page closes.
     private func delete(_ secret: VaultSecret) {
         Task {
-            do {
-                try await model.delete(secret)
+            switch await model.delete(secret) {
+            case .deleted, .entryGone:
                 Haptics.success()
                 app.toasts.success("Deleted.")
-                dismiss()
-            } catch {
-                app.toasts.show(error: error)
+            case .failure(let failure):
+                app.toasts.show(failure.message, style: .error)
             }
         }
     }
 }
 
-// MARK: Rename and note
+/// The fetch command's Copy button. It says "Copied" for a moment, and tells VoiceOver which copy it is: the page has no
+/// other, but a screen reader hears the button without the command beside it.
+struct VaultCopyButton: View {
+    let text: String
 
-private struct VaultEditSheet: View {
-    let secret: VaultSecret
-    let model: VaultItemsModel
-
-    @Environment(\.dismiss) private var dismiss
-    @Environment(AppModel.self) private var app
-
-    @State private var newName: String
-    @State private var note: String
-    @State private var saving = false
-    @State private var error: String?
-
-    init(secret: VaultSecret, model: VaultItemsModel) {
-        self.secret = secret
-        self.model = model
-        _newName = State(initialValue: secret.name)
-        _note = State(initialValue: secret.description ?? "")
-    }
-
-    private var trimmedName: String { newName.trimmingCharacters(in: .whitespacesAndNewlines) }
-    private var changed: Bool { trimmedName != secret.name || note != (secret.description ?? "") }
-    private var canSave: Bool { changed && VaultItems.isValidName(trimmedName) && !saving }
+    @State private var copied = false
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: HV.Space.l) {
-                    VStack(alignment: .leading, spacing: HV.Space.xs) {
-                        HVLabeledField(
-                            title: "Name",
-                            footnote: "Agents ask for it by name, so renaming it changes what they ask for. \(VaultItems.nameHint)"
-                        ) {
-                            TextField("github.com", text: $newName)
-                                .font(.system(.body, design: .monospaced))
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .accessibilityIdentifier("vault.edit.name")
-                        }
-                        if !trimmedName.isEmpty, !VaultItems.isValidName(trimmedName) {
-                            KeysInlineMessage(text: "Use letters, digits, dots, dashes and underscores. No spaces.")
-                        }
-                    }
-                    HVLabeledField(title: "Note (optional)") {
-                        TextField("What is it for?", text: $note)
-                            .accessibilityIdentifier("vault.edit.note")
-                    }
-                    if let error { KeysInlineMessage(text: error) }
-                }
-                .padding(HV.Space.m)
-                .hvReadableWidth()
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .hvScreenBackground()
-            .navigationTitle("Edit")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { Task { await save() } }.disabled(!canSave)
-                }
-            }
-        }
-    }
-
-    private func save() async {
-        saving = true
-        error = nil
-        defer { saving = false }
-        do {
-            _ = try await model.update(
-                secret,
-                newName: trimmedName == secret.name ? nil : trimmedName,
-                description: note == (secret.description ?? "") ? nil : note
-            )
+        Button {
+            KeysPasteboard.copy(text, secret: false)
             Haptics.success()
-            app.toasts.success("Saved.")
-            dismiss()
-        } catch {
-            Haptics.failure()
-            self.error = keysMessage(for: error)
-        }
-    }
-}
-
-// MARK: Replace the value
-
-/// The old value was never kept, so a new one means typing the whole entry again.
-private struct VaultReplaceSheet: View {
-    let secret: VaultSecret
-    let model: VaultItemsModel
-
-    @Environment(\.dismiss) private var dismiss
-    @Environment(AppModel.self) private var app
-
-    @State private var draft: VaultDraft
-    @State private var saving = false
-    @State private var error: String?
-
-    init(secret: VaultSecret, model: VaultItemsModel) {
-        self.secret = secret
-        self.model = model
-        _draft = State(initialValue: VaultDraft(kind: secret.kind))
-    }
-
-    private var canSave: Bool { draft.problem == nil && !saving }
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: HV.Space.l) {
-                    Text("The saved value is never shown, so type the whole entry again. The agents you allowed keep their access.")
-                        .font(.hvCallout)
-                        .foregroundStyle(Palette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    // The kind stays as it was: only a key can pick among the key kinds, and that is its own choice.
-                    VaultFieldsForm(draft: $draft, showsKindPicker: false)
-                    VStack(alignment: .leading, spacing: HV.Space.xs) {
-                        if draft.isTouched, let problem = draft.problem { KeysInlineMessage(text: problem, isError: false) }
-                        if let error { KeysInlineMessage(text: error) }
-                    }
-                }
-                .padding(HV.Space.m)
-                .hvReadableWidth()
+            copied = true
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(HV.Motion.copiedHold * 1_000_000_000))
+                copied = false
             }
-            .scrollDismissesKeyboard(.interactively)
-            .hvScreenBackground()
-            .navigationTitle("Replace \(secret.name)")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Replace") { Task { await save() } }.disabled(!canSave)
-                }
-            }
+        } label: {
+            Label(copied ? VaultScreenCopy.copiedLabel : VaultScreenCopy.copyLabel, systemImage: copied ? HVSymbol.copied : HVSymbol.copy)
         }
-    }
-
-    private func save() async {
-        saving = true
-        error = nil
-        defer { saving = false }
-        do {
-            _ = try await model.update(secret, value: draft.serialized)
-            draft = VaultDraft(kind: secret.kind)
-            Haptics.success()
-            app.toasts.success("Replaced.")
-            dismiss()
-        } catch {
-            Haptics.failure()
-            self.error = keysMessage(for: error)
-        }
+        // The ghost style pads its text in from the edge for a 44pt target; in a column of text that would set the
+        // button's words in from the text above it.
+        .buttonStyle(.hvGhost)
+        .padding(.leading, -HV.Space.s)
+        .accessibilityLabel(copied ? VaultScreenCopy.copiedLabel : VaultScreenCopy.copyFetchCommandLabel)
     }
 }
 
@@ -407,30 +216,6 @@ private struct VaultReplaceSheet: View {
 
 #Preview("Vault card") {
     PreviewHost(routes: VaultPreviewData.routes) { VaultEntryPreview(name: "visa-4242") }
-}
-
-/// A preview and snapshot helper: the rename sheet, or the replace sheet, over a loaded model.
-struct VaultChangePreview: View {
-    let name: String
-    var replacing = false
-
-    @Environment(AppEnvironment.self) private var env
-    @State private var model: VaultItemsModel?
-
-    var body: some View {
-        Group {
-            if let model, let secret = model.secret(named: name) {
-                if replacing { VaultReplaceSheet(secret: secret, model: model) } else { VaultEditSheet(secret: secret, model: model) }
-            } else {
-                HVLoadingState()
-            }
-        }
-        .task {
-            let loaded = VaultItemsModel(client: env.client, rest: env.keysRest, userID: env.user.id)
-            await loaded.load()
-            model = loaded
-        }
-    }
 }
 
 struct VaultEntryPreview: View {

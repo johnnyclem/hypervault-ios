@@ -43,13 +43,14 @@ struct ConnectAgentSheet: View {
         .task {
             if model == nil {
                 model = ConnectAgentModel(
-                    client: env.client, rest: env.keysRest, cache: env.cache, userID: env.user.id,
-                    origin: PairingCode.origin(of: env.server.baseURL), existingKey: existingKey, challengeSlug: challengeSlug
+                    client: env.client, cache: env.cache, origin: ServerOrigin.string(of: env.server.baseURL),
+                    existingKey: existingKey, challengeSlug: challengeSlug
                 )
             }
         }
         // A key that was never copied is not lost to a stray swipe: closing asks first.
         .interactiveDismissDisabled(model?.hasUncopiedKey ?? false)
+        .hvSensitive(model?.fresh != nil)
         .confirmationDialog("Close without copying the key?", isPresented: $confirmClose, titleVisibility: .visible) {
             Button("Close and lose the key", role: .destructive) { finish() }
             Button("Stay", role: .cancel) {}
@@ -112,7 +113,7 @@ private struct ConnectPickerScreen: View {
             if model.fresh == nil, model.existingKey == nil, model.query.isEmpty {
                 Section {
                     NavigationLink(value: ConnectRoute.justAKey) {
-                        HVRow(symbol: "key.horizontal", tint: Palette.amber, title: "Just make a key", subtitle: "For anything not listed. You choose where it goes.")
+                        HVRow(symbol: HVSymbol.key, tint: Palette.amber, title: "Just make a key", subtitle: "For anything not listed. You choose where it goes.")
                     }
                 }
                 .hvListRow()
@@ -253,9 +254,6 @@ private struct ConnectClientScreen: View {
             model.prepare(for: info)
             if let info { await model.loadDocument(for: info) }
         }
-        .task(id: model.fresh?.prefix) {
-            await model.watchSetup()
-        }
     }
 
     // MARK: Before the key
@@ -339,7 +337,6 @@ private struct ConnectClientScreen: View {
                         .foregroundStyle(Palette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                statusLine
             }
         } else if let existing = model.existingKey {
             VStack(alignment: .leading, spacing: HV.Space.m) {
@@ -348,7 +345,6 @@ private struct ConnectClientScreen: View {
                     symbol: "info.circle.fill", tint: Palette.blue
                 )
                 if let info { promptCard(info) }
-                statusLine
             }
         }
     }
@@ -365,40 +361,6 @@ private struct ConnectClientScreen: View {
             }
         }
         .hvCard()
-    }
-
-    @ViewBuilder
-    private var statusLine: some View {
-        if model.isConnected {
-            Label("Agent connected", systemImage: "checkmark.seal.fill")
-                .font(.hvHeadline)
-                .foregroundStyle(Palette.success)
-        } else if model.canWatch {
-            // Side by side while they fit; the button drops under the words when the words need the width.
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: HV.Space.xs) {
-                    ProgressView()
-                    waitingText
-                    Spacer(minLength: 0)
-                    Button("Check again") { Task { await model.checkConnected() } }.buttonStyle(.hvGhost)
-                }
-                VStack(alignment: .leading, spacing: HV.Space.xs) {
-                    HStack(spacing: HV.Space.xs) {
-                        ProgressView()
-                        waitingText
-                    }
-                    Button("Check again") { Task { await model.checkConnected() } }.buttonStyle(.hvGhost)
-                }
-            }
-            Text(ConnectCopy.doneLine).font(.hvCaption).foregroundStyle(Palette.textSecondary)
-        }
-    }
-
-    private var waitingText: some View {
-        Text("Waiting for the agent to write back")
-            .font(.hvFootnote)
-            .foregroundStyle(Palette.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: The steps
@@ -418,7 +380,9 @@ private struct ConnectClientScreen: View {
                     }
                 case .loaded:
                     if let guide = model.guide(for: info) {
-                        ConnectGuideView(guide: guide, info: info, key: model.fresh?.key)
+                        ConnectGuideView(
+                            guide: guide, info: info, key: model.fresh?.key, onCopySecret: { model.markCopied() }
+                        )
                     }
                 }
             } else {
@@ -519,10 +483,7 @@ struct ConnectReadyPreview: View {
             }
         }
         .task {
-            let made = ConnectAgentModel(
-                client: env.client, rest: env.keysRest, cache: env.cache, userID: env.user.id,
-                origin: PairingCode.origin(of: env.server.baseURL)
-            )
+            let made = ConnectAgentModel(client: env.client, cache: env.cache, origin: ServerOrigin.string(of: env.server.baseURL))
             if let info = AgentClientCatalog.client(id: clientID) {
                 made.keyName = info.name
                 await made.makeKey()

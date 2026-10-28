@@ -56,16 +56,17 @@ final class AppModelTests: XCTestCase {
         return store
     }
 
-    private func model(routes: [MockRoute], store: SecureStore = InMemorySecureStore()) -> AppModel {
-        model(transport: MockTransport(routes: routes), store: store)
+    private func model(routes: [MockRoute], store: SecureStore = InMemorySecureStore(), installMarker: InstallMarker = InstallMarker()) -> AppModel {
+        model(transport: MockTransport(routes: routes), store: store, installMarker: installMarker)
     }
 
     private func model(
         transport: HTTPTransport,
         store: SecureStore = InMemorySecureStore(),
-        server: ServerConfig = ServerConfig(baseURL: URL(string: "https://hv.test")!)
+        server: ServerConfig = ServerConfig(baseURL: URL(string: "https://hv.test")!),
+        installMarker: InstallMarker = InstallMarker()
     ) -> AppModel {
-        AppModel(secureStore: store, server: server, transport: transport, cacheDirectory: scratch())
+        AppModel(secureStore: store, server: server, transport: transport, cacheDirectory: scratch(), installMarker: installMarker)
     }
 
     /// Waits for the model to reach a phase; the state machine settles on its own tasks.
@@ -170,6 +171,69 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(app.router.tab, .memory)
     }
 
+    func testALinkToAPaneOfTheYouPageOpenedBeforeSignInIsFollowedAfter() async throws {
+        let app = model(routes: [capabilitiesRoute(approved: true), .json(.get, "/auth/v1/settings", "{}")], store: try await storedSession())
+        app.handle(url: URL(string: "https://hypervault.store/vault/account?tab=keys")!)
+        await app.start()
+        await settle(app, to: .ready)
+        XCTAssertEqual(app.router.tab, .you)
+        XCTAssertEqual(app.router.accountPane, .keys)
+    }
+
+    func testTheLinkAWidgetCarriesOpensTheYoursPanelAfterSignIn() async throws {
+        let app = model(routes: [capabilitiesRoute(approved: true), .json(.get, "/auth/v1/settings", "{}")], store: try await storedSession())
+        app.handle(url: URL(string: "hypervault://tab/yours")!)
+        await app.start()
+        await settle(app, to: .ready)
+        XCTAssertEqual(app.router.tab, .canvas)
+        XCTAssertTrue(app.router.yoursPanel)
+    }
+
+    // MARK: A reinstall
+
+    /// Preferences of a phone of their own, to stand for the app's: the Keychain survives an uninstall, these do not.
+    private func scratchPreferences() -> UserDefaults {
+        let suite = "hv.test.install.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
+        return defaults
+    }
+
+    func testTheSessionAPreviousInstallLeftInTheKeychainIsEndedAtTheFirstLaunch() async throws {
+        let store = try await storedSession()
+        let defaults = scratchPreferences()
+        let transport = MockTransport(routes: [capabilitiesRoute(approved: true)] + authRoutes)
+        let app = model(transport: transport, store: store, installMarker: InstallMarker(defaults: defaults))
+        await app.start()
+        await settle(app, to: .signedOut)
+
+        let left = await store.get("hypervault.session")
+        XCTAssertNil(left, "the session is gone from the Keychain, not only hidden")
+        let logouts = await transport.requests(matching: "/auth/v1/logout")
+        XCTAssertEqual(logouts.count, 1, "and ended on the server too")
+        XCTAssertFalse(InstallMarker(defaults: defaults).isNewInstall, "it is settled once, at the first launch")
+    }
+
+    func testAnInstallThatHasLaunchedBeforeKeepsItsSession() async throws {
+        let defaults = scratchPreferences()
+        InstallMarker(defaults: defaults).mark()
+        let app = model(routes: [capabilitiesRoute(approved: true), .json(.get, "/auth/v1/settings", "{}")], store: try await storedSession(), installMarker: InstallMarker(defaults: defaults))
+        await app.start()
+        await settle(app, to: .ready)
+        XCTAssertEqual(app.env?.user.id, "u1")
+    }
+
+    /// Builds before the marker kept none, and nobody is signed out by the update that adds it.
+    func testAnUpdateFromABuildThatKeptNoMarkerKeepsItsSession() async throws {
+        let defaults = scratchPreferences()
+        defaults.set(true, forKey: PrefKey.onboarded)
+        let app = model(routes: [capabilitiesRoute(approved: true), .json(.get, "/auth/v1/settings", "{}")], store: try await storedSession(), installMarker: InstallMarker(defaults: defaults))
+        await app.start()
+        await settle(app, to: .ready)
+        XCTAssertEqual(app.env?.user.id, "u1")
+        XCTAssertTrue(defaults.bool(forKey: InstallMarker.key), "and from then on it is marked")
+    }
+
     func testAnInviteLinkBeforeSignInIsRemembered() {
         let app = model(routes: [])
         app.handle(url: URL(string: "https://hypervault.store/login?invite=HV-AB12-CD34")!)
@@ -184,10 +248,14 @@ final class AppModelTests: XCTestCase {
         await cache.store("kept", key: "yours", namespace: "u1")
         OutboxStore.add(OutboxItem(content: "a pasted secret"))
         SharedConfig.defaults.set(Data("[]".utf8), forKey: SharedConfig.widgetRecentKey)
-        app.router.push(.memory(id: "m1"), on: .yours)
+        app.router.push(.memory(id: "m1"), on: .memory)
+        app.router.open(.account(.keys))
+        app.router.push(.importHistory, on: .you)
+        app.router.yoursPanel = true
+        app.router.groupChats = true
         app.router.sheet = .connectAgent
         app.router.canvasDraft = "half a thought"
-        app.router.tab = .yours
+        app.router.tab = .memory
         return cache
     }
 
@@ -198,7 +266,11 @@ final class AppModelTests: XCTestCase {
         XCTAssertNil(SharedConfig.defaults.object(forKey: SharedConfig.widgetRecentKey), "the widget's names", file: file, line: line)
         XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.approvedUser), "the approval", file: file, line: line)
         XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.sessionUser), "the marker", file: file, line: line)
-        XCTAssertEqual(app.router.path(for: .yours).wrappedValue.count, 0, "the pushed screens", file: file, line: line)
+        XCTAssertEqual(app.router.path(for: .memory).wrappedValue.count, 0, "the pushed screens", file: file, line: line)
+        XCTAssertEqual(app.router.path(for: .you).wrappedValue.count, 1, "the screens pushed in a pane (the stack opens on the vault)", file: file, line: line)
+        XCTAssertEqual(app.router.accountPane, .vault, "the pane", file: file, line: line)
+        XCTAssertFalse(app.router.yoursPanel, "the panel waiting to open", file: file, line: line)
+        XCTAssertFalse(app.router.groupChats, "the group chats waiting to show", file: file, line: line)
         XCTAssertNil(app.router.sheet, "the sheet", file: file, line: line)
         XCTAssertNil(app.router.canvasDraft, "the draft", file: file, line: line)
         XCTAssertEqual(app.router.tab, .canvas, "the tab", file: file, line: line)

@@ -2,8 +2,9 @@ import HyperVaultKit
 import SwiftUI
 
 /// The first run: a short story about what HyperVault is, then the way in.
-/// The words are the web app's (lib/copy.ts), and the story never uses the
-/// words a newcomer should not meet yet.
+/// The words are lib/copy.ts's, verbatim (`HVCopy`), and the story never uses the
+/// words a newcomer should not meet yet. When it says who can use a saved value it
+/// names the agents that can read one, never a chat app, which can connect but not read.
 struct OnboardingFlow: View {
     @Environment(AppModel.self) private var model
     @AppStorage(PrefKey.onboarded) private var onboarded = false
@@ -22,7 +23,7 @@ struct OnboardingFlow: View {
                 story
                     .transition(.opacity)
             } else {
-                SignInScreen(onBack: cameFromStory ? { withAnimation(.snappy) { showStory = true } } : nil)
+                SignInScreen(onBack: cameFromStory ? { HV.Motion.animate(.snappy) { showStory = true } } : nil)
                     .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
             }
         }
@@ -43,8 +44,8 @@ struct OnboardingFlow: View {
             TabView(selection: $page) {
                 WelcomePageKeep().tag(0)
                 WelcomePageTalk().tag(1)
-                WelcomePageAnyAI().tag(2)
-                WelcomePageSecrets().tag(3)
+                WelcomePageSecrets().tag(2)
+                WelcomePageAnyAI().tag(3)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .onChange(of: page) { _, _ in Haptics.select() }
@@ -55,7 +56,7 @@ struct OnboardingFlow: View {
                     if page == pageCount - 1 {
                         finishStory()
                     } else {
-                        withAnimation(.snappy) { page += 1 }
+                        HV.Motion.animate(.snappy) { page += 1 }
                     }
                 }
                 .buttonStyle(.hvPrimary)
@@ -78,7 +79,7 @@ struct OnboardingFlow: View {
     private func finishStory() {
         onboarded = true
         cameFromStory = true
-        withAnimation(.snappy) { showStory = false }
+        HV.Motion.animate(.snappy) { showStory = false }
     }
 }
 
@@ -94,7 +95,7 @@ struct PageDots: View {
                     .frame(width: index == current ? 22 : 7, height: 7)
             }
         }
-        .animation(.snappy, value: current)
+        .hvAnimation(.snappy, value: current)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Page \(current + 1) of \(count)")
         .accessibilityIdentifier("welcome.pages")
@@ -152,7 +153,7 @@ struct WelcomePageKeep: View {
             ZStack {
                 FloatingCard(symbol: "doc.richtext", label: "Pricing page", tint: Palette.blue, x: -74, y: -112, phase: 0)
                 FloatingCard(symbol: "note.text", label: "Trip notes", tint: Palette.violet, x: 96, y: 90, phase: 1.3)
-                FloatingCard(symbol: "key.horizontal", label: "Deploy key", tint: Palette.mint, x: -84, y: 128, phase: 2.1)
+                FloatingCard(symbol: HVSymbol.key, label: "Deploy key", tint: Palette.mint, x: -84, y: 128, phase: 2.1)
                 BrandMark(size: 104)
             }
         }
@@ -174,7 +175,7 @@ struct FloatingCard: View {
             let t = context.date.timeIntervalSinceReferenceDate + phase
             HStack(spacing: 8) {
                 HVIconBadge(symbol: symbol, tint: tint, size: 28)
-                Text(label).font(.system(.footnote, design: .rounded, weight: .semibold))
+                Text(label).font(.system(.footnote, weight: .semibold))
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
@@ -188,23 +189,24 @@ struct FloatingCard: View {
 
 /// "You talk to your AI like usual."
 struct WelcomePageTalk: View {
+    /// The two sentences of `HVCopy.productSentence`: the first is the title, the second the line under it.
+    static let title = "You talk to your AI like usual."
+    static let message = "HyperVault keeps the thing worth keeping, and you only see it when you ask for it."
+
     @State private var kept = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        WelcomePage(
-            title: "You talk to your AI like usual.",
-            message: "HyperVault keeps the thing worth keeping. You only see it when you ask for it."
-        ) {
+        WelcomePage(title: Self.title, message: Self.message) {
             VStack(alignment: .leading, spacing: HV.Space.s) {
                 bubble("Make me a landing page for the bakery.", isUser: true)
                 bubble("Done. Here it is.", isUser: false)
                 HStack(spacing: HV.Space.s) {
-                    Image(systemName: kept ? "checkmark.seal.fill" : "seal")
+                    HVIcon(kept ? "checkmark.seal.fill" : "seal")
                         .foregroundStyle(kept ? Palette.success : Palette.textTertiary)
                         .contentTransition(.symbolEffect(.replace))
-                    Text(kept ? "Kept. Here's the link." : "Keeping…")
-                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    Text(kept ? HVCopy.keptLine : HVCopy.keepingLine)
+                        .font(.system(.subheadline, weight: .semibold))
                         .foregroundStyle(kept ? Palette.textPrimary : Palette.textSecondary)
                 }
                 .padding(.horizontal, HV.Space.m)
@@ -249,54 +251,46 @@ struct WelcomePageTalk: View {
     }
 }
 
-/// "Not tied to one AI company."
-struct WelcomePageAnyAI: View {
-    private let names = ["Claude", "ChatGPT", "Gemini", "Grok", "Cursor", "Codex", "Claude Code", "n8n", "curl"]
-
+/// "Save a login, a card, your contact info or an API key once." The rows show what stays visible after a save, a name
+/// and a short label, and nothing else: the line above them says the rest is never shown again.
+struct WelcomePageSecrets: View {
     var body: some View {
-        WelcomePage(
-            title: "Not tied to one AI company.",
-            message: "Whatever you use to talk to AI keeps to the same place."
-        ) {
+        WelcomePage(title: HVCopy.landingVaultSaveLine, message: HVCopy.landingVaultLockLine) {
+            VStack(spacing: HV.Space.s) {
+                secretRow(symbol: HVSymbol.login, tint: Palette.blue, title: "Bakery admin", label: "sam@bakery.co")
+                secretRow(symbol: HVSymbol.card, tint: Palette.violet, title: "Work card", label: "Visa \u{2022}\u{2022}\u{2022}\u{2022} 4242")
+                secretRow(symbol: HVSymbol.key, tint: Palette.mint, title: "Deploy key", label: nil)
+            }
+            .padding(.horizontal, HV.Space.xl)
+        }
+    }
+
+    private func secretRow(symbol: String, tint: Color, title: String, label: String?) -> some View {
+        HStack(spacing: HV.Space.s + 2) {
+            HVIconBadge(symbol: symbol, tint: tint)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.system(.subheadline, weight: .semibold))
+                if let label { Text(label).font(.hvMono).foregroundStyle(Palette.textSecondary) }
+            }
+            Spacer()
+        }
+        .padding(HV.Space.s + 2)
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+    }
+}
+
+/// "Not tied to one AI company". The chips are the agents that can read a saved value, and only those.
+struct WelcomePageAnyAI: View {
+    var body: some View {
+        WelcomePage(title: HVCopy.landingVaultHeading, message: HVCopy.landingVaultUseLine) {
             FlowLayout(spacing: HV.Space.s) {
-                ForEach(Array(names.enumerated()), id: \.offset) { index, name in
+                ForEach(Array(HVCopy.landingVaultReaders.enumerated()), id: \.offset) { index, name in
                     HVChip(title: name, isSelected: index % 4 == 0, minTarget: 0)
                 }
             }
             .padding(.horizontal, HV.Space.xl)
         }
-    }
-}
-
-/// "Save a login, a card or a key once."
-struct WelcomePageSecrets: View {
-    var body: some View {
-        WelcomePage(
-            title: "Save a login, a card or a key once.",
-            message: "The secret parts are never shown again. Your agents use only the ones you allow."
-        ) {
-            VStack(spacing: HV.Space.s) {
-                secretRow(symbol: "person.crop.circle", tint: Palette.blue, title: "Bakery admin", detail: "sam@bakery.co", allowed: "Claude Code")
-                secretRow(symbol: "creditcard", tint: Palette.violet, title: "Work card", detail: "Visa •••• 4242", allowed: "Cursor")
-                secretRow(symbol: "key.horizontal", tint: Palette.mint, title: "Deploy key", detail: "hv_••••••••••••", allowed: "n8n")
-            }
-            .padding(.horizontal, HV.Space.xl)
-        }
-    }
-
-    private func secretRow(symbol: String, tint: Color, title: String, detail: String, allowed: String) -> some View {
-        HStack(spacing: HV.Space.s + 2) {
-            HVIconBadge(symbol: symbol, tint: tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(.subheadline, design: .rounded, weight: .semibold))
-                Text(detail).font(.hvMono).foregroundStyle(Palette.textSecondary)
-            }
-            Spacer()
-            HVTag(text: allowed, tint: tint)
-        }
-        .padding(HV.Space.s + 2)
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
     }
 }
 

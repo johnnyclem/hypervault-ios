@@ -101,7 +101,7 @@ struct ToolsScreen: View {
             Button { sheet = .catalog } label: { Label("Browse the catalog", systemImage: "square.grid.2x2") }
             Button { sheet = .add(nil) } label: { Label("Add by address", systemImage: "link") }
         } label: {
-            Image(systemName: "plus")
+            Image(systemName: HVSymbol.add)
                 .frame(width: 44, height: 44)
         }
         .accessibilityLabel("Add a server")
@@ -188,8 +188,8 @@ struct ToolsStep: View {
     var body: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
             Text("\(number)")
-                .font(.system(.footnote, design: .rounded, weight: .bold))
-                .foregroundStyle(Palette.blue.hvInk())
+                .font(.system(.footnote, weight: .bold))
+                .foregroundStyle(Palette.sky)
                 .frame(width: 26, height: 26)
                 .background(Palette.blue.opacity(0.14), in: Circle())
                 .accessibilityHidden(true)

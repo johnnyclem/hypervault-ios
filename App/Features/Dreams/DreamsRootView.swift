@@ -304,7 +304,7 @@ struct DreamTintedButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+            .font(.system(.subheadline, weight: .semibold))
             .foregroundStyle(isEnabled ? AnyShapeStyle(TintShapeStyle()) : AnyShapeStyle(Palette.textTertiary))
             .padding(.horizontal, HV.Space.m)
             .frame(minHeight: 44)
@@ -332,7 +332,7 @@ private struct DreamConnectionCard: View {
                     .frame(width: 3, height: 18)
                     .padding(.leading, 18)
                 Text(connection.edgeType.label)
-                    .font(.system(.caption2, design: .rounded, weight: .semibold))
+                    .font(.system(.caption2, weight: .semibold))
                     .foregroundStyle(Palette.textTertiary)
                     .textCase(.uppercase)
                 Spacer(minLength: 0)
@@ -347,7 +347,7 @@ private struct DreamConnectionCard: View {
             }
             if isWoven {
                 HStack(spacing: HV.Space.xs) {
-                    Image(systemName: "checkmark.circle.fill")
+                    HVIcon("checkmark.circle.fill")
                         .foregroundStyle(Palette.success)
                     Text("Woven into your graph")
                         .font(.hvSubheadline.weight(.semibold))
@@ -369,7 +369,7 @@ private struct DreamConnectionCard: View {
             }
         }
         .hvCard()
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isWoven)
+        .hvAnimation(.spring(response: 0.35, dampingFraction: 0.8), value: isWoven)
     }
 
     @ViewBuilder
@@ -391,7 +391,7 @@ private struct DreamConnectionCard: View {
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
                 if openable {
-                    Image(systemName: "chevron.right")
+                    Image(systemName: HVSymbol.open)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Palette.textTertiary)
                         .accessibilityHidden(true)

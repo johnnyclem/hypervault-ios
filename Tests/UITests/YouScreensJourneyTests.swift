@@ -1,13 +1,13 @@
 import XCTest
 
-/// Every screen the You tab opens, against canned answers that give it real things to show (not an error and not an empty
+/// Every screen the You panes and the Account menu open, against canned answers that give it real things to show (not an error and not an empty
 /// state): each journey opens the screen, checks one or two pieces of what it was given, goes one level further where
 /// the screen has one, and keeps a screenshot of how it looked.
 @MainActor
 final class YouScreensJourneyTests: HyperVaultUITestCase {
     func testVaultItemsListMaskedEntriesFilterThemAndOpenOne() {
         launch(.signedIn)
-        openFromYou("vaultItems", title: "Logins, cards & keys")
+        openPane("vault", title: "Vault")
 
         step("The vault lists what is saved, with a masked line and never a value") {
             let github = element("vault.row.github.com")
@@ -30,20 +30,20 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
         step("An entry opens to the agents that may read it") {
             tap(element("vault.row.github.com"), "the github.com entry")
             waitUntil("the entry's title") { isShowingTitle("github.com") }
-            require(shows("Work account"), "the entry's note")
             let claude = app.switches.matching(NSPredicate(format: "label CONTAINS %@", "Claude Code")).firstMatch
-            require(claude, "the switch for the Claude Code key")
+            // The page opens at half height; reaching the switch takes it to full height.
+            reveal(claude, "the switch for the Claude Code key")
             waitUntil("Claude Code to be allowed to read it") { (claude.value as? String) == "1" }
             let cursor = app.switches.matching(NSPredicate(format: "label CONTAINS %@", "Paired: Cursor")).firstMatch
             require(cursor, "the switch for the paired Cursor key")
             XCTAssertEqual(cursor.value as? String, "0", "The paired key has not been allowed to read it.")
-            require(shows("How an agent reads it"), "the section that says how an agent reads it")
+            reveal(shows("How an agent reads it"), "the section that says how an agent reads it")
         }
     }
 
     func testMailListsTheInboxAndOpensAThread() {
         launch(.signedIn)
-        openFromYou("mail", title: "Mail")
+        openFromAccount("mail", title: "Mail")
 
         let thread = "mail.thread.11111111-1111-4111-8111-111111111111"
         step("The inbox lists the mail from agents") {
@@ -71,7 +71,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testTruthShowsTheLedgerAnEntryAndItsReview() {
         launch(.signedIn)
-        openFromYou("truth", title: "Truth")
+        openFromAccount("truth", title: "Truth")
 
         let retryCap = "truth.entry.01M1E6JK8SQAJ8K0JBRHTD10YG"
         step("The ledger lists what stands and what is unverified") {
@@ -92,6 +92,8 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
         step("The review docket lists what waits on a decision") {
             goBack()
+            // The ledger comes back scrolled to where it was left, which can be past the row.
+            reveal(element("truth.review"), "the review row")
             tap(element("truth.review"), "the review row")
             waitUntil("the Review title") { isShowingTitle("Review") }
             require(shows("Retries are idempotent across regions."), "the nominated claim on the docket")
@@ -100,7 +102,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testToolsListsTheConnectedServersAndOpensOne() {
         launch(.signedIn)
-        openFromYou("tools", title: "Tools")
+        openFromAccount("tools", title: "Tools")
 
         step("The servers are listed with what they offer") {
             let linear = element("tools.server.s1")
@@ -118,9 +120,9 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
         }
     }
 
-    func testYourAddressListsTheClaimedAddressesAndOpensOne() {
+    func testDomainListsTheClaimedAddressesAndOpensOne() {
         launch(.signedIn)
-        openFromYou("realms", title: "Your address")
+        openPane("domain", title: "Domain")
 
         step("The claimed addresses are listed with the plan") {
             let first = element("realms.row.c1")
@@ -141,7 +143,8 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testImportReadsAPastedConversationAndSendsIt() {
         launch(.signedIn)
-        openFromYou("importHistory", title: "Import")
+        openPane("import", title: "Import")
+        tap(element("import.history"), "Import your AI history", until: { self.element("import.source.chatgpt").exists })
 
         step("Import offers the services a history comes from") {
             require(shows("Import your AI history"), "the introduction")
@@ -153,16 +156,16 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
         step("Pasted text is read as a conversation") {
             tap(element("import.source.other"), "the Something else card")
             let editor = app.textViews["Pasted conversation"]
-            tap(editor, "the paste box")
-            editor.typeText("User: What time is the ferry?\nAssistant: It leaves at seven.")
-            tap(button("Check what I pasted"), "Check what I pasted")
+            enter("User: What time is the ferry?\nAssistant: It leaves at seven.", into: editor, "the paste box")
+            // (A tap that only lets go of the keyboard, or lands while the box is still settling, is made again.)
+            tap(button("Check what I pasted"), "Check what I pasted", until: { self.shows("A pasted conversation").exists })
             require(shows("A pasted conversation"), "the review of what was pasted")
             require(shows("2 messages"), "the message count")
             require(button("Import 1 conversation"), "the import button")
         }
 
         step("The import runs and says what it brought in") {
-            tap(button("Import 1 conversation"), "the import button")
+            tap(button("Import 1 conversation"), "the import button", until: { self.shows("All in").exists })
             require(shows("All in"), "the finish line")
             require(shows("Imported 1 conversation (2 messages)"), "the sentence about what came in")
             require(button("Open Chat"), "the way on to Chat")
@@ -171,7 +174,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testDreamsAndDigestShowWhatWasFoundOvernight() {
         launch(.signedIn)
-        openFromYou("dreams", title: "Dreams")
+        openFromAccount("dreams", title: "Dreams")
 
         step("Dreams lists the connections found, each with its reason") {
             require(shows("Dream every night"), "the nightly switch")
@@ -180,10 +183,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
         }
 
         step("Digest lists the memory it would split") {
-            goBack()
-            reveal(element("you.digest"), "the Digest row")
-            tap(element("you.digest"), "the Digest row")
-            waitUntil("the Digest title") { isShowingTitle("Digest") }
+            openFromMemoryMenu("Digest", title: "Digest")
             require(shows("Planning chat with Sam"), "the memory to split")
             require(shows("Budget is set at 40k"), "the first piece it would make")
         }
@@ -191,7 +191,7 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testTaskBoardsListBoardsAndOpenOneWithItsTasks() {
         launch(.signedIn)
-        openFromYou("taskBoards", title: "Task boards")
+        openFromAccount("taskBoards", title: "Task boards")
 
         step("The boards are listed with how far along they are") {
             let choir = element("taskboards.row.eurorack-choir")

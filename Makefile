@@ -2,10 +2,12 @@
 
 SIM ?= platform=iOS Simulator,name=iPhone 16
 
-.PHONY: help project test-kit build test test-unit test-ui open clean icon
+.PHONY: help project tokens check-tokens test-kit build test test-unit test-ui open clean icon
 
 help:
 	@echo "make project   Generate HyperVault.xcodeproj from project.yml (needs xcodegen)"
+	@echo "make tokens    Regenerate the colour catalog and HVTokens from docs/brand/tokens.json"
+	@echo "make check-tokens  Fail if they are out of step with it"
 	@echo "make test-kit  Run the HyperVaultKit unit tests (works on macOS and Linux)"
 	@echo "make build     Build the app for the simulator"
 	@echo "make test      Run the app's unit tests and UI tests on the simulator"
@@ -16,6 +18,12 @@ help:
 
 project:
 	xcodegen generate
+
+tokens:
+	python3 scripts/gen_tokens.py
+
+check-tokens:
+	python3 scripts/gen_tokens.py --check
 
 test-kit:
 	cd Packages/HyperVaultKit && swift test

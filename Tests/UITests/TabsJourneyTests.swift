@@ -1,19 +1,41 @@
 import XCTest
 
-/// The Yours, Memory and Chat tabs of someone signed in: what they list, how they narrow, and where a tap goes.
+/// The Yours panel over Home, and the Memory and Chat tabs, of someone signed in: what they list, how they narrow, where a
+/// tap goes, and what their More menus hold.
 @MainActor
 final class TabsJourneyTests: HyperVaultUITestCase {
-    func testYoursListsFiltersSearchesAndOpensARow() {
+    func testTheTabBarIsHomeChatMemoryYouAndNothingElse() {
         launch(.signedIn)
-        openTab("Yours")
+
+        step("Four tabs, in the order of the web's dock") {
+            // (Each tab is asked for by its title, left to right: the tab bar's own tree has more in it than its four buttons.)
+            var previous: CGFloat = -1
+            for title in ["Home", "Chat", "Memory", "You"] {
+                let item = tab(title)
+                require(item, "the \(title) tab")
+                XCTAssertGreaterThan(item.frame.minX, previous, "\(title) comes after the tab before it.")
+                previous = item.frame.minX
+            }
+            XCTAssertFalse(tab("Yours").exists, "Yours is the panel on Home, not a tab.")
+            XCTAssertFalse(tab("Canvas").exists, "The first tab is called Home.")
+            XCTAssertFalse(tab("Library").exists, "The Library is behind the avatar, not a tab.")
+        }
+    }
+
+    func testYoursListsFiltersSearchesAndPutsARowOnThePage() {
+        launch(.signedIn)
+        openYours()
 
         step("Yours lists what is kept") {
             require(element("yours.row.a1"), "the Bakery landing page row")
             XCTAssertTrue(element("yours.row.a1").label.contains("Bakery landing page"))
-            for id in ["m1", "k1", "g1"] { require(element("yours.row.\(id)"), "the row \(id)") }
+            // (The panel opens at half the height of the screen, so it is taken to the whole of it to see the rows below its fold.)
+            expandThePanel()
+            for id in ["m1", "k1", "g1"] { reveal(element("yours.row.\(id)"), "the row \(id)") }
         }
 
         step("The Memories filter keeps only memories") {
+            reveal(segment("Memories"), "the Memories filter")
             tap(segment("Memories"), "the Memories filter")
             require(element("yours.row.m2"), "the Auth decision memory")
             requireGone(element("yours.row.a1"), "the page, which is not a memory")
@@ -41,8 +63,15 @@ final class TabsJourneyTests: HyperVaultUITestCase {
             require(element("yours.row.a1"), "the match, which should stay")
         }
 
-        step("Tapping a row opens the page") {
+        step("Tapping a row puts it on the page and closes the panel") {
             tap(element("yours.row.a1"), "the Bakery landing page row")
+            requireGone(element("yours.filter"), "the panel")
+            require(button("Hide Bakery landing page"), "the card of the page, put on the page")
+            require(button("Open Bakery landing page"), "the card's Open button")
+        }
+
+        step("The card opens the page") {
+            tap(button("Open Bakery landing page"), "Open on the card")
             waitUntil("the page's title in the navigation bar") { isShowingTitle("Bakery landing page") }
             require(app.webViews.firstMatch, "the page's web view")
             // The page came through the app's own loader from the canned server, and the web view drew it.
@@ -61,9 +90,37 @@ final class TabsJourneyTests: HyperVaultUITestCase {
             requireGone(button("Copy source"), "the source sheet")
         }
 
-        step("Back returns to Yours") {
-            goBack(until: { element("yours.row.a1").exists })
-            require(element("yours.row.a1"), "the list again")
+        step("Back returns to Home") {
+            goBack(until: { element("canvas.account").exists })
+            require(element("canvas.yours"), "the panel button again")
+        }
+    }
+
+    func testARowOfYoursOpensWhereItLivesFromItsMenuAndTheLibraryIsUnderMore() {
+        launch(.signedIn)
+        openYours()
+
+        step("Library is under More") {
+            tap(button("More"), "the More menu")
+            XCTAssertTrue(button("Library").exists, "More holds Library.")
+            tap(button("Library"), "Library", until: { isShowingTitle("Library") })
+            waitUntil("the Library title") { isShowingTitle("Library") }
+            requireGone(element("yours.filter"), "the panel, which closes as the Library opens")
+            require(element("library.row.a1"), "the Bakery landing page row")
+        }
+
+        step("Back is Home") {
+            goBack(until: { element("canvas.account").exists })
+        }
+
+        step("Open on a row opens the page where it lives") {
+            openYours()
+            let row = element("yours.row.a1")
+            require(row, "the Bakery landing page row")
+            row.press(forDuration: 1.0)
+            tap(button("Open"), "Open", until: { isShowingTitle("Bakery landing page") })
+            waitUntil("the page's title") { isShowingTitle("Bakery landing page") }
+            requireGone(element("yours.filter"), "the panel")
         }
     }
 
@@ -91,7 +148,7 @@ final class TabsJourneyTests: HyperVaultUITestCase {
         }
     }
 
-    func testChatListsConversationsAndSwitchesToRooms() {
+    func testChatListsConversationsAndSwitchesToGroupChats() {
         launch(.signedIn)
         openTab("Chat")
 
@@ -101,8 +158,8 @@ final class TabsJourneyTests: HyperVaultUITestCase {
             require(element("chat.row.c2"), "the next conversation")
         }
 
-        step("Rooms lists the group chats") {
-            tap(segment("Rooms"), "the Rooms half")
+        step("Group chats lists the rooms") {
+            tap(segment("Group chats"), "the Group chats half")
             require(element("chat.room.r1"), "the Features X and Y room")
             XCTAssertTrue(element("chat.room.r1").label.contains("Features X and Y"))
             requireGone(element("chat.row.c1"), "the conversations, now that rooms show")

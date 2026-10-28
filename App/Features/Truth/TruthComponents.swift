@@ -123,7 +123,7 @@ struct TruthSummaryStats: View {
             ForEach(summary.stats) { stat in
                 VStack(alignment: .leading, spacing: 0) {
                     Text("\(stat.count)")
-                        .font(.system(.title3, design: .rounded, weight: .semibold))
+                        .font(.system(.title3, weight: .semibold))
                         .foregroundStyle(Palette.textPrimary)
                     Text(stat.label)
                         .font(.hvCaption)
@@ -171,11 +171,11 @@ struct TruthStandingBadge: View {
     var body: some View {
         if let standing, standing != .sound || showsSound {
             HStack(spacing: 3) {
-                Image(systemName: standing.symbol).font(.system(size: 10, weight: .bold))
+                HVIcon(standing.symbol).font(.system(size: 10, weight: .bold))
                 Text(standing.title)
             }
-            .font(.system(.caption2, design: .rounded, weight: .semibold))
-            .foregroundStyle(standing.tint.hvInk())
+            .font(.system(.caption2, weight: .semibold))
+            .foregroundStyle(standing.tint)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(standing.tint.opacity(0.14), in: Capsule())
@@ -307,7 +307,7 @@ struct TruthEvidenceEditor: View {
             Button {
                 rows.append(TruthEvidenceDraft())
             } label: {
-                Label("Add evidence", systemImage: "plus")
+                Label("Add evidence", systemImage: HVSymbol.add)
             }
             .truthAlignedGhost()
         }
@@ -323,7 +323,7 @@ struct TruthEvidenceEditor: View {
         } label: {
             HStack(spacing: 3) {
                 Text(row.wrappedValue.kind.title).font(.system(.footnote, design: .monospaced, weight: .semibold))
-                Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .bold))
+                HVIcon("chevron.up.chevron.down").font(.system(size: 9, weight: .bold))
             }
             .foregroundStyle(Palette.textPrimary)
             .padding(.horizontal, HV.Space.s)
@@ -418,7 +418,7 @@ struct TruthTraceView: View {
             }
             if showsDependents, !derivation.dependents.isEmpty {
                 Text("Rests on it")
-                    .font(.system(.caption, design: .rounded, weight: .semibold))
+                    .font(.system(.caption, weight: .semibold))
                     .textCase(.uppercase)
                     .foregroundStyle(Palette.textSecondary)
                     .padding(.top, HV.Space.s)

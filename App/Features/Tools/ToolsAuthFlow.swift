@@ -295,7 +295,7 @@ struct ToolsAuthChallengeView: View {
             Toggle(isOn: $flow.saveToVault) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Save to the saved-secrets vault").font(.hvCallout)
-                    Text("Keeps the key as a named secret you can manage under Logins, cards & keys, instead of only on this server.")
+                    Text("Keeps the key as a named secret you can manage under Vault, instead of only on this server.")
                         .font(.hvCaption)
                         .foregroundStyle(Palette.textSecondary)
                 }

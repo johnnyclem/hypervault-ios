@@ -91,6 +91,7 @@ enum SharedConfig {
     /// Nil until the app has signed in at least once.
     static func makeClient() -> (client: HVClient, auth: AuthService)? {
         guard let supabase else { return nil }
+        HVURLCache.install()
         let auth = AuthService(config: supabase, store: KeychainSecureStore())
         let client = HVClient(baseURL: server.baseURL, tokens: auth)
         return (client, auth)

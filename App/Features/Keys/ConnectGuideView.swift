@@ -10,6 +10,9 @@ struct ConnectGuideView: View {
     let info: AgentClientInfo
     /// The real key the strings carry, when there is one: a string that holds it is copied as a secret.
     let key: String?
+    /// Called when a string that holds the key has been copied: it counts as copying the key, so the sheet stops warning
+    /// that the key will be lost.
+    var onCopySecret: (() -> Void)?
 
     @State private var notesOverride: Bool?
 
@@ -59,8 +62,8 @@ struct ConnectGuideView: View {
             ForEach(Array(guide.steps.enumerated()), id: \.offset) { index, step in
                 HStack(alignment: .firstTextBaseline, spacing: HV.Space.s) {
                     Text("\(index + 1)")
-                        .font(.system(.footnote, design: .rounded, weight: .bold))
-                        .foregroundStyle(Palette.blue)
+                        .font(.system(.footnote, weight: .bold))
+                        .foregroundStyle(Palette.sky)
                         .frame(width: 26, height: 26)
                         .background(Palette.blue.opacity(0.14), in: Circle())
                         .accessibilityHidden(true)
@@ -102,7 +105,9 @@ struct ConnectGuideView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(paste.label). Code, \(isSecret ? "holds your key" : "\(paste.text.split(separator: "\n").count) lines").")
                 .keysHidesWhenInactive(isSecret)
-            KeysCopyButton(title: ConnectCopy.copyLabel, text: paste.text, isSecret: isSecret)
+            KeysCopyButton(title: ConnectCopy.copyLabel, text: paste.text, isSecret: isSecret) {
+                if isSecret { onCopySecret?() }
+            }
         }
     }
 
@@ -145,7 +150,7 @@ struct ConnectGuideView: View {
         let isOpen = notesOverride ?? (!info.verified || info.keyInUrl)
         return VStack(alignment: .leading, spacing: HV.Space.xs) {
             Button {
-                withAnimation(.easeOut(duration: 0.2)) { notesOverride = !isOpen }
+                HV.Motion.animate { notesOverride = !isOpen }
             } label: {
                 HStack {
                     sectionTitle(ConnectCopy.notesHeading)
@@ -195,7 +200,7 @@ struct ConnectGuideView: View {
 
     private func sectionTitle(_ title: String) -> some View {
         Text(title)
-            .font(.system(.footnote, design: .rounded, weight: .semibold))
+            .font(.system(.footnote, weight: .semibold))
             .foregroundStyle(Palette.textSecondary)
             .textCase(.uppercase)
             .tracking(0.6)

@@ -126,10 +126,10 @@ struct ChatMarkdownBlockView: View {
 
     private static func headingFont(_ level: Int) -> Font {
         switch level {
-        case 1: return .system(.title2, design: .rounded, weight: .bold)
-        case 2: return .system(.title3, design: .rounded, weight: .semibold)
-        case 3: return .system(.headline, design: .rounded, weight: .semibold)
-        default: return .system(.subheadline, design: .rounded, weight: .semibold)
+        case 1: return .system(.title2, weight: .bold)
+        case 2: return .system(.title3, weight: .semibold)
+        case 3: return .system(.headline, weight: .semibold)
+        default: return .system(.subheadline, weight: .semibold)
         }
     }
 }
@@ -202,7 +202,7 @@ struct ChatCodeBlockView: View {
                     .textCase(.lowercase)
                 Spacer()
                 Button(action: copy) {
-                    Label(copied ? "Copied" : "Copy", systemImage: copied ? "checkmark" : "doc.on.doc")
+                    Label(copied ? "Copied" : "Copy", systemImage: copied ? HVSymbol.copied : HVSymbol.copy)
                         .font(.hvCaption.weight(.medium))
                         .labelStyle(.titleAndIcon)
                         .padding(.horizontal, HV.Space.xs)
@@ -235,10 +235,10 @@ struct ChatCodeBlockView: View {
     private func copy() {
         UIPasteboard.general.string = code
         Haptics.tap()
-        withAnimation(.easeOut(duration: 0.15)) { copied = true }
+        HV.Motion.animate(.easeOut(duration: 0.15)) { copied = true }
         Task {
-            try? await Task.sleep(nanoseconds: 1_600_000_000)
-            withAnimation(.easeOut(duration: 0.15)) { copied = false }
+            try? await Task.sleep(nanoseconds: UInt64(HV.Motion.copiedHold * 1_000_000_000))
+            HV.Motion.animate(.easeOut(duration: 0.15)) { copied = false }
         }
     }
 }

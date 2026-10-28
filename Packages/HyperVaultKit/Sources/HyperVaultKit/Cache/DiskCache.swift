@@ -10,12 +10,25 @@ public struct CacheEntry<Value: Codable & Sendable>: Codable, Sendable {
 /// A small on-disk cache of decoded responses, one folder per signed-in user so
 /// nothing leaks between accounts and sign-out can wipe it. It is a read cache
 /// for fast first paint and offline reading, never a second source of truth.
+///
+/// What it holds is a person's own: the names of what they kept, saved logins and cards among them. On iOS every
+/// file is written readable only once the phone has been unlocked since it started, and
+/// `protectExistingFiles()` gives that to what an earlier build wrote.
 public actor DiskCache {
     private let directory: URL
     private let fileManager = FileManager.default
 
     public init(directory: URL) {
         self.directory = directory
+    }
+
+    /// How a file is written. The file protection options are iOS's; the Kit also builds on macOS and Linux.
+    private static var writeOptions: Data.WritingOptions {
+        #if os(iOS)
+        return [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+        #else
+        return [.atomic]
+        #endif
     }
 
     public func entry<Value: Codable & Sendable>(
@@ -30,7 +43,21 @@ public actor DiskCache {
         guard let data = try? HVCoding.encoder(.verbatim).encode(entry) else { return }
         let url = file(key: key, namespace: namespace)
         try? fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? data.write(to: url, options: .atomic)
+        try? data.write(to: url, options: Self.writeOptions)
+    }
+
+    /// Puts the protection new files get on the files and folders already here. Files written before the rule was
+    /// set have the system's default, and a cache is not rewritten until its screen next loads. Cheap enough to run at
+    /// every launch, and a no-op where the system has no such protection.
+    public func protectExistingFiles() {
+        #if os(iOS)
+        let protection: [FileAttributeKey: Any] = [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication]
+        guard let walker = fileManager.enumerator(atPath: directory.path) else { return }
+        for case let name as String in walker {
+            try? fileManager.setAttributes(protection, ofItemAtPath: directory.appendingPathComponent(name).path)
+        }
+        try? fileManager.setAttributes(protection, ofItemAtPath: directory.path)
+        #endif
     }
 
     public func remove(key: String, namespace: String) {

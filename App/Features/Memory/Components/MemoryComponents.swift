@@ -40,13 +40,13 @@ enum MemoryStyle {
     static func symbol(forSource source: String) -> String {
         switch source {
         case "manual": return "square.and.pencil"
-        case "chat": return "bubble.left"
+        case "chat": return HVSymbol.chat
         case "coding": return "chevron.left.forwardslash.chevron.right"
         case "agent": return "sparkles"
         case "file": return "doc.text"
         case "github": return "shippingbox"
         case "web": return "globe"
-        default: return "brain.head.profile"
+        default: return HVSymbol.memory
         }
     }
 
@@ -62,6 +62,12 @@ enum MemoryStyle {
         default: return Palette.textSecondary
         }
     }
+
+    /// What a source's words are drawn in on its own 14% tint. The tint itself, except for manual's `primary`, which is only
+    /// 4.08:1 on paper over its own fill: that one is `accent` (7.0:1), as for any small text on a `primary` tint.
+    static func ink(forSource source: String) -> Color {
+        source == "manual" ? Palette.sky : tint(forSource: source)
+    }
 }
 
 extension MindCommitKind {
@@ -72,7 +78,7 @@ extension MindCommitKind {
         case .forget: return "minus.circle"
         case .merge: return "arrow.triangle.merge"
         case .revert: return "arrow.uturn.backward.circle"
-        case .importing: return "square.and.arrow.down"
+        case .importing: return HVSymbol.importData
         case .link: return "link"
         case .other: return "circle.dashed"
         }
@@ -180,13 +186,13 @@ struct MemorySourceChip: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: MemoryStyle.symbol(forSource: source))
+            HVIcon(MemoryStyle.symbol(forSource: source))
                 .font(.system(size: 10, weight: .semibold))
             Text(MemorySource.label(source))
-                .font(.system(.caption2, design: .rounded, weight: .semibold))
+                .font(.system(.caption2, weight: .semibold))
         }
         // Inked like HVTag: in light mode the accent on a tint of itself needs the darker shade to read.
-        .foregroundStyle(MemoryStyle.tint(forSource: source).hvInk())
+        .foregroundStyle(MemoryStyle.ink(forSource: source))
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(MemoryStyle.tint(forSource: source).opacity(0.14), in: Capsule())
@@ -206,7 +212,7 @@ struct MemoryRowDivider: View {
 /// The small arrow at the end of a row that opens something.
 struct MemoryChevron: View {
     var body: some View {
-        Image(systemName: "chevron.right")
+        Image(systemName: HVSymbol.open)
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(Palette.textTertiary)
             .accessibilityHidden(true)
@@ -246,7 +252,7 @@ struct MemoryFieldLabel: View {
 
     var body: some View {
         Text(title)
-            .font(.system(.footnote, design: .rounded, weight: .medium))
+            .font(.system(.footnote, weight: .medium))
             .foregroundStyle(Palette.textSecondary)
     }
 }
@@ -395,8 +401,8 @@ struct MemoryMarkdownView: View {
 
     private func headingFont(_ level: Int) -> Font {
         switch level {
-        case 1: return .system(.title2, design: .rounded, weight: .bold)
-        case 2: return .system(.title3, design: .rounded, weight: .semibold)
+        case 1: return .system(.title2, weight: .bold)
+        case 2: return .system(.title3, weight: .semibold)
         default: return .hvHeadline
         }
     }

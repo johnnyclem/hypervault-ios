@@ -1,16 +1,16 @@
 import HyperVaultKit
 import SwiftUI
 
-/// Where Account & keys can push to.
+/// Where Agent keys can push to.
 private enum KeysDestination: Hashable {
     case key(AgentKey)
-    case pairing
     case webhooks
 }
 
-/// Account & keys: connect an agent, see each agent's key and whether its setup finished, change what a
-/// key may do, revoke it. Webhooks sit under Advanced. The native version of the web's "Agent keys" pane
-/// (components/api-keys-card.tsx).
+/// Agent keys: connect an agent, see each key with what the server states about it (its name, prefix and last
+/// use), change what a key may do, revoke it. Webhooks sit under Advanced. The native version of the web's
+/// "Agent keys" pane (components/api-keys-card.tsx). It says nothing about whether an agent is connected: no route
+/// reports the server's check of the setup challenge.
 struct AgentsAndKeysView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(AppModel.self) private var app
@@ -29,13 +29,10 @@ struct AgentsAndKeysView: View {
             }
         }
         .hvScreenBackground()
-        .navigationTitle("Account & keys")
-        .keysLargeTitle()
         .navigationDestination(for: KeysDestination.self) { destination in
             switch destination {
             case .key(let key):
                 if let model { KeyDetailView(keyID: key.id, model: model) }
-            case .pairing: PairApprovalScreen(code: nil)
             case .webhooks: WebhooksView()
             }
         }
@@ -71,7 +68,7 @@ struct AgentsAndKeysView: View {
             }
 
             Section {
-                connectCard(model)
+                connectCard
                     .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.xl, trailing: HV.Space.m))
                     .listRowBackground(Color.clear)
             }
@@ -82,28 +79,17 @@ struct AgentsAndKeysView: View {
                 } else {
                     ForEach(model.keys) { key in
                         NavigationLink(value: KeysDestination.key(key)) {
-                            KeyRow(key: key, status: model.status(of: key))
+                            KeyRow(key: key, isRevoking: model.revoking.contains(key.id))
                         }
                         .accessibilityIdentifier("keys.row.\(key.id)")
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) { keyToRevoke = key } label: { Label("Revoke", systemImage: "xmark.circle") }
+                                .disabled(model.revoking.contains(key.id))
                         }
                     }
                 }
             }
             .hvListRow()
-
-            if model.pairingOn == true {
-                Section(
-                    header: HVSectionHeader(title: "Waiting for an AI tool?"),
-                    footer: Text("If an AI tool showed you a code, enter it here to give it a key of its own.").font(.hvCaption)
-                ) {
-                    NavigationLink(value: KeysDestination.pairing) {
-                        HVRow(symbol: "link.badge.plus", tint: Palette.violet, title: "Approve an AI tool", subtitle: "Enter the code it is showing")
-                    }
-                }
-                .hvListRow()
-            }
 
             Section(header: HVSectionHeader(title: "Advanced")) {
                 NavigationLink(value: KeysDestination.webhooks) {
@@ -115,26 +101,21 @@ struct AgentsAndKeysView: View {
         .scrollContentBackground(.hidden)
         .refreshable { await model.load() }
         .confirmationDialog(
-            revokeTitle,
+            KeysCopy.reallyRevoke,
             isPresented: Binding(get: { keyToRevoke != nil }, set: { if !$0 { keyToRevoke = nil } }),
             titleVisibility: .visible,
             presenting: keyToRevoke
         ) { key in
-            Button("Revoke key", role: .destructive) { revoke(key, in: model) }
+            Button(KeysCopy.revoke, role: .destructive) { revoke(key, in: model) }
             Button("Keep it", role: .cancel) {}
-        } message: { _ in
-            Text("The agent using it stops working at once. This cannot be undone.")
+        } message: { key in
+            Text(KeysCopy.revokeMessage(for: key))
         }
     }
 
-    private var revokeTitle: String {
-        if let key = keyToRevoke { return "Revoke \(key.displayName ?? key.prefixLabel)?" }
-        return "Revoke this key?"
-    }
-
-    private func connectCard(_ model: AgentsAndKeysModel) -> some View {
+    private var connectCard: some View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
-            Text(introLine(model))
+            Text(KeysCopy.paneDescription)
                 .font(.hvCallout)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -145,7 +126,7 @@ struct AgentsAndKeysView: View {
                 if dynamicTypeSize.isAccessibilitySize {
                     Text("Connect an agent")
                 } else {
-                    Label("Connect an agent", systemImage: "plus")
+                    Label("Connect an agent", systemImage: HVSymbol.add)
                 }
             }
             .buttonStyle(.hvPrimary)
@@ -155,16 +136,10 @@ struct AgentsAndKeysView: View {
         .padding(.vertical, HV.Space.xs)
     }
 
-    private func introLine(_ model: AgentsAndKeysModel) -> String {
-        let connected = model.snapshot.connectedCount
-        if connected > 0 { return "\(connected) agent\(connected == 1 ? "" : "s") connected." }
-        return "One key per agent. A key is shown once, and comes with a setup challenge the agent completes to prove the link works."
-    }
-
     private var emptyKeys: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             Text("No keys yet").font(.hvHeadline)
-            Text("Connect an agent and its key shows up here, with whether it has finished setting up.")
+            Text("Connect an agent and its key shows up here.")
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
         }
@@ -187,10 +162,10 @@ struct AgentsAndKeysView: View {
 
 // MARK: Rows
 
-/// One key: its name or prefix, when it was last used, and whether its agent has finished setting up.
+/// One key: its name, its prefix and when it was last used. Nothing about whether its agent is connected.
 struct KeyRow: View {
     let key: AgentKey
-    let status: AgentSetupStatus?
+    var isRevoking = false
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
@@ -200,8 +175,8 @@ struct KeyRow: View {
     var body: some View {
         KeysRowLayout(alignment: .top) {
             HVIconBadge(
-                symbol: key.isPaired ? "link" : "key.horizontal",
-                tint: status?.complete == true ? Palette.mint : Palette.amber,
+                symbol: key.isPaired ? "link" : HVSymbol.key,
+                tint: Palette.amber,
                 size: min(tile, 56)
             )
         } words: {
@@ -212,10 +187,6 @@ struct KeyRow: View {
                     .lineLimit(isLarge ? nil : 2)
                     .fixedSize(horizontal: false, vertical: true)
                 detail
-                if let status {
-                    HVTag(text: status.complete ? "Agent connected" : "Setup pending", tint: status.complete ? Palette.success : Palette.warning)
-                        .padding(.top, 2)
-                }
             }
         }
         .contentShape(Rectangle())
@@ -226,11 +197,11 @@ struct KeyRow: View {
     /// neither is cut short ("Last used 19...").
     @ViewBuilder
     private var detail: some View {
-        let lastUsed = AccountWords.lastUsedLine(key.lastUsedAt)
+        let usage = isRevoking ? KeysCopy.revoking : AccountWords.lastUsedLine(key.lastUsedAt)
         if isLarge {
             VStack(alignment: .leading, spacing: 2) {
                 Text(key.prefixLabel)
-                Text(lastUsed)
+                Text(usage)
             }
             .font(.hvFootnote)
             .foregroundStyle(Palette.textSecondary)
@@ -238,11 +209,11 @@ struct KeyRow: View {
         } else {
             // One line while both fit; when they do not, each gets its own rather than "Last used 14 / days ago".
             ViewThatFits(in: .horizontal) {
-                Text("\(key.prefixLabel) \u{00B7} \(lastUsed)")
+                Text("\(key.prefixLabel) \u{00B7} \(usage)")
                     .lineLimit(1)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(key.prefixLabel)
-                    Text(lastUsed)
+                    Text(usage)
                 }
             }
             .font(.hvFootnote)
@@ -260,27 +231,21 @@ enum KeysPreviewData {
     """
 
     static let pagesJSON = """
-    [{"id":"a1","slug":"agent-setup-1","tags":["agent-setup-challenge","hv_Zk3pQ9vL"],"content":"<body data-setup-status=\\"complete\\">"},
-     {"id":"a2","slug":"agent-setup-2","tags":["agent-setup-challenge","hv_Aa1Bb2Cc"],"content":"<body data-setup-status=\\"incomplete\\">"}]
-    """
-
-    static let versionsJSON = """
-    [{"artifact_id":"a1","author_kind":"agent","author_key_id":"k1","created_at":"2026-10-25T09:00:00Z"}]
+    [{"slug":"agent-setup-1","tags":["agent-setup-challenge","hv_Zk3pQ9vL"]},
+     {"slug":"agent-setup-2","tags":["agent-setup-challenge","hv_Aa1Bb2Cc"]}]
     """
 
     static let routes: [MockRoute] = [
         .json(.get, "/rest/v1/api_keys", keysJSON),
         .json(.get, "/rest/v1/artifacts", pagesJSON),
-        .json(.get, "/rest/v1/artifact_versions", versionsJSON),
-        .failure(.post, "/api/pair/poll", status: 400, message: "device_code is required: the one POST /api/pair/start gave you."),
     ]
 }
 
-#Preview("Account & keys") {
+#Preview("Agent keys") {
     PreviewHost(routes: KeysPreviewData.routes) { AgentsAndKeysView() }
 }
 
-#Preview("Account & keys, no keys") {
+#Preview("Agent keys, no keys") {
     PreviewHost(routes: [.json(.get, "/rest/v1/api_keys", "[]")]) { AgentsAndKeysView() }
 }
 #endif

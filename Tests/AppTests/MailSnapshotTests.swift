@@ -14,7 +14,7 @@ final class MailSnapshotTests: XCTestCase {
         try snapshot(
             PreviewHost(routes: MailPreviewData.routes, delay: 0) { MailRootView() }
                 .environment(\.dynamicTypeSize, .accessibility2),
-            named: "mail-inbox-large", settle: 2, schemes: [.light]
+            named: "mail-inbox-large", settle: 2
         )
     }
 
@@ -58,7 +58,7 @@ final class MailSnapshotTests: XCTestCase {
                 MailComposeView(address: "ana@vault.cool", agentsSeeReplies: false) { _, _ in }
             }
             .environment(\.dynamicTypeSize, .accessibility2),
-            named: "mail-compose-large", settle: 1, schemes: [.light]
+            named: "mail-compose-large", settle: 1
         )
     }
 

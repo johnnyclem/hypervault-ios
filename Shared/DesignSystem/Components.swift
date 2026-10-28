@@ -2,48 +2,61 @@ import SwiftUI
 
 // MARK: Buttons
 
-/// The one filled action on a screen. Full width, brand gradient.
+/// The one filled action on a screen. Full width, flat `primary`, 8pt corners and no glow, as the web's default button.
+///
+/// The label is bold on purpose: white on `primary` is 3.68:1, which is under the 4.5:1 body text needs and over the
+/// 3:1 that bold text needs (a recorded exception, held by `DesignContrastTests`). Pressed is a dimmer fill, not a
+/// spring, so there is nothing to turn off for Reduce Motion.
 struct HVPrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(.headline, design: .rounded, weight: .semibold))
-            .foregroundStyle(isEnabled ? Color.white : Palette.textSecondary)
-            // A label that wraps at a large text size is centred in its capsule, not left on the first line's edge.
+            .font(.hvButton)
+            .foregroundStyle(isEnabled ? HVColor.primaryForeground : Palette.textSecondary)
+            // A label that wraps at a large text size is centred in its box, not left on the first line's edge.
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity, minHeight: 52)
             .padding(.horizontal, HV.Space.l)
-            .background {
-                // Off is a plain raised capsule with its label still readable, not the gradient faded out.
-                if isEnabled {
-                    Capsule().fill(Palette.softGradient)
-                } else {
-                    Capsule().fill(Palette.surfaceRaised)
-                }
-            }
-            .overlay(Capsule().strokeBorder(isEnabled ? Color.white.opacity(0.18) : Palette.border, lineWidth: 1))
-            .shadow(color: isEnabled ? Palette.blue.opacity(configuration.isPressed ? 0.15 : 0.32) : .clear, radius: 16, x: 0, y: 8)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
+            // Off is a plain raised box with its label still readable, not the fill faded out.
+            .background(isEnabled ? HVColor.primary : Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(isEnabled ? Color.clear : Palette.controlBorder, lineWidth: 1))
+            .opacity(configuration.isPressed ? 0.85 : 1)
     }
 }
 
-/// A quieter action beside the primary one.
+/// A quieter action beside the primary one: `muted` with a control border, the web's secondary button.
 struct HVSecondaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(.headline, design: .rounded, weight: .semibold))
+            .font(.hvHeadline)
             .foregroundStyle(isEnabled ? Palette.textPrimary : Palette.textTertiary)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity, minHeight: 52)
             .padding(.horizontal, HV.Space.l)
-            .background(Palette.surfaceRaised, in: Capsule())
-            .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
+            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(Palette.controlBorder, lineWidth: 1))
+            .opacity(configuration.isPressed ? 0.85 : 1)
+    }
+}
+
+/// The filled action that cannot be undone: the primary button in `destructive`, with white text as the web has it.
+/// White on `destructive` is 3.76:1, so the label is bold here too.
+struct HVDestructiveButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.hvButton)
+            .foregroundStyle(isEnabled ? Color.white : Palette.textSecondary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .padding(.horizontal, HV.Space.l)
+            .background(isEnabled ? HVColor.destructive : Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(isEnabled ? Color.clear : Palette.controlBorder, lineWidth: 1))
+            .opacity(configuration.isPressed ? 0.85 : 1)
     }
 }
 
@@ -53,7 +66,7 @@ struct HVGhostButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+            .font(.system(.subheadline, weight: .semibold))
             .foregroundStyle(ink(for: configuration.role))
             .padding(.horizontal, HV.Space.s)
             .frame(minWidth: 44, minHeight: 44)
@@ -67,9 +80,11 @@ struct HVGhostButtonStyle: ButtonStyle {
     }
 }
 
-/// A round icon button, for toolbars and the composer.
+/// A round icon button, for toolbars and the composer. Pressed is a small spring; with Reduce Motion on it is a dimmer
+/// fill instead, as the other styles have it.
 struct HVIconButtonStyle: ButtonStyle {
     var prominent = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -80,8 +95,9 @@ struct HVIconButtonStyle: ButtonStyle {
                 Circle().fill(prominent ? AnyShapeStyle(Palette.softGradient) : AnyShapeStyle(Palette.surfaceRaised))
             )
             .overlay(Circle().strokeBorder(prominent ? Color.white.opacity(0.18) : Palette.border, lineWidth: 1))
-            .scaleEffect(configuration.isPressed ? 0.94 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
+            .opacity(configuration.isPressed && reduceMotion ? 0.85 : 1)
+            .hvAnimation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
 
@@ -91,6 +107,10 @@ extension ButtonStyle where Self == HVPrimaryButtonStyle {
 
 extension ButtonStyle where Self == HVSecondaryButtonStyle {
     static var hvSecondary: HVSecondaryButtonStyle { HVSecondaryButtonStyle() }
+}
+
+extension ButtonStyle where Self == HVDestructiveButtonStyle {
+    static var hvDestructive: HVDestructiveButtonStyle { HVDestructiveButtonStyle() }
 }
 
 extension ButtonStyle where Self == HVGhostButtonStyle {
@@ -106,7 +126,7 @@ extension ButtonStyle where Self == HVIconButtonStyle {
 
 extension View {
     /// A card: paper with a hairline border.
-    func hvCard(padding: CGFloat = HV.Space.m, radius: CGFloat = HV.Radius.l) -> some View {
+    func hvCard(padding: CGFloat = HV.Space.m, radius: CGFloat = HV.Radius.card) -> some View {
         self
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -116,21 +136,43 @@ extension View {
 
     /// Glass: for the composer, floating bars and sheets only. Lists and cards stay paper.
     func hvGlass(radius: CGFloat = HV.Radius.xl) -> some View {
-        self
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Palette.border.opacity(0.7), lineWidth: 1))
+        modifier(HVGlassModifier(shape: RoundedRectangle(cornerRadius: radius, style: .continuous)))
     }
 
-    /// The look of an input: raised paper, rounded, a hairline.
-    func hvFieldChrome(isFocused: Bool = false) -> some View {
-        self
-            .padding(.horizontal, HV.Space.m)
-            .padding(.vertical, HV.Space.s + 2)
-            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous)
-                    .strokeBorder(isFocused ? Color.accentColor.opacity(0.7) : Palette.border, lineWidth: isFocused ? 1.5 : 1)
-            )
+    /// Glass in a shape of its own, a capsule say.
+    func hvGlass<S: InsettableShape>(in shape: S) -> some View {
+        modifier(HVGlassModifier(shape: shape))
+    }
+
+    /// The look of an input, as the web's `Input`: the page's own colour inside a control border, 8pt corners and at
+    /// least 44pt high. Focus is a ring at half strength, and an invalid field is outlined in `destructive` (and says
+    /// why in words beside it: colour is never the only sign).
+    func hvFieldChrome(isFocused: Bool = false, isInvalid: Bool = false) -> some View {
+        let shape = RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous)
+        let edge: Color = isInvalid ? HVColor.destructive : (isFocused ? HVColor.ring.opacity(0.5) : Palette.controlBorder)
+        return self
+            .padding(.horizontal, HV.Space.s)
+            .padding(.vertical, HV.Space.s)
+            .frame(minHeight: 44)
+            .background(HVColor.background, in: shape)
+            .overlay(shape.strokeBorder(edge, lineWidth: isFocused ? 2 : 1))
+    }
+}
+
+/// Glass is `.glassEffect` on iOS 26. Under Reduce Transparency it is solid `card` with a border instead, since a
+/// material that cannot be seen through is only a muddy fill.
+struct HVGlassModifier<S: InsettableShape>: ViewModifier {
+    let shape: S
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func body(content: Content) -> some View {
+        if reduceTransparency {
+            content
+                .background(HVColor.card, in: shape)
+                .overlay(shape.strokeBorder(Palette.border, lineWidth: 1))
+        } else {
+            content.glassEffect(.regular, in: shape)
+        }
     }
 }
 
@@ -145,7 +187,7 @@ struct HVIconBadge: View {
     var body: some View {
         Image(systemName: symbol)
             .font(.system(size: size * 0.46, weight: .semibold))
-            .foregroundStyle(tint.hvInk())
+            .foregroundStyle(tint)
             .frame(width: size, height: size)
             .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: size * 0.3, style: .continuous))
             .accessibilityHidden(true)
@@ -164,9 +206,9 @@ struct HVChip: View {
     var body: some View {
         HStack(spacing: 6) {
             if let symbol {
-                Image(systemName: symbol).font(.system(size: 12, weight: .semibold))
+                HVIcon(symbol).font(.system(size: 12, weight: .semibold))
             }
-            Text(title).font(.system(.subheadline, design: .rounded, weight: .medium))
+            Text(title).font(.system(.subheadline, weight: .medium))
         }
         .foregroundStyle(isSelected ? Palette.background : Palette.textPrimary)
         .padding(.horizontal, HV.Space.m - 2)
@@ -175,13 +217,15 @@ struct HVChip: View {
             Capsule().fill(isSelected ? AnyShapeStyle(Palette.textPrimary) : AnyShapeStyle(Palette.surfaceRaised))
         )
         .overlay(Capsule().strokeBorder(isSelected ? Color.clear : Palette.border, lineWidth: 1))
-        .animation(.easeOut(duration: 0.15), value: isSelected)
+        .hvAnimation(.easeOut(duration: 0.15), value: isSelected)
         .frame(minHeight: minTarget)
         .contentShape(Rectangle())
     }
 }
 
-/// A small status tag ("Public", "Private", "Pro").
+/// A small status tag ("Public", "Private", "Pro"), drawn as the web's status chips are: the colour as text, the same
+/// colour at 10% as the fill and at 40% as the border. Pass `Palette.success` or `Palette.warning` (emerald-400 and
+/// amber-400) for a state; the words always say what the colour means.
 struct HVTag: View {
     let text: String
     var tint: Color = Palette.textSecondary
@@ -192,13 +236,14 @@ struct HVTag: View {
         // a tag that will not wrap pushes the row it is in past the edges, and the row is cut off on both sides.
         let wraps = dynamicTypeSize.isAccessibilitySize
         Text(text)
-            .font(.system(.caption2, design: .rounded, weight: .semibold))
-            .foregroundStyle(tint.hvInk())
+            .font(.system(.caption, weight: .semibold))
+            .foregroundStyle(tint)
             .lineLimit(wraps ? nil : 1)
             .fixedSize(horizontal: !wraps, vertical: true)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(tint.opacity(0.14), in: Capsule())
+            .background(tint.opacity(0.10), in: Capsule())
+            .overlay(Capsule().strokeBorder(tint.opacity(0.4), lineWidth: 1))
     }
 }
 
@@ -209,7 +254,7 @@ struct HVSectionHeader: View {
 
     var body: some View {
         // At an accessibility size the title has the whole line and the detail sits under it: side by side the detail
-        // and whatever else shares the row leave the title a sliver, and a word is broken in two ("PROGR / ESS").
+        // and whatever else shares the row leave the title a sliver, and a word is broken in two ("Progr / ess").
         Group {
             if dynamicTypeSize.isAccessibilitySize, detail != nil {
                 VStack(alignment: .leading, spacing: 2) {
@@ -227,18 +272,19 @@ struct HVSectionHeader: View {
         .accessibilityAddTraits(.isHeader)
     }
 
+    // Sentence case in the foreground colour, as the web's section headings are. A List or Form upper-cases the text of a
+    // section header by default; `textCase(nil)` hands it back.
     private var titleText: some View {
         Text(title)
-            .font(.system(.footnote, design: .rounded, weight: .semibold))
-            .foregroundStyle(Palette.textSecondary)
-            .textCase(.uppercase)
-            .tracking(0.6)
+            .font(.system(.subheadline, weight: .semibold))
+            .foregroundStyle(HVColor.foreground)
+            .textCase(nil)
     }
 
     @ViewBuilder
     private var detailText: some View {
         if let detail {
-            Text(detail).font(.hvCaption).foregroundStyle(Palette.textTertiary)
+            Text(detail).font(.hvCaption).foregroundStyle(Palette.textTertiary).textCase(nil)
         }
     }
 }
@@ -253,7 +299,7 @@ struct HVAvatar: View {
         ZStack {
             Circle().fill(Palette.avatarGradient)
             Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
-                .font(.system(size: size * 0.42, weight: .bold, design: .rounded))
+                .font(.system(size: size * 0.42, weight: .bold))
                 .foregroundStyle(.white)
             if let imageURL {
                 AsyncImage(url: imageURL) { phase in
@@ -331,7 +377,7 @@ struct HVSheetHeader: View {
             // Never cut short: a sheet with the keyboard up is short, and a header squeezed to one line read
             // "Sign in wi..." at a large text size.
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.hvTitle).fixedSize(horizontal: false, vertical: true)
+                Text(title).font(.hvHeadline).fixedSize(horizontal: false, vertical: true)
                 if let subtitle {
                     Text(subtitle)
                         .font(.hvSubheadline)
@@ -342,7 +388,7 @@ struct HVSheetHeader: View {
             Spacer()
             if let onClose {
                 Button(action: onClose) {
-                    Image(systemName: "xmark")
+                    Image(systemName: HVSymbol.close)
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(Palette.textSecondary)
                         .frame(width: 30, height: 30)
@@ -363,16 +409,23 @@ struct HVLabeledField<Field: View>: View {
     var footnote: String?
     /// Pass the field's focus so its border shows the ring a bare `hvFieldChrome` would.
     var isFocused = false
+    /// The field's value is refused: it is outlined in `destructive`, and the footnote (say what is wrong in it) is too.
+    var isInvalid = false
+    /// Whether the footnote is destructive, when that should differ from the field's edge: a footnote that states a rule
+    /// stays plain while the field is refused for another reason (a name the server found taken). Nil follows `isInvalid`.
+    var isFootnoteInvalid: Bool?
     @ViewBuilder var field: () -> Field
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: HV.Space.hair) {
             Text(title)
-                .font(.system(.footnote, design: .rounded, weight: .medium))
+                .font(.system(.footnote, weight: .medium))
                 .foregroundStyle(Palette.textSecondary)
-            field().hvFieldChrome(isFocused: isFocused)
+            field().hvFieldChrome(isFocused: isFocused, isInvalid: isInvalid)
             if let footnote {
-                Text(footnote).font(.hvCaption).foregroundStyle(Palette.textSecondary)
+                Text(footnote)
+                    .font(.hvFootnote)
+                    .foregroundStyle((isFootnoteInvalid ?? isInvalid) ? HVColor.destructive : Palette.textSecondary)
             }
         }
     }
@@ -384,7 +437,7 @@ extension View {
     func hvListRow() -> some View {
         self
             .listRowBackground(Palette.surface)
-            .listRowSeparatorTint(Palette.hairline)
+            .listRowSeparatorTint(Palette.divider)
     }
 }
 

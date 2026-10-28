@@ -18,6 +18,8 @@ struct ShareView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .background(Palette.background.ignoresSafeArea())
+        // The one accent: the extension has no AccentColor asset, so Cancel, Keep and the caret would be system blue.
+        .tint(HVColor.primary)
         .task { await model.load(from: context) }
     }
 
@@ -30,13 +32,13 @@ struct ShareView: View {
             Spacer()
             HStack(spacing: 6) {
                 BrandMark(size: 22)
-                Text("HyperVault").font(.system(.headline, design: .rounded, weight: .semibold))
+                Text("HyperVault").font(.system(.headline, weight: .semibold))
             }
             Spacer()
             if case .ready = model.phase {
                 Button("Keep") { Task { await model.keep() } }
                     .buttonStyle(.hvGhost)
-                    .font(.system(.body, design: .rounded, weight: .bold))
+                    .font(.system(.body, weight: .bold))
                     .disabled(model.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             } else {
                 Color.clear.frame(width: 56, height: 1)
@@ -85,7 +87,7 @@ struct ShareView: View {
     private var editor: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
             Text("What to keep")
-                .font(.system(.footnote, design: .rounded, weight: .semibold))
+                .font(.system(.footnote, weight: .semibold))
                 .foregroundStyle(Palette.textSecondary)
             TextEditor(text: $model.text)
                 .font(.hvBody)
@@ -94,18 +96,15 @@ struct ShareView: View {
                 .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
                 .frame(maxHeight: 260)
-            Text(HVCopy.onlyYouLine)
-                .font(.hvFootnote)
-                .foregroundStyle(Palette.textTertiary)
         }
     }
 
     private func keptView(_ kept: KeptThing, link: String) -> some View {
         VStack(spacing: HV.Space.m) {
-            Image(systemName: "checkmark.seal.fill")
+            HVIcon("checkmark.seal.fill")
                 .font(.system(size: 52))
                 .foregroundStyle(Palette.success)
-                .symbolEffect(.bounce, value: celebrated)
+                .hvBounce(value: celebrated)
                 .onAppear { celebrated = true }
             Text(kept.duplicate ? HVCopy.alreadyKeptLine : HVCopy.keptLine)
                 .font(.hvTitle3)
@@ -132,7 +131,7 @@ struct ShareView: View {
 
     private func message(symbol: String, title: String, detail: String, done: Bool = false) -> some View {
         VStack(spacing: HV.Space.m) {
-            Image(systemName: symbol)
+            HVIcon(symbol)
                 .font(.system(size: 40))
                 .foregroundStyle(Palette.textSecondary)
             Text(title).font(.hvTitle3)

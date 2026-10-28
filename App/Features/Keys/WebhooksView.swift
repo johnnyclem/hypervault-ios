@@ -95,7 +95,7 @@ struct WebhooksView: View {
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button { adding = true } label: { Image(systemName: "plus") }
+                Button { adding = true } label: { Image(systemName: HVSymbol.add) }
                     .accessibilityLabel("Add a webhook")
             }
         }
@@ -269,7 +269,7 @@ private struct WebhookDetailView: View {
             }
 
             Section {
-                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete webhook", systemImage: "trash").foregroundStyle(Palette.danger) }
+                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete webhook", systemImage: HVSymbol.delete).foregroundStyle(Palette.danger) }
                     .disabled(model.changing.contains(hook.id))
             } footer: {
                 Text("It stops at once, and its delivery history goes with it.")
@@ -349,6 +349,7 @@ private struct AddWebhookSheet: View {
             }
         }
         .interactiveDismissDisabled(secret != nil && !copiedSecret)
+        .hvSensitive(secret != nil)
         .onDisappear { secret = nil }
     }
 

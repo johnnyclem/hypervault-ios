@@ -6,7 +6,8 @@ import SwiftUI
 /// the registry the web serves to agents); the key is filled in here and goes nowhere.
 ///
 /// The key exists in `fresh` and nowhere else. `wipe()` drops it when the sheet closes; it is never saved
-/// and never logged.
+/// and never logged. The model does not look for the agent to connect: no route reports the server's check of
+/// the setup challenge, so the sheet tells what to do next and claims nothing about the result.
 @MainActor
 @Observable
 final class ConnectAgentModel {
@@ -36,8 +37,6 @@ final class ConnectAgentModel {
     private(set) var make: MakePhase = .idle
     private(set) var fresh: FreshKey?
     private(set) var documents: [String: DocumentState] = [:]
-    /// The agent finished its setup challenge.
-    private(set) var isConnected = false
     private(set) var copied = false
 
     /// Set when the sheet shows the steps of a key made earlier: its raw value is gone, so strings carry a placeholder.
@@ -45,19 +44,12 @@ final class ConnectAgentModel {
     let existingSlug: String?
 
     private let client: HVClient
-    private let rest: AccountRest
     private let cache: DiskCache
-    private let userID: String
     let origin: String
 
-    init(
-        client: HVClient, rest: AccountRest, cache: DiskCache, userID: String, origin: String,
-        existingKey: AgentKey? = nil, challengeSlug: String? = nil
-    ) {
+    init(client: HVClient, cache: DiskCache, origin: String, existingKey: AgentKey? = nil, challengeSlug: String? = nil) {
         self.client = client
-        self.rest = rest
         self.cache = cache
-        self.userID = userID
         self.origin = origin
         self.existingKey = existingKey
         self.existingSlug = challengeSlug
@@ -97,7 +89,6 @@ final class ConnectAgentModel {
         fresh = nil
         copied = false
         keyName = ""
-        isConnected = false
     }
 
     // MARK: The steps
@@ -148,36 +139,5 @@ final class ConnectAgentModel {
     func isSecret(_ text: String) -> Bool {
         guard let key = keyText else { return false }
         return text.contains(key)
-    }
-
-    // MARK: Waiting for the agent
-
-    /// Whether there is a setup challenge to wait on.
-    var canWatch: Bool { slug != nil && (fresh != nil || existingKey != nil) }
-
-    /// Looks every few seconds for the agent to finish its challenge, for about ten minutes, then stops.
-    func watchSetup() async {
-        guard canWatch, !isConnected else { return }
-        for _ in 0..<75 {
-            try? await Task.sleep(nanoseconds: 8_000_000_000)
-            if Task.isCancelled { return }
-            await checkConnected()
-            if isConnected { return }
-        }
-    }
-
-    func checkConnected() async {
-        guard !isConnected else { return }
-        guard let keys = try? await AgentKeyDirectory.keys(rest: rest, userID: userID) else { return }
-        let match: AgentKey?
-        if let existingKey { match = keys.first { $0.id == existingKey.id } } else if let fresh { match = keys.first { $0.keyPrefix == fresh.prefix } } else { match = nil }
-        guard let match else { return }
-        let statuses = await AgentKeyDirectory.setupStatuses(rest: rest, userID: userID, keys: [match])
-        if statuses[match.id]?.complete == true {
-            isConnected = true
-            Haptics.success()
-            let client = self.client
-            Task { _ = try? await client.send(.recordOnboarding(connectCompleted: true)) }
-        }
     }
 }

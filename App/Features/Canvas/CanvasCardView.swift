@@ -55,7 +55,7 @@ struct CanvasCardView: View {
 
     private var kindLabel: some View {
         Text(card.kind.singular.uppercased())
-            .font(.system(.caption2, design: .rounded, weight: .bold))
+            .font(.system(.caption2, weight: .bold))
             .foregroundStyle(card.kind.tint)
             .tracking(0.6)
             .lineLimit(1)
@@ -77,12 +77,12 @@ struct CanvasCardView: View {
     private func keptSection(_ kept: KeptDetails) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             HStack(spacing: HV.Space.xs) {
-                Image(systemName: "checkmark.seal.fill")
+                HVIcon("checkmark.seal.fill")
                     .foregroundStyle(Palette.success)
-                    .symbolEffect(.bounce, value: sealed)
+                    .hvBounce(value: sealed)
                     .onAppear { sealed = true }
                 Text(kept.line)
-                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .font(.system(.subheadline, weight: .semibold))
             }
             if kept.isPrivate {
                 Text(HVCopy.onlyYouLine)
@@ -104,7 +104,7 @@ struct CanvasCardView: View {
     private func groupFiles(_ files: [GroupMember]) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             Button(showFiles ? "Show less" : "Show files") {
-                withAnimation(.snappy) { showFiles.toggle() }
+                HV.Motion.animate(.snappy) { showFiles.toggle() }
             }
             .buttonStyle(.hvGhost)
             .padding(.leading, -HV.Space.s)
@@ -123,7 +123,7 @@ struct CanvasCardView: View {
     private func keyAgents(_ agents: [CardAgent]) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             Text(HVCopy.agentsAllowedHeading)
-                .font(.system(.caption, design: .rounded, weight: .semibold))
+                .font(.system(.caption, weight: .semibold))
                 .foregroundStyle(Palette.textSecondary)
             if agents.isEmpty {
                 Text("No agents allowed").font(.hvFootnote).foregroundStyle(Palette.textTertiary)
@@ -176,7 +176,7 @@ struct CanvasCardView: View {
                 Haptics.tap()
                 copied = true
                 Task {
-                    try? await Task.sleep(nanoseconds: 1_600_000_000)
+                    try? await Task.sleep(nanoseconds: UInt64(HV.Motion.copiedHold * 1_000_000_000))
                     copied = false
                 }
             }

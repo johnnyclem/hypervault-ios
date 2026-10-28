@@ -18,7 +18,7 @@ struct CanvasHints: View {
             VStack(spacing: HV.Space.xs) {
                 if let userName {
                     Text(greeting(for: userName))
-                        .font(.system(.subheadline, design: .rounded, weight: .medium))
+                        .font(.system(.subheadline, weight: .medium))
                         .foregroundStyle(Palette.textSecondary)
                 }
                 Text(HVCopy.landingLine)
@@ -90,8 +90,8 @@ struct CanvasHints: View {
     private var starterButton: some View {
         VStack(spacing: 4) {
             Button(action: onCopyStarter) {
-                Label(starterCopied ? "Copied" : HVCopy.copyPromptLabel, systemImage: starterCopied ? "checkmark" : "doc.on.doc")
-                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                Label(starterCopied ? "Copied" : HVCopy.copyPromptLabel, systemImage: starterCopied ? HVSymbol.copied : HVSymbol.copy)
+                    .font(.system(.subheadline, weight: .semibold))
             }
             .buttonStyle(.hvGhost)
             .accessibilityIdentifier("canvas.starter")
@@ -102,7 +102,7 @@ struct CanvasHints: View {
                     .transition(.opacity)
             }
         }
-        .animation(.easeOut(duration: 0.2), value: starterCopied)
+        .hvAnimation(HV.Motion.entrance, value: starterCopied)
     }
 
     private func greeting(for name: String) -> String {

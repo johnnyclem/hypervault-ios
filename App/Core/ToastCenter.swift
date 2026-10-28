@@ -62,7 +62,7 @@ final class ToastCenter {
 
     func show(_ message: String, style: Toast.Style = .info) {
         let toast = Toast(message: message, style: style)
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) { current = toast }
+        HV.Motion.animate(.spring(response: 0.35, dampingFraction: 0.82)) { current = toast }
         switch style {
         case .success: Haptics.success()
         case .error: Haptics.failure()
@@ -94,21 +94,22 @@ final class ToastCenter {
 
     func dismiss(_ id: UUID? = nil) {
         guard id == nil || current?.id == id else { return }
-        withAnimation(.easeOut(duration: 0.2)) { current = nil }
+        HV.Motion.animate { current = nil }
     }
 }
 
 /// Overlays the current toast. Put it once, at the root.
 struct ToastHost: View {
     let center: ToastCenter
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack {
             if let toast = center.current {
                 HStack(spacing: HV.Space.s) {
-                    Image(systemName: toast.symbol).foregroundStyle(toast.tint)
+                    HVIcon(toast.symbol).foregroundStyle(toast.tint)
                     Text(toast.message)
-                        .font(.system(.subheadline, design: .rounded, weight: .medium))
+                        .font(.system(.subheadline, weight: .medium))
                         .foregroundStyle(Palette.textPrimary)
                         .multilineTextAlignment(.leading)
                         .lineLimit(3)
@@ -119,7 +120,8 @@ struct ToastHost: View {
                 .shadow(color: .black.opacity(0.18), radius: 18, x: 0, y: 8)
                 .padding(.horizontal, HV.Space.m)
                 .padding(.top, HV.Space.xs)
-                .transition(.move(edge: .top).combined(with: .opacity))
+                // Under Reduce Motion the toast fades; it does not slide in.
+                .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
                 .onTapGesture { center.dismiss(toast.id) }
                 // One element that says what the eye sees, error and all, and that a double tap dismisses.
                 .accessibilityElement(children: .ignore)
@@ -131,6 +133,6 @@ struct ToastHost: View {
             Spacer()
         }
         .allowsHitTesting(center.current != nil)
-        .animation(.spring(response: 0.35, dampingFraction: 0.82), value: center.current)
+        .animation(reduceMotion ? HV.Motion.entrance : Animation.spring(response: 0.35, dampingFraction: 0.82), value: center.current)
     }
 }

@@ -5,11 +5,10 @@ import SwiftUI
 // (context, history, saving, the outbox) is the Kit's `OnDeviceChat`, tested on
 // Linux with a fake model; this file is only the thin part that talks to
 // Apple's model. It is compiled only where the framework exists (Xcode 26 and
-// later) and used only on iOS 26, so the app still builds and runs on iOS 17.
+// later); the model itself may still be unavailable on a given phone.
 #if canImport(FoundationModels)
 import FoundationModels
 
-@available(iOS 26.0, *)
 enum ChatFoundationModelsAdapter {
     private static let gate = NSLock()
     private static var assetsBroken = false
@@ -89,7 +88,6 @@ enum ChatFoundationModelsAdapter {
     }
 }
 
-@available(iOS 26.0, *)
 struct ChatFoundationModelsProvider: ChatModelProvider {
     let modelName = "apple-on-device"
     /// About four thousand tokens in all, answer included: a little over two

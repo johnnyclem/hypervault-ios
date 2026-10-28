@@ -9,7 +9,7 @@ import XCTest
 final class BoardsAndMailWritesJourneyTests: HyperVaultUITestCase {
     func testABoardIsMadeATaskAddedTickedAlongAndMarkedDone() {
         launch(.signedIn)
-        openFromYou("taskBoards", title: "Task boards")
+        openFromAccount("taskBoards", title: "Task boards")
 
         step("The list has the boards the vault starts with") {
             require(element("taskboards.row.eurorack-choir"), "the Eurorack Choir board")
@@ -75,7 +75,7 @@ final class BoardsAndMailWritesJourneyTests: HyperVaultUITestCase {
 
     func testANoteIsSentAndAReplyAppearsInItsThread() {
         launch(.signedIn)
-        openFromYou("mail", title: "Mail")
+        openFromAccount("mail", title: "Mail")
         let thread = "mail.thread.5e000001-0000-4000-8000-000000000001"
 
         step("The inbox has the agents' mail") {

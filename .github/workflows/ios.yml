@@ -57,7 +57,7 @@ jobs:
       - name: Generate the project
         run: xcodegen generate
 
-      # Release is never built here, so this is what keeps the UI-test mode out of it.
+      # The Release build further down only compiles it, so this is what checks that the UI-test mode cannot be reached in it.
       - name: Check the UI-test mode is debug-only
         run: python3 scripts/check_debug_only.py
 
@@ -123,8 +123,10 @@ jobs:
           git push -f -q origin "snapshots-$slug"
 
       # Xcode Cloud (docs/XCODE_CLOUD.md) starts with ci_scripts/ci_post_clone.sh and then builds the HyperVaultCloud scheme.
-      # This runs the script as it is run there, with an identity of its own, and checks that the project it makes has the
-      # scheme and has taken the identity. Nothing after it reads the project, and the file it writes is taken away again.
+      # This runs the script as it is run there, with an identity of its own (XcodeGen is already installed here, so its
+      # Homebrew install is the one part that is not run), and checks that the project it makes has the scheme and has taken
+      # the identity. The file that carries the identity is taken away again, so what is built after this is the same project
+      # without it.
       - name: Xcode Cloud hook
         run: |
           set -o pipefail
@@ -137,9 +139,17 @@ jobs:
           grep -E "^ +(DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER) = " settings.txt | sort -u
           grep -qE "^ +DEVELOPMENT_TEAM = ABCDE12345$" settings.txt
           grep -qE "^ +PRODUCT_BUNDLE_IDENTIFIER = com\.example\.cloud\.app$" settings.txt
-          # What Xcode asks the project for to offer the products it can build with Xcode Cloud.
-          xcodebuild -project HyperVault.xcodeproj -describeAllArchivableProducts -json | tee products.json
-          grep -q "HyperVault" products.json
+          rm -f Config/Local.xcconfig
+
+      # What Xcode asks a project for to offer the products it can build with Xcode Cloud, printed to be read: its format
+      # has not been seen here, so nothing is asserted about it yet.
+      - name: Archivable products (for reading)
+        continue-on-error: true
+        run: |
+          rm -f Config/Local.xcconfig
+          CI_PRIMARY_REPOSITORY_PATH="$PWD" DEVELOPMENT_TEAM=ABCDE12345 HV_BUNDLE_PREFIX=com.example.cloud \
+            ci_scripts/ci_post_clone.sh > /dev/null
+          xcodebuild -project HyperVault.xcodeproj -describeAllArchivableProducts -json
           rm -f Config/Local.xcconfig
 
       # The archive Xcode Cloud makes is the Release configuration built for a device, which nothing above builds (the

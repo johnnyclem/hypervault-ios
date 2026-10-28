@@ -9,7 +9,8 @@ meant to exist only in debug builds. This reads the sources and fails if
   - a harness file is not wrapped, whole, in `#if DEBUG ... #endif`, or
   - any other file under App/ or Shared/ names one of the harness' symbols outside a `#if DEBUG` block.
 
-Release is never built in CI, so this is the check that a release build has no way into the mode.
+CI builds Release only to compile it, which would not show the mode reachable, so this is the check that a release build
+has no way into the mode.
 """
 import pathlib
 import re

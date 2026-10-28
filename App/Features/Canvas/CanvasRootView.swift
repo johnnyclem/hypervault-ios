@@ -8,6 +8,7 @@ struct CanvasRootView: View {
 
     var body: some View {
         CanvasScreen(client: env.client, origin: env.server.baseURL, userName: env.user.firstName, avatarName: env.user.displayName ?? env.user.email ?? "?", avatarURL: env.user.avatarUrl.flatMap(URL.init(string:)))
+            .jobNotices()
     }
 }
 

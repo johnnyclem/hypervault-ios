@@ -68,6 +68,86 @@ final class KeysLogicTests: XCTestCase {
         XCTAssertTrue(agreed.revoking.isEmpty)
     }
 
+    // MARK: The address a key mails as
+
+    private static let claim = "11111111-1111-4111-8111-111111111111"
+
+    /// A model over a transport the test can read the requests of.
+    private func inspectedModel(keys: String = KeysPreviewData.keysJSON, routes: [MockRoute] = []) async -> (AgentsAndKeysModel, MockTransport) {
+        let transport = MockTransport(routes: routes + [.json(.get, "/rest/v1/api_keys", keys), .json(.get, "/rest/v1/artifacts", KeysPreviewData.pagesJSON)])
+        let client = HVClient(baseURL: URL(string: "https://t.test")!, transport: transport, tokens: StaticTokenProvider(), retry: .none)
+        let cache = DiskCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-keys-\(UUID().uuidString)"))
+        let model = AgentsAndKeysModel(client: client, rest: AccountRest(client: client, anonKey: "preview"), cache: cache, userID: "u1")
+        await model.load()
+        return (model, transport)
+    }
+
+    private func sentBody(_ request: URLRequest) throws -> JSONValue {
+        try HVCoding.decoder(.verbatim).decode(JSONValue.self, from: try XCTUnwrap(request.httpBody))
+    }
+
+    func testPinningAKeySendsTheClaimAndTakesTheServersAnswer() async throws {
+        let answer = #"{"key":{"id":"k1","scopes":["mail:read","mail:send"],"mail_claim_id":"\#(Self.claim)","mail_pin_cleared":false}}"#
+        let (model, transport) = await inspectedModel(routes: [.json(.patch, "/api/keys", answer)])
+        try await model.setMailAddress(try XCTUnwrap(model.keys.first), claimId: Self.claim)
+
+        let pinned = try XCTUnwrap(model.keys.first)
+        XCTAssertEqual(pinned.mailClaimId, Self.claim)
+        XCTAssertFalse(pinned.mailPinCleared)
+        XCTAssertTrue(pinned.canSendMail, "the address does not move the Can send mail switch")
+        XCTAssertTrue(model.changing.isEmpty)
+        let sent = await transport.requests(matching: "/api/keys")
+        XCTAssertEqual(sent.map { $0.httpMethod }, ["PATCH"])
+        XCTAssertEqual(try sentBody(sent[0]), ["id": "k1", "mail_claim_id": .string(Self.claim)])
+    }
+
+    func testPickingTheDefaultAddressAfterAReleaseSendsNullAndEndsTheWarning() async throws {
+        let answer = #"{"key":{"id":"k1","scopes":["mail:read","mail:send"],"mail_claim_id":null,"mail_pin_cleared":false}}"#
+        let (model, transport) = await inspectedModel(keys: KeysPreviewData.releasedKeysJSON, routes: [.json(.patch, "/api/keys", answer)])
+        let released = try XCTUnwrap(model.keys.first)
+        XCTAssertTrue(released.mailPinCleared)
+        XCTAssertEqual(AgentKeyMailPin(key: released, mailboxes: []).selection, .choosing)
+
+        try await model.setMailAddress(released, claimId: nil)
+
+        let chosen = try XCTUnwrap(model.keys.first)
+        XCTAssertNil(chosen.mailClaimId)
+        XCTAssertFalse(chosen.mailPinCleared, "choosing again, even the default address, ends the released state")
+        XCTAssertEqual(AgentKeyMailPin(key: chosen, mailboxes: []).selection, .defaultAddress)
+        let sent = await transport.requests(matching: "/api/keys")
+        XCTAssertEqual(try sentBody(sent[0]), ["id": "k1", "mail_claim_id": .null])
+    }
+
+    func testARefusedAddressPutsTheKeyBackAsItWas() async throws {
+        let refusing = MockRoute.failure(.patch, "/api/keys", status: 404, message: "That address isn't one of yours.")
+        let (model, _) = await inspectedModel(keys: KeysPreviewData.releasedKeysJSON, routes: [refusing])
+        do {
+            try await model.setMailAddress(try XCTUnwrap(model.keys.first), claimId: Self.claim)
+            XCTFail("the server said no")
+        } catch {
+            XCTAssertEqual(keysMessage(for: error), "That address isn't one of yours.")
+        }
+        let key = try XCTUnwrap(model.keys.first)
+        XCTAssertNil(key.mailClaimId)
+        XCTAssertTrue(key.mailPinCleared, "the released address is still released")
+        XCTAssertTrue(model.changing.isEmpty)
+    }
+
+    func testTheMailboxesAreReadWhenAKeyOpensAndAFailedReadKeepsWhatWasThere() async throws {
+        let listing = MockRoute.json(.get, "/api/mail/owner/mailboxes", MailPreviewData.mailboxes)
+        let (model, transport) = await inspectedModel(routes: [listing])
+        XCTAssertTrue(model.mailboxes.isEmpty, "nothing is asked for until a key's screen opens")
+
+        await model.loadMailboxes()
+        XCTAssertEqual(model.mailboxes.compactMap(\.address), ["ana@vault.cool", "studio@vault.cool"])
+        let key = try XCTUnwrap(model.keys.first)
+        XCTAssertEqual(AgentKeyMailPin(key: key, mailboxes: model.mailboxes).choices.map(\.claimId), ["c1", "c2"])
+
+        await transport.add(.failure(.get, "/api/mail/owner/mailboxes", status: 503, message: "Agent Mail is not set up on this server yet."))
+        await model.loadMailboxes()
+        XCTAssertEqual(model.mailboxes.count, 2, "a read that fails leaves the picker as it was")
+    }
+
     // MARK: A key that was just made
 
     func testAKeyJustMadeStaysOnThisPhoneAndLeavesThePasteboardInAMinute() {

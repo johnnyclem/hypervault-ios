@@ -10,7 +10,7 @@ Packages/HyperVaultKit   Foundation only. Models, endpoints, auth, cache, logic.
                          Tested on Linux and macOS with `swift test`.
 Shared/                  Compiled into the app AND its extensions: design
                          system, Keychain, shared config. Extension-safe code only.
-App/Core                 App-wide state: AppModel, AppEnvironment, router, toasts.
+App/Core                 App-wide state: AppModel, AppEnvironment, router, toasts, job notices.
 App/Features/<Name>      One folder per feature. A feature owns its folder.
 ShareExtension, WidgetExtension, Tests/AppTests
 ```
@@ -125,6 +125,11 @@ struct WidgetsView: View {
 - Errors from actions go to `app.toasts.show(error: error)`; the server's own
   sentence is shown verbatim. Success is a light haptic (`Haptics.success()`)
   and, when the result is not obvious, a toast.
+- A result that arrives after the screen that asked for it has gone (a page repair, the web's `JobNotifications`) is told by
+  `env.jobNotices`: while the Home canvas or the Library is showing (`.jobNotices()` on the screen) and the app is in
+  front, it asks `GET /api/jobs` on appearing and every 20 seconds and keeps the newest in a banner until it is
+  dismissed, which is what acknowledges it. A job that changed something makes the Library read again; a lost answer
+  says nothing. A screen that follows its own job (the repair sheet) acknowledges it itself, and stops when it is closed.
 - Destructive actions ask first with `.confirmationDialog` (never `.alert` for
   choices). Optimistic updates roll back on failure, except for a switch that grants access: it moves only when the
   server agrees (`VaultAllowedKeysModel`, handoff 4.6), because a thumb that shows an allow nobody confirmed is a claim.

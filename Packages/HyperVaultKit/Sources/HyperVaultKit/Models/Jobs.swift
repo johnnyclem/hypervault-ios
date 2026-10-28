@@ -91,6 +91,43 @@ public struct BackgroundJobList: Sendable, Codable, Equatable {
     enum Keys: String, CodingKey { case jobs }
 }
 
+/// What the web's job toast (`components/job-notifications.tsx`) says about one finished job: its label as the
+/// heading, and under it the result's message or the error, in the server's words.
+public struct BackgroundJobNotice: Sendable, Equatable, Identifiable {
+    public let id: String
+    /// The job's label, or the web's line for a job that has none.
+    public let title: String
+    /// What came of it: the result's message ("Done." when it sent none), or the error (the web's own line when it
+    /// sent none).
+    public let message: String
+    public let succeeded: Bool
+    /// The job worked and says it changed something (`result.changed`), so what is on screen may be out of date.
+    public let changedSomething: Bool
+
+    /// Nil for a job that has not finished: only a finished one has anything to say.
+    public init?(job: BackgroundJob) {
+        guard job.isFinished else { return nil }
+        id = job.id
+        title = job.label.isEmpty ? "Background job finished" : job.label
+        message = job.outcomeMessage ?? "Done."
+        succeeded = job.status == .succeeded
+        changedSomething = job.status == .succeeded && job.result?["changed"]?.bool == true
+    }
+
+    /// The notices for the jobs `GET /api/jobs` listed, in the server's order (newest first), without the ones in
+    /// `dismissed`. The notice the person is looking at (`holding`) stays first for as long as it is listed, so a newer
+    /// job does not change the words under their thumb.
+    public static func queue(
+        from jobs: [BackgroundJob], skipping dismissed: Set<String> = [], holding held: String? = nil
+    ) -> [BackgroundJobNotice] {
+        var notices = jobs.compactMap { BackgroundJobNotice(job: $0) }.filter { !dismissed.contains($0.id) }
+        if let held, let index = notices.firstIndex(where: { $0.id == held }), index > 0 {
+            notices.insert(notices.remove(at: index), at: 0)
+        }
+        return notices
+    }
+}
+
 struct BackgroundJobEnvelope: Sendable, Decodable {
     let job: BackgroundJob
 }

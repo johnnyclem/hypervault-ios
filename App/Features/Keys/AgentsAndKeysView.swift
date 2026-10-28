@@ -230,6 +230,11 @@ enum KeysPreviewData {
      {"id":"k3","key_prefix":"hv_Dd3Ee4Ff","name":"default","created_at":"2026-10-10T10:00:00Z","last_used_at":"2026-10-12T10:00:00Z","scopes":["mail:read"],"mail_claim_id":null,"mail_pin_cleared":false}]
     """
 
+    /// One key whose pinned address was released: it reads and cannot send until an address is picked again.
+    static let releasedKeysJSON = """
+    [{"id":"k1","key_prefix":"hv_Zk3pQ9vL","name":"Claude Code","created_at":"2026-10-20T10:00:00Z","last_used_at":"2026-10-25T08:00:00Z","scopes":["mail:read","mail:send"],"mail_claim_id":null,"mail_pin_cleared":true}]
+    """
+
     static let pagesJSON = """
     [{"slug":"agent-setup-1","tags":["agent-setup-challenge","hv_Zk3pQ9vL"]},
      {"slug":"agent-setup-2","tags":["agent-setup-challenge","hv_Aa1Bb2Cc"]}]

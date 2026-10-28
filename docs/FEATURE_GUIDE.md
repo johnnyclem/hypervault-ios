@@ -116,7 +116,7 @@ struct WidgetsView: View {
 - The init of a model is cheap and has no side effects (the parent may build
   throwaway copies); loading happens in `.task` or `.refreshable`.
 - Entry points get `env` from `@Environment(AppEnvironment.self)` and pass
-  `env.client` (and `env.cache`) down. See `App/Features/Root/YouRootView.swift`.
+  `env.client` (and `env.cache`) down. See `AccountPaneView` in `App/Features/Root/YouTabView.swift`.
 - Lists use `env.load(key) { try await client.send(...) }` for cached-then-fresh
   loading, and show `HVStaleBanner` when the first answer was the saved copy.
 - Every screen that fetches has all four states: loading (`HVListSkeleton` or
@@ -338,12 +338,12 @@ running on its own: `journeys` (everything not named below, so a new test class 
 `sweep-dark` (the tabs, what they open, the welcome and the waitlist in the dark), `sweep-dark-screens` (the screens of the
 You panes and the Account menu in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
 large text size) and `sweep-large-keep` and `sweep-large-think` (the screens of the You panes and the Account menu at the large
-text size, in two halves). A push waits for the slowest of them, which should stay at about 20 minutes. They have taken between 5 and 22
-minutes each, depending on the machine GitHub gives the job (the same job has taken twice as long on a slow one); the
-build and the simulator's start are about eight of those minutes, and the rest is the tests, of which the large text
-sizes, which scroll, are the slowest. A job that goes over 30 minutes is stopped; if one regularly nears 20, split it by
-test method the way the sweep is split. GitHub runs five macOS jobs at a time, so with the unit-test job the last ones start when
-others have finished. A job after them publishes all the step screenshots and layout notes to the
+text size, in two halves). They have taken between 5 and 22 minutes each, depending on the machine GitHub gives the
+job (the same job has taken twice as long on a slow one); the build and the simulator's start are about eight of those
+minutes, and the rest is the tests, of which the large text sizes, which scroll, are the slowest. A job that goes over 30
+minutes is stopped; if one regularly nears 20, split it by test method the way the sweep is split. GitHub runs five macOS
+jobs at a time, and with the unit-test job there are fourteen, so the last ones start when others have finished: a push
+waits for the queue as well as for the slowest job, and a whole run has taken about 50 minutes. A job after them publishes all the step screenshots and layout notes to the
 `ui-snapshots-<branch>` branch (and each job uploads them as an artifact), and a job uploads its `.xcresult` when a test
 fails.
 

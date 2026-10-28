@@ -123,7 +123,7 @@ screens of the You panes and the Account menu, and the content and account journ
 sweep in the dark in two and at a large text size in three) and publish what the app looked like at each step to `ui-snapshots-<branch>`. Each job builds the
 app for itself and has taken between 5 and 22 minutes, depending on the machine GitHub gives it (the build and the
 simulator's start are about eight of them); GitHub runs five macOS jobs at a time, so the last ones start when the first
-have finished.
+have finished, and a whole run has taken about 50 minutes.
 
 ### How it is tested
 
@@ -241,7 +241,7 @@ server change if you want the app to do more:
 - The Kit (API client, auth, every model and rule) has about 950 unit tests, run on Linux and
   macOS in CI, and 100 more that need a server and are skipped without one (the local E2E suite below and the live
   contract check). Fixtures follow the routes' real output.
-- The app builds for the simulator in CI with about 650 tests (screen state machines, link
+- The app builds for the simulator in CI with about 660 tests (screen state machines, link
   parsing, sign-in and access phases) and renders every screen in the dark, and the
   main ones at the largest text sizes, to PNGs the workflow publishes.
 - CI also launches the whole app and drives it: UI tests walk the welcome story, sign-in, the canvas (keep, ask,

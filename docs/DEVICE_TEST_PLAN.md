@@ -119,10 +119,24 @@ them on glass (handoff 2.3, 4.1, 9):
   admin. Sign out with something waiting in the outbox asks first. At the largest text size the list scrolls to Sign out.
 - **Appearance says it is the website's.** Choosing a theme changes your dashboard on the website and nothing in the app:
   open the website to see it, and check the app's own look did not change.
-- **iPad.** At a regular width the You tab shows its list of panes beside the open pane (the open one highlighted), and
-  the tabs stay a tab bar with no sidebar of their own. Rotate the iPad and use Split View and Slide Over so that the
-  width goes from regular to compact and back: the layout changes between the two, the open pane stays open, and what had
-  been pushed on it comes along. This was not run on an iPad by the person who built it.
+- **iPad.** The You tab shows its list of panes beside the open pane (the open one in a heavier weight, with a check mark
+  and a lighter fill), and the tabs stay a tab bar with no sidebar of their own. The layout is the device's, not the
+  window's: an iPad always uses the split view and a phone always the stack, so resizing a window never rebuilds the
+  tab. Open Agent keys > Connect an agent (a key is on screen), then drag the Split View divider and bring Slide Over in
+  and out: the sheet, the key and anything typed stay. When the window is narrow enough for one column the split view
+  shows the open pane, with a Back to the list; choosing a pane in the list, or a link to one, brings it forward. This is
+  where the app relies on the system's own collapse of a split view, which showed panes stuck on a spinner on the iPhone
+  simulator when it was tried there (hence the stack on a phone), so look for that on hardware. None of this was run on an
+  iPad by the person who built it.
+- **A link starts its tab from the first screen.** Open a page from a Home card, go to Home's avatar > Account > Group
+  chats with a conversation open in Chat, then use the Keep widget (`hypervault://keep`) with a page open on Home: each
+  lands on the tab's first screen (the canvas field, the Group chats list), not on what was open there. Import's "All in"
+  page, opened from Chat's More menu, has an Open Chat button that goes back to the conversation list. With the Account
+  menu open, follow a link from Notes (a page, or `hypervault://tab/yours` from the Yours widget): the menu goes away and
+  the page, or the Yours panel, shows.
+- **Large text.** At the largest accessibility size the You list shows each pane's symbol above its name (no name breaks
+  in the middle of a word) and no chevron, General shows the whole email address, wrapped, and the Yours panel opens at
+  full height with its first rows visible. The Account menu's Mail badge is white on the blue gradient.
 
 ### The Vault, on a device
 
@@ -157,7 +171,7 @@ A render and a unit test cannot show these, and each one decides a line of the c
 - **On-device chat** needs an Apple Intelligence device with the model downloaded: Chat > Models should say it is
   available, and a conversation should stream with no network.
 - **A model on your network** (Ollama or LM Studio): allow the local network prompt; the phone calls it directly.
-- **iPad:** the tab bar stays a tab bar (no sidebar of the tabs), and the You tab shows its list of panes beside the pane; rotate and use Split View with a sheet open.
+- **iPad:** the tab bar stays a tab bar (no sidebar of the tabs), and the You tab shows its list of panes beside the pane; rotate and use Split View and Slide Over with a sheet open, and it stays open (the iPad bullet in section 5).
 
 ## 7. Accessibility pass
 

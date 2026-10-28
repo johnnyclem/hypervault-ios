@@ -37,8 +37,14 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
             require(shows("Your key, shown once"), "the key, shown once")
             let copy = button("Copy key")
             require(copy, "the Copy key button")
-            tap(copy, "Copy key")
-            require(button("Copied"), "the Copy key button saying it copied")
+            // The button says it copied for a second and a half and then goes back to its name, and a slow runner can look
+            // after that: it is watched for while it is tapped (and tapped again if the tap was lost), not looked for after.
+            var saidCopied = false
+            tap(copy, "Copy key", until: {
+                if self.button("Copied").exists { saidCopied = true }
+                return saidCopied
+            })
+            XCTAssertTrue(saidCopied, "The Copy key button never said it copied.")
             require(button("Copy the prompt"), "the prompt for the AI, which holds the key")
         }
 

@@ -149,7 +149,7 @@ struct LockScreen: View {
                         Button {
                             Task { await lock.unlock() }
                         } label: {
-                            Label("Unlock with \(lock.methodName)", systemImage: "faceid")
+                            unlockLabel
                         }
                         .buttonStyle(.hvPrimary)
                         // At the largest text the words need the whole width, or they wrap one to a line.
@@ -164,6 +164,20 @@ struct LockScreen: View {
         .accessibilityAddTraits(.isModal)
         .task { await lock.unlock() }
         .onAppear { UIAccessibility.post(notification: .screenChanged, argument: nil) }
+    }
+
+    /// The glyph beside the words, or above them at an accessibility size: beside them it takes a column of the button
+    /// and "your passcode" is broken mid-word, above them the words have the button's whole width and stay centred.
+    @ViewBuilder private var unlockLabel: some View {
+        let title = "Unlock with \(lock.methodName)"
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(spacing: HV.Space.s) {
+                HVIcon("faceid")
+                Text(title)
+            }
+        } else {
+            Label(title, systemImage: "faceid")
+        }
     }
 }
 

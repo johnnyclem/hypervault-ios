@@ -433,6 +433,7 @@ struct TruthTraceView: View {
 
 /// An entry in brief: a dependent, a ripple entry, a successor.
 struct TruthBriefRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let entry: TruthEntryBrief
     /// Claims by entry id, so a row can name the entry it was reached through and not show its id.
     var claims: [String: String] = [:]
@@ -446,10 +447,13 @@ struct TruthBriefRow: View {
                 TruthStatusBadge(status: entry.status)
                 TruthStandingBadge(standing: entry.standing)
             }
+            // The statement is the content, so at an accessibility size (where three lines hold a few words of it) it is
+            // not cut, and a row that is measured short cannot squeeze it to one line.
             Text(verbatim: entry.text.isEmpty ? entry.id : entry.text)
                 .font(.system(.footnote, design: .serif))
                 .foregroundStyle(Palette.textPrimary)
-                .lineLimit(3)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
+                .fixedSize(horizontal: false, vertical: true)
             if let sentence = entry.reasonSentence {
                 Text(sentence).font(.hvCaption).foregroundStyle(Palette.textSecondary)
             }

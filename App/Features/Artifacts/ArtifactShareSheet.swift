@@ -80,6 +80,7 @@ struct ArtifactShareSheet: View {
     @State private var chosenRole: ArtifactShareRole?
     @State private var removing: ArtifactSharePerson?
     @FocusState private var emailFocused: Bool
+    @ScaledMetric(relativeTo: .body) private var avatar: CGFloat = 32
 
     init(detail: ArtifactDetailModel) {
         self.detail = detail
@@ -128,15 +129,13 @@ struct ArtifactShareSheet: View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
             HVSectionHeader(title: "Link").artifactCardCaption()
             VStack(alignment: .leading, spacing: HV.Space.xs) {
-                // Cut in the middle rather than wrapped: at an accessibility size a long address broken into pieces of
-                // eight characters, with a hyphen drawn at each break ("hy-/perva"), is harder to read than one on a
-                // single line, shrunk a little, with its middle left out (the whole of it is what the buttons below copy and
-                // share, and what a long press selects).
+                // The address is the point of this card, so at an accessibility size it wraps at the size of its type, whole:
+                // shrunk to fit one line it ended up the smallest text on the sheet, with its middle left out. It breaks
+                // after a slash or a hyphen where it can.
                 Text(url.absoluteString)
                     .font(.hvMono)
                     .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 1 : 3)
-                    .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 0.5 : 1)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                     .truncationMode(.middle)
                     .textSelection(.enabled)
                 if let line = linkLine {
@@ -202,7 +201,7 @@ struct ArtifactShareSheet: View {
                 if !list.people.isEmpty {
                     VStack(spacing: 0) {
                         ForEach(Array(list.people.enumerated()), id: \.element.id) { index, person in
-                            if index > 0 { Divider().padding(.leading, 56) }
+                            if index > 0 { Divider().padding(.leading, dynamicTypeSize.isAccessibilitySize ? HV.Space.m : 56) }
                             personRow(person, list: list)
                         }
                     }
@@ -256,25 +255,55 @@ struct ArtifactShareSheet: View {
     }
 
     private func personRow(_ person: ArtifactSharePerson, list: ArtifactShareList) -> some View {
-        HStack(spacing: HV.Space.s) {
-            HVAvatar(name: person.name, size: 32)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(person.name).font(.hvBody).lineLimit(1)
-                Text(list.effectiveRole(of: person).title)
-                    .font(.hvFootnote)
-                    .foregroundStyle(Palette.textSecondary)
+        personRowContent(person, role: list.effectiveRole(of: person))
+            .padding(.horizontal, HV.Space.m)
+            .padding(.vertical, HV.Space.s)
+            .accessibilityElement(children: .combine)
+            .accessibilityAction(named: "Remove") { removing = person }
+    }
+
+    /// Beside each other while there is room. At an accessibility size the avatar, the whole address, the role and
+    /// the Remove button sit one under the other, so the address is not cut to a few letters and Remove is not
+    /// broken in two ("Re-" "move").
+    @ViewBuilder
+    private func personRowContent(_ person: ArtifactSharePerson, role: ArtifactShareRole) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: HV.Space.xs) {
+                HVAvatar(name: person.name, size: min(avatar, 56))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(person.name).font(.hvBody)
+                    Text(role.title)
+                        .font(.hvFootnote)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                removeButton(person)
+                    // The button's own padding would set the word in from the address above it.
+                    .padding(.leading, -HV.Space.s)
             }
-            Spacer(minLength: HV.Space.xs)
-            // A removal asks first, and the ghost style draws a destructive role in the danger colour.
-            Button(LibraryCopy.shareRemove, role: .destructive) { removing = person }
-                .buttonStyle(.hvGhost)
-                .disabled(model.pending)
-                .accessibilityLabel("Remove \(person.name)")
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            HStack(spacing: HV.Space.s) {
+                HVAvatar(name: person.name, size: 32)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(person.name).font(.hvBody).lineLimit(1)
+                    Text(role.title)
+                        .font(.hvFootnote)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                Spacer(minLength: HV.Space.xs)
+                removeButton(person)
+            }
         }
-        .padding(.horizontal, HV.Space.m)
-        .padding(.vertical, HV.Space.s)
-        .accessibilityElement(children: .combine)
-        .accessibilityAction(named: "Remove") { removing = person }
+    }
+
+    /// A removal asks first, and the ghost style draws a destructive role in the danger colour.
+    private func removeButton(_ person: ArtifactSharePerson) -> some View {
+        Button(LibraryCopy.shareRemove, role: .destructive) { removing = person }
+            .buttonStyle(.hvGhost)
+            .lineLimit(1)
+            .fixedSize()
+            .disabled(model.pending)
+            .accessibilityLabel("Remove \(person.name)")
     }
 
     private func add(role: ArtifactShareRole?) {

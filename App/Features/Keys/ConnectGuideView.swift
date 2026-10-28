@@ -14,7 +14,11 @@ struct ConnectGuideView: View {
     /// that the key will be lost.
     var onCopySecret: (() -> Void)?
 
-    @State private var notesOverride: Bool?
+    /// Whether the notes were opened or closed by hand, and if so to which. Two plain values, not an optional one: a Release
+    /// build with Xcode 26.6 crashed the compiler (a SIL verification error while optimizing `notesSection`) on an optional
+    /// assigned inside the animation closure below.
+    @State private var notesToggled = false
+    @State private var notesToggledOpen = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.l) {
@@ -147,10 +151,10 @@ struct ConnectGuideView: View {
     /// Open for the entries whose notes decide whether the setup works at all. Not a DisclosureGroup: its
     /// chevron is drawn bold in the primary colour, heavier than every other disclosure mark in the app.
     private var notesSection: some View {
-        let isOpen = notesOverride ?? (!info.verified || info.keyInUrl)
+        let isOpen = notesToggled ? notesToggledOpen : (!info.verified || info.keyInUrl)
         return VStack(alignment: .leading, spacing: HV.Space.xs) {
             Button {
-                HV.Motion.animate { notesOverride = !isOpen }
+                toggleNotes(wasOpen: isOpen)
             } label: {
                 HStack {
                     sectionTitle(ConnectCopy.notesHeading)
@@ -179,6 +183,16 @@ struct ConnectGuideView: View {
             }
         }
         .hvCard()
+    }
+
+    /// A method of its own, kept out of the view builder's code: the animation closure sits in a function the optimizer takes
+    /// on its own.
+    @inline(never)
+    private func toggleNotes(wasOpen: Bool) {
+        HV.Motion.animate {
+            notesToggledOpen = !wasOpen
+            notesToggled = true
+        }
     }
 
     private var sourcesSection: some View {

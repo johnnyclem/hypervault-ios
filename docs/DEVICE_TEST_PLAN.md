@@ -98,10 +98,11 @@ ChatGPT export zip), Domain, and Appearance (the website's theme: choose one and
 A simulator and a unit test cannot show how these look or behave at the edges, and a person who built the tabs has not seen
 them on glass (handoff 2.3, 4.1, 9):
 
-- **The tab bar.** Four tabs, Home, Chat, Memory and You, in that order, with house, bubble, brain and person symbols. The
-  one that is showing is in the sky-blue accent, the others are quiet; the bar floats over the content with the system's
-  glass, and a list scrolled under it is readable through it. Check it with Reduce Transparency on and with the text size
-  at the largest accessibility size (the labels must not be cut off).
+- **The tab bar.** Four tabs, Home, Chat, Memory and You, in that order, with house, bubble, the connected-points
+  memory symbol, and a person in a circle. The one that is showing is the page's own text in the dark look and primary
+  blue in the light look; the others are quiet. The bar floats over the content with the system's glass, and a list
+  scrolled under it is readable through it. Check both looks, with Reduce Transparency on, and with the text size at
+  the largest accessibility size (the labels must not be cut off).
 - **The You tab on a phone is one stack.** It opens on the Vault with the list of seven panes one step back (the back
   button reads "You"). Open every pane from the list in turn, going back each time: General (Email, Plan, Sign out, and
   "On this phone"), Vault, Agent keys, Models, Domain, Appearance, Import. Each must load its content (the plan line

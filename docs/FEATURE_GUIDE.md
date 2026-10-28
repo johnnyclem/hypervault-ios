@@ -168,15 +168,14 @@ fonts. `Palette` (colour), `Font.hv*` (type, all Dynamic Type), `HV.Space` /
 `.hvSecondary`, `.hvGhost`), `.hvFieldChrome()` for inputs, `.hvGlass()` only for
 floating chrome (a composer, a legend, a bar of icons), never for lists or a pinned action bar. Lists are plain paper.
 
-- The look is the web's stock look, and it is dark only (handoff 2.2): Info.plist declares
-  `UIUserInterfaceStyle = Dark`, `Palette` is one value per member, and no view branches on the colour scheme. There is
-  no light palette, no Appearance setting and no accent picker; the one accent is the web's `primary` (the root
-  `.tint(HVColor.primary)` and the `AccentColor` asset), and the selected tab takes `accent` through
-  `UITabBarAppearance` (`HVTabBarStyle`), never a background, so the bar stays Liquid Glass. A light look later means
-  filling each colour set's Any slot and dropping the Info.plist key.
-- Colours are the web's tokens. `docs/brand/tokens.json` (a copy of the web repo's file) is turned into
-  `Shared/DesignSystem/Colors.xcassets` (one single-appearance colour set per token, named for it, in a catalog under
-  `Shared/` so the Share extension and the widgets get it too) and `HVTokens.generated.swift` by
+- The look follows the system. Dark is the web's stock tokens; light is the same roles with the values in the iOS
+  guides. There is no appearance picker. The one accent is the web's `primary` (the root `.tint(HVColor.primary)` and
+  the `AccentColor` asset). The selected tab is the page's own text in the dark look and `primary` in the light look,
+  set through `UITabBarAppearance` (`HVTabBarStyle`) with no background of its own, so the bar stays Liquid Glass.
+  A UI-test launch pins dark.
+- Colours are the web's tokens plus that light mirror. `docs/brand/tokens.json` (a copy of the web repo's file) is
+  turned into `Shared/DesignSystem/Colors.xcassets` (one colour set per token, with an Any slot that repeats the dark value, plus a dark slot and a light slot, in a catalog
+  under `Shared/` so the Share extension and the widgets get it too) and `HVTokens.generated.swift` by
   `scripts/gen_tokens.py` (`make tokens`). `HVColor` loads them by name (`HVColor.mutedForeground`), `Palette` is
   built from `HVColor`, and a colour that is not a token is a decision, not a convenience. Take a new copy of
   tokens.json when the web changes, run `make tokens`, and commit what it writes; CI's `tokens` job and
@@ -187,6 +186,8 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   the exceptions (white on `primary` is 3.68:1, so a label on the flat primary fill is bold; `primary` and
   `destructive` as text on raised paper fall under 4.5, so tinted text there uses `accent`; `primary` text on its own 12
   to 14% tint is 4.08:1 on paper, so small text on a `primary` tint, such as the step numbers, is `accent` too).
+  The light look records its own lows in the same test (`primary` on muted, `destructive` on the page and on muted,
+  `amber-400` on muted). White on the light primary, destructive, and accent fills stays at or above 4.5:1.
 - Shapes, type and borders are the web's (handoff 2.4 and 2.5). Corner radii are named for their role in `HV.Radius`
   (`control` 8 for buttons and inputs, `card` 16, `surface` 20, `brandTile` 5), always `.continuous`. Type is the system
   face; no `design: .rounded` anywhere, and monospace only for what is typed or matched (`hvMono`) and for code
@@ -271,7 +272,7 @@ which stands the screen up on canned routes:
 ```
 
 And one snapshot test per main screen in `Tests/AppTests/<Feature>SnapshotTests.swift`
-(see `OnboardingSnapshotTests.swift`). CI renders them in the dark (the app's only look) and
+(see `OnboardingSnapshotTests.swift`). CI renders them in the dark (the published proof of the stock look) and
 publishes the PNGs to a `snapshots-<branch>` branch, which is how a screen is
 looked at before anyone opens Xcode.
 
@@ -338,10 +339,10 @@ update after a write), fix the app, not the journey. A write journey that fails 
 **The layout sweep.** `LayoutSweepTests` and `LayoutSweepScreensTests` launch the app dark and at the
 largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the You panes
 and the Account menu open (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
-anything drawn off the screen) beside it. The app is dark whatever the phone is set to (Info.plist declares it), so the
+anything drawn off the screen) beside it. A UI-test launch pins the dark look, so the
 dark sweep takes no launch argument. So that a sweep of the dark never looks at light screens, each dark screenshot is
 first checked: the brightness of a strip down the left edge of the picture, which is the page's own background on every
-screen, must be low; it is what proves the declaration reaches every screen.
+screen, must be low; it is what proves the pin reaches every screen.
 The large text size is the system's own `-UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityXXXL`. Beyond
 that the sweep asserts only that the screen's key control can be tapped (a row is scrolled until its middle is clear of the
 tab bar first). The point is to look: fetch `ui-snapshots-<branch>` after a run and read the screenshots. A new screen belongs
@@ -376,7 +377,7 @@ queries per step, or a journey that takes seconds on a laptop takes minutes on C
 - Every behaviour the web has for the feature that makes sense on a phone is
   there; what is deliberately left out is listed in the feature's README note.
 - Kit tests pass (`cd Packages/HyperVaultKit && swift test`), the app builds and
-  its tests pass in CI, snapshots look right in the dark.
+  its tests pass in CI, snapshots look right in the dark (the published proof).
 - No hard-coded colours, no force-unwraps of server data, no secrets in logs,
   every list has its loading, empty and error states.
 - A new tab, sheet or main control can be reached in a journey (an identifier, and a step if it is a new place).

@@ -137,7 +137,7 @@ Four layers, each catching what the one below cannot see:
 
 - **The Kit's unit tests** (`make test-kit`, Linux and macOS): the API client, auth, every model and rule.
 - **The app's unit tests** (`make test-unit`): screen state machines, link parsing, the sign-in and access phases.
-- **Snapshot renders**: every screen drawn to PNGs in the dark, which is the only look the app has, published by CI.
+- **Snapshot renders**: every screen drawn to PNGs in the dark (the published proof; the app also follows the light look), published by CI.
 - **UI tests** (`make test-ui`, the `HyperVaultUITests` target): the whole app launched on a simulator and driven
   through its main journeys with taps and typing, so a crash on launch, a broken navigation stack, a sheet that never
   presents or a control nothing can reach fails CI.
@@ -233,9 +233,9 @@ server change if you want the app to do more:
 - **Payment is on the web.** Upgrading opens the web page; there is no In-App Purchase, and General shows the plan
   with no price and no Upgrade button.
 - **The Appearance pane is the website's theme.** It reads `profiles.theme` and sets it with `PATCH /api/dashboard-theme`;
-  it says so, and the app itself keeps one look.
-- **The web's 38 style themes** are CSS looks for web pages and are not ported; the app
-  has the web's stock look, which is dark only, with one accent (the web's `primary`).
+  it says so. Changing it restyles the website. This app follows the system: the dark look is the web's stock tokens, and the light look is the same roles.
+- **The web's 38 style themes** are CSS looks for web pages and are not ported. The app keeps that one stock hierarchy
+  in both appearances, with one accent (the web's `primary`).
 - **Models on your own network** (Ollama, LM Studio) are called by the phone directly,
   because the server refuses private addresses. They stream, take no tools and need the
   local network permission.

@@ -191,14 +191,17 @@ struct HVGlassModifier<S: InsettableShape>: ViewModifier {
 struct HVIconBadge: View {
     let symbol: String
     var tint: Color = Palette.blue
-    var size: CGFloat = 36
+    /// 40pt is the kind tile (iconography guide): corners are a quarter of the side.
+    var size: CGFloat = 40
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Image(systemName: symbol)
             .font(.system(size: size * 0.46, weight: .semibold))
             .foregroundStyle(tint)
             .frame(width: size, height: size)
-            .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: size * 0.3, style: .continuous))
+            // 16% of the tint in the dark look, 12% in the light look.
+            .background(tint.opacity(colorScheme == .light ? 0.12 : 0.16), in: RoundedRectangle(cornerRadius: size * 0.25, style: .continuous))
             .accessibilityHidden(true)
     }
 }

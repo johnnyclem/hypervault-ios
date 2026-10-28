@@ -1,5 +1,6 @@
 import XCTest
 import HyperVaultKit
+import UIKit
 @testable import HyperVault
 
 final class DeepLinkTests: XCTestCase {
@@ -193,7 +194,7 @@ final class DeepLinkTests: XCTestCase {
 
     @MainActor
     func testAnAccountLinkBringsThePaneForwardFromItsFirstScreen() {
-        let router = AppRouter()
+        let router = AppRouter(youIsStack: true)
         router.push(.artifact(slug: "x"), on: .you)
         router.open(.account(.keys))
         XCTAssertEqual(router.tab, .you)
@@ -205,21 +206,43 @@ final class DeepLinkTests: XCTestCase {
     }
 
     @MainActor
-    func testBesideTheListThePaneIsTheRootAndNotOnThePath() {
-        let router = AppRouter()
+    func testAStacksPathStartsWithThePane() {
+        let router = AppRouter(youIsStack: true)
         XCTAssertEqual(router.path(for: .you).wrappedValue.count, 1, "a phone's stack opens on the vault")
-        router.youLayout(isStack: false)
-        XCTAssertEqual(router.path(for: .you).wrappedValue.count, 0)
-        router.push(.artifact(slug: "x"), on: .you)
         router.open(.account(.domain))
         XCTAssertEqual(router.accountPane, .domain)
-        XCTAssertEqual(router.path(for: .you).wrappedValue.count, 0, "the pane starts from its first screen")
-        router.youLayout(isStack: true)
-        XCTAssertEqual(router.accountPane, .domain, "the pane stays when the layout changes")
         XCTAssertEqual(router.path(for: .you).wrappedValue.count, 1)
         router.reset()
         XCTAssertEqual(router.accountPane, .vault)
         XCTAssertEqual(router.path(for: .you).wrappedValue.count, 1)
+    }
+
+    @MainActor
+    func testBesideTheListThePaneIsTheRootAndNotOnThePath() {
+        let router = AppRouter(youIsStack: false)
+        XCTAssertEqual(router.path(for: .you).wrappedValue.count, 0, "beside the list the pane is the root")
+        router.push(.artifact(slug: "x"), on: .you)
+        XCTAssertEqual(router.path(for: .you).wrappedValue.count, 1)
+        router.open(.account(.domain))
+        XCTAssertEqual(router.accountPane, .domain)
+        XCTAssertEqual(router.path(for: .you).wrappedValue.count, 0, "the pane starts from its first screen")
+        router.reset()
+        XCTAssertEqual(router.accountPane, .vault)
+        XCTAssertEqual(router.path(for: .you).wrappedValue.count, 0)
+    }
+
+    @MainActor
+    func testTheLayoutIsTheDevicesAndNotTheWindows() {
+        // A phone is a stack and an iPad is a list beside the pane; nothing else changes it afterwards.
+        let router = AppRouter()
+        let isPad = UIDevice.current.userInterfaceIdiom == .pad
+        XCTAssertEqual(router.youIsStack, !isPad)
+        router.open(.account(.keys))
+        router.push(.artifact(slug: "x"), on: .you)
+        let pushed = router.path(for: .you).wrappedValue.count
+        router.open(.tab(.you))
+        XCTAssertEqual(router.youIsStack, !isPad)
+        XCTAssertEqual(router.path(for: .you).wrappedValue.count, pushed, "a link to the You tab itself leaves it as it is")
     }
 
     @MainActor
@@ -237,6 +260,104 @@ final class DeepLinkTests: XCTestCase {
         router.open(.groupChats)
         XCTAssertEqual(router.tab, .chat)
         XCTAssertTrue(router.groupChats)
+    }
+
+    // MARK: A link that names no route still starts its tab from the first screen
+
+    @MainActor
+    func testTheKeepAndYoursLinksAndAHomeLinkShowHomeFromItsFirstScreen() {
+        let router = AppRouter()
+        for link in [DeepLink.keep(prefill: nil), .keep(prefill: "a thought"), .yours, .tab(.canvas)] {
+            router.push(.artifact(slug: "x"), on: .canvas)
+            router.tab = .memory
+            router.open(link)
+            XCTAssertEqual(router.tab, .canvas, "\(link)")
+            XCTAssertEqual(router.path(for: .canvas).wrappedValue.count, 0, "Home shows its first screen for \(link)")
+        }
+        XCTAssertEqual(router.canvasDraft, "a thought", "the text is waiting for the canvas")
+    }
+
+    @MainActor
+    func testTheGroupChatsLinkShowsChatFromItsFirstScreen() {
+        let router = AppRouter()
+        router.push(.conversation(id: "c1"), on: .chat)
+        router.push(.tools, on: .chat)
+        router.open(.groupChats)
+        XCTAssertEqual(router.tab, .chat)
+        XCTAssertTrue(router.groupChats)
+        XCTAssertEqual(router.path(for: .chat).wrappedValue.count, 0, "the list shows, not the conversation left open")
+    }
+
+    @MainActor
+    func testAChatOrMemoryLinkShowsItsTabFromItsFirstScreen() {
+        let router = AppRouter()
+        router.push(.importHistory, on: .chat)
+        router.push(.dreams, on: .memory)
+        router.open(.tab(.chat))
+        XCTAssertEqual(router.path(for: .chat).wrappedValue.count, 0, "Import, pushed on Chat, is closed: Open Chat lands on the list")
+        XCTAssertEqual(router.path(for: .memory).wrappedValue.count, 1, "only the tab the link names is started over")
+        router.open(.tab(.memory))
+        XCTAssertEqual(router.path(for: .memory).wrappedValue.count, 0)
+    }
+
+    @MainActor
+    func testALinkToARouteStillStartsFromTheRootOfItsTabAndLeavesTheOthersAlone() {
+        let router = AppRouter()
+        router.push(.artifact(slug: "a"), on: .canvas)
+        router.push(.conversation(id: "c1"), on: .chat)
+        router.open(.route(.conversation(id: "c2")))
+        XCTAssertEqual(router.tab, .chat)
+        XCTAssertEqual(router.path(for: .chat).wrappedValue.count, 1)
+        XCTAssertEqual(router.path(for: .canvas).wrappedValue.count, 1)
+    }
+
+    // MARK: A link and a sheet
+
+    @MainActor
+    func testALinkClosesTheSheetOverTheTabs() {
+        for link in [DeepLink.route(.artifact(slug: "x")), .tab(.chat), .account(.keys), .groupChats, .keep(prefill: nil)] {
+            let router = AppRouter()
+            router.sheet = .account
+            router.open(link)
+            XCTAssertNil(router.sheet, "\(link)")
+        }
+    }
+
+    @MainActor
+    func testALinkThatPresentsASheetKeepsItsOwn() {
+        let router = AppRouter()
+        router.sheet = .account
+        router.open(.pair(code: "ABCD-EFGH"))
+        XCTAssertEqual(router.sheet, .pair(code: "ABCD-EFGH"))
+        router.open(.invite(code: nil))
+        XCTAssertEqual(router.sheet, .invite(code: nil))
+    }
+
+    @MainActor
+    func testTheYoursPanelWaitsForTheSheetThatWasUpToGo() {
+        let router = AppRouter()
+        router.sheet = .account
+        router.open(.yours)
+        XCTAssertNil(router.sheet)
+        XCTAssertFalse(router.yoursPanel, "it would not present over a sheet that is still going")
+        router.sheetDidDismiss()
+        XCTAssertTrue(router.yoursPanel)
+
+        // Nothing waits when there was no sheet, and a sheet that goes later asks for nothing.
+        let free = AppRouter()
+        free.open(.yours)
+        XCTAssertTrue(free.yoursPanel)
+        free.yoursPanel = false
+        free.sheetDidDismiss()
+        XCTAssertFalse(free.yoursPanel)
+
+        // Starting over forgets what was waiting.
+        let waiting = AppRouter()
+        waiting.sheet = .account
+        waiting.open(.yours)
+        waiting.reset()
+        waiting.sheetDidDismiss()
+        XCTAssertFalse(waiting.yoursPanel)
     }
 
     @MainActor

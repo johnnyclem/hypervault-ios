@@ -16,8 +16,11 @@ final class YouTabSnapshotTests: XCTestCase {
     }
 
     func testTheYouTabWhereBothColumnsShow() throws {
+        // The iPad's layout is the device's, not the window's: it is asked for here, as a simulator of a phone has the other.
         try snapshot(
-            PreviewHost(routes: tabRoutes, capabilities: RealmsPreviewData.capabilities, embedInNavigation: false) { YouTabView() },
+            PreviewHost(routes: tabRoutes, capabilities: RealmsPreviewData.capabilities, embedInNavigation: false, youIsStack: false) {
+                YouTabView()
+            },
             named: "you-tab-wide", size: CGSize(width: 1180, height: 820)
         )
     }

@@ -42,7 +42,7 @@ struct MainTabView: View {
                 await env.flushOutbox(toasts: model.toasts)
             }
         }
-        .sheet(item: $router.sheet) { sheet in
+        .sheet(item: $router.sheet, onDismiss: { router.sheetDidDismiss() }) { sheet in
             switch sheet {
             case .pair(let code):
                 PairingPageSheet(code: code)

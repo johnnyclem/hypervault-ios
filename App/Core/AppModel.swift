@@ -52,7 +52,7 @@ final class AppModel {
     private(set) var server: ServerConfig
 
     let toasts = ToastCenter()
-    let router = AppRouter()
+    let router: AppRouter
     let lock = AppLock()
     /// Puts the lock screen and the app-switcher shield in a window above every sheet.
     let privacy: PrivacyCoverController
@@ -81,8 +81,10 @@ final class AppModel {
         server: ServerConfig = SharedConfig.server,
         transport: HTTPTransport = URLSessionTransport(),
         cacheDirectory: URL = AppModel.cacheDirectory(),
-        installMarker: InstallMarker = InstallMarker()
+        installMarker: InstallMarker = InstallMarker(),
+        router: AppRouter? = nil
     ) {
+        self.router = router ?? AppRouter()
         self.secureStore = secureStore
         self.server = server
         self.transport = transport

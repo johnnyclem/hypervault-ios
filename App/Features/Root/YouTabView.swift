@@ -2,43 +2,50 @@ import HyperVaultKit
 import SwiftUI
 
 /// The fourth tab: the web's You page, `/vault/account`. A list of seven panes and the pane that is open, in the web's
-/// order. On a phone it is one stack that opens on the vault, with the list one step back; where there is the width (an
-/// iPad) the list and the pane show side by side.
+/// order. On a phone it is one stack that opens on the vault, with the list one step back; on an iPad the list and the
+/// pane show side by side.
+///
+/// Which of the two is decided once, by the kind of device (`AppRouter.youIsStack`), and not by the width the window has
+/// at the moment. Swapping one for the other when a window is resized would tear the pane down with whatever it holds
+/// (a sheet, typed values, a key that is shown once); the split view narrows to a stack by itself instead, and keeps the
+/// pane.
 ///
 /// The stack is the one every `Route` pushes onto, as in the other tabs, and the pane is the first thing on it. A split
 /// view cannot sit inside a navigation stack, so beside the list the stack is the one inside the pane's column, and it
 /// starts from the pane.
 struct YouTabView: View {
     @Environment(AppModel.self) private var model
-    @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// Which column shows when the split view is narrowed to one (Slide Over, a thin Split View): the pane, as on a phone,
+    /// until the person goes back to the list.
+    @State private var compactColumn: NavigationSplitViewColumn = .detail
 
     var body: some View {
         let router = model.router
         let open = router.accountPane
-        let besideTheList = sizeClass == .regular
-        Group {
-            if besideTheList {
-                NavigationSplitView {
-                    list(open: open, router: router, besideThePane: true)
-                } detail: {
-                    NavigationStack(path: router.path(for: .you)) {
-                        AccountPaneView(pane: open)
-                            // Each pane is its own screen: a pane is not the same view with other content, and what it
-                            // had loaded or pushed is not the next one's.
-                            .id(open)
-                            .navigationDestination(for: AccountPane.self) { AccountPaneView(pane: $0) }
-                            .navigationDestination(for: Route.self) { RouteDestination(route: $0) }
-                    }
-                }
-            } else {
+        if router.youIsStack {
+            NavigationStack(path: router.path(for: .you)) {
+                list(open: open, router: router, besideThePane: false)
+                    .navigationDestination(for: AccountPane.self) { AccountPaneView(pane: $0) }
+                    .navigationDestination(for: Route.self) { RouteDestination(route: $0) }
+            }
+        } else {
+            NavigationSplitView(preferredCompactColumn: $compactColumn) {
+                list(open: open, router: router, besideThePane: true)
+            } detail: {
                 NavigationStack(path: router.path(for: .you)) {
-                    list(open: open, router: router, besideThePane: false)
+                    AccountPaneView(pane: open)
+                        // Each pane is its own screen: a pane is not the same view with other content, and what it
+                        // had loaded or pushed is not the next one's.
+                        .id(open)
                         .navigationDestination(for: AccountPane.self) { AccountPaneView(pane: $0) }
                         .navigationDestination(for: Route.self) { RouteDestination(route: $0) }
                 }
             }
+            // A link can bring a pane forward too, and where the window is narrow it is the pane that has to show.
+            .onChange(of: open) { _, _ in compactColumn = .detail }
         }
-        .onChange(of: besideTheList, initial: true) { _, beside in router.youLayout(isStack: !beside) }
     }
 
     /// The panes, as buttons: a pane is chosen even when it is the one that is open, and the router makes the stack
@@ -47,14 +54,22 @@ struct YouTabView: View {
         List {
             ForEach(AccountPane.allCases) { pane in
                 let isOpen = pane == open
+                let marked = isOpen && besideThePane
                 Button {
                     router.showPane(pane)
+                    compactColumn = .detail
                 } label: {
                     HStack(spacing: HV.Space.xs) {
-                        Label(pane.label, systemImage: pane.symbol)
+                        paneLabel(pane)
+                            .fontWeight(marked ? .semibold : nil)
                             .foregroundStyle(Palette.textPrimary)
                         Spacer(minLength: HV.Space.xs)
-                        if !besideThePane {
+                        if marked {
+                            // Not the fill alone: the raised paper is 1.1:1 against the list's.
+                            HVIcon(HVSymbol.selected)
+                                .font(.hvCaption.weight(.bold))
+                                .foregroundStyle(Palette.sky)
+                        } else if !besideThePane, !dynamicTypeSize.isAccessibilitySize {
                             HVIcon(HVSymbol.open)
                                 .font(.hvCaption.weight(.semibold))
                                 .foregroundStyle(Palette.textTertiary)
@@ -65,15 +80,29 @@ struct YouTabView: View {
                 }
                 .buttonStyle(.plain)
                 // The pane that is open stands out where it is beside the list; on a phone the list is a step away from it.
-                .listRowBackground(isOpen && besideThePane ? Palette.surfaceRaised : Palette.surface)
+                .listRowBackground(marked ? Palette.surfaceRaised : Palette.surface)
                 .listRowSeparatorTint(Palette.hairline)
-                .accessibilityAddTraits(isOpen && besideThePane ? .isSelected : [])
+                .accessibilityAddTraits(marked ? .isSelected : [])
                 .accessibilityIdentifier("you.pane.\(pane.rawValue)")
             }
         }
         .scrollContentBackground(.hidden)
         .hvScreenBackground()
         .navigationTitle(AppTab.you.title)
+    }
+
+    /// A pane's symbol and name. At an accessibility text size the symbol goes above the name and the chevron is left
+    /// off, so the name has the row's whole width and is not broken in the middle of a word.
+    @ViewBuilder
+    private func paneLabel(_ pane: AccountPane) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: HV.Space.xs) {
+                HVIcon(pane.symbol)
+                Text(pane.label)
+            }
+        } else {
+            Label(pane.label, systemImage: pane.symbol)
+        }
     }
 }
 

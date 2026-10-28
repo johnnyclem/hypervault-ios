@@ -432,10 +432,17 @@ struct ChatGroundingView: View {
 
 /// A run of tool steps, folded into one line that opens into the transcript.
 struct ChatToolGroupView: View {
-    let rows: [ChatThreadRow]
+    let steps: [ChatToolTurn]
     @State private var open = false
 
-    private var steps: [ChatToolTurn] { rows.compactMap(\.toolTurn) }
+    init(rows: [ChatThreadRow]) {
+        steps = rows.compactMap(\.toolTurn)
+    }
+
+    init(steps: [ChatToolTurn]) {
+        self.steps = steps
+    }
+
     private var failures: Int { steps.filter { !$0.ok }.count }
 
     var body: some View {

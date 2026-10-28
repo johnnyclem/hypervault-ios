@@ -520,6 +520,62 @@ final class MemoryTests: XCTestCase {
         XCTAssertNil(bodies[3]["recall_branch"])
     }
 
+    func testAnAnswerCarriesItsReplyIdTheLedgerTheGraphAndTheToolSteps() async throws {
+        let reply = #"""
+        {"conversation_id":"conv-1","reply":{"id":"msg-9","role":"assistant","content":"The ferry leaves at nine.","model":"gpt-x","truncated":false},
+         "recalled":2,"recalled_memories":["Ferry times"],"recall_branch":"main",
+         "deep_memory":["Passports","Lisbon trip"],
+         "truth":{"cited":2,"contested":1,"flags":0,"drafted":0,"ledgers":["main"]},
+         "tools":{"status":"ok","toolkit_id":"tk1","turns":[{"intent":"look up the ferry","tool":"ferries.lookup","ok":true,"confidence":0.92,"tier":"high","preview":"Friday 09:00"}]}}
+        """#
+        let (api, _) = client([.json(.post, "/api/chat", reply)])
+        let answer = try await api.send(.memoryAsk(backendId: "b1", message: "When is the ferry?"))
+        XCTAssertEqual(answer.messageId, "msg-9", "a thumb is saved against the reply's own id")
+        XCTAssertEqual(answer.deepMemory, ["Passports", "Lisbon trip"])
+        XCTAssertEqual(answer.truth?.footnote, "Cited 2 ledger entries, 1 contested")
+        XCTAssertEqual(answer.tools.status, .ok)
+        XCTAssertEqual(answer.tools.toolkitId, "tk1", "the tool block is read as a chat turn reads it")
+        XCTAssertEqual(answer.tools.turns.map(\.summary), ["\u{201C}look up the ferry\u{201D} \u{2192} ferries.lookup"])
+        XCTAssertEqual(answer.tools.turns.first?.tierLabel, "high 92%")
+        XCTAssertEqual(answer.grounding.deepMemory, ["Passports", "Lisbon trip"])
+        XCTAssertEqual(answer.grounding.truth?.cited, 2)
+        XCTAssertTrue(answer.grounding.memories.isEmpty, "the memories are the sources the screen lists, not chips under the answer")
+    }
+
+    func testAnAnswerWithNoneOfThatIsPlain() async throws {
+        let reply = #"{"conversation_id":"conv-1","reply":{"content":"Passkeys."},"recalled_memories":["Auth decision"]}"#
+        let (api, _) = client([.json(.post, "/api/chat", reply)])
+        let answer = try await api.send(.memoryAsk(backendId: "b1", message: "What did I decide about auth?"))
+        XCTAssertEqual(answer.text, "Passkeys.")
+        XCTAssertNil(answer.messageId)
+        XCTAssertEqual(answer.deepMemory, [])
+        XCTAssertNil(answer.truth)
+        XCTAssertEqual(answer.tools, .off)
+        XCTAssertTrue(answer.grounding.isEmpty)
+    }
+
+    func testAnAnswerIsNotLostToAFieldItOnlyDecoratesWith() async throws {
+        let reply = #"{"conversation_id":"conv-1","reply":{"id":"m","content":"Passkeys."},"deep_memory":"not a list","truth":[1,2],"tools":"on"}"#
+        let (api, _) = client([.json(.post, "/api/chat", reply)])
+        let answer = try await api.send(.memoryAsk(backendId: "b1", message: "What did I decide about auth?"))
+        XCTAssertEqual(answer.text, "Passkeys.")
+        XCTAssertEqual(answer.deepMemory, [])
+        XCTAssertNil(answer.truth)
+        XCTAssertEqual(answer.tools, .off)
+    }
+
+    func testToolsAreOnForAnAskUnlessTheyAreSwitchedOff() async throws {
+        let reply = #"{"conversation_id":"conv-1","reply":{"id":"m","content":"Ferries run hourly."},"recalled_memories":[]}"#
+        let (api, transport) = client([.json(.post, "/api/chat", reply)])
+        _ = try await api.send(.memoryAsk(backendId: "b1", message: "With tools by default"))
+        _ = try await api.send(.memoryAsk(backendId: "b1", message: "With tools off", useTools: false))
+        let sent = try await transport.requests.map { try XCTUnwrap($0.httpBody) }
+        let bodies = try sent.map { try XCTUnwrap(JSONSerialization.jsonObject(with: $0) as? [String: Any]) }
+        XCTAssertNil(bodies[0]["use_tools"], "the route lets the model use tools unless it is told not to")
+        XCTAssertEqual(bodies[1]["use_tools"] as? Bool, false)
+        XCTAssertEqual(bodies[1]["use_recall"] as? Bool, true, "switching tools off leaves recall on")
+    }
+
     func testRecallAndListEndpointsCarryTheBranch() async throws {
         let (api, transport) = client([
             .json(.get, "/api/memories", #"{"query":"q","branch":"ideas","recall_mode":"lexical","results":[],"message":""}"#),

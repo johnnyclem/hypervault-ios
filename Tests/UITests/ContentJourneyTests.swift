@@ -33,6 +33,16 @@ final class ContentJourneyTests: HyperVaultUITestCase {
             require(shows("Drew from"), "the list of sources")
             require(shows("Trip to Lisbon: ferry and passports"), "the memory the answer drew from")
         }
+
+        step("The answer says what else it leaned on and can be kept, copied and read aloud") {
+            require(shows("Cited 2 ledger entries, 1 contested"), "the truth footnote under the answer")
+            require(shows("Lisbon trip"), "the conversation-graph chip under the answer")
+            reveal(button("Keep this answer"), "Keep on the answer")
+            require(button("Copy answer"), "Copy on the answer")
+            require(button("Read aloud"), "Read aloud on the answer")
+            tap(button("Keep this answer"), "Keep this answer", until: { self.text("Kept. Here's the link.").exists })
+            require(text("Kept. Here's the link."), "what Keep made of the answer")
+        }
     }
 
     func testAConversationOpensAndTakesAMessage() {

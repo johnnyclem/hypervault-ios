@@ -1029,9 +1029,23 @@ public struct MemoryAnswer: Sendable, Equatable {
     public let truncated: Bool
     /// Titles of the memories the model was handed.
     public let recalled: [String]
+    /// The saved reply's id, which a thumb needs. Nil when the server did not say.
+    public let messageId: String?
+    /// Labels from the conversation graph; empty when deep memory was off.
+    public let deepMemory: [String]
+    /// How the truth ledger grounded the answer; nil when it was off.
+    public let truth: ChatTruthSummary?
+    /// The tool steps the model took on the way, when the person has tools and they were on.
+    public let tools: ChatToolsReport
+
+    /// What the answer leaned on besides the memories shown as its sources: the conversation graph and the ledger.
+    public var grounding: ChatGrounding { ChatGrounding(deepMemory: deepMemory, truth: truth) }
 }
 
 extension MemoryAnswer: Decodable {
+    /// Read with `.verbatim` keys, as a chat turn is: the tool steps are one of the chat's own types, which name their
+    /// keys as the server writes them. What a chat turn carries beyond the reply is read leniently, so an answer is
+    /// never lost to a field this screen only decorates with.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Keys.self)
         conversationId = try c.decodeIfPresent(String.self, forKey: .conversationId) ?? ""
@@ -1039,12 +1053,20 @@ extension MemoryAnswer: Decodable {
         text = reply?.content ?? ""
         model = reply?.model
         truncated = reply?.truncated ?? false
+        messageId = reply?.id
         recalled = try c.decodeIfPresent([String].self, forKey: .recalledMemories) ?? []
+        deepMemory = (try? c.decodeIfPresent([String].self, forKey: .deepMemory)) ?? []
+        truth = try? c.decodeIfPresent(ChatTruthSummary.self, forKey: .truth)
+        tools = (try? c.decodeIfPresent(ChatToolsReport.self, forKey: .tools)) ?? .off
     }
 
-    enum Keys: String, CodingKey { case conversationId, reply, recalledMemories }
+    enum Keys: String, CodingKey {
+        case conversationId = "conversation_id", reply
+        case recalledMemories = "recalled_memories", deepMemory = "deep_memory", truth, tools
+    }
 
     private struct Reply: Decodable {
+        let id: String?
         let content: String?
         let model: String?
         let truncated: Bool?
@@ -1127,9 +1149,10 @@ extension Endpoint where Response == MemoryConnected {
 
 extension Endpoint where Response == MemoryAnswer {
     /// One turn of chat with wiki recall on, as the web's Ask mode sends it. `recallBranch` is the branch the
-    /// answer is written from; the route reads main when it is left out.
+    /// answer is written from; the route reads main when it is left out. `useTools` is sent only when it is false:
+    /// the route lets the model use the person's tools unless it is told not to.
     public static func memoryAsk(
-        backendId: String, message: String, conversationId: String? = nil, recallBranch: String? = nil
+        backendId: String, message: String, conversationId: String? = nil, recallBranch: String? = nil, useTools: Bool = true
     ) -> Endpoint<MemoryAnswer> {
         var body: [String: JSONValue] = [
             "backend_id": .string(backendId),
@@ -1138,7 +1161,8 @@ extension Endpoint where Response == MemoryAnswer {
         ]
         if let conversationId { body["conversation_id"] = .string(conversationId) }
         if let recallBranch, !recallBranch.isEmpty, recallBranch != MindBranchName.defaultName { body["recall_branch"] = .string(recallBranch) }
-        return Endpoint(.post, "/api/chat", body: .jsonValue(.object(body)), timeout: 120)
+        if !useTools { body["use_tools"] = .bool(false) }
+        return Endpoint(.post, "/api/chat", body: .jsonValue(.object(body)), keys: .verbatim, timeout: 120)
     }
 }
 

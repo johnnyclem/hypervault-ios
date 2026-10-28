@@ -348,7 +348,7 @@ enum UITestWorld {
         let body = request.jsonBody
         let message = body?["message"] as? String ?? ""
         let asksMemory = body?["use_recall"] as? Bool == true && body?["use_smart_context"] == nil && body?["use_tools"] == nil
-        return reply(.object([
+        var answer: [String: JSONValue] = [
             "conversation_id": .string(conversation),
             "reply": .object([
                 "id": .string("r-uitest"),
@@ -361,7 +361,15 @@ enum UITestWorld {
             "recalled": .array([]),
             "recalled_memories": .array(asksMemory ? [.string(askSource)] : []),
             "pulled": .array([]),
-        ]))
+        ]
+        if asksMemory {
+            // What the ledger and the conversation graph add to an answer, which Ask shows under it.
+            answer["truth"] = .object([
+                "cited": .int(2), "contested": .int(1), "flags": .int(0), "drafted": .int(0), "ledgers": .array([.string("main")]),
+            ])
+            answer["deep_memory"] = .array([.string("Lisbon trip")])
+        }
+        return reply(.object(answer))
     }
 
     private static var backendsJSON: String {

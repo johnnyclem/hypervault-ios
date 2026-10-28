@@ -106,9 +106,11 @@ final class LayoutSweepTests: LayoutSweepCase {
             look(mode, "welcome page \(page)", key: element("welcome.continue"), "the Continue button", dumpTree: page == 1)
             if page < 4 { tap(element("welcome.continue"), "Continue") }
         }
-        tap(element("welcome.continue"), "Get started")
+        // A tap that lands while the page is still settling is lost, and a person would tap again: each is repeated until the
+        // screen it leads to is there.
+        tap(element("welcome.continue"), "Get started", until: { element("signin.email").exists })
         look(mode, "the way in", key: element("signin.email"), "Continue with email")
-        tap(element("signin.email"), "Continue with email")
+        tap(element("signin.email"), "Continue with email", until: { element("email.send").exists })
         look(mode, "the email sheet", key: element("email.send"), "the Send me a code button")
 
         launch(.waitlisted, arguments: setting.arguments)

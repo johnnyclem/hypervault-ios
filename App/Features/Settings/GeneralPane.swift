@@ -36,10 +36,12 @@ struct GeneralPane: View {
             Section {
                 profileCard
                 LabeledContent("Email") {
+                    // The only place the address is written out: on one line at ordinary sizes, and all of it, wrapped, at
+                    // accessibility sizes, where a long address would otherwise be cut in the middle.
                     Text(env.user.email ?? "No email on file")
                         .foregroundStyle(Palette.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                        .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 1 : 0.6)
                         .truncationMode(.middle)
                 }
                 .accessibilityIdentifier("general.email")

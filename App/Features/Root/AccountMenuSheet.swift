@@ -77,7 +77,8 @@ struct AccountMenuSheet: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, HV.Space.xs)
                         .padding(.vertical, 2)
-                        .background(Palette.blue, in: Capsule())
+                        // Small white text: on the gradient it is 5.1:1 or better, and on the flat primary 3.68.
+                        .background(Palette.softGradient, in: Capsule())
                         .accessibilityLabel(AccountMenu.mailBadgeLabel(badge))
                 }
             }

@@ -22,6 +22,7 @@ struct YoursSheet: View {
 
 private struct YoursSheetContent: View {
     @Environment(AppModel.self) private var app
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var model: YoursModel
     let baseURL: URL
     let onPull: (KeptItem) -> Void
@@ -64,7 +65,8 @@ private struct YoursSheetContent: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        // Half height shows no row at accessibility text sizes, where the search and the filter fill it: open at full height.
+        .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium, .large])
         .presentationDragIndicator(.visible)
     }
 

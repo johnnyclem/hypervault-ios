@@ -126,6 +126,100 @@ final class KeysTests: XCTestCase {
         XCTAssertEqual(try HVCoding.decoder(.verbatim).decode(JSONValue.self, from: try XCTUnwrap(sent[1].httpBody)), ["id": "k1", "scopes": ["mail:read", "mail:send"]])
     }
 
+    // MARK: The address a key mails as
+
+    static let claimA = "11111111-1111-4111-8111-111111111111"
+    static let claimB = "22222222-2222-4222-8222-222222222222"
+
+    func testPinningAKeySendsOnlyTheClaimAndUnpinningSendsNull() async throws {
+        let transport = MockTransport(routes: [
+            .json(.patch, "/api/keys", #"{"key":{"id":"k1","scopes":["mail:read"],"mail_claim_id":"\#(Self.claimA)","mail_pin_cleared":false}}"#),
+        ])
+        let hv = api(transport)
+        let pinned = try await hv.send(.setAgentKeyMailAddress(id: "k1", claimId: Self.claimA))
+        XCTAssertEqual(pinned.key.mailClaimId, Self.claimA)
+        XCTAssertEqual(pinned.key.mailPinCleared, false)
+        _ = try await hv.send(.setAgentKeyMailAddress(id: "k1", claimId: nil))
+
+        let sent = await transport.requests(matching: "/api/keys")
+        XCTAssertEqual(sent.map { $0.httpMethod }, ["PATCH", "PATCH"])
+        XCTAssertEqual(
+            try HVCoding.decoder(.verbatim).decode(JSONValue.self, from: try XCTUnwrap(sent[0].httpBody)),
+            ["id": "k1", "mail_claim_id": .string(Self.claimA)],
+            "no scopes ride along: the switch and the picker are separate changes"
+        )
+        let unpin = try XCTUnwrap(sent[1].httpBody)
+        XCTAssertEqual(try HVCoding.decoder(.verbatim).decode(JSONValue.self, from: unpin), ["id": "k1", "mail_claim_id": .null])
+        XCTAssertTrue(String(decoding: unpin, as: UTF8.self).contains(#""mail_claim_id":null"#), "an explicit null, not a missing field")
+    }
+
+    func testAClaimThatIsNotTheirsIsRefused() async {
+        let transport = MockTransport(routes: [.failure(.patch, "/api/keys", status: 404, message: "That address isn't one of yours.")])
+        do {
+            _ = try await api(transport).send(.setAgentKeyMailAddress(id: "k1", claimId: Self.claimB))
+            XCTFail("expected a refusal")
+        } catch let error as HVError {
+            XCTAssertTrue(error.isNotFound)
+            XCTAssertEqual(error.userMessage, "That address isn't one of yours.")
+        } catch {
+            XCTFail("\(error)")
+        }
+    }
+
+    private func mailbox(_ id: String, claim: String?, address: String?, primary: Bool = false) -> OwnerMailbox {
+        OwnerMailbox(id: id, claimId: claim, address: address, isPrimary: primary)
+    }
+
+    func testTheChoicesAreTheMailboxesThatHaveAClaimAndAnAddress() {
+        let mailboxes = [
+            mailbox("m1", claim: Self.claimA, address: "ana@vault.cool", primary: true),
+            mailbox("m2", claim: nil, address: nil),
+            mailbox("m3", claim: Self.claimB, address: "studio@vault.cool"),
+            mailbox("m4", claim: Self.claimB, address: ""),
+            mailbox("m5", claim: nil, address: "orphan@vault.cool"),
+        ]
+        let pin = AgentKeyMailPin(key: AgentKey(id: "k1", keyPrefix: "hv_Zk3pQ9vL", scopes: ["mail:read"]), mailboxes: mailboxes)
+        XCTAssertEqual(pin.choices.map(\.address), ["ana@vault.cool", "studio@vault.cool"])
+        XCTAssertEqual(pin.choices.map(\.claimId), [Self.claimA, Self.claimB], "a pin is a claim, not a mailbox")
+        XCTAssertTrue(pin.isOffered)
+
+        let none = AgentKeyMailPin(key: AgentKey(id: "k1", keyPrefix: "hv_Zk3pQ9vL"), mailboxes: [mailbox("m2", claim: nil, address: nil)])
+        XCTAssertFalse(none.isOffered, "with no claimed address the picker would hold only Default address")
+        XCTAssertFalse(AgentKeyMailPin(key: AgentKey(id: "k1", keyPrefix: "hv_Zk3pQ9vL"), mailboxes: []).isOffered)
+    }
+
+    func testWhatThePickerHasChosen() {
+        let mailboxes = [mailbox("m1", claim: Self.claimA, address: "ana@vault.cool")]
+        func pin(claim: String? = nil, cleared: Bool = false) -> AgentKeyMailPin {
+            AgentKeyMailPin(key: AgentKey(id: "k1", keyPrefix: "hv_Zk3pQ9vL", scopes: ["mail:read"], mailClaimId: claim, mailPinCleared: cleared), mailboxes: mailboxes)
+        }
+
+        XCTAssertEqual(pin().selection, .defaultAddress)
+        XCTAssertNil(pin().unlistedClaimId)
+
+        XCTAssertEqual(pin(claim: Self.claimA).selection, .claim(Self.claimA))
+        XCTAssertNil(pin(claim: Self.claimA).unlistedClaimId)
+
+        // The claim was released: there is no address to show, and Default address must still be a change.
+        XCTAssertEqual(pin(cleared: true).selection, .choosing)
+        XCTAssertNil(pin(cleared: true).unlistedClaimId)
+
+        // Pinned to an address the list does not carry: "Another address", chosen.
+        XCTAssertEqual(pin(claim: Self.claimB).selection, .claim(Self.claimB))
+        XCTAssertEqual(pin(claim: Self.claimB).unlistedClaimId, Self.claimB)
+
+        // A claim wins over the flag: the person has chosen again.
+        XCTAssertEqual(pin(claim: Self.claimA, cleared: true).selection, .claim(Self.claimA))
+    }
+
+    func testTheAddressPickersWordsAreTheWebs() {
+        XCTAssertEqual(AccountWords.mailPinLabel, "Mail address")
+        XCTAssertEqual(AccountWords.mailPinDefault, "Default address")
+        XCTAssertEqual(AccountWords.mailPinChoose, "Pick an address")
+        XCTAssertEqual(AccountWords.mailPinOther, "Another address")
+        XCTAssertEqual(AccountWords.mailPinClearedLine, "Its address was released. This key can read but not send until you pick an address for it.")
+    }
+
     func testRevokingAnAlreadyRevokedKey() async {
         let transport = MockTransport(routes: [.failure(.delete, "/api/keys", status: 404, message: "No such key — it may already be revoked.")])
         do {

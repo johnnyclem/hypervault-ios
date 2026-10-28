@@ -1,10 +1,10 @@
 import HyperVaultKit
 import SwiftUI
 
-/// The keys on Agent keys: loading them (saved copy first), revoking and the "Can send mail" switch. What it
-/// holds about a key is what the server states: its name, prefix, dates and scopes, and the slug of its setup
-/// challenge page. Whether an agent finished the challenge is not worked out here. The raw value of a key is
-/// never here: only its prefix.
+/// The keys on Agent keys: loading them (saved copy first), revoking, the "Can send mail" switch and the "Mail
+/// address" picker. What it holds about a key is what the server states: its name, prefix, dates, scopes and the
+/// address it is pinned to, and the slug of its setup challenge page. Whether an agent finished the challenge is
+/// not worked out here. The raw value of a key is never here: only its prefix.
 @MainActor
 @Observable
 final class AgentsAndKeysModel {
@@ -22,6 +22,9 @@ final class AgentsAndKeysModel {
     private(set) var changing: Set<String> = []
     /// Keys being revoked.
     private(set) var revoking: Set<String> = []
+    /// The person's mailboxes, which the "Mail address" picker offers the claimed ones of. Empty until a key's screen
+    /// has asked, and when the server will not say: then the picker is not offered.
+    private(set) var mailboxes: [OwnerMailbox] = []
 
     private let client: HVClient
     private let rest: AccountRest
@@ -61,6 +64,13 @@ final class AgentsAndKeysModel {
         }
     }
 
+    /// Reads the mailboxes the "Mail address" picker offers. Asked for when a key's screen opens, as the web card asks
+    /// once it has a key to show them on. Best effort: when they cannot be read the picker is simply not offered, and
+    /// the "Can send mail" switch does not need them.
+    func loadMailboxes() async {
+        if let list = try? await client.send(.mailMailboxes) { mailboxes = list.mailboxes }
+    }
+
     // MARK: Changing
 
     /// Revokes a key at once. The row goes only when the server has agreed.
@@ -86,17 +96,40 @@ final class AgentsAndKeysModel {
         defer { changing.remove(key.id) }
         do {
             let answer = try await client.send(.setAgentKeyMail(id: key.id, canSendMail: canSend))
-            if let at = snapshot.keys.firstIndex(where: { $0.id == key.id }) {
-                snapshot.keys[at] = snapshot.keys[at].with(
-                    scopes: answer.key.scopes,
-                    mailClaimId: answer.key.mailClaimId,
-                    mailPinCleared: answer.key.mailPinCleared ?? false
-                )
-            }
-            await cache.store(snapshot, key: Self.cacheKey, namespace: userID)
+            await adopt(answer, for: key.id)
         } catch {
             if let at = snapshot.keys.firstIndex(where: { $0.id == key.id }) { snapshot.keys[at] = before }
             throw error
         }
+    }
+
+    /// Pins the key to one of the person's own claimed addresses (`claimId`), so it reads and sends as that address,
+    /// or back to the account's default address (nil). The picker moves at once and goes back if the server says no.
+    /// Either choice ends a released address's warning, as the server does.
+    func setMailAddress(_ key: AgentKey, claimId: String?) async throws {
+        guard let index = snapshot.keys.firstIndex(where: { $0.id == key.id }) else { return }
+        let before = snapshot.keys[index]
+        snapshot.keys[index] = before.with(scopes: before.scopes, mailClaimId: claimId, mailPinCleared: false)
+        changing.insert(key.id)
+        defer { changing.remove(key.id) }
+        do {
+            let answer = try await client.send(.setAgentKeyMailAddress(id: key.id, claimId: claimId))
+            await adopt(answer, for: key.id)
+        } catch {
+            if let at = snapshot.keys.firstIndex(where: { $0.id == key.id }) { snapshot.keys[at] = before }
+            throw error
+        }
+    }
+
+    /// Takes what the server says about a key's mail settings after a change, and saves the list.
+    private func adopt(_ answer: AgentKeyUpdate, for id: String) async {
+        if let at = snapshot.keys.firstIndex(where: { $0.id == id }) {
+            snapshot.keys[at] = snapshot.keys[at].with(
+                scopes: answer.key.scopes,
+                mailClaimId: answer.key.mailClaimId,
+                mailPinCleared: answer.key.mailPinCleared ?? false
+            )
+        }
+        await cache.store(snapshot, key: Self.cacheKey, namespace: userID)
     }
 }

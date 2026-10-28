@@ -18,7 +18,7 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
 
         step("A long paste waits above the field") {
             // The harness left a note on the pasteboard; the canvas offers the system's Paste button for it.
-            tapPaste()
+            tapPaste(until: { self.element("canvas.pasted").exists })
             let chip = element("canvas.pasted")
             require(chip, "the chip that says what was pasted")
             XCTAssertTrue(chip.label.hasPrefix("Pasted - "), "The chip says \"\(chip.label)\".")

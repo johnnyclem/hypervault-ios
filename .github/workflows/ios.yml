@@ -127,6 +127,7 @@ jobs:
       # scheme and has taken the identity. Nothing after it reads the project, and the file it writes is taken away again.
       - name: Xcode Cloud hook
         run: |
+          set -o pipefail
           rm -f Config/Local.xcconfig
           CI_PRIMARY_REPOSITORY_PATH="$PWD" DEVELOPMENT_TEAM=ABCDE12345 HV_BUNDLE_PREFIX=com.example.cloud \
             ci_scripts/ci_post_clone.sh
@@ -136,13 +137,28 @@ jobs:
           grep -E "^ +(DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER) = " settings.txt | sort -u
           grep -qE "^ +DEVELOPMENT_TEAM = ABCDE12345$" settings.txt
           grep -qE "^ +PRODUCT_BUNDLE_IDENTIFIER = com\.example\.cloud\.app$" settings.txt
+          # What Xcode asks the project for to offer the products it can build with Xcode Cloud.
+          xcodebuild -project HyperVault.xcodeproj -describeAllArchivableProducts -json | tee products.json
+          grep -q "HyperVault" products.json
           rm -f Config/Local.xcconfig
+
+      # The archive Xcode Cloud makes is the Release configuration built for a device, which nothing above builds (the
+      # simulator builds are Debug). Unsigned, since compiling needs no team, and in derived data of its own.
+      - name: Release build for a device
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project HyperVault.xcodeproj -scheme HyperVaultCloud -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build-release \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee release.log | xcbeautify --renderer github-actions
 
       - name: Summarise failures
         if: failure()
         run: |
           echo "---- errors ----"
-          grep -hE "error:|\*\* (BUILD|TEST) FAILED|Test Case .* failed" build.log test.log 2>/dev/null | sort -u | head -80
+          grep -hE "error:|\*\* (BUILD|TEST) FAILED|Test Case .* failed" build.log test.log release.log 2>/dev/null | sort -u | head -80
 
   # The journeys: the real app launched on a simulator and driven with taps and typing, through the welcome story,
   # sign-in, Home, each tab, the Account menu, every pane of the You tab and every screen they open, and the waitlist;

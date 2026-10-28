@@ -2,9 +2,9 @@
 # Xcode Cloud runs this after it clones the repository (docs/XCODE_CLOUD.md).
 #
 # HyperVault.xcodeproj is generated from project.yml by XcodeGen, and the copy in the repository is not kept up to date, so
-# the project a workflow builds is made here, before Xcode Cloud looks for its schemes. What is yours rather than the
-# project's (your team, your bundle id prefix) comes from the workflow's environment into Config/Local.xcconfig, the file
-# the checked-in xcconfigs include and git ignores.
+# the project a workflow builds is made here. What is yours rather than the project's (your team, your bundle id prefix)
+# comes from the workflow's environment into Config/Local.xcconfig, the file the checked-in xcconfigs include and git
+# ignores.
 #
 # It can be run on a Mac the same way: `CI_PRIMARY_REPOSITORY_PATH=$PWD ci_scripts/ci_post_clone.sh`. A Local.xcconfig that
 # is already there is left alone.

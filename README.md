@@ -112,6 +112,8 @@ Tests/AppTests/          App tests and snapshot renders.
   repo's file. `scripts/gen_tokens.py` (`make tokens`) turns it into the colour catalog and `HVTokens` under
   `Shared/DesignSystem`, and CI fails when they drift from it.
 - **Adding a feature** is described in [docs/FEATURE_GUIDE.md](docs/FEATURE_GUIDE.md).
+- **How the app follows the web team's iOS handoff** (what was decided, what differs, what only the owner can do) is in
+  [docs/HANDOFF.md](docs/HANDOFF.md).
 
 ### CI and looking at screens
 

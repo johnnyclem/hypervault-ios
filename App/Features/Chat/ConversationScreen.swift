@@ -245,6 +245,7 @@ struct ChatConversationContent: View {
     }
 }
 
+#if DEBUG
 #Preview("Conversation") {
     PreviewHost(routes: ChatPreviewData.routes) {
         ConversationScreen(conversationID: "c1", onDevice: .fixed(.unavailable("Preview")))
@@ -256,3 +257,4 @@ struct ChatConversationContent: View {
         ConversationScreen(conversationID: nil, onDevice: .fixed(.unavailable("Preview")))
     }
 }
+#endif

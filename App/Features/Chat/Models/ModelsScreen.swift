@@ -394,8 +394,10 @@ struct ChatBackendRow: View {
     }
 }
 
+#if DEBUG
 #Preview("Models") {
     PreviewHost(routes: ChatPreviewData.routes) {
         ChatModelsScreen()
     }
 }
+#endif

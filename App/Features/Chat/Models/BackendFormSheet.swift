@@ -311,6 +311,7 @@ struct ChatBackendFormSheet: View {
     }
 }
 
+#if DEBUG
 #Preview("Connect") {
     PreviewHost(routes: ChatPreviewData.routes) {
         ChatBackendFormSheet(
@@ -318,3 +319,4 @@ struct ChatBackendFormSheet: View {
         ) { _ in "Connected." }
     }
 }
+#endif

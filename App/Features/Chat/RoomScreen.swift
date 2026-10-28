@@ -418,8 +418,10 @@ struct ChatTypingLine: View {
     }
 }
 
+#if DEBUG
 #Preview("Room") {
     PreviewHost(routes: ChatPreviewData.routes) {
         RoomScreen(roomID: "r1")
     }
 }
+#endif

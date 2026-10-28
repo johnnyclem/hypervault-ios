@@ -411,6 +411,9 @@ struct HVLabeledField<Field: View>: View {
     var isFocused = false
     /// The field's value is refused: it is outlined in `destructive`, and the footnote (say what is wrong in it) is too.
     var isInvalid = false
+    /// Whether the footnote is destructive, when that should differ from the field's edge: a footnote that states a rule
+    /// stays plain while the field is refused for another reason (a name the server found taken). Nil follows `isInvalid`.
+    var isFootnoteInvalid: Bool?
     @ViewBuilder var field: () -> Field
 
     var body: some View {
@@ -420,7 +423,9 @@ struct HVLabeledField<Field: View>: View {
                 .foregroundStyle(Palette.textSecondary)
             field().hvFieldChrome(isFocused: isFocused, isInvalid: isInvalid)
             if let footnote {
-                Text(footnote).font(.hvFootnote).foregroundStyle(isInvalid ? HVColor.destructive : Palette.textSecondary)
+                Text(footnote)
+                    .font(.hvFootnote)
+                    .foregroundStyle((isFootnoteInvalid ?? isInvalid) ? HVColor.destructive : Palette.textSecondary)
             }
         }
     }

@@ -33,6 +33,10 @@ final class VaultAllowedKeysModel {
     private let rest: AccountRest
     private let userID: String
     @ObservationIgnored private let announcer: SpeechAnnouncer
+    /// Counts the reads begun and the changes finished, so a read can tell which changes came after it was sent.
+    @ObservationIgnored private var tick = 0
+    /// The tick at which each key last finished a change.
+    @ObservationIgnored private var changedAt: [String: Int] = [:]
 
     init(client: HVClient, rest: AccountRest, userID: String, announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared) {
         self.client = client
@@ -68,9 +72,15 @@ final class VaultAllowedKeysModel {
 
     /// Reads the keys and the entry's grants. `quietly` keeps what is on screen until the answer comes, for a read made
     /// after a change rather than on opening.
+    ///
+    /// The answer may have been served before a change that was answered first, so it never undoes one: for a key changed
+    /// (or being changed) since the read was sent, the switch stays where the server last agreed. The rest of the answer,
+    /// such as a key made in the meantime, is taken.
     func load(name: String, quietly: Bool = false) async {
         if !quietly { phase = .loading }
         changeError = nil
+        tick += 1
+        let sent = tick
         let rest = self.rest
         let userID = self.userID
         async let keysRead = Self.readKeys(rest: rest, userID: userID)
@@ -86,7 +96,7 @@ final class VaultAllowedKeysModel {
         case .loaded(let granted):
             switch keys {
             case .success(let list):
-                phase = .ready(keys: list, allowed: granted.intersection(Set(list.map(\.id))))
+                phase = .ready(keys: list, allowed: settled(granted, among: list, since: sent))
             case .failure(let error):
                 fail(VaultErrorText.loadMessage(for: error))
             }
@@ -99,6 +109,17 @@ final class VaultAllowedKeysModel {
         } catch {
             return .failure(error)
         }
+    }
+
+    /// Who may read, as the read says, except for a key that has changed since the read was sent: that one keeps the state
+    /// the switch is in. A grant to a key revoked since is left out.
+    private func settled(_ granted: Set<String>, among list: [AgentKey], since sent: Int) -> Set<String> {
+        var allowed = granted.intersection(Set(list.map(\.id)))
+        guard case .ready(_, let shown) = phase else { return allowed }
+        for key in list where pending.contains(key.id) || changedAt[key.id, default: 0] > sent {
+            if shown.contains(key.id) { allowed.insert(key.id) } else { allowed.remove(key.id) }
+        }
+        return allowed
     }
 
     private func fail(_ message: String) {
@@ -122,6 +143,8 @@ final class VaultAllowedKeysModel {
         changeError = nil
         let outcome = await client.setSecretGrant(name: name, keyID: keyID, allowed: on)
         pending.remove(keyID)
+        tick += 1
+        changedAt[keyID] = tick
         switch outcome {
         case .applied, .alreadyOff:
             confirm(keyID, allowed: on)

@@ -17,7 +17,7 @@ struct VaultRenameSheet: View {
     @State private var saving = false
     @State private var error: String?
     /// A 409: the new name is taken (or the entry is an MCP server's sign-in). Said under the field.
-    @State private var nameError: String?
+    @State private var nameRefusal: VaultNameRefusal?
     @State private var confirmingDiscard = false
     @FocusState private var nameFocused: Bool
     @AccessibilityFocusState private var nameSpoken: Bool
@@ -31,6 +31,8 @@ struct VaultRenameSheet: View {
     private var trimmedName: String { VaultItems.trimmedName(newName) }
     private var changed: Bool { trimmedName != secret.name }
     private var canSave: Bool { changed && VaultItems.isAddressableName(trimmedName) && !saving }
+    /// The server's line about the name, for as long as the field holds the name it was said of.
+    private var nameError: String? { nameRefusal?.line(whenNamed: trimmedName) }
 
     /// The rule under the field, and whether the name breaks it.
     private var hint: (text: String, isInvalid: Bool) {
@@ -45,9 +47,11 @@ struct VaultRenameSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.l) {
                     VStack(alignment: .leading, spacing: HV.Space.xs) {
+                        // A taken name outlines the field, but the rule it satisfies stays plain: the server says why.
                         HVLabeledField(
                             title: VaultCopy.renameFieldLabel(secret.name), footnote: hint.text,
-                            isFocused: nameFocused, isInvalid: hint.isInvalid || nameError != nil
+                            isFocused: nameFocused, isInvalid: hint.isInvalid || nameError != nil,
+                            isFootnoteInvalid: hint.isInvalid
                         ) {
                             TextField(
                                 "github.com",
@@ -58,7 +62,7 @@ struct VaultRenameSheet: View {
                                     set: { text in
                                         guard text != newName else { return }
                                         newName = text
-                                        nameError = nil
+                                        nameRefusal = nil
                                     }
                                 )
                             )
@@ -88,6 +92,7 @@ struct VaultRenameSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     VaultCloseButton { if changed { confirmingDiscard = true } else { dismiss() } }
+                        .disabled(saving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(saving ? VaultScreenCopy.savingLabel : VaultScreenCopy.saveLabel) { Task { await save() } }
@@ -95,16 +100,18 @@ struct VaultRenameSheet: View {
                 }
             }
         }
-        .vaultDiscardGuard(isDirty: changed, isPresented: $confirmingDiscard) { dismiss() }
+        .vaultDiscardGuard(isDirty: changed, isSaving: saving, isPresented: $confirmingDiscard) { dismiss() }
     }
 
     private func save() async {
         guard canSave else { return }
         saving = true
         error = nil
-        nameError = nil
+        nameRefusal = nil
         defer { saving = false }
-        switch await model.change(secret, newName: trimmedName) {
+        // The name tried is the one a 409 is about, whatever is typed while the request is out.
+        let name = trimmedName
+        switch await model.change(secret, newName: name) {
         case .updated:
             Haptics.success()
             app.toasts.success("Saved.")
@@ -116,7 +123,7 @@ struct VaultRenameSheet: View {
             Haptics.failure()
             if failure.isConflict {
                 // A taken name is the name field's problem, so it is said there, and the cursor and VoiceOver go there.
-                nameError = failure.message
+                nameRefusal = VaultNameRefusal(name: name, message: failure.message)
                 nameFocused = true
                 nameSpoken = true
             } else {
@@ -153,10 +160,17 @@ struct VaultReplaceSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.l) {
-                    Text("The saved value is never shown, so type the whole entry again. The agents you allowed keep their access.")
-                        .font(.hvCallout)
-                        .foregroundStyle(Palette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    // The title above names it too, but it is one line between two buttons and cuts a long name short.
+                    VStack(alignment: .leading, spacing: HV.Space.xs) {
+                        Text("Replace the value of \(secret.name)")
+                            .font(.hvHeadline)
+                            .foregroundStyle(Palette.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("The saved value is never shown, so type the whole entry again. The agents you allowed keep their access.")
+                            .font(.hvCallout)
+                            .foregroundStyle(Palette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     // The kind stays as it was: only a key can pick among the key kinds, and that is its own choice.
                     VaultFieldsForm(draft: $draft, showsKindPicker: false)
                     VStack(alignment: .leading, spacing: HV.Space.xs) {
@@ -175,6 +189,7 @@ struct VaultReplaceSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     VaultCloseButton { if draft.isDirty { confirmingDiscard = true } else { dismiss() } }
+                        .disabled(saving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(saving ? VaultScreenCopy.replacingLabel : VaultScreenCopy.replaceLabel) { Task { await save() } }
@@ -182,7 +197,7 @@ struct VaultReplaceSheet: View {
                 }
             }
         }
-        .vaultDiscardGuard(isDirty: draft.isDirty, isPresented: $confirmingDiscard) { dismiss() }
+        .vaultDiscardGuard(isDirty: draft.isDirty, isSaving: saving, isPresented: $confirmingDiscard) { dismiss() }
     }
 
     private func save() async {

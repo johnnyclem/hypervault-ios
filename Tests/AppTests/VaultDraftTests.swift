@@ -77,6 +77,22 @@ final class VaultDraftTests: XCTestCase {
         XCTAssertEqual(draft.name, "github.com", "JavaScript trims a byte order mark; Foundation does not")
     }
 
+    func testAServersLineAboutANameIsSaidOnlyWhileTheFieldHoldsThatName() {
+        // The server called the suggested name taken. Correcting the card number moves the suggestion, and the new one is a
+        // name nobody has tried.
+        var draft = card(number: "4242 4242 4242 4242")
+        let refusal = VaultNameRefusal(name: draft.name, message: "A secret with that name already exists.")
+        XCTAssertEqual(draft.name, "visa-4242")
+        XCTAssertEqual(refusal.line(whenNamed: draft.name), "A secret with that name already exists.")
+
+        draft.fields["number"] = "4111 1111 1111 1111"
+        XCTAssertEqual(draft.name, "visa-1111")
+        XCTAssertNil(refusal.line(whenNamed: draft.name), "the line is about visa-4242, which is no longer the name")
+
+        draft.typedName = "visa-4242"
+        XCTAssertNotNil(refusal.line(whenNamed: draft.name), "typed back, it is the name the server refused")
+    }
+
     func testANameThatBreaksTheRuleTurnsTheHintIntoTheProblem() {
         var draft = login()
         draft.typedName = "my login"

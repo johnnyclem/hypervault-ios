@@ -85,3 +85,15 @@ struct VaultDraft {
         return isValid ? nil : VaultItems.validate(.card, ["number": digits])
     }
 }
+
+/// A 409 on a name and the name it was said of, so the line goes when the field no longer holds that name: a suggestion
+/// that moves while the person fixes the value is not the name the server refused.
+struct VaultNameRefusal: Equatable {
+    let name: String
+    let message: String
+
+    /// The line to show under a field that holds `current`, or nil once it holds another name.
+    func line(whenNamed current: String) -> String? {
+        current == name ? message : nil
+    }
+}

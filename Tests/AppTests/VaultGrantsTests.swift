@@ -313,6 +313,87 @@ final class VaultGrantsTests: XCTestCase {
         XCTAssertFalse(model.isAllowed("k1"))
     }
 
+    // MARK: A read and a change in the same moment
+
+    /// A loaded model on a server whose reads of the entry's grants can be held after they are served (see `HeldReads`).
+    private func worldWithHeldReads(
+        extra: [MockRoute]
+    ) async throws -> (world: VaultWorld, model: VaultAllowedKeysModel, gate: HeldReads) {
+        let path = github
+        var held: HeldReads?
+        let world = VaultWorld(extra: extra, wrapping: { canned in
+            let gate = HeldReads(inner: canned, path: path)
+            held = gate
+            return gate
+        })
+        let gate = try XCTUnwrap(held)
+        return (world, await loaded(world), gate)
+    }
+
+    func testAReadSentBeforeAChangeDoesNotTakeItBackWhenItAnswersAfter() async throws {
+        // The reload read the grants while k2 was off. k2 is then allowed and the server agrees, and only then does the
+        // reload's answer arrive: it still says k2 is off.
+        let (_, model, gate) = try await worldWithHeldReads(extra: [granted])
+        XCTAssertFalse(model.isAllowed("k2"))
+
+        await gate.hold()
+        let reload = Task { await model.load(name: "github.com", quietly: true) }
+        let sent = await vaultEventually { await gate.held == 1 }
+        XCTAssertTrue(sent)
+
+        await model.setAllowed(true, keyID: "k2", name: "github.com")
+        XCTAssertTrue(model.isAllowed("k2"))
+
+        await gate.open()
+        await reload.value
+
+        XCTAssertTrue(model.isReady)
+        XCTAssertTrue(model.isAllowed("k2"), "the answer was read before the allow and does not undo it")
+        XCTAssertTrue(model.isAllowed("k1"), "what it says of the key nobody touched is taken")
+    }
+
+    func testAReadSentBeforeARevokeDoesNotTurnTheSwitchBackOnButStillBringsInANewKey() async throws {
+        let (world, model, gate) = try await worldWithHeldReads(extra: [revoked])
+        XCTAssertTrue(model.isAllowed("k1"))
+        // A key made since (on the Connect an agent screen) is in the list the reload reads.
+        await world.transport.add(.json(.get, "/rest/v1/api_keys", """
+        [{"id":"k4","key_prefix":"hv_Gg7Hh8Ii","name":"Made later","created_at":"2026-10-26T10:00:00Z","last_used_at":null,"scopes":["mail:read"],"mail_claim_id":null,"mail_pin_cleared":false},
+         {"id":"k1","key_prefix":"hv_Zk3pQ9vL","name":"Claude Code","created_at":"2026-10-20T10:00:00Z","last_used_at":null,"scopes":["mail:read"],"mail_claim_id":null,"mail_pin_cleared":false}]
+        """))
+
+        await gate.hold()
+        let reload = Task { await model.load(name: "github.com", quietly: true) }
+        let sent = await vaultEventually { await gate.held == 1 }
+        XCTAssertTrue(sent)
+
+        await model.setAllowed(false, keyID: "k1", name: "github.com")
+        XCTAssertFalse(model.isAllowed("k1"))
+
+        await gate.open()
+        await reload.value
+
+        XCTAssertEqual(Set(model.keys.map(\.id)), ["k1", "k4"], "the new key is taken from the answer")
+        XCTAssertFalse(model.isAllowed("k1"), "the answer still lists k1 as allowed, which was true before the revoke")
+        XCTAssertFalse(model.isAllowed("k4"))
+    }
+
+    func testAReadSentAfterAChangeWasAnsweredIsTakenAsItIs() async {
+        // Nothing is newer than the read, so the server's word stands (here: a revoke made on another device).
+        let reads = Sequenced([
+            Sequenced.json(#"{"grants":[{"id":"g1","api_key_id":"k1"}]}"#),
+            Sequenced.json(#"{"grants":[]}"#),
+        ])
+        let world = VaultWorld(extra: [reads.route(.get, github), granted])
+        let model = await loaded(world)
+        await model.setAllowed(true, keyID: "k2", name: "github.com")
+        XCTAssertTrue(model.isAllowed("k2"))
+
+        await model.load(name: "github.com", quietly: true)
+
+        XCTAssertFalse(model.isAllowed("k1"))
+        XCTAssertFalse(model.isAllowed("k2"), "the read began after the allow and says it is off: the server's word")
+    }
+
     // MARK: The label
 
     func testASwitchIsNamedByItsPrefixFirstAndItsNameUnlessItIsDefault() {

@@ -21,6 +21,7 @@ enum HVSymbol {
     static let add = "plus"
     static let open = "chevron.right"
     static let fold = "chevron.down"
+    static let back = "chevron.backward"
 
     // What a vault entry is.
     static let login = "globe"

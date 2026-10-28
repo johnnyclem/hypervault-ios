@@ -2,9 +2,10 @@ import XCTest
 
 /// The vault's journeys that write or change what a screen says about who may read an entry: a key allowed and revoked
 /// with the switch following the server, a key the server had already revoked, an entry deleted somewhere else, a sheet that
-/// asks before it drops what was typed, a taken name, and a card number that is called wrong only once it is left. Each
-/// checks what the screen shows and what the app sent (the debug-only record of writes, see `UITestWrites.swift`). The first
-/// journeys of the vault (adding a login, renaming it, deleting a card) are in `MemoryAndVaultWritesJourneyTests`.
+/// asks before it drops what was typed (on Close, and on Back to the types), a taken name, and a card number that is called
+/// wrong only once it is left. Each checks what the screen shows and what the app sent (the debug-only record of writes, see
+/// `UITestWrites.swift`). The first journeys of the vault (adding a login, renaming it, deleting a card) are in
+/// `MemoryAndVaultWritesJourneyTests`.
 @MainActor
 final class VaultWritesJourneyTests: HyperVaultUITestCase {
     private func openTheVault() {
@@ -98,6 +99,18 @@ final class VaultWritesJourneyTests: HyperVaultUITestCase {
 
     // MARK: Closing a sheet that holds typed values
 
+    /// Answers the question about the typed values with Keep editing. The question is a popover on iOS 26, which has no Cancel
+    /// button: a tap away from it is Keep editing. (Where it is a sheet with a button, the button is tapped.)
+    private func keepEditing() {
+        let keep = button("Keep editing")
+        if keep.waitForExistence(timeout: 3) {
+            keep.tap()
+        } else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.96)).tap()
+        }
+        requireGone(button("Discard"), "the question")
+    }
+
     func testClosingTheAddSheetAsksBeforeItDropsWhatWasTyped() {
         launch(.signedIn)
         openTheVault()
@@ -112,15 +125,7 @@ final class VaultWritesJourneyTests: HyperVaultUITestCase {
         step("Close asks first, and Keep editing returns to the form") {
             tap(button("Close"), "the Close button")
             require(button("Discard"), "the question about the typed values")
-            // The question is a popover on iOS 26, which has no Cancel button: a tap away from it is Keep editing. (Where it is
-            // a sheet with a button, the button is tapped.)
-            let keep = button("Keep editing")
-            if keep.waitForExistence(timeout: 3) {
-                keep.tap()
-            } else {
-                app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.96)).tap()
-            }
-            requireGone(button("Discard"), "the question")
+            keepEditing()
             XCTAssertEqual(element("vault.field.username").value as? String, "typed-and-not-saved", "What was typed is still there.")
         }
 
@@ -129,6 +134,37 @@ final class VaultWritesJourneyTests: HyperVaultUITestCase {
             confirm("Discard")
             requireGone(element("vault.add.name"), "the add sheet")
             require(element("vault.row.github.com"), "the list")
+            requireNoWrite("POST", "/api/secrets")
+        }
+    }
+
+    func testGoingBackFromTheAddFormAsksBeforeItDropsWhatWasTyped() {
+        launch(.signedIn)
+        openTheVault()
+
+        step("A login is started, and with nothing typed yet Back is still the system's") {
+            tap(button("Add to your vault"), "the add button")
+            tap(element("vault.add.login"), "the Login tile")
+            require(element("vault.field.username"), "the form")
+            XCTAssertFalse(element("vault.add.back").exists, "The system's Back is showing: nothing needs asking about.")
+            enter("typed-and-not-saved", into: element("vault.field.username"), "the username field")
+            putTheKeyboardAway()
+        }
+
+        step("Back asks first, and Keep editing returns to the form with what was typed") {
+            tap(element("vault.add.back"), "the Back button")
+            require(button("Discard"), "the question about the typed values")
+            keepEditing()
+            XCTAssertEqual(element("vault.field.username").value as? String, "typed-and-not-saved", "What was typed is still there.")
+        }
+
+        step("Discard goes back to the types, and the next form starts empty") {
+            tap(element("vault.add.back"), "the Back button")
+            confirm("Discard")
+            require(element("vault.add.card"), "the types")
+            tap(element("vault.add.login"), "the Login tile")
+            require(element("vault.field.username"), "the form")
+            XCTAssertNotEqual(element("vault.field.username").value as? String, "typed-and-not-saved", "Nothing is carried over.")
             requireNoWrite("POST", "/api/secrets")
         }
     }

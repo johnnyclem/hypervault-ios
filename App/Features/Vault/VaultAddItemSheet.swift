@@ -68,8 +68,10 @@ enum VaultAddType: String, CaseIterable, Identifiable, Hashable {
 /// accept the entry, and the line under the form says what is still missing. The server checks again.
 ///
 /// The type picker is the root of a navigation stack and the form is pushed on it, so the system draws the push and the
-/// back button. What is typed lives in this sheet's state, so the sheet knows when closing it would lose something: a swipe
-/// down is then refused, and Close asks first. It is gone when the sheet closes. Nothing is shown again after a save.
+/// back button. What is typed lives in this sheet's state, so the sheet knows when going back or closing it would lose
+/// something: a swipe down is then refused, and Close asks first, and so does Back (the system's back button, which cannot
+/// ask, gives way to one that can while anything is typed). It is gone when the sheet closes. Nothing is shown again after
+/// a save. While a save is on the wire none of them works: it cannot be taken back.
 struct VaultAddItemSheet: View {
     let model: VaultItemsModel
 
@@ -79,6 +81,10 @@ struct VaultAddItemSheet: View {
     @State private var path: [VaultAddType]
     @State private var draft: VaultDraft
     @State private var confirmingDiscard = false
+    /// Whether the Discard being asked about goes back to the chooser (the form's Back) rather than closing the sheet.
+    @State private var discardGoesBack = false
+    /// A save on the wire. The form sets it, and the sheet's ways out wait for the answer.
+    @State private var saving = false
 
     /// `startingWith` skips the type choice, for a screen that already knows what it is adding.
     init(model: VaultItemsModel, startingWith kind: SecretKind? = nil) {
@@ -95,7 +101,7 @@ struct VaultAddItemSheet: View {
         _draft = State(initialValue: VaultDraft(kind: kind ?? .login))
     }
 
-    /// Whether closing now would drop something typed.
+    /// Whether going back or closing now would drop something typed.
     private var isDirty: Bool { !path.isEmpty && draft.isDirty }
 
     var body: some View {
@@ -106,25 +112,54 @@ struct VaultAddItemSheet: View {
                 .hvScreenBackground()
                 .toolbar { closeButton }
                 .navigationDestination(for: VaultAddType.self) { type in
-                    VaultNewItemForm(model: model, type: type, draft: $draft, onSaved: { dismiss() })
+                    VaultNewItemForm(model: model, type: type, draft: $draft, saving: $saving, onSaved: { dismiss() })
                         .navigationTitle(type.formTitle)
                         .navigationBarTitleDisplayMode(.inline)
                         .hvScreenBackground()
-                        .toolbar { closeButton }
+                        // The system's back button cannot ask, and its edge swipe goes with it: while something is typed,
+                        // the form's own Back stands in.
+                        .navigationBarBackButtonHidden(isDirty)
+                        .toolbar {
+                            backButton
+                            closeButton
+                        }
                 }
         }
         .hvSensitive(!path.isEmpty)
-        .vaultDiscardGuard(isDirty: isDirty, isPresented: $confirmingDiscard) { dismiss() }
-        // Back to the chooser drops what was typed, as closing does.
+        .vaultDiscardGuard(isDirty: isDirty, isSaving: saving, isPresented: $confirmingDiscard) {
+            if discardGoesBack { path = [] } else { dismiss() }
+        }
+        // Back to the chooser drops what was typed, as closing does: it asked first if there was anything.
         .onChange(of: path) { _, now in
             if now.isEmpty { draft = VaultDraft(kind: .login) }
         }
     }
 
     @ToolbarContentBuilder
+    private var backButton: some ToolbarContent {
+        if isDirty {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    discardGoesBack = true
+                    confirmingDiscard = true
+                } label: {
+                    Image(systemName: HVSymbol.back)
+                }
+                .disabled(saving)
+                .accessibilityLabel(VaultScreenCopy.backLabel)
+                .accessibilityIdentifier("vault.add.back")
+            }
+        }
+    }
+
+    @ToolbarContentBuilder
     private var closeButton: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            VaultCloseButton { if isDirty { confirmingDiscard = true } else { dismiss() } }
+            VaultCloseButton {
+                discardGoesBack = false
+                if isDirty { confirmingDiscard = true } else { dismiss() }
+            }
+            .disabled(saving)
         }
     }
 
@@ -195,20 +230,25 @@ private struct VaultNewItemForm: View {
     let model: VaultItemsModel
     let type: VaultAddType
     @Binding var draft: VaultDraft
+    /// A save on the wire. The sheet holds it, so its Close and Back can wait for the answer.
+    @Binding var saving: Bool
     let onSaved: () -> Void
 
     @Environment(AppModel.self) private var app
 
-    @State private var saving = false
     @State private var error: String?
     /// A 409: the name is in use. Said under the Name field, which takes the cursor and VoiceOver's focus.
-    @State private var nameError: String?
+    @State private var nameRefusal: VaultNameRefusal?
     @FocusState private var nameFocused: Bool
     @AccessibilityFocusState private var nameSpoken: Bool
 
     private var canSave: Bool {
         !saving && !model.isFull && draft.canSave
     }
+
+    /// The server's line about the name, for as long as the field holds the name it was said of: the suggestion moves
+    /// when the fields it is made from change, and a name that was never tried is not a taken one.
+    private var nameError: String? { nameRefusal?.line(whenNamed: draft.name) }
 
     /// The line under the form: the account is full, or the first thing still missing once anything has been typed.
     private var shownProblem: String? {
@@ -282,10 +322,12 @@ private struct VaultNewItemForm: View {
 
     private var nameBlock: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            // The rule is the footnote, and turns destructive, with the field's edge, when the name breaks it.
+            // The rule is the footnote, and turns destructive, with the field's edge, when the name breaks it. A taken name
+            // outlines the field too, but the rule it satisfies stays plain: the server's line says what is wrong.
             HVLabeledField(
                 title: "Name", footnote: draft.nameProblem ?? VaultItems.nameHint,
-                isFocused: nameFocused, isInvalid: draft.nameProblem != nil || nameError != nil
+                isFocused: nameFocused, isInvalid: draft.nameProblem != nil || nameError != nil,
+                isFootnoteInvalid: draft.nameProblem != nil
             ) {
                 TextField(type.namePlaceholder, text: Binding(
                     get: { draft.typedName ?? draft.suggestedName },
@@ -294,7 +336,7 @@ private struct VaultNewItemForm: View {
                     set: { text in
                         guard text != (draft.typedName ?? draft.suggestedName) else { return }
                         draft.typedName = text
-                        nameError = nil
+                        nameRefusal = nil
                     }
                 ))
                 .font(.system(.body, design: .monospaced))
@@ -303,7 +345,8 @@ private struct VaultNewItemForm: View {
                 .autocorrectionDisabled()
                 .focused($nameFocused)
                 .accessibilityFocused($nameSpoken)
-                .accessibilityLabel("Name")
+                // Red alone does not say the name is wrong. A label, not a value: a value would replace the typed text.
+                .accessibilityLabel(draft.nameProblem == nil ? "Name" : "Name, invalid")
                 .accessibilityIdentifier("vault.add.name")
             }
             Text("Agents ask for it by this name.")
@@ -318,9 +361,11 @@ private struct VaultNewItemForm: View {
         guard canSave else { return }
         saving = true
         error = nil
-        nameError = nil
+        nameRefusal = nil
         defer { saving = false }
-        switch await model.create(name: draft.name, kind: draft.kind, value: draft.serialized) {
+        // The name tried is the one a 409 is about, whatever the fields turn it into while the request is out.
+        let name = draft.name
+        switch await model.create(name: name, kind: draft.kind, value: draft.serialized) {
         case .created:
             draft = VaultDraft(kind: type.kind)
             Haptics.success()
@@ -330,7 +375,7 @@ private struct VaultNewItemForm: View {
             Haptics.failure()
             if failure.isConflict {
                 // A taken name is the name field's problem, so it is said there, and the cursor and VoiceOver go there.
-                nameError = failure.message
+                nameRefusal = VaultNameRefusal(name: name, message: failure.message)
                 nameFocused = true
                 nameSpoken = true
             } else {

@@ -7,6 +7,8 @@ import Foundation
 /// Copy for the owner: the strings marked so below are proposals the handoff leaves open.
 enum VaultScreenCopy {
     static let closeLabel = "Close"
+    /// The add form's own Back, which stands in for the system's while something is typed.
+    static let backLabel = "Back"
 
     // MARK: Add
 

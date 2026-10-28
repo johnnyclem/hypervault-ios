@@ -63,6 +63,43 @@ actor HeldWrites: HTTPTransport {
     }
 }
 
+/// Serves the reads of one path at once but hands the answer back only on `open()`, once `hold()` has been called: the
+/// answer is what the server said when it was asked, and a test can let a change happen before it arrives.
+actor HeldReads: HTTPTransport {
+    private let inner: HTTPTransport
+    private let path: String
+    private var holding = false
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+    private(set) var held = 0
+
+    init(inner: HTTPTransport, path: String) {
+        self.inner = inner
+        self.path = path
+    }
+
+    func send(_ request: URLRequest) async throws -> HTTPResponse {
+        let answer = try await inner.send(request)
+        if holding, (request.httpMethod ?? "GET").uppercased() == "GET", request.url?.path == path {
+            held += 1
+            await withCheckedContinuation { waiting.append($0) }
+        }
+        return answer
+    }
+
+    /// From here, the answers to reads of the path wait for `open()`.
+    func hold() {
+        holding = true
+    }
+
+    /// Hands back the answers that are waiting, and lets every later one through.
+    func open() {
+        holding = false
+        let all = waiting
+        waiting = []
+        for continuation in all { continuation.resume() }
+    }
+}
+
 /// Answers reads and fails every write the way a phone with no signal does.
 struct OfflineWrites: HTTPTransport {
     let inner: HTTPTransport

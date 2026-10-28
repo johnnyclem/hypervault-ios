@@ -2,6 +2,18 @@ import SwiftUI
 
 // MARK: Buttons
 
+private extension View {
+    /// The box a filled button's label sits in: full width, at least 52pt high, with room above and below for a label
+    /// that wraps at a large text size. A label of one line is shorter than the minimum by more than that room, so at
+    /// the normal sizes the padding is not seen and the label stays centred as it was.
+    func hvButtonLabelBox() -> some View {
+        self
+            .padding(.vertical, HV.Space.s)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .padding(.horizontal, HV.Space.l)
+    }
+}
+
 /// The one filled action on a screen. Full width, flat `primary`, 8pt corners and no glow, as the web's default button.
 ///
 /// The label is bold on purpose: white on `primary` is 3.68:1, which is under the 4.5:1 body text needs and over the
@@ -16,8 +28,7 @@ struct HVPrimaryButtonStyle: ButtonStyle {
             .foregroundStyle(isEnabled ? HVColor.primaryForeground : Palette.textSecondary)
             // A label that wraps at a large text size is centred in its box, not left on the first line's edge.
             .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .padding(.horizontal, HV.Space.l)
+            .hvButtonLabelBox()
             // Off is a plain raised box with its label still readable, not the fill faded out.
             .background(isEnabled ? HVColor.primary : Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(isEnabled ? Color.clear : Palette.controlBorder, lineWidth: 1))
@@ -34,8 +45,7 @@ struct HVSecondaryButtonStyle: ButtonStyle {
             .font(.hvHeadline)
             .foregroundStyle(isEnabled ? Palette.textPrimary : Palette.textTertiary)
             .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .padding(.horizontal, HV.Space.l)
+            .hvButtonLabelBox()
             .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(Palette.controlBorder, lineWidth: 1))
             .opacity(configuration.isPressed ? 0.85 : 1)
@@ -52,8 +62,7 @@ struct HVDestructiveButtonStyle: ButtonStyle {
             .font(.hvButton)
             .foregroundStyle(isEnabled ? Color.white : Palette.textSecondary)
             .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .padding(.horizontal, HV.Space.l)
+            .hvButtonLabelBox()
             .background(isEnabled ? HVColor.destructive : Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(isEnabled ? Color.clear : Palette.controlBorder, lineWidth: 1))
             .opacity(configuration.isPressed ? 0.85 : 1)

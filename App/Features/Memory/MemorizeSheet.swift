@@ -310,7 +310,7 @@ struct MemorizeSheet: View {
                 }
                 isWorking = false
                 list.didKeep(kept)
-                app.toasts.success(kept.message.isEmpty ? "Kept in memory." : kept.message)
+                app.toasts.success(kept.message.isEmpty ? HVCopy.keptInMemoryLine : kept.message)
                 dismiss()
             } catch {
                 isWorking = false

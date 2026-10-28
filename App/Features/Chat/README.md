@@ -7,6 +7,9 @@ models, on-device chat and reading replies aloud.
   toolbar button. Both lists are inset cards on paper (`hvListRow`), grouped by when they last moved.
 - `ConversationScreen`: the thread. `Conversation/` holds its model, composer,
   options sheet, bubbles, markdown and read-aloud.
+- Under a reply: copy, keep (a page or note in Yours), save as a memory (a memory tagged `chat`, titled by
+  `ChatShare.title`, the web's rule), thumbs and read aloud. In the options sheet, Recall is a switch until
+  there is more than one memory branch; then it is a picker of Off and the branches, sent as `recall_branch`.
 - `RoomScreen`: a room. `Rooms/` holds the list, creation, members and the model.
 - `Models/`: connect, edit and disconnect your own models (`/api/backends`). Every field has its
   label above it (`HVLabeledField`).
@@ -22,8 +25,6 @@ models, on-device chat and reading replies aloud.
 
 - Renaming a chat: `PATCH /api/conversations/[id]` takes only `visibility` and
   `truth_ledgers`, so there is nothing to call.
-- Memory branches in the recall switch (`recall_branch`): the Kit sends it, the
-  composer only has the on/off switch until memory branches have a screen.
 - Truth ledger pinning per chat (`truth_ledgers`): the Kit sends it; no picker yet.
 - Importing a `.jsx` or `.pdf` from the composer (the web has it): Import and Keep
   already cover that on the phone.

@@ -127,6 +127,100 @@ final class ChatModelTests: XCTestCase {
         XCTAssertNil(model.rows.last?.feedback)
     }
 
+    // MARK: Saving a reply as a memory
+
+    private let memoryKept = """
+    {"id":"m9","title":"plan it","summary":"s","tags":["chat"],"source":"chat","links":2,"branch":"main","commit_id":"c1",
+     "message":"Kept in memory, and linked to 2 related memories."}
+    """
+
+    private func recording(_ method: HTTPMethod, _ path: String, _ json: String, into sent: ChatSentBodies) -> MockRoute {
+        MockRoute(method, path) { request in
+            sent.record(request)
+            return HTTPResponse(status: 200, data: Data(json.utf8))
+        }
+    }
+
+    /// A chat with one answered question in it: "plan it", and "Here is the answer."
+    private func answeredChat(routes: [MockRoute]) async -> ChatConversationModel {
+        let model = makeModel(routes: routes + [.json(.post, "/api/chat", turn)])
+        model.draft = "plan it"
+        model.sendDraft()
+        await settle(model)
+        return model
+    }
+
+    func testAReplySavedAsAMemoryIsNamedFromTheQuestionTaggedChatAndTheServersWordsComeBack() async throws {
+        let sent = ChatSentBodies()
+        let model = await answeredChat(routes: [recording(.post, "/api/memories", memoryKept, into: sent)])
+        let reply = try XCTUnwrap(model.rows.last)
+
+        let line = try await model.saveAsMemory(reply)
+
+        XCTAssertEqual(line, "Kept in memory, and linked to 2 related memories.")
+        XCTAssertEqual(sent.all.count, 1)
+        let body = try XCTUnwrap(sent.all.first)
+        XCTAssertEqual(body["title"] as? String, "plan it", "the web titles a reply with the message that produced it")
+        XCTAssertEqual(body["content"] as? String, "Here is the answer.")
+        XCTAssertEqual(body["tags"] as? [String], ["chat"])
+        XCTAssertEqual(body["source"] as? String, "chat")
+        XCTAssertNil(body["branch"], "the web names no branch, so the memory lands on main")
+    }
+
+    func testAMemoryTheServerSaidNothingAboutSaysKeptInMemory() async throws {
+        let sent = ChatSentBodies()
+        let model = await answeredChat(routes: [recording(.post, "/api/memories", #"{"id":"m9"}"#, into: sent)])
+        let reply = try XCTUnwrap(model.rows.last)
+        let line = try await model.saveAsMemory(reply)
+        XCTAssertEqual(line, "Kept in memory.")
+    }
+
+    func testAnImportedReplyWithNoQuestionBeforeItIsNamedFromItsFirstLine() async throws {
+        let sent = ChatSentBodies()
+        let model = makeModel(routes: [recording(.post, "/api/memories", memoryKept, into: sent)])
+        let reply = ChatThreadRow(id: "a1", kind: .assistant, text: "## Ferry times\nHourly from nine.")
+        model.seed(rows: [reply])
+
+        _ = try await model.saveAsMemory(reply)
+
+        XCTAssertEqual(sent.all.first?["title"] as? String, "Ferry times")
+    }
+
+    func testAReplyOfOnlyBlanksIsNotSent() async {
+        let sent = ChatSentBodies()
+        let model = makeModel(routes: [recording(.post, "/api/memories", memoryKept, into: sent)])
+        let reply = ChatThreadRow(id: "a1", kind: .assistant, text: " \n ")
+        model.seed(rows: [reply])
+        do {
+            _ = try await model.saveAsMemory(reply)
+            XCTFail("expected a refusal")
+        } catch {
+            XCTAssertEqual(error.localizedDescription, HVCopy.nothingToKeepLine)
+        }
+        XCTAssertTrue(sent.all.isEmpty)
+    }
+
+    func testAMemoryTheServerRefusesShowsItsSentenceAndOneThatNeverArrivedSaysNothingWasKept() async {
+        let refusing = makeModel(routes: [.failure(.post, "/api/memories", status: 413, message: "That chunk is over the 500 kB memory limit.")])
+        let reply = ChatThreadRow(id: "a1", kind: .assistant, text: "Long reply")
+        refusing.seed(rows: [reply])
+        do {
+            _ = try await refusing.saveAsMemory(reply)
+            XCTFail("expected a refusal")
+        } catch {
+            XCTAssertEqual(error.localizedDescription, "That chunk is over the 500 kB memory limit.")
+        }
+
+        let offline = makeModel(routes: [], transport: OfflineAlways())
+        offline.seed(rows: [reply])
+        do {
+            _ = try await offline.saveAsMemory(reply)
+            XCTFail("expected a failure")
+        } catch {
+            XCTAssertEqual(error.localizedDescription, HVCopy.keepOfflineLine)
+        }
+    }
+
     func testAnOnDeviceTurnStreamsAndIsSaved() async {
         let model = makeModel(
             routes: [
@@ -434,6 +528,21 @@ private final class ChatSwitchedTransport: HTTPTransport, @unchecked Sendable {
         if !isUp { throw URLError(.notConnectedToInternet) }
         return try await inner.send(request)
     }
+}
+
+/// The JSON bodies a route was sent, from any thread.
+private final class ChatSentBodies: @unchecked Sendable {
+    private let lock = NSLock()
+    private var bodies: [[String: Any]] = []
+
+    func record(_ request: URLRequest) {
+        let object = (request.httpBody.flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]) ?? [:]
+        lock.lock()
+        bodies.append(object)
+        lock.unlock()
+    }
+
+    var all: [[String: Any]] { lock.lock(); defer { lock.unlock() }; return bodies }
 }
 
 /// Numbers the calls a route gets, from any thread.

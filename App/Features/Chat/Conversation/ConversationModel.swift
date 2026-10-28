@@ -667,10 +667,33 @@ final class ChatConversationModel {
         }
     }
 
+    /// Saves a reply as a memory tagged "chat", named the way the web names it, and answers with the server's
+    /// sentence about it (or "Kept in memory." when it sent none).
+    func saveAsMemory(_ row: ChatThreadRow) async throws -> String {
+        guard !row.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ChatActionError(message: HVCopy.nothingToKeepLine)
+        }
+        let draft = MemoryDraft(
+            content: row.text, title: ChatShare.title(content: row.text, sourcePrompt: promptBefore(row)),
+            tagsText: "chat", source: "chat"
+        )
+        do {
+            let kept = try await client.send(.memoryCreate(draft))
+            return kept.message.isEmpty ? HVCopy.keptInMemoryLine : kept.message
+        } catch let error as HVError {
+            throw ChatActionError(message: error.sentence(offline: HVCopy.keepOfflineLine))
+        }
+    }
+
+    /// The last message the person sent before a reply: what it answers.
+    private func promptBefore(_ row: ChatThreadRow) -> String? {
+        guard let index = rows.firstIndex(where: { $0.id == row.id }) else { return nil }
+        return rows[..<index].last { $0.kind == .user }?.text
+    }
+
     /// The message that produced a reply, kept with it so it can be iterated on.
     private func sourcePrompt(for row: ChatThreadRow) -> String? {
-        guard let index = rows.firstIndex(where: { $0.id == row.id }) else { return nil }
-        let prior = rows[..<index].last { $0.kind == .user }?.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let prior = promptBefore(row)?.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let prior, !prior.isEmpty, prior.count <= limits.sourcePromptChars else { return nil }
         return prior
     }

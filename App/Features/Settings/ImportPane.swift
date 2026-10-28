@@ -41,9 +41,11 @@ struct ImportPane: View {
                 ) {
                     app.router.push(.importHistory, on: .you)
                 }
+                // The web's line adds "(up to 10 MB)" after PDFs, which is older than its code: the server takes 50 MB on Pro and
+                // 1 MB on Free, and the app's own check says 50 MB (`FileImport`). The size is left out rather than be wrong.
                 importRow(
                     "file", title: "A file",
-                    detail: "A .jsx file is auto-wrapped into a running, installable page. PDFs (up to 10 MB) are saved as-is.",
+                    detail: "A .jsx file is auto-wrapped into a running, installable page. PDFs are saved as-is.",
                     action: isBusy ? "Importing" : "Import .jsx / .pdf file", isDisabled: isBusy
                 ) {
                     problem = nil

@@ -175,8 +175,9 @@ floating chrome (composer, bars), never for lists. Lists are plain paper.
   `scripts/gen_tokens.py` (`make tokens`). `HVColor` loads them by name (`HVColor.mutedForeground`), `Palette` is
   built from `HVColor`, and a colour that is not a token is a decision, not a convenience. Take a new copy of
   tokens.json when the web changes, run `make tokens`, and commit what it writes; CI's `tokens` job and
-  `DesignTokensTests` fail when the file, the generated code and the compiled catalog disagree. The asset-symbol
-  extensions are off in `project.yml` because the sets share the web's names (`primary`, `background`).
+  `DesignTokensTests` fail when the file, the generated code and the compiled catalog disagree. The asset symbols
+  and their SwiftUI extensions are off in `project.yml` because the sets share the web's names (`primary`, `background`,
+  and `accent`, which also meets the global `AccentColor`).
 - Contrast is checked, not assumed: `DesignContrastTests` holds the pairs the app draws text in to 4.5:1, and records
   the exceptions (white on `primary` is 3.68:1, so a label on the flat primary fill is bold; `primary` and
   `destructive` as text on raised paper fall under 4.5, so tinted text there uses `accent`; `primary` text on its own 12

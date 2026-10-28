@@ -77,7 +77,7 @@ that finds problems fastest. Each line says what should happen.
   opens it as well as Face ID.
 - **Lock off, a screen with a value:** Vault > Add, pick Card, type a number, then open the app switcher: the card is
   the blank one with the mark, not the form. The same for the Replace and Edit sheets, a freshly made agent key, a
-  page password and a webhook's signing secret. Come back: the form is as you left it, and nothing asks for Face ID,
+  page password (one just made, and one typed into New password before Create password) and a webhook's signing secret. Come back: the form is as you left it, and nothing asks for Face ID,
   even after a minute away. Look at the card with the keyboard up: the system keyboard may still be drawn on it.
 - **Reinstall:** sign in, delete the app, install it again: the first launch shows the way in, not your account. An
   update over the older build keeps you signed in. The widgets and the share sheet, used before the app is opened
@@ -148,7 +148,9 @@ A render and a unit test cannot show these, and each one decides a line of the c
   back down, and Close dismisses it. With the text size at the largest accessibility size the half-height sheet still
   scrolls to everything, and Rename and Replace the value open over it.
 - **Closing keeps what was typed.** Add > Login, type a username and swipe the sheet down: it stays. Close asks
-  "Discard what you typed?", and Keep editing returns to the form. The same for Rename and Replace the value.
+  "Discard what you typed?", and Keep editing returns to the form. The same for Rename and Replace the value. Back,
+  next to Close, asks the same while something is typed (and the edge swipe from the left does nothing), and with nothing
+  typed it is the system's Back. With the network slow, tap Save and then Close: Close is off until the answer comes.
 
 ## 6. Needs special hardware or settings
 

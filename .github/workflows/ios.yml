@@ -131,7 +131,7 @@ jobs:
   # The journeys: the real app launched on a simulator and driven with taps and typing, through the welcome story,
   # sign-in, Home, each tab, the Account menu, every pane of the You tab and every screen they open, and the waitlist;
   # and a sweep of the main screens in the dark and at an accessibility text size. The app is a debug build whose network
-  # is canned inside it (App/Core/UITestHarness.swift); nothing here reaches a real server. Twelve jobs run side by side
+  # is canned inside it (App/Core/UITestHarness.swift); nothing here reaches a real server. Thirteen jobs run side by side
   # (each builds the app for itself), so a push waits for the slowest of them and none of them for the others.
   ui:
     name: UI tests (macOS, ${{ matrix.suite }})

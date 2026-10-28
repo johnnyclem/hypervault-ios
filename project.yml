@@ -26,9 +26,11 @@ settings:
     CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     ENABLE_MODULE_VERIFIER: NO
-    # Off: the colour sets are named for the web's tokens (primary, secondary, background, accent), and the extensions
-    # Xcode generates for them would sit beside SwiftUI's own members of those names. Colours load by name through
-    # HVColor, so nothing uses the generated symbols.
+    # Off: the colour sets are named for the web's tokens (primary, secondary, background, accent), and the symbols Xcode
+    # generates for them would sit beside SwiftUI's own members of those names (the set called accent also meets the
+    # global AccentColor, which resolves to the same symbol and draws a warning). Colours load by name through HVColor,
+    # so nothing uses the generated symbols. The first setting stops the symbols, the second their SwiftUI extensions.
+    ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS: NO
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
     SWIFT_EMIT_LOC_STRINGS: YES
     CLANG_ANALYZER_NONNULL: YES

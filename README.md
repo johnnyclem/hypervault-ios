@@ -118,8 +118,8 @@ Tests/AppTests/          App tests and snapshot renders.
 `.github/workflows/ios.yml` runs the Kit's tests on Linux and builds and tests the app
 on a macOS simulator. The app's snapshot tests render screens in the dark and the
 workflow publishes the PNGs to a `snapshots-<branch>` branch, so a screen can be looked
-at without opening Xcode. Twelve more jobs run the UI tests beside them (the journeys; the tabs and the You journeys; the
-screens of the You panes and the Account menu, and the content and account journeys, in two; the journeys that write, in three; the layout
+at without opening Xcode. Thirteen more jobs run the UI tests beside them (the journeys; the tabs and the You journeys; the
+screens of the You panes and the Account menu, and the content and account journeys, in two; the journeys that write, in four; the layout
 sweep in the dark in two and at a large text size in three) and publish what the app looked like at each step to `ui-snapshots-<branch>`. Each job builds the
 app for itself and has taken between 5 and 22 minutes, depending on the machine GitHub gives it (the build and the
 simulator's start are about eight of them); GitHub runs five macOS jobs at a time, so the last ones start when the first
@@ -238,9 +238,10 @@ server change if you want the app to do more:
 
 ## What has and has not been tested
 
-- The Kit (API client, auth, every model and rule) has about 880 unit tests, run on Linux and
-  macOS in CI. Fixtures follow the routes' real output.
-- The app builds for the simulator in CI with 504 tests (screen state machines, link
+- The Kit (API client, auth, every model and rule) has about 950 unit tests, run on Linux and
+  macOS in CI, and 100 more that need a server and are skipped without one (the local E2E suite below and the live
+  contract check). Fixtures follow the routes' real output.
+- The app builds for the simulator in CI with about 650 tests (screen state machines, link
   parsing, sign-in and access phases) and renders every screen in the dark, and the
   main ones at the largest text sizes, to PNGs the workflow publishes.
 - CI also launches the whole app and drives it: UI tests walk the welcome story, sign-in, the canvas (keep, ask,
@@ -262,7 +263,7 @@ server change if you want the app to do more:
 - The signed-in routes have been run for real, on a Linux box, against the web app itself: `scripts/e2e` brings up
   PostgreSQL with the web repo's migrations, a Supabase stand-in (fake sign-in, a PostgREST-compatible layer with
   real row-level security) and the unmodified web app, and `LocalServerE2ETests` / `LocalE2E*Tests` drive the Kit's
-  endpoints through every feature area with throwaway people (89 tests, skipped unless `HV_E2E_LOCAL_SERVER` and
+  endpoints through every feature area with throwaway people (87 tests, skipped unless `HV_E2E_LOCAL_SERVER` and
   `HV_E2E_LOCAL_TOKEN` are set). It reaches 401, 403, 404, 409, 412, 413, 428 and 429 from real routes. It does
   not cover a real model or mail provider, pgvector, or Supabase itself. How to run it and what it leaves out:
   [docs/LOCAL_E2E.md](docs/LOCAL_E2E.md).

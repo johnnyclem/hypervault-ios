@@ -61,15 +61,16 @@ private struct HVRowLabelModifier: ViewModifier {
 /// The symbol in its own column and the words beside it. The first line of the words sits on the symbol's baseline and the
 /// lines after it start where it does. The symbol is decoration, as in the system's label.
 ///
-/// The column is as wide as three digits of the label's own font, drawn and hidden: it grows with the type and follows a
-/// footnote or caption label down to that size, where a column sized for body text left a wide gap before the words. A
-/// symbol wider than that sets the width of its own row. The digits are fixed in size, as the column was before: a narrow
-/// container does not make them wrap and grow the row.
+/// The column is as wide as two digits of the label's own font, drawn and hidden, and a little over: it grows with the
+/// type and follows a footnote or caption label down to that size, where a column sized for body text left a wide gap before
+/// the words. (Three digits was tried and was too wide: about as wide as the old body-sized column, so a caption row
+/// kept its gap and a body row gained one.) A symbol wider than that sets the width of its own row. The digits are fixed in
+/// size, as the column was before: a narrow container does not make them wrap and grow the row.
 private struct HVHangingLabelStyle: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: HV.Space.s) {
             ZStack(alignment: .leading) {
-                Text(verbatim: "000").hidden().fixedSize()
+                Text(verbatim: "00").hidden().fixedSize().padding(.trailing, HV.Space.xxs)
                 configuration.icon
             }
             .accessibilityHidden(true)

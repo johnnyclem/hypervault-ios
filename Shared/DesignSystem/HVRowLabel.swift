@@ -28,7 +28,8 @@ extension View {
     ///
     /// `role` is the role of the button the label is in. The system tints the symbol of a row in a list with the accent
     /// whatever the role and colours only the words of a destructive one, so the symbol and the words read as two
-    /// intents. A destructive label asks for it here: both are `danger`, and the readable grey when the row is off.
+    /// intents. A destructive label asks for it here: both are `danger`. A row that is off is the readable grey for
+    /// both, because a disabled list button otherwise keeps a white title and a blue symbol.
     func hvRowLabel(role: ButtonRole? = nil) -> some View {
         modifier(HVRowLabelModifier(role: role))
     }
@@ -50,8 +51,10 @@ private struct HVRowLabelModifier: ViewModifier {
 
     @ViewBuilder
     private func inked<Inner: View>(_ content: Inner) -> some View {
-        if role == .destructive {
-            content.foregroundStyle(isEnabled ? AnyShapeStyle(Palette.danger) : AnyShapeStyle(Palette.textTertiary))
+        if !isEnabled {
+            content.foregroundStyle(AnyShapeStyle(Palette.textTertiary))
+        } else if role == .destructive {
+            content.foregroundStyle(AnyShapeStyle(Palette.danger))
         } else {
             content
         }

@@ -109,11 +109,13 @@ struct ArtifactCodeView: UIViewRepresentable {
     var isEditable = false
     /// What a UI test finds the text view by.
     var identifier: String?
+    /// Drawn inside the field while it is empty, so it cannot sit in front of a tap.
+    var placeholder: String?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeUIView(context: Context) -> UITextView {
-        let view = UITextView()
+        let view = CodeTextView()
         view.font = UIFontMetrics(forTextStyle: .footnote).scaledFont(for: .monospacedSystemFont(ofSize: 13, weight: .regular))
         view.adjustsFontForContentSizeCategory = true
         view.autocapitalizationType = .none
@@ -131,6 +133,8 @@ struct ArtifactCodeView: UIViewRepresentable {
         view.text = text
         view.isEditable = isEditable
         view.accessibilityIdentifier = identifier
+        view.placeholder = placeholder
+        view.refreshPlaceholder()
         return view
     }
 
@@ -138,6 +142,10 @@ struct ArtifactCodeView: UIViewRepresentable {
         context.coordinator.parent = self
         if view.text != text { view.text = text }
         if view.isEditable != isEditable { view.isEditable = isEditable }
+        if let code = view as? CodeTextView {
+            code.placeholder = placeholder
+            code.refreshPlaceholder()
+        }
     }
 
     final class Coordinator: NSObject, UITextViewDelegate {
@@ -149,7 +157,119 @@ struct ArtifactCodeView: UIViewRepresentable {
 
         func textViewDidChange(_ textView: UITextView) {
             if parent.text != textView.text { parent.text = textView.text }
+            (textView as? CodeTextView)?.refreshPlaceholder()
         }
+    }
+}
+
+/// The page that holds this field waits to see whether a touch is a drag, and a tap that ends
+/// during the wait is never delivered here, so the field never becomes first responder. A tap
+/// recognizer on that page sees the touch immediately and focuses the field.
+private final class CodeTextView: UITextView {
+    var placeholder: String? {
+        didSet { placeholderLabel.text = placeholder }
+    }
+
+    private let watchedScrolls = NSHashTable<UIScrollView>.weakObjects()
+    private let placeholderLabel: UILabel = {
+        let label = UILabel()
+        label.numberOfLines = 0
+        label.isUserInteractionEnabled = false
+        label.isAccessibilityElement = false
+        label.textColor = UIColor(named: "muted-foreground") ?? .secondaryLabel
+        return label
+    }()
+
+    override init(frame: CGRect, textContainer: NSTextContainer?) {
+        super.init(frame: frame, textContainer: textContainer)
+        isSelectable = true
+        delaysContentTouches = false
+        placeholderLabel.font = font
+        addSubview(placeholderLabel)
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        isSelectable = true
+        delaysContentTouches = false
+        addSubview(placeholderLabel)
+    }
+
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        bounds.contains(point)
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        watchScrolls()
+    }
+
+    func refreshPlaceholder() {
+        placeholderLabel.isHidden = placeholder == nil || !text.isEmpty
+        placeholderLabel.font = font
+        accessibilityHint = text.isEmpty ? placeholder : nil
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let inset = textContainerInset
+        let pad = textContainer.lineFragmentPadding
+        let width = max(0, bounds.width - inset.left - inset.right - pad * 2)
+        let size = placeholderLabel.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        placeholderLabel.frame = CGRect(x: inset.left + pad, y: inset.top, width: width, height: size.height)
+        watchScrolls()
+    }
+
+    func focus(at point: CGPoint) {
+        guard isEditable, bounds.contains(point) else { return }
+        if !isFirstResponder { _ = becomeFirstResponder() }
+        if let position = closestPosition(to: point) {
+            selectedTextRange = textRange(from: position, to: position)
+        }
+    }
+
+    private func watchScrolls() {
+        guard window != nil else { return }
+        var ancestor = superview
+        while let view = ancestor {
+            if let scroll = view as? UIScrollView {
+                scroll.delaysContentTouches = false
+                if !watchedScrolls.contains(scroll) {
+                    let relay = CodeScrollTap(textView: self)
+                    let tap = UITapGestureRecognizer(target: relay, action: #selector(CodeScrollTap.tapped))
+                    tap.cancelsTouchesInView = false
+                    tap.delaysTouchesBegan = false
+                    tap.delaysTouchesEnded = false
+                    tap.delegate = relay
+                    objc_setAssociatedObject(tap, &CodeScrollTap.retainKey, relay, .OBJC_ASSOCIATION_RETAIN)
+                    scroll.addGestureRecognizer(tap)
+                    watchedScrolls.add(scroll)
+                }
+            }
+            ancestor = view.superview
+        }
+    }
+}
+
+/// Held by the page's tap recognizer. It does not keep the text view alive.
+private final class CodeScrollTap: NSObject, UIGestureRecognizerDelegate {
+    static var retainKey: UInt8 = 0
+    weak var textView: CodeTextView?
+
+    init(textView: CodeTextView) {
+        self.textView = textView
+    }
+
+    @objc func tapped(_ recognizer: UITapGestureRecognizer) {
+        guard let textView else { return }
+        textView.focus(at: recognizer.location(in: textView))
+    }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
+    ) -> Bool {
+        true
     }
 }
 

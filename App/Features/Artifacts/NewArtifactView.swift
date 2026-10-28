@@ -267,19 +267,19 @@ struct NewArtifactView: View {
                 .buttonBorderShape(.capsule)
                 .controlSize(.regular)
             }
-            ArtifactCodeView(text: Bindable(model).content, isEditable: true, identifier: "artifact.new.content")
+            ArtifactCodeView(
+                text: Bindable(model).content,
+                isEditable: true,
+                identifier: "artifact.new.content",
+                placeholder: "Paste HTML or a React component. We'll work out which and make it run."
+            )
                 .frame(height: 260)
                 .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
-                .overlay(alignment: .topLeading) {
-                    if model.content.isEmpty {
-                        Text("Paste HTML or a React component. We'll work out which and make it run.")
-                            .font(.hvMono)
-                            .foregroundStyle(Palette.textSecondary)
-                            .padding(HV.Space.s + 2)
-                            .allowsHitTesting(false)
-                    }
-                }
+                .overlay(
+                    RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous)
+                        .strokeBorder(Palette.border, lineWidth: 1)
+                        .allowsHitTesting(false)
+                )
             HStack {
                 if let name = model.loadedFileName {
                     Label("From \(name)", systemImage: "doc").font(.hvCaption).foregroundStyle(Palette.textSecondary)

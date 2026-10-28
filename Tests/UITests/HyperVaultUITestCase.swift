@@ -593,13 +593,33 @@ class HyperVaultUITestCase: XCTestCase {
     /// Answers a confirmation the app asks for a destructive choice. On a phone the dialog is an action sheet, or a popover
     /// that holds only the destructive button; either way the button is the one by this label that is not the control that
     /// asked (`asked` is that control, when it is still on screen under the same label).
+    ///
+    /// A tap that lands while the dialog is still settling is lost, and the dialog stays up (the card delete on a loaded
+    /// runner left "Delete visa-4242?" on screen, so the delete was never sent). Tap again until that dialog is gone.
     func confirm(_ label: String, whileStill asked: XCUIElement? = nil, file: StaticString = #filePath, line: UInt = #line) {
         let inPopover = app.popovers.buttons[label]
         let sameLabel = app.buttons.matching(NSPredicate(format: "label == %@", label))
         let others = { (asked?.exists == true) ? 2 : 1 }
         waitUntil("the confirmation asking for \(label)", file: file, line: line) { inPopover.exists || sameLabel.count >= others() }
         let target = inPopover.exists ? inPopover : sameLabel.element(boundBy: max(sameLabel.count - 1, 0))
-        tap(target, "the \(label) confirmation", file: file, line: line)
+        let seen = sameLabel.count
+        // Two controls share the label while the dialog is up (the one that asked, and the dialog). One less means the
+        // dialog went. A dialog that is the only control by this label is a popover or an alert, and it is gone when
+        // that popover or alert is.
+        let answered = {
+            if seen >= 2 { return sameLabel.count < seen }
+            return !self.app.popovers.buttons[label].exists && !self.app.alerts.buttons[label].exists
+        }
+        let dialogCanBeSeen = seen >= 2 || inPopover.exists || app.alerts.buttons[label].exists
+        if dialogCanBeSeen {
+            tap(target, "the \(label) confirmation", until: answered, file: file, line: line)
+            if !answered() {
+                attachScreenshot("Confirmation still up - \(label)")
+                XCTFail("The \(label) confirmation was still there after tapping it.", file: file, line: line)
+            }
+        } else {
+            tap(target, "the \(label) confirmation", file: file, line: line)
+        }
     }
 
     // MARK: What the app sent

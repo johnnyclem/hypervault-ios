@@ -63,6 +63,11 @@ final class ChatConversationModel {
     private(set) var settings = ChatSettings()
     private(set) var hasToolkit = false
     var useRecall = true
+    /// The memory branches recall can draw from. Recall is a plain switch until there is more than one.
+    private(set) var recallBranches: [MindBranch] = []
+    /// The branch recall draws from: main, unless the person chose another. Lasts as long as this chat is open,
+    /// like the switches beside it.
+    private(set) var recallBranch = MindBranchName.defaultName
     var useTools = true
     var draft = ""
     private(set) var isWorking = false
@@ -115,6 +120,12 @@ final class ChatConversationModel {
     var canChat: Bool { choice != nil }
 
     var maxCharacters: Int { limits.chatMessageChars }
+
+    /// Whether Recall is a picker of branches (and Off) instead of a switch.
+    var showsRecallBranches: Bool { recallBranches.count > 1 }
+
+    /// What the Recall picker shows: the branch the reply is grounded in, or nil when recall is off.
+    var recallChoice: String? { useRecall ? recallBranch : nil }
 
     var showsDeepMemory: Bool { features.deepMemory }
 
@@ -240,6 +251,7 @@ final class ChatConversationModel {
         let client = self.client
         async let fetchedSettings = try? await client.send(.chatSettings)
         async let fetchedToolkit = try? await client.send(.toolkitStatus)
+        async let fetchedBranches = try? await client.send(.mindBranches)
         do {
             let stream = cachedLoad(cache: cache, namespace: namespace, key: "chat.backends") {
                 try await client.send(.backends)
@@ -255,6 +267,13 @@ final class ChatConversationModel {
         }
         if let value = await fetchedSettings { settings = value }
         if let value = await fetchedToolkit { hasToolkit = value.hasToolkit }
+        if let value = await fetchedBranches { setRecallBranches(value.ordered) }
+    }
+
+    /// A branch that is gone (deleted elsewhere) is replaced by main, as the web's composer does.
+    private func setRecallBranches(_ branches: [MindBranch]) {
+        recallBranches = branches
+        if !branches.contains(where: { $0.name == recallBranch }) { recallBranch = MindBranchName.defaultName }
     }
 
     /// Pull to refresh: the thread as the server has it now (it may have been
@@ -380,9 +399,21 @@ final class ChatConversationModel {
 
     // MARK: Context switches
 
+    /// The Recall picker's choice: a branch to ground replies in, or nil to switch recall off.
+    func chooseRecall(branch: String?) {
+        guard let branch else {
+            useRecall = false
+            return
+        }
+        useRecall = true
+        recallBranch = branch
+    }
+
     private func sendOptions() -> ChatSendOptions {
         ChatSendOptions(
             useRecall: useRecall,
+            // Main is what the route recalls from when it is not told a branch, as for the Memory tab's Ask.
+            recallBranch: showsRecallBranches && recallBranch != MindBranchName.defaultName ? recallBranch : nil,
             smartContext: settings.smartContext,
             deepMemory: features.deepMemory ? settings.deepMemory : nil,
             truth: features.truthLedger ? settings.truth : nil,
@@ -732,7 +763,7 @@ final class ChatConversationModel {
     func seed(
         rows: [ChatThreadRow], backends: [ChatBackend] = [], conversation: ChatConversation? = nil,
         choice: ChatModelChoice? = nil, working: Date? = nil, notice: String? = nil, hasToolkit: Bool = false,
-        keptNotes: [String: ChatKeptNote] = [:]
+        keptNotes: [String: ChatKeptNote] = [:], recallBranches: [MindBranch] = []
     ) {
         self.rows = rows
         self.backends = backends
@@ -745,6 +776,7 @@ final class ChatConversationModel {
         self.notice = notice
         self.hasToolkit = hasToolkit
         self.keptNotes = keptNotes
+        self.recallBranches = recallBranches
         self.didSend = true
     }
     #endif

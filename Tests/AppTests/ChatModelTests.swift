@@ -221,6 +221,91 @@ final class ChatModelTests: XCTestCase {
         }
     }
 
+    // MARK: Choosing the memory branch a chat recalls from
+
+    private let twoBranches = """
+    {"branches":[{"id":"b1","name":"main","is_default":true,"memory_count":24},{"id":"b2","name":"ideas","is_default":false,"memory_count":6}]}
+    """
+
+    /// Types a message and waits for its reply.
+    private func say(_ text: String, in model: ChatConversationModel) async {
+        model.draft = text
+        model.sendDraft()
+        await settle(model)
+    }
+
+    func testRecallStaysAPlainSwitchWithOneMemoryBranchOrNone() async {
+        let sent = ChatSentBodies()
+        let one = makeModel(routes: [
+            .json(.get, "/api/mind/branches", #"{"branches":[{"id":"b1","name":"main","is_default":true,"memory_count":3}]}"#),
+            recording(.post, "/api/chat", turn, into: sent),
+        ])
+        await one.load()
+        XCTAssertFalse(one.showsRecallBranches)
+
+        await say("hello", in: one)
+        XCTAssertEqual(sent.all.first?["use_recall"] as? Bool, true)
+        XCTAssertNil(sent.all.first?["recall_branch"])
+
+        let none = makeModel(routes: [.failure(.get, "/api/mind/branches", status: 404, message: "Not found.")])
+        await none.load()
+        XCTAssertFalse(none.showsRecallBranches)
+    }
+
+    func testSeveralMemoryBranchesLetThePersonChooseWhichOneGroundsTheReplyOrSwitchRecallOff() async {
+        let sent = ChatSentBodies()
+        let model = makeModel(routes: [
+            .json(.get, "/api/mind/branches", twoBranches),
+            recording(.post, "/api/chat", turn, into: sent),
+        ])
+        await model.load()
+        XCTAssertTrue(model.showsRecallBranches)
+        XCTAssertEqual(model.recallBranches.map(\.name), ["main", "ideas"])
+        XCTAssertEqual(model.recallChoice, "main", "recall starts on, from main")
+
+        model.chooseRecall(branch: "ideas")
+        XCTAssertEqual(model.recallChoice, "ideas")
+        await say("one", in: model)
+        XCTAssertEqual(sent.all.last?["use_recall"] as? Bool, true)
+        XCTAssertEqual(sent.all.last?["recall_branch"] as? String, "ideas")
+
+        model.chooseRecall(branch: "main")
+        await say("two", in: model)
+        XCTAssertEqual(sent.all.last?["use_recall"] as? Bool, true)
+        XCTAssertNil(sent.all.last?["recall_branch"], "main is what the route recalls from when it is not told a branch")
+
+        model.chooseRecall(branch: nil)
+        XCTAssertNil(model.recallChoice)
+        XCTAssertFalse(model.useRecall)
+        await say("three", in: model)
+        XCTAssertEqual(sent.all.last?["use_recall"] as? Bool, false)
+        XCTAssertNil(sent.all.last?["recall_branch"])
+
+        model.chooseRecall(branch: "ideas")
+        XCTAssertTrue(model.useRecall)
+        XCTAssertEqual(model.recallChoice, "ideas")
+        XCTAssertEqual(sent.all.count, 3)
+    }
+
+    func testABranchDeletedElsewhereFallsBackToMain() async {
+        let loads = ChatPostCount()
+        let model = makeModel(routes: [
+            MockRoute(.get, "/api/mind/branches") { _ in
+                let answer = loads.next() == 1
+                    ? #"{"branches":[{"id":"b1","name":"main","is_default":true},{"id":"b2","name":"ideas"},{"id":"b3","name":"work"}]}"#
+                    : #"{"branches":[{"id":"b1","name":"main","is_default":true},{"id":"b2","name":"ideas"}]}"#
+                return HTTPResponse(status: 200, data: Data(answer.utf8))
+            },
+        ])
+        await model.load()
+        model.chooseRecall(branch: "work")
+        XCTAssertEqual(model.recallChoice, "work")
+
+        await model.load()
+        XCTAssertEqual(model.recallBranches.map(\.name), ["main", "ideas"])
+        XCTAssertEqual(model.recallChoice, "main")
+    }
+
     func testAnOnDeviceTurnStreamsAndIsSaved() async {
         let model = makeModel(
             routes: [

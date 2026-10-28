@@ -107,6 +107,15 @@ final class ChatSnapshotTests: XCTestCase {
         )
     }
 
+    func testOptionsSheetWithSeveralMemoryBranches() throws {
+        try snapshot(
+            PreviewHost(routes: ChatPreviewData.routes, embedInNavigation: false) {
+                ChatOptionsSheet(model: ChatPreviewData.conversationModel(branches: true))
+            },
+            named: "chat-options-branches"
+        )
+    }
+
     func testRoom() throws {
         try snapshot(PreviewHost(routes: ChatPreviewData.routes) { RoomScreen(roomID: "r1") }, named: "chat-room")
     }

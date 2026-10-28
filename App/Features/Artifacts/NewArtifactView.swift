@@ -229,18 +229,7 @@ struct NewArtifactView: View {
             }
             .padding(HV.Space.m)
             .background(Palette.background)
-            .background(alignment: .top) { barEdge }
         }
-    }
-
-    /// The form scrolls under the bar, and a line that crosses its top edge was cut through the middle (the second line
-    /// of the caption under "Who can open it" lost its descenders). The paper fades in over the last stretch above the bar
-    /// instead, so what passes under it dissolves.
-    private var barEdge: some View {
-        LinearGradient(colors: [Palette.background.opacity(0), Palette.background], startPoint: .top, endPoint: .bottom)
-            .frame(height: HV.Space.m)
-            .offset(y: -HV.Space.m)
-            .allowsHitTesting(false)
     }
 
     private var contentField: some View {
@@ -267,19 +256,19 @@ struct NewArtifactView: View {
                 .buttonBorderShape(.capsule)
                 .controlSize(.regular)
             }
-            ArtifactCodeView(text: Bindable(model).content, isEditable: true, identifier: "artifact.new.content")
+            ArtifactCodeView(
+                text: Bindable(model).content,
+                isEditable: true,
+                identifier: "artifact.new.content",
+                placeholder: "Paste HTML or a React component. We'll work out which and make it run."
+            )
                 .frame(height: 260)
                 .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
-                .overlay(alignment: .topLeading) {
-                    if model.content.isEmpty {
-                        Text("Paste HTML or a React component. We'll work out which and make it run.")
-                            .font(.hvMono)
-                            .foregroundStyle(Palette.textSecondary)
-                            .padding(HV.Space.s + 2)
-                            .allowsHitTesting(false)
-                    }
-                }
+                .overlay(
+                    RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous)
+                        .strokeBorder(Palette.border, lineWidth: 1)
+                        .allowsHitTesting(false)
+                )
             HStack {
                 if let name = model.loadedFileName {
                     Label("From \(name)", systemImage: "doc").font(.hvCaption).foregroundStyle(Palette.textSecondary)

@@ -393,9 +393,10 @@ final class SpyHost: CanvasCommandHost {
 
 final class CanvasCommandRunnerTests: XCTestCase {
     // The host is main-actor isolated; the test class is not, because a main-actor
-    // XCTestCase breaks test discovery on Linux.
-    func run(_ body: @MainActor @Sendable () -> Void) async {
-        await MainActor.run { body() }
+    // XCTestCase breaks test discovery on Linux. Awaiting the closure hops actors, so
+    // it has to escape: Swift 6.4 rejects a non-escaping one here.
+    func run(_ body: @escaping @MainActor @Sendable () -> Void) async {
+        await body()
     }
 
     func testCommandsGoToTheHost() async {

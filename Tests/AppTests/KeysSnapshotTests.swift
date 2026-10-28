@@ -129,8 +129,8 @@ final class KeysSnapshotTests: XCTestCase {
         )
     }
 
-    /// The grants list cannot be read: no switches, a plain sentence and a way to try again. The server's own
-    /// words are a bare status line here, and must not show.
+    /// The grants list cannot be read: no switches, the server's own sentence, and a way to try again.
+    /// `VaultGrantsTests` shows that sentence on purpose. It is not replaced with a generic line.
     func testVaultDetailWhenTheGrantsCannotBeRead() throws {
         let routes = [MockRoute.failure(.get, "/api/secrets/visa-4242/grants", status: 500, message: "Internal Server Error")] + VaultPreviewData.routes
         try snapshot(

@@ -28,7 +28,8 @@ extension View {
     ///
     /// `role` is the role of the button the label is in. The system tints the symbol of a row in a list with the accent
     /// whatever the role and colours only the words of a destructive one, so the symbol and the words read as two
-    /// intents. A destructive label asks for it here: both are `danger`, and the readable grey when the row is off.
+    /// intents. A destructive label asks for it here: both are `danger`. A row that is off is the readable grey for
+    /// both, because a disabled list button otherwise keeps a white title and a blue symbol.
     func hvRowLabel(role: ButtonRole? = nil) -> some View {
         modifier(HVRowLabelModifier(role: role))
     }
@@ -50,22 +51,32 @@ private struct HVRowLabelModifier: ViewModifier {
 
     @ViewBuilder
     private func inked<Inner: View>(_ content: Inner) -> some View {
-        if role == .destructive {
-            content.foregroundStyle(isEnabled ? AnyShapeStyle(Palette.danger) : AnyShapeStyle(Palette.textTertiary))
+        if !isEnabled {
+            content.foregroundStyle(AnyShapeStyle(Palette.textTertiary))
+        } else if role == .destructive {
+            content.foregroundStyle(AnyShapeStyle(Palette.danger))
         } else {
             content
         }
     }
 }
 
-/// The symbol in its own column, scaled with the type, and the words beside it. The first line of the words sits on the
-/// symbol's baseline and the lines after it start where it does. The symbol is decoration, as in the system's label.
+/// The symbol in its own column and the words beside it. The first line of the words sits on the symbol's baseline and the
+/// lines after it start where it does. The symbol is decoration, as in the system's label.
+///
+/// The column is as wide as two digits of the label's own font, drawn and hidden, and a little over: it grows with the
+/// type and follows a footnote or caption label down to that size, where a column sized for body text left a wide gap before
+/// the words. (Three digits was tried and was too wide: about as wide as the old body-sized column, so a caption row
+/// kept its gap and a body row gained one.) A symbol wider than that sets the width of its own row. The digits are fixed in
+/// size, as the column was before: a narrow container does not make them wrap and grow the row.
 private struct HVHangingLabelStyle: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: HV.Space.s) {
-            configuration.icon
-                .hvIconSlot(28)
-                .accessibilityHidden(true)
+            ZStack(alignment: .leading) {
+                Text(verbatim: "00").hidden().fixedSize().padding(.trailing, HV.Space.xxs)
+                configuration.icon
+            }
+            .accessibilityHidden(true)
             configuration.title
         }
     }

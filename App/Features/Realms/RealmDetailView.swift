@@ -37,7 +37,7 @@ struct RealmDetailView: View {
                     HVAddressText(claim.host)
                         .font(.system(.title3, design: .monospaced, weight: .semibold))
                         .minimumScaleFactor(0.5)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                        .lineLimit(1)
                     Text("Serves your whole vault. Visitors see this address's look; you still get your dashboard.")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)

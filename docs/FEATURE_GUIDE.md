@@ -231,7 +231,7 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   scroll-edge effect. A filled button pinned under something that scrolls (Import, Claim an address, Compile tools) is
   not glass: rows under glass show through as smeared ghost text, and a glass pill round a button has two radii and two
   borders. It is `.hvActionBar()` as the content of `safeAreaInset(edge: .bottom, spacing: 0)`: the page's colour, solid,
-  with a fade above it, and the inset keeps the end of the list clear of it.
+  and the inset keeps the end of the list clear of it.
 - Sheets: every sheet has a visible way out (handoff 4.4 and 9). Most already have a `Cancel`, a `Done` or a `Close` in
   the navigation bar, or an `HVSheetHeader` with its xmark; a sheet that has none puts `.hvSheetClose(isDirty:)` on its
   root view inside the `NavigationStack`. It adds a "Close" button (xmark, `.cancellationAction`); while `isDirty` it

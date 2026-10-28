@@ -274,11 +274,24 @@ class HyperVaultUITestCase: XCTestCase {
     }
 
     /// Taps the system's Paste control. It draws itself outside the app's own view tree, so it is tapped as soon as it
-    /// exists rather than waited on to be hittable.
-    func tapPaste(file: StaticString = #filePath, line: UInt = #line) {
+    /// exists rather than waited on to be hittable. With `reached`, a tap that comes to nothing (the system took it while
+    /// the screen was still settling) is repeated, up to three times, as `tap(_:_:until:)` does; the control is gone once
+    /// a paste has worked, so a repeat is only made while `reached` is still false.
+    func tapPaste(until reached: (() -> Bool)? = nil, file: StaticString = #filePath, line: UInt = #line) {
         let paste = button("Paste")
         require(paste, "the Paste button", file: file, line: line)
         paste.tap()
+        guard let reached else { return }
+        for _ in 1...2 {
+            let deadline = Date().addingTimeInterval(6)
+            while Date() < deadline, !reached() {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+            }
+            if reached() { return }
+            guard paste.exists else { return }
+            print("[journey] tapping Paste did not get anywhere")
+            paste.tap()
+        }
     }
 
     /// Clears a field the way a person does: by deleting what is in it.

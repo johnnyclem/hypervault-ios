@@ -12,6 +12,7 @@ struct LibraryRootView: View {
 
     var body: some View {
         LibraryScreen(env: env)
+            .jobNotices()
     }
 }
 
@@ -86,6 +87,10 @@ struct LibraryScreen: View {
                 onLeave: { item in Task { await model.leave(item, toasts: app.toasts) } }
             ))
             .overlay(alignment: .bottom) { busyBanner }
+            // A job that changed something has been dismissed: read the list again, as pulling it down does.
+            .onChange(of: env.jobNotices.changes) { _, _ in
+                Task { await model.refresh(filter: filter, query: query) }
+            }
     }
 
     private var listView: some View {

@@ -283,16 +283,19 @@ struct ChatKeptNoteView: View {
                     message
                     HStack(spacing: HV.Space.xs) { actions }
                 }
+                .padding(.vertical, HV.Space.xs)
             } else {
-                HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
-                    message
+                // The 44pt Open button sets the height of the row and the words are centred on it, so a two-line
+                // note has the same room above and below. The words carry their own padding for the sizes at which
+                // they grow taller than the button.
+                HStack(alignment: .center, spacing: HV.Space.xs) {
+                    message.padding(.vertical, HV.Space.xs)
                     Spacer(minLength: HV.Space.xs)
                     actions
                 }
             }
         }
         .padding(.horizontal, HV.Space.s)
-        .padding(.vertical, typeSize.isAccessibilitySize ? HV.Space.xs : 0)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
     }

@@ -115,7 +115,7 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
         }
 
         step("The code opens to be switched off") {
-            tap(row, "the code in the list")
+            tap(row, "the code in the list", until: { isShowingTitle("Invite code") })
             waitUntil("the code's screen") { isShowingTitle("Invite code") }
             let accepting = toggle("Accepting new sign-ups")
             require(accepting, "the switch for accepting sign-ups")
@@ -133,7 +133,7 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
         step("Accounts & waitlist opens to act on an account by its ID") {
             let accounts = shows("Accounts & waitlist")
             reveal(accounts, "the Accounts & waitlist row")
-            tap(accounts, "Accounts & waitlist")
+            tap(accounts, "Accounts & waitlist", until: { isShowingTitle("Accounts") })
             waitUntil("the Accounts title") { isShowingTitle("Accounts") }
             require(shows("Open the web dashboard, copy the account's ID"), "the line that says where the IDs are")
             require(textField("3f1c1a2e-…"), "the field for an account ID")

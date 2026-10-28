@@ -82,8 +82,10 @@ struct ChatRootView: View {
     }
 }
 
+#if DEBUG
 #Preview("Chat") {
     PreviewHost(routes: ChatPreviewData.routes) {
         ChatRootView()
     }
 }
+#endif

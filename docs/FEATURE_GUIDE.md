@@ -270,7 +270,7 @@ server knows as an admin; for everyone else the admin check gets the 403 the rea
 a room, Truth, the task boards, the import, sharing, admin: what changes while a journey plays, such as a key being made
 or revoked, lives in a small object that one launch owns), the secure store is in memory, the cache and the shared defaults are scratch, and the
 canned hosts end in `.invalid`; anything that builds its own `URLSession` request is answered or refused by
-`UITestURLProtocol`. Animations are off, so the app settles at once after every tap. Release is never built in CI, so
+`UITestURLProtocol`. Animations are off, so the app settles at once after every tap. CI builds Release only to compile it, which would not show this leaking in, so
 `scripts/check_debug_only.py` (a step of the CI job) fails if any of this is not inside `#if DEBUG`. A run never reaches a real server, the Keychain or anything a person left on the phone.
 
 **Getting to a screen.** The app has four tabs, Home, Chat, Memory and You, and the helpers of `HyperVaultUITestCase` follow

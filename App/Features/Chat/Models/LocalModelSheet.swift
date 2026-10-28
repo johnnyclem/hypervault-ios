@@ -167,8 +167,10 @@ struct ChatLocalModelSheet: View {
     }
 }
 
+#if DEBUG
 #Preview("On your network") {
     PreviewHost(embedInNavigation: false) {
         ChatLocalModelSheet(existing: nil) { _ in }
     }
 }
+#endif

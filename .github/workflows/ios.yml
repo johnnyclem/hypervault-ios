@@ -57,7 +57,7 @@ jobs:
       - name: Generate the project
         run: xcodegen generate
 
-      # Release is never built here, so this is what keeps the UI-test mode out of it.
+      # The Release build further down only compiles it, so this is what checks that the UI-test mode cannot be reached in it.
       - name: Check the UI-test mode is debug-only
         run: python3 scripts/check_debug_only.py
 
@@ -122,11 +122,81 @@ jobs:
           git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
           git push -f -q origin "snapshots-$slug"
 
+      # Xcode Cloud (docs/XCODE_CLOUD.md) starts with ci_scripts/ci_post_clone.sh and then builds the HyperVaultCloud scheme.
+      # This runs the script as it is run there, with an identity of its own (XcodeGen is already installed here, so its
+      # Homebrew install is the one part that is not run), and checks that the project it makes has the scheme and has taken
+      # the identity. The file that carries the identity is taken away again, so what is built after this is the same project
+      # without it.
+      - name: Xcode Cloud hook
+        run: |
+          set -o pipefail
+          rm -f Config/Local.xcconfig
+          CI_PRIMARY_REPOSITORY_PATH="$PWD" DEVELOPMENT_TEAM=ABCDE12345 HV_BUNDLE_PREFIX=com.example.cloud \
+            ci_scripts/ci_post_clone.sh
+          xcodebuild -list -project HyperVault.xcodeproj | tee list.txt
+          grep -qE "^ +HyperVaultCloud$" list.txt
+          xcodebuild -showBuildSettings -project HyperVault.xcodeproj -scheme HyperVaultCloud -configuration Release > settings.txt
+          grep -E "^ +(DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER) = " settings.txt | sort -u
+          grep -qE "^ +DEVELOPMENT_TEAM = ABCDE12345$" settings.txt
+          grep -qE "^ +PRODUCT_BUNDLE_IDENTIFIER = com\.example\.cloud\.app$" settings.txt
+          rm -f Config/Local.xcconfig
+
+      # What Xcode asks a project for to offer the products it can build with Xcode Cloud: the app, with the bundle id and the
+      # team the hook gave it, and the HyperVaultCloud scheme among the ones that archive it. (The Kit shows up as a library
+      # beside it; Xcode Cloud's list has two entries, and the app is the one to pick.)
+      - name: Archivable products
+        run: |
+          rm -f Config/Local.xcconfig
+          CI_PRIMARY_REPOSITORY_PATH="$PWD" DEVELOPMENT_TEAM=ABCDE12345 HV_BUNDLE_PREFIX=com.example.cloud \
+            ci_scripts/ci_post_clone.sh > /dev/null
+          xcodebuild -project HyperVault.xcodeproj -describeAllArchivableProducts -json > products.json
+          python3 - <<'EOF'
+          import json
+          apps = [p for p in json.load(open("products.json")) if p.get("productType") == "app"]
+          print(json.dumps(apps, indent=2))
+          assert any(
+              p.get("bundleIdentifier") == "com.example.cloud.app"
+              and p.get("team") == "ABCDE12345"
+              and "HyperVaultCloud" in p.get("containingSchemes", [])
+              for p in apps
+          ), "the app is not offered with the identity the hook gave it, or HyperVaultCloud does not archive it"
+          EOF
+          rm -f Config/Local.xcconfig
+
+      # The archive Xcode Cloud makes is the Release configuration built for a device, which nothing above builds (the
+      # simulator builds are Debug). Unsigned, since compiling needs no team, and in derived data of its own.
+      # The raw log, not xcbeautify's: its first run ended in a failure that it printed no reason for.
+      - name: Release build for a device
+        run: |
+          status=0
+          xcodebuild build \
+            -project HyperVault.xcodeproj -scheme HyperVaultCloud -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build-release \
+            CODE_SIGNING_ALLOWED=NO \
+            > release.log 2>&1 || status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "---- what failed ----"
+            grep -nE "error|Error|FAILED|failed|Failed" release.log | grep -v CHHaptic | head -80 || true
+            echo "---- the end of the log ----"
+            tail -60 release.log
+            exit "$status"
+          fi
+          tail -5 release.log
+
+      - name: Upload the Release build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-build-log
+          path: release.log
+          if-no-files-found: ignore
+
       - name: Summarise failures
         if: failure()
         run: |
           echo "---- errors ----"
-          grep -hE "error:|\*\* (BUILD|TEST) FAILED|Test Case .* failed" build.log test.log 2>/dev/null | sort -u | head -80
+          grep -hE "error:|\*\* (BUILD|TEST) FAILED|Test Case .* failed" build.log test.log release.log 2>/dev/null | grep -v CHHapticPattern | sort -u | head -80
 
   # The journeys: the real app launched on a simulator and driven with taps and typing, through the welcome story,
   # sign-in, Home, each tab, the Account menu, every pane of the You tab and every screen they open, and the waitlist;

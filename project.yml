@@ -232,3 +232,23 @@ schemes:
       config: Release
     archive:
       config: Release
+
+  # What Xcode Cloud builds (docs/XCODE_CLOUD.md): the app, its extensions and the unit tests, and the archive that goes to
+  # TestFlight. The UI tests stay out of it: GitHub Actions runs them (thirteen jobs, each a launched app on a simulator),
+  # and they would use up Xcode Cloud's monthly compute hours in a few runs.
+  HyperVaultCloud:
+    build:
+      targets:
+        HyperVault: all
+        HyperVaultTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: true
+      targets:
+        - HyperVaultTests
+    profile:
+      config: Release
+    archive:
+      config: Release

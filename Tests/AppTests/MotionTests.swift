@@ -21,13 +21,11 @@ final class MotionTests: XCTestCase {
         XCTAssertNil(HV.Motion.resolved(nil, reduceMotion: false))
     }
 
-    func testAnimateStillMakesTheChangeAndReturnsItsResult() {
+    func testAnimateStillMakesTheChange() {
         var changed = false
-        let result = HV.Motion.animate { () -> Int in
+        HV.Motion.animate {
             changed = true
-            return 42
         }
         XCTAssertTrue(changed)
-        XCTAssertEqual(result, 42)
     }
 }

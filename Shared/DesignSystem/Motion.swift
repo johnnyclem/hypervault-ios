@@ -27,8 +27,11 @@ extension HV {
         }
 
         /// `withAnimation`, off under Reduce Motion. The change still happens; it just does not move.
-        static func animate<Result>(_ animation: Animation? = HV.Motion.entrance, _ body: () throws -> Result) rethrows -> Result {
-            try withAnimation(resolved(animation, reduceMotion: reduceMotion), body)
+        ///
+        /// A plain closure, not a generic one that rethrows: the Release compiler of Xcode 26.6 crashed (a SIL verification
+        /// error while optimizing) in a caller of the generic form, and nothing here returns a value or throws.
+        static func animate(_ animation: Animation? = HV.Motion.entrance, _ body: () -> Void) {
+            withAnimation(resolved(animation, reduceMotion: reduceMotion), body)
         }
     }
 }

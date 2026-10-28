@@ -116,7 +116,7 @@ final class VaultWritesJourneyTests: HyperVaultUITestCase {
         openTheVault()
 
         step("A login is started") {
-            tap(button("Add to your vault"), "the add button")
+            tap(button("Add to your vault"), "the add button", until: { self.element("vault.add.login").exists })
             tap(element("vault.add.login"), "the Login tile")
             enter("typed-and-not-saved", into: element("vault.field.username"), "the username field")
             putTheKeyboardAway()
@@ -143,7 +143,7 @@ final class VaultWritesJourneyTests: HyperVaultUITestCase {
         openTheVault()
 
         step("A login is started, and with nothing typed yet Back is still the system's") {
-            tap(button("Add to your vault"), "the add button")
+            tap(button("Add to your vault"), "the add button", until: { self.element("vault.add.login").exists })
             tap(element("vault.add.login"), "the Login tile")
             require(element("vault.field.username"), "the form")
             XCTAssertFalse(element("vault.add.back").exists, "The system's Back is showing: nothing needs asking about.")
@@ -174,7 +174,7 @@ final class VaultWritesJourneyTests: HyperVaultUITestCase {
         openTheVault()
 
         step("A login is typed with a name that is already used") {
-            tap(button("Add to your vault"), "the add button")
+            tap(button("Add to your vault"), "the add button", until: { self.element("vault.add.login").exists })
             tap(element("vault.add.login"), "the Login tile")
             enter("ui-dup", into: element("vault.field.username"), "the username field")
             enter("pw-dup-1", into: element("vault.field.password"), "the password field")
@@ -202,7 +202,7 @@ final class VaultWritesJourneyTests: HyperVaultUITestCase {
         let problem = "The card number must be 12 to 19 digits."
 
         step("A short card number is typed, and the field's own note stays what it was") {
-            tap(button("Add to your vault"), "the add button")
+            tap(button("Add to your vault"), "the add button", until: { self.element("vault.add.login").exists })
             tap(element("vault.add.card"), "the Card tile")
             enter("4242", into: element("vault.field.card-number"), "the card number field")
             require(shows(note), "the card number's note")

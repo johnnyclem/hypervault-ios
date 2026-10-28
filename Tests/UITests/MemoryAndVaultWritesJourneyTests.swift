@@ -103,7 +103,7 @@ final class MemoryAndVaultWritesJourneyTests: HyperVaultUITestCase {
         let password = "pw-Zk7-ui-test"
 
         step("Add to your vault offers the kinds of entry") {
-            tap(button("Add to your vault"), "the add button")
+            tap(button("Add to your vault"), "the add button", until: { self.element("vault.add.login").exists })
             require(element("vault.add.login"), "the Login tile")
             require(element("vault.add.card"), "the Card tile")
         }

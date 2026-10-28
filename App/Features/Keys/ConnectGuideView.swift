@@ -14,7 +14,11 @@ struct ConnectGuideView: View {
     /// that the key will be lost.
     var onCopySecret: (() -> Void)?
 
-    @State private var notesOverride: Bool?
+    /// Whether the notes were opened or closed by hand, and if so to which. (Two plain values, and the change is animated by
+    /// `hvAnimation` on the section, not by a closure: a Release build with Xcode 26.6 crashed the compiler, a SIL
+    /// verification error while optimizing, on an animation closure that set the state here.)
+    @State private var notesToggled = false
+    @State private var notesToggledOpen = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.l) {
@@ -147,10 +151,11 @@ struct ConnectGuideView: View {
     /// Open for the entries whose notes decide whether the setup works at all. Not a DisclosureGroup: its
     /// chevron is drawn bold in the primary colour, heavier than every other disclosure mark in the app.
     private var notesSection: some View {
-        let isOpen = notesOverride ?? (!info.verified || info.keyInUrl)
+        let isOpen = notesToggled ? notesToggledOpen : (!info.verified || info.keyInUrl)
         return VStack(alignment: .leading, spacing: HV.Space.xs) {
             Button {
-                HV.Motion.animate { notesOverride = !isOpen }
+                notesToggledOpen = !isOpen
+                notesToggled = true
             } label: {
                 HStack {
                     sectionTitle(ConnectCopy.notesHeading)
@@ -178,6 +183,7 @@ struct ConnectGuideView: View {
                 .padding(.top, HV.Space.xs)
             }
         }
+        .hvAnimation(HV.Motion.entrance, value: isOpen)
         .hvCard()
     }
 

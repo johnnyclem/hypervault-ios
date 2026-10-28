@@ -2,7 +2,8 @@ import Foundation
 
 // Agent keys: the `hv_` keys a person hands to an AI so it can use their vault.
 // The web app's source is app/api/keys/route.ts (mint, revoke, change mail
-// scopes), lib/api-keys.ts and lib/agent-setup.ts (the setup challenge).
+// scopes and mail address), lib/api-keys.ts and lib/agent-setup.ts (the
+// setup challenge).
 //
 // No route lists keys: the web page reads the `api_keys` table on the server.
 // RLS and the column grants of migrations 0032 and 0047 let a signed-in
@@ -185,6 +186,67 @@ extension Endpoint where Response == AgentKeyUpdate {
         let scopes = AgentKeyScope.scopes(canSendMail: canSendMail).map(JSONValue.string)
         return Endpoint(.patch, "/api/keys", body: .jsonValue(["id": .string(id), "scopes": .array(scopes)]))
     }
+
+    /// Pins a key to one of the person's own claimed addresses, so it reads and sends as that address, or (a nil
+    /// `claimId`, sent as JSON null) back to the account's default address. The server refuses a claim that is not
+    /// the person's with a 404, and clears the key's "address was released" flag on either choice.
+    public static func setAgentKeyMailAddress(id: String, claimId: String?) -> Endpoint<AgentKeyUpdate> {
+        let claim: JSONValue = claimId.map(JSONValue.string) ?? .null
+        return Endpoint(.patch, "/api/keys", body: .jsonValue(["id": .string(id), "mail_claim_id": claim]))
+    }
+}
+
+// MARK: The address a key mails as
+
+/// The "Mail address" picker on a key (components/api-keys-card.tsx, `KeyMailControls`): which of the person's own
+/// claimed addresses the key reads and sends as, or none, which is the account's default address. A pin is a claim,
+/// not a mailbox, so the choices are the mailboxes that have both a claim and an address.
+public struct AgentKeyMailPin: Sendable, Equatable {
+    /// A claimed address a key can be pinned to.
+    public struct Choice: Sendable, Equatable, Identifiable {
+        public let claimId: String
+        public let address: String
+
+        public init(claimId: String, address: String) {
+            self.claimId = claimId
+            self.address = address
+        }
+
+        public var id: String { claimId }
+    }
+
+    /// What the picker shows as chosen.
+    public enum Selection: Sendable, Hashable {
+        /// The address the key was pinned to was released and none has been picked since: "Pick an address",
+        /// which stands for no choice and cannot be chosen.
+        case choosing
+        /// Not pinned: the account's default address.
+        case defaultAddress
+        case claim(String)
+    }
+
+    public let choices: [Choice]
+    public let selection: Selection
+    /// The claim the key is pinned to when no choice is that claim; the picker calls it "Another address".
+    public let unlistedClaimId: String?
+
+    public init(key: AgentKey, mailboxes: [OwnerMailbox]) {
+        let found = mailboxes.compactMap { box -> Choice? in
+            guard let claimId = box.claimId, let address = box.address, !claimId.isEmpty, !address.isEmpty else { return nil }
+            return Choice(claimId: claimId, address: address)
+        }
+        choices = found
+        if let claimId = key.mailClaimId {
+            selection = .claim(claimId)
+            unlistedClaimId = found.contains { $0.claimId == claimId } ? nil : claimId
+        } else {
+            selection = key.mailPinCleared ? .choosing : .defaultAddress
+            unlistedClaimId = nil
+        }
+    }
+
+    /// The picker is offered once there is a claimed address to pick: with none, "Default address" would be its only row.
+    public var isOffered: Bool { !choices.isEmpty }
 }
 
 public enum AgentKeyRules {
@@ -343,6 +405,15 @@ public enum AccountWords {
     public static func lastUsed(_ ago: String) -> String { "Last used \(ago)" }
 
     public static let mailSendLabel = "Can send mail"
+
+    // The key's address picker (lib/mail/copy.ts, MAIL_PIN_*).
+    public static let mailPinLabel = "Mail address"
+    public static let mailPinDefault = "Default address"
+    /// Shown, and not choosable, while a key's address is cleared.
+    public static let mailPinChoose = "Pick an address"
+    /// A key pinned to an address the picker does not list.
+    public static let mailPinOther = "Another address"
+    public static let mailPinClearedLine = "Its address was released. This key can read but not send until you pick an address for it."
 
     /// How long ago something was last used: the biggest unit that fits, rounded down. Anything under a
     /// minute, in the future (a clock that disagrees with the server's) or not a number is "Just now".

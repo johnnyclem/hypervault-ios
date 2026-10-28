@@ -41,6 +41,7 @@ struct TaskBoardView: View {
 
 struct TaskBoardScreen: View {
     @Environment(AppModel.self) private var app
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var model: TaskBoardModel
     @State private var newTitle = ""
     @State private var collapsed: Set<BoardTaskStatus> = [.done, .cancelled]
@@ -217,29 +218,42 @@ struct TaskBoardScreen: View {
     }
 
     /// The filter chips. The row has no side insets of its own so the chips can scroll out to the edge of
-    /// the screen; the first one starts where the heading above it does.
+    /// the screen; the first one starts where the heading above it does. At an accessibility size the chips
+    /// are too wide to scroll sideways and be seen to scroll, so they wrap onto as many lines as they need.
     private var filterRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: HV.Space.xs) {
-                ForEach(TaskBoardFilter.allCases) { filter in
-                    Button {
-                        Haptics.select()
-                        model.filter = filter
-                    } label: {
-                        HVChip(title: filter.title, isSelected: model.filter == filter)
-                            .frame(minHeight: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(model.filter == filter ? .isSelected : [])
-                }
+        filterChips
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
+    }
+
+    @ViewBuilder private var filterChips: some View {
+        if typeSize.isAccessibilitySize {
+            ChatFlowLayout(spacing: HV.Space.xs) { filterButtons }
+                .padding(.horizontal, HV.Space.m)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: HV.Space.xs) { filterButtons }
             }
+            .contentMargins(.horizontal, HV.Space.m, for: .scrollContent)
+            .scrollClipDisabled()
         }
-        .contentMargins(.horizontal, HV.Space.m, for: .scrollContent)
-        .scrollClipDisabled()
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
-        .listRowInsets(EdgeInsets())
+    }
+
+    @ViewBuilder private var filterButtons: some View {
+        ForEach(TaskBoardFilter.allCases) { filter in
+            Button {
+                Haptics.select()
+                model.filter = filter
+            } label: {
+                HVChip(title: filter.title, isSelected: model.filter == filter)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(model.filter == filter ? .isSelected : [])
+        }
     }
 
     private var addRow: some View {

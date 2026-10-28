@@ -166,7 +166,7 @@ fonts. `Palette` (colour), `Font.hv*` (type, all Dynamic Type), `HV.Space` /
 `HV.Radius` (the 4-point grid), `HVCard`-style `.hvCard()`, `HVRow`, `HVChip`,
 `HVTag`, `HVIconBadge`, `HVSectionHeader`, the button styles (`.hvPrimary`,
 `.hvSecondary`, `.hvGhost`), `.hvFieldChrome()` for inputs, `.hvGlass()` only for
-floating chrome (composer, bars), never for lists. Lists are plain paper.
+floating chrome (a composer, a legend, a bar of icons), never for lists or a pinned action bar. Lists are plain paper.
 
 - The look is the web's stock look, and it is dark only (handoff 2.2): Info.plist declares
   `UIUserInterfaceStyle = Dark`, `Palette` is one value per member, and no view branches on the colour scheme. There is
@@ -218,7 +218,8 @@ floating chrome (composer, bars), never for lists. Lists are plain paper.
   `subtitleIsAddress: true`), not `Text`: at an accessibility size it breaks after the dots, the "@" and the slashes
   (`AddressText` in the Kit), where a plain `Text` breaks inside a word and adds a hyphen that reads as part of the
   address. The breaks are drawn only; VoiceOver is given the real string. Where the text is selectable, or is copied from
-  what is drawn, use `Text` and keep the address on one line.
+  what is drawn, it stays `Text` (selecting a drawn break would copy it), and wraps by the system's rules; the share
+  link drops selection at accessibility sizes for the breaks, since Copy link is beside it.
 - Motion (handoff 2.6): never write a bare `withAnimation` or `.animation(_:value:)`. `.hvAnimation(_:value:)` and
   `HV.Motion.animate { }` are those two with Reduce Motion in front, `.hvBounce(value:)` is a symbol bounce that holds
   still under it, and `HV.Motion.entrance` is the web's entrance (ease-out, 0.2s). A looping or decorative animation

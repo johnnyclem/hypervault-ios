@@ -4,7 +4,7 @@ import SwiftUI
 /// the symbol drawn in it does: a column that stays put while the symbol grows lets the symbol spill out of it, past
 /// the margin of the row and onto the words.
 struct HVIconSlot: ViewModifier {
-    @ScaledMetric(relativeTo: .body) private var width: CGFloat
+    @ScaledMetric private var width: CGFloat
 
     init(width: CGFloat) {
         _width = ScaledMetric(wrappedValue: width, relativeTo: .body)

@@ -125,19 +125,27 @@ struct ArtifactShareSheet: View {
 
     private var url: URL { detail.link(host: host) }
 
+    @ViewBuilder private var linkText: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            HVAddressText(url.absoluteString)
+        } else {
+            Text(url.absoluteString).textSelection(.enabled)
+        }
+    }
+
     private var linkSection: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
             HVSectionHeader(title: "Link").artifactCardCaption()
             VStack(alignment: .leading, spacing: HV.Space.xs) {
                 // The address is the point of this card, so at an accessibility size it wraps at the size of its type, whole:
                 // shrunk to fit one line it ended up the smallest text on the sheet, with its middle left out. It breaks
-                // after a slash or a hyphen where it can.
-                Text(url.absoluteString)
+                // after a dot or a slash, and not inside a word with a hyphen. A break drawn into the text would be copied
+                // by selecting it, so there selection is off: Copy link below copies the whole address.
+                linkText
                     .font(.hvMono)
                     .foregroundStyle(Palette.textPrimary)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                     .truncationMode(.middle)
-                    .textSelection(.enabled)
                 if let line = linkLine {
                     Text(line).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                 }
@@ -271,7 +279,7 @@ struct ArtifactShareSheet: View {
             VStack(alignment: .leading, spacing: HV.Space.xs) {
                 HVAvatar(name: person.name, size: min(avatar, 56))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(person.name).font(.hvBody)
+                    HVAddressText(person.name).font(.hvBody)
                     Text(role.title)
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)

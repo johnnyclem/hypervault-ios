@@ -34,7 +34,7 @@ struct RealmDetailView: View {
         return List {
             Section {
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
-                    Text(claim.host)
+                    HVAddressText(claim.host)
                         .font(.system(.title3, design: .monospaced, weight: .semibold))
                         .minimumScaleFactor(0.5)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
@@ -48,9 +48,14 @@ struct RealmDetailView: View {
                 } label: {
                     // On one line, a little smaller if it must be, like the address above it. At an accessibility size one line
                     // cuts the address out of the middle ("Visit n...ult.cool"), and the address is what the row is for, so
-                    // there the label wraps and shows it whole.
-                    Label("Visit \(claim.host)", systemImage: "safari")
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                    // there the label wraps and shows it whole, breaking after a dot and not inside a word.
+                    Label {
+                        HVAddressText("Visit \(claim.host)")
+                    } icon: {
+                        Image(systemName: "safari")
+                    }
+                    .hvRowLabel()
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                         .minimumScaleFactor(0.5)
                         .truncationMode(.middle)
                 }

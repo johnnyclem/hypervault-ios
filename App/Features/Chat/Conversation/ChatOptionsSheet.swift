@@ -151,8 +151,9 @@ struct ChatOptionsSheet: View {
                     }
                     .pickerStyle(.menu)
                     .labelsHidden()
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
-                .frame(minHeight: 44)
             }
         } else {
             toggle("Recall", detail: Self.recallDetail, isOn: $model.useRecall)

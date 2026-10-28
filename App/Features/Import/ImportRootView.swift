@@ -55,8 +55,8 @@ struct ImportScreen: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom) {
-            if pinsChooseAction, let source = model.source { chooseActionBar(source) }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if pinsChooseAction, let source = model.source { chooseAction(source).hvActionBar() }
         }
         .hvScreenBackground()
         .navigationTitle("Import")
@@ -112,7 +112,7 @@ struct ImportScreen: View {
                 if source == .other { pasteArea }
                 if !pinsChooseAction { chooseAction(source) }
                 if let error = model.readError {
-                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                    Label(error, systemImage: "exclamationmark.triangle.fill").hvRowLabel()
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.danger)
                 }
@@ -150,15 +150,6 @@ struct ImportScreen: View {
                     .multilineTextAlignment(.center)
             }
         }
-    }
-
-    private func chooseActionBar(_ source: ImportPlatform) -> some View {
-        chooseAction(source)
-            .padding(HV.Space.m)
-            .hvGlass()
-            .padding(.horizontal, HV.Space.s)
-            .padding(.bottom, HV.Space.xxs)
-            .hvReadableWidth()
     }
 
     private var pasteArea: some View {
@@ -246,6 +237,7 @@ struct ImportScreen: View {
                 if let chosen = model.mismatchedChoice {
                     Label("You picked \(chosen.title), but this looks like \(model.platform.title). It will be imported as \(model.platform.title).",
                           systemImage: "info.circle")
+                        .hvRowLabel()
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.warning)
                 }
@@ -392,7 +384,7 @@ struct ImportScreen: View {
     private func stopped(_ reason: String) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
             VStack(alignment: .leading, spacing: HV.Space.s) {
-                Label("The import stopped", systemImage: "pause.circle.fill")
+                Label("The import stopped", systemImage: "pause.circle.fill").hvRowLabel()
                     .font(.hvHeadline)
                     .foregroundStyle(Palette.warning)
                     .accessibilityAddTraits(.isHeader)

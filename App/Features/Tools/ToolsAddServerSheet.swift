@@ -395,7 +395,7 @@ struct ToolsAddServerSheet: View {
                 HVIconBadge(symbol: "server.rack", tint: Palette.blue, size: 44)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(preview.name).font(.hvTitle3)
-                    Text(URL(string: preview.url)?.host ?? preview.url)
+                    HVAddressText(URL(string: preview.url)?.host ?? preview.url)
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                 }
@@ -409,6 +409,7 @@ struct ToolsAddServerSheet: View {
                     : "\(preview.tools.count) tool\(preview.tools.count == 1 ? "" : "s"). Look them over before you add it.",
                 systemImage: "checkmark.shield"
             )
+            .hvRowLabel()
             .font(.hvCallout)
             .foregroundStyle(Palette.textSecondary)
 
@@ -433,7 +434,7 @@ struct ToolsAddServerSheet: View {
     }
 
     private func errorText(_ text: String) -> some View {
-        Label(text, systemImage: "exclamationmark.triangle.fill")
+        Label(text, systemImage: "exclamationmark.triangle.fill").hvRowLabel()
             .font(.hvFootnote)
             .foregroundStyle(Palette.danger)
             .accessibilityAddTraits(.updatesFrequently)

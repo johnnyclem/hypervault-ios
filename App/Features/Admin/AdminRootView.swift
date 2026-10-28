@@ -213,7 +213,7 @@ struct AdminMintedCard: View {
             HStack(spacing: HV.Space.s) {
                 AdminCopyButton(text: invite.code, title: "Copy code", minHeight: 44)
                 ShareLink(item: invite.shareURL(server: server), message: Text("Your HyperVault invite: \(invite.code)")) {
-                    Label("Share link", systemImage: "square.and.arrow.up")
+                    Label("Share link", systemImage: "square.and.arrow.up").hvRowLabel()
                         .frame(minHeight: 44)
                 }
             }
@@ -246,7 +246,7 @@ struct AdminCopyButton: View {
                 copied = false
             }
         } label: {
-            Label(copied ? "Copied" : title, systemImage: copied ? HVSymbol.copied : HVSymbol.copy)
+            Label(copied ? "Copied" : title, systemImage: copied ? HVSymbol.copied : HVSymbol.copy).hvRowLabel()
                 .frame(minHeight: minHeight)
         }
     }

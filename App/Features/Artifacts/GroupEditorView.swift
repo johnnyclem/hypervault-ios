@@ -311,7 +311,7 @@ struct GroupEditorView: View {
                 ForEach(model.files) { file in
                     NavigationLink(value: file.path) {
                         HStack {
-                            HVIcon(icon(for: file.path)).foregroundStyle(Palette.blue).frame(width: 22)
+                            HVIcon(icon(for: file.path)).foregroundStyle(Palette.blue).hvIconSlot(22)
                             Text(file.path).font(.hvMono).foregroundStyle(Palette.textPrimary).lineLimit(1).truncationMode(.middle)
                             Spacer(minLength: HV.Space.xs)
                             Text(ByteCountFormatter.string(fromByteCount: Int64(file.content.utf8.count), countStyle: .file))
@@ -338,7 +338,7 @@ struct GroupEditorView: View {
                     addError = nil
                     addingFile = true
                 } label: {
-                    Label("Add a file", systemImage: HVSymbol.add)
+                    Label("Add a file", systemImage: HVSymbol.add).hvRowLabel()
                 }
             } header: {
                 HVSectionHeader(title: "Files", detail: "\(model.files.count) of \(ArtifactGroupRules.maxFiles)")
@@ -348,7 +348,7 @@ struct GroupEditorView: View {
             .hvListRow()
 
             Section {
-                Button { previewing = true } label: { Label("Run the preview", systemImage: "play.fill") }
+                Button { previewing = true } label: { Label("Run the preview", systemImage: "play.fill").hvRowLabel() }
                 if let error = model.error { ArtifactErrorLine(message: error).listRowBackground(Color.clear) }
             }
             .hvListRow()

@@ -67,7 +67,7 @@ struct ChatOptionsSheet: View {
                 }
             }
             NavigationLink(value: ChatDestination.models) {
-                Label(model.backends.isEmpty ? "Connect a model" : "Connect or edit models", systemImage: "plus.circle")
+                Label(model.backends.isEmpty ? "Connect a model" : "Connect or edit models", systemImage: "plus.circle").hvRowLabel()
                     .frame(minHeight: 44, alignment: .leading)
             }
         }
@@ -135,19 +135,26 @@ struct ChatOptionsSheet: View {
     /// The picker's tag for Off: no branch is named "".
     private static let recallOff = ""
 
-    /// Recall is a switch, or, once there is more than one memory branch, a picker of Off and the branches.
+    /// Recall is a switch, or, once there is more than one memory branch, a picker of Off and the branches. The picker
+    /// has a line of its own under the words, named for what it chooses: as the label of a menu picker it hung in from
+    /// the edge of the words as a bare "main".
     @ViewBuilder private var recallRow: some View {
         if model.showsRecallBranches {
-            Picker(selection: recallSelection) {
-                Text("Off").tag(Self.recallOff)
-                ForEach(model.recallBranches) { branch in
-                    Text(branch.name).tag(branch.name)
-                }
-            } label: {
+            VStack(alignment: .leading, spacing: 0) {
                 rowLabel("Recall", detail: Self.recallDetail)
+                LabeledContent("Branch") {
+                    Picker("Memory branch", selection: recallSelection) {
+                        Text("Off").tag(Self.recallOff)
+                        ForEach(model.recallBranches) { branch in
+                            Text(branch.name).tag(branch.name)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+                }
             }
-            .pickerStyle(.menu)
-            .frame(minHeight: 44)
         } else {
             toggle("Recall", detail: Self.recallDetail, isOn: $model.useRecall)
         }
@@ -265,13 +272,13 @@ struct ChatVisibilitySheet: View {
                             .foregroundStyle(Palette.textSecondary)
                             .textSelection(.enabled)
                         ShareLink(item: url) {
-                            Label("Share link", systemImage: "square.and.arrow.up").frame(minHeight: 44, alignment: .leading)
+                            Label("Share link", systemImage: "square.and.arrow.up").hvRowLabel().frame(minHeight: 44, alignment: .leading)
                         }
                         Button {
                             UIPasteboard.general.string = url.absoluteString
                             app.toasts.success("Link copied.")
                         } label: {
-                            Label("Copy link", systemImage: HVSymbol.copy).frame(minHeight: 44, alignment: .leading)
+                            Label("Copy link", systemImage: HVSymbol.copy).hvRowLabel().frame(minHeight: 44, alignment: .leading)
                         }
                     }
                     .hvListRow()

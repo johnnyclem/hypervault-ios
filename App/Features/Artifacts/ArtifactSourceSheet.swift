@@ -355,6 +355,7 @@ struct ArtifactConflictSheet: View {
                         .foregroundStyle(Palette.textSecondary)
                     if let head = conflict.head {
                         Label("\(head.authorName ?? "Someone") wrote \"\(head.message.isEmpty ? "edit" : head.message)\"", systemImage: "clock.arrow.circlepath")
+                            .hvRowLabel()
                             .font(.hvFootnote)
                             .foregroundStyle(Palette.textSecondary)
                     }

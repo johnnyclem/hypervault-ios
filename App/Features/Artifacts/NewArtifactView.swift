@@ -229,7 +229,18 @@ struct NewArtifactView: View {
             }
             .padding(HV.Space.m)
             .background(Palette.background)
+            .background(alignment: .top) { barEdge }
         }
+    }
+
+    /// The form scrolls under the bar, and a line that crosses its top edge was cut through the middle (the second line
+    /// of the caption under "Who can open it" lost its descenders). The paper fades in over the last stretch above the bar
+    /// instead, so what passes under it dissolves.
+    private var barEdge: some View {
+        LinearGradient(colors: [Palette.background.opacity(0), Palette.background], startPoint: .top, endPoint: .bottom)
+            .frame(height: HV.Space.m)
+            .offset(y: -HV.Space.m)
+            .allowsHitTesting(false)
     }
 
     private var contentField: some View {

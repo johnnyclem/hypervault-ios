@@ -127,7 +127,7 @@ struct ChatAssistantMessageView: View {
             }
 
             if row.truncated {
-                Label(HVCopy.replyCutShortLine, systemImage: "scissors")
+                Label(HVCopy.replyCutShortLine, systemImage: "scissors").hvRowLabel()
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.warning)
             }
@@ -165,11 +165,11 @@ struct ChatAssistantMessageView: View {
     @ViewBuilder private var stateNote: some View {
         switch row.state {
         case .waitingToSync:
-            Label("Saved on this iPhone. It will go to your vault when you're online.", systemImage: "icloud.slash")
+            Label("Saved on this iPhone. It will go to your vault when you're online.", systemImage: "icloud.slash").hvRowLabel()
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
         case .notSaved(let message):
-            Label("This reply is only on this iPhone. \(message)", systemImage: "exclamationmark.triangle")
+            Label("This reply is only on this iPhone. \(message)", systemImage: "exclamationmark.triangle").hvRowLabel()
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.warning)
         default:
@@ -283,16 +283,19 @@ struct ChatKeptNoteView: View {
                     message
                     HStack(spacing: HV.Space.xs) { actions }
                 }
+                .padding(.vertical, HV.Space.xs)
             } else {
-                HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
-                    message
+                // The 44pt Open button sets the height of the row and the words are centred on it, so a two-line
+                // note has the same room above and below. The words carry their own padding for the sizes at which
+                // they grow taller than the button.
+                HStack(alignment: .center, spacing: HV.Space.xs) {
+                    message.padding(.vertical, HV.Space.xs)
                     Spacer(minLength: HV.Space.xs)
                     actions
                 }
             }
         }
         .padding(.horizontal, HV.Space.s)
-        .padding(.vertical, typeSize.isAccessibilitySize ? HV.Space.xs : 0)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
     }
@@ -375,7 +378,7 @@ struct ChatGroundingView: View {
                         .foregroundStyle(Palette.textSecondary)
                 }
                 if let footnote = grounding.truth?.footnote {
-                    Label(footnote, systemImage: "checkmark.seal")
+                    Label(footnote, systemImage: "checkmark.seal").hvRowLabel()
                         .font(.hvCaption)
                         .foregroundStyle(Palette.textSecondary)
                 }

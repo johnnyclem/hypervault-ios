@@ -51,7 +51,7 @@ struct ToolsScreen: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) { addMenu }
             }
-            .safeAreaInset(edge: .bottom) {
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 // Pinned under the list while the words fit. At an accessibility size the bar would take nearly half the
                 // screen and hide the list it is about, so there it is the last thing in the list instead.
                 if !dynamicTypeSize.isAccessibilitySize, model.phase == .loaded, !model.servers.isEmpty {
@@ -132,8 +132,8 @@ struct ToolsScreen: View {
             .hvListRow()
 
             Section(footer: Text("Changes you make here are saved at once. They reach new chats after you compile.")) {
-                Button { sheet = .catalog } label: { Label("Browse the catalog", systemImage: "square.grid.2x2") }
-                Button { sheet = .add(nil) } label: { Label("Add by address", systemImage: "link") }
+                Button { sheet = .catalog } label: { Label("Browse the catalog", systemImage: "square.grid.2x2").hvRowLabel() }
+                Button { sheet = .add(nil) } label: { Label("Add by address", systemImage: "link").hvRowLabel() }
             }
             .hvListRow()
 
@@ -215,12 +215,12 @@ struct ToolsServerRow: View {
                 // The tag and the key take the room the name needs, so at these sizes they sit under it,
                 // lined up with the name.
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
-                    HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle)
+                    HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle, subtitleIsAddress: true)
                     HStack(spacing: HV.Space.xs) { markers }
                         .padding(.leading, 36 + HV.Space.s + 2)
                 }
             } else {
-                HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle) {
+                HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle, subtitleIsAddress: true) {
                     HStack(spacing: HV.Space.xs) { markers }
                 }
             }
@@ -347,11 +347,7 @@ struct ToolsCompileBar: View {
                 Button("Compile again", action: onCompile).buttonStyle(.hvSecondary).disabled(model.enabledToolCount == 0 || model.compile.isRunning)
             }
         }
-        .padding(HV.Space.m)
-        .hvGlass()
-        .padding(.horizontal, HV.Space.s)
-        .padding(.bottom, HV.Space.xxs)
-        .hvReadableWidth()
+        .hvActionBar()
     }
 
     private var message: String {

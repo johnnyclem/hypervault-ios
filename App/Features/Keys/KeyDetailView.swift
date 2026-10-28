@@ -70,7 +70,7 @@ struct KeyDetailView: View {
 
             Section {
                 Button(role: .destructive) { confirmRevoke = true } label: {
-                    Label(isRevoking ? KeysCopy.revoking : KeysCopy.revoke, systemImage: "xmark.circle").foregroundStyle(Palette.danger)
+                    Label(isRevoking ? KeysCopy.revoking : KeysCopy.revoke, systemImage: "xmark.circle").hvRowLabel(role: .destructive)
                 }
                 .disabled(model.changing.contains(key.id))
             } footer: {
@@ -104,7 +104,7 @@ struct KeyDetailView: View {
                 addressPicker(key, pin)
             }
             if key.mailPinCleared {
-                Label(AccountWords.mailPinClearedLine, systemImage: "exclamationmark.triangle.fill")
+                Label(AccountWords.mailPinClearedLine, systemImage: "exclamationmark.triangle.fill").hvRowLabel()
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.warning)
             }

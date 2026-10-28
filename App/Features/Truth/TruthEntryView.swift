@@ -207,7 +207,7 @@ struct TruthEntryScreen: View {
             HStack(alignment: .top, spacing: HV.Space.s) {
                 Image(systemName: context.kind == "memory" ? HVSymbol.memory : "doc.text")
                     .foregroundStyle(Palette.textSecondary)
-                    .frame(width: 24)
+                    .hvIconSlot(24)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(verbatim: context.title).font(.hvBody).foregroundStyle(Palette.textPrimary)

@@ -10,6 +10,7 @@ struct RealmDetailView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var webPage: KeysWebPage?
     @State private var warning: String?
@@ -33,10 +34,10 @@ struct RealmDetailView: View {
         return List {
             Section {
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
-                    Text(claim.host)
+                    HVAddressText(claim.host)
                         .font(.system(.title3, design: .monospaced, weight: .semibold))
                         .minimumScaleFactor(0.5)
-                        .lineLimit(1)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     Text("Serves your whole vault. Visitors see this address's look; you still get your dashboard.")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
@@ -45,10 +46,16 @@ struct RealmDetailView: View {
                 Button {
                     webPage = KeysWebPage(claim.url)
                 } label: {
-                    // On one line, a little smaller if it must be, like the address above it: wrapped at a large text size
-                    // the address was broken with a hyphen ("nova.vault.-/cool").
-                    Label("Visit \(claim.host)", systemImage: "safari")
-                        .lineLimit(1)
+                    // On one line, a little smaller if it must be, like the address above it. At an accessibility size one line
+                    // cuts the address out of the middle ("Visit n...ult.cool"), and the address is what the row is for, so
+                    // there the label wraps and shows it whole, breaking after a dot and not inside a word.
+                    Label {
+                        HVAddressText("Visit \(claim.host)")
+                    } icon: {
+                        Image(systemName: "safari")
+                    }
+                    .hvRowLabel()
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                         .minimumScaleFactor(0.5)
                         .truncationMode(.middle)
                 }
@@ -121,7 +128,7 @@ struct RealmDetailView: View {
                 Button {
                     webPage = KeysWebPage(env.artifactURL(slug: home))
                 } label: {
-                    Label("Preview the page", systemImage: "eye")
+                    Label("Preview the page", systemImage: "eye").hvRowLabel()
                 }
             }
             if let gated = options.first(where: { $0.slug == home }), gated.isGated {
@@ -129,6 +136,7 @@ struct RealmDetailView: View {
                     "That page is \(gated.visibility == "password" ? "password-gated" : "private"), so visitors to \(claim.host) get the lock page. Make it public to serve it here.",
                     systemImage: "lock.fill"
                 )
+                .hvRowLabel()
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
             }

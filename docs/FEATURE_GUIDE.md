@@ -166,7 +166,7 @@ fonts. `Palette` (colour), `Font.hv*` (type, all Dynamic Type), `HV.Space` /
 `HV.Radius` (the 4-point grid), `HVCard`-style `.hvCard()`, `HVRow`, `HVChip`,
 `HVTag`, `HVIconBadge`, `HVSectionHeader`, the button styles (`.hvPrimary`,
 `.hvSecondary`, `.hvGhost`), `.hvFieldChrome()` for inputs, `.hvGlass()` only for
-floating chrome (composer, bars), never for lists. Lists are plain paper.
+floating chrome (a composer, a legend, a bar of icons), never for lists or a pinned action bar. Lists are plain paper.
 
 - The look is the web's stock look, and it is dark only (handoff 2.2): Info.plist declares
   `UIUserInterfaceStyle = Dark`, `Palette` is one value per member, and no view branches on the colour scheme. There is
@@ -208,15 +208,30 @@ floating chrome (composer, bars), never for lists. Lists are plain paper.
   `.hvDecorative()`), which VoiceOver skips; a `Label(title, systemImage:)` already hides its symbol. A symbol that is
   the whole label of a control is not decoration: the control gets an `accessibilityLabel`. One that carries a state the
   words do not (a failure triangle, a selected check without the `isSelected` trait) is left readable.
+- Symbol and words in a row: a `Label` that is a row of a list or a card (a button, a link, a note) takes
+  `.hvRowLabel()`, and `.hvRowLabel(role: .destructive)` when it is in a destructive button, because the system tints the
+  symbol of a list row with the accent whatever the role and colours only the words, which reads as two intents. At an
+  accessibility size it keeps the symbol in a column of its own so wrapped words hang beside it and not under it; a
+  row built by hand sets its symbol in `.hvIconSlot(_:)`, a column that grows with the type, never a fixed `.frame(width:)`.
+  A `Label` in a menu, a swipe action, a toolbar or a filled button is left alone.
+- A host, a URL or an email that may wrap is drawn with `HVAddressText` (an `HVRow`'s subtitle with
+  `subtitleIsAddress: true`), not `Text`: at an accessibility size it breaks after the dots, the "@" and the slashes
+  (`AddressText` in the Kit), where a plain `Text` breaks inside a word and adds a hyphen that reads as part of the
+  address. The breaks are drawn only; VoiceOver is given the real string. Where the text is selectable, or is copied from
+  what is drawn, it stays `Text` (selecting a drawn break would copy it), and wraps by the system's rules; the share
+  link drops selection at accessibility sizes for the breaks, since Copy link is beside it.
 - Motion (handoff 2.6): never write a bare `withAnimation` or `.animation(_:value:)`. `.hvAnimation(_:value:)` and
   `HV.Motion.animate { }` are those two with Reduce Motion in front, `.hvBounce(value:)` is a symbol bounce that holds
   still under it, and `HV.Motion.entrance` is the web's entrance (ease-out, 0.2s). A looping or decorative animation
   reads `accessibilityReduceMotion` itself (Aurora, the thinking dots, the confetti). The icon button style swaps its
   spring for a dimmer fill, and the toast fades in place of sliding. A button says "Copied" for `HV.Motion.copiedHold`
   (1.5s), as the web's copy button does. System sheet and push animations are left to the system.
-- Glass and bars: `hvGlass` is for floating chrome (a composer, an action bar, a legend), never a `.background(.bar)` or
+- Glass and bars: `hvGlass` is for floating chrome (a composer, a legend, a bar of icons), never a `.background(.bar)` or
   a material, and the system's navigation bar is not repainted (no `toolbarBackground`): on iOS 26 it carries its own
-  scroll-edge effect.
+  scroll-edge effect. A filled button pinned under something that scrolls (Import, Claim an address, Compile tools) is
+  not glass: rows under glass show through as smeared ghost text, and a glass pill round a button has two radii and two
+  borders. It is `.hvActionBar()` as the content of `safeAreaInset(edge: .bottom, spacing: 0)`: the page's colour, solid,
+  with a fade above it, and the inset keeps the end of the list clear of it.
 - Sheets: every sheet has a visible way out (handoff 4.4 and 9). Most already have a `Cancel`, a `Done` or a `Close` in
   the navigation bar, or an `HVSheetHeader` with its xmark; a sheet that has none puts `.hvSheetClose(isDirty:)` on its
   root view inside the `NavigationStack`. It adds a "Close" button (xmark, `.cancellationAction`); while `isDirty` it

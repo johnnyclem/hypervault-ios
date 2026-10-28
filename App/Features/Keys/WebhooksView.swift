@@ -154,7 +154,7 @@ private struct WebhookRow: View {
             HVIconBadge(symbol: "dot.radiowaves.left.and.right", tint: tint, size: min(tile, 56))
         } words: {
             VStack(alignment: .leading, spacing: 2) {
-                Text(hook.title).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(isLarge ? nil : 1)
+                HVAddressText(hook.title).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(isLarge ? nil : 1)
                 Text(summary).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(isLarge ? nil : 2)
                 if isLarge, let statusTag { statusTag.padding(.top, 2) }
             }
@@ -212,7 +212,7 @@ private struct WebhookDetailView: View {
                 LabeledContent("Name", value: hook.title)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Posts to").font(.hvFootnote).foregroundStyle(Palette.textSecondary)
-                    Text(hook.url).font(.hvMono).foregroundStyle(Palette.textPrimary).fixedSize(horizontal: false, vertical: true)
+                    HVAddressText(hook.url).font(.hvMono).foregroundStyle(Palette.textPrimary).fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .combine)
                 LabeledContent("Events", value: hook.events.contains("truth.*") ? "Everything" : hook.events.map(WebhookRules.eventTitle).joined(separator: ", "))
@@ -233,7 +233,7 @@ private struct WebhookDetailView: View {
                     Task { await test(hook) }
                 } label: {
                     HStack {
-                        Label("Send a test", systemImage: "paperplane")
+                        Label("Send a test", systemImage: "paperplane").hvRowLabel()
                         if testing { Spacer(); ProgressView() }
                     }
                 }
@@ -269,7 +269,7 @@ private struct WebhookDetailView: View {
             }
 
             Section {
-                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete webhook", systemImage: HVSymbol.delete).foregroundStyle(Palette.danger) }
+                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete webhook", systemImage: HVSymbol.delete).hvRowLabel(role: .destructive) }
                     .disabled(model.changing.contains(hook.id))
             } footer: {
                 Text("It stops at once, and its delivery history goes with it.")

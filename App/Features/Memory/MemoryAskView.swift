@@ -217,7 +217,7 @@ private struct MemoryAskTurnView: View {
                     HStack(alignment: .top, spacing: HV.Space.s) {
                         Image(systemName: usedTitles.contains(hit.title) ? "checkmark.circle.fill" : "doc.text")
                             .foregroundStyle(usedTitles.contains(hit.title) ? Palette.success : Palette.textTertiary)
-                            .frame(width: 22)
+                            .hvIconSlot(22)
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(hit.title)

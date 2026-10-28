@@ -2,6 +2,18 @@ import SwiftUI
 
 // MARK: Buttons
 
+private extension View {
+    /// The box a filled button's label sits in: full width, at least 52pt high, with room above and below for a label
+    /// that wraps at a large text size. A label of one line is shorter than the minimum by more than that room, so at
+    /// the normal sizes the padding is not seen and the label stays centred as it was.
+    func hvButtonLabelBox() -> some View {
+        self
+            .padding(.vertical, HV.Space.s)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .padding(.horizontal, HV.Space.l)
+    }
+}
+
 /// The one filled action on a screen. Full width, flat `primary`, 8pt corners and no glow, as the web's default button.
 ///
 /// The label is bold on purpose: white on `primary` is 3.68:1, which is under the 4.5:1 body text needs and over the
@@ -16,8 +28,7 @@ struct HVPrimaryButtonStyle: ButtonStyle {
             .foregroundStyle(isEnabled ? HVColor.primaryForeground : Palette.textSecondary)
             // A label that wraps at a large text size is centred in its box, not left on the first line's edge.
             .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .padding(.horizontal, HV.Space.l)
+            .hvButtonLabelBox()
             // Off is a plain raised box with its label still readable, not the fill faded out.
             .background(isEnabled ? HVColor.primary : Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(isEnabled ? Color.clear : Palette.controlBorder, lineWidth: 1))
@@ -34,8 +45,7 @@ struct HVSecondaryButtonStyle: ButtonStyle {
             .font(.hvHeadline)
             .foregroundStyle(isEnabled ? Palette.textPrimary : Palette.textTertiary)
             .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .padding(.horizontal, HV.Space.l)
+            .hvButtonLabelBox()
             .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(Palette.controlBorder, lineWidth: 1))
             .opacity(configuration.isPressed ? 0.85 : 1)
@@ -52,8 +62,7 @@ struct HVDestructiveButtonStyle: ButtonStyle {
             .font(.hvButton)
             .foregroundStyle(isEnabled ? Color.white : Palette.textSecondary)
             .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .padding(.horizontal, HV.Space.l)
+            .hvButtonLabelBox()
             .background(isEnabled ? HVColor.destructive : Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(isEnabled ? Color.clear : Palette.controlBorder, lineWidth: 1))
             .opacity(configuration.isPressed ? 0.85 : 1)
@@ -321,6 +330,8 @@ struct HVRow<Trailing: View>: View {
     var tint: Color = Palette.blue
     let title: String
     var subtitle: String?
+    /// The subtitle is a host, a URL or an email, which breaks between its parts and not inside one (`HVAddressText`).
+    var subtitleIsAddress = false
     @ViewBuilder var trailing: () -> Trailing
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -329,12 +340,14 @@ struct HVRow<Trailing: View>: View {
         tint: Color = Palette.blue,
         title: String,
         subtitle: String? = nil,
+        subtitleIsAddress: Bool = false,
         @ViewBuilder trailing: @escaping () -> Trailing
     ) {
         self.symbol = symbol
         self.tint = tint
         self.title = title
         self.subtitle = subtitle
+        self.subtitleIsAddress = subtitleIsAddress
         self.trailing = trailing
     }
 
@@ -347,7 +360,7 @@ struct HVRow<Trailing: View>: View {
                     .foregroundStyle(Palette.textPrimary)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
+                    subtitleText(subtitle)
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
@@ -358,11 +371,16 @@ struct HVRow<Trailing: View>: View {
         }
         .contentShape(Rectangle())
     }
+
+    @ViewBuilder
+    private func subtitleText(_ subtitle: String) -> some View {
+        if subtitleIsAddress { HVAddressText(subtitle) } else { Text(subtitle) }
+    }
 }
 
 extension HVRow where Trailing == EmptyView {
-    init(symbol: String, tint: Color = Palette.blue, title: String, subtitle: String? = nil) {
-        self.init(symbol: symbol, tint: tint, title: title, subtitle: subtitle) { EmptyView() }
+    init(symbol: String, tint: Color = Palette.blue, title: String, subtitle: String? = nil, subtitleIsAddress: Bool = false) {
+        self.init(symbol: symbol, tint: tint, title: title, subtitle: subtitle, subtitleIsAddress: subtitleIsAddress) { EmptyView() }
     }
 }
 

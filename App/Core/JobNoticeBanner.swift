@@ -12,6 +12,10 @@ struct JobNoticeBanner: View {
             words
             footer
         }
+        // The banner takes the height its wrapped words need, whatever height its parent offers: a parent that shares
+        // its height out (a stack with a Spacer beside the banner) would otherwise squeeze the message down to one
+        // line and an ellipsis, and the line that tells what to do next is the one that is lost.
+        .fixedSize(horizontal: false, vertical: true)
         .hvCard()
     }
 
@@ -45,6 +49,9 @@ struct JobNoticeBanner: View {
                 .buttonStyle(.hvGhost)
                 .accessibilityIdentifier("jobnotice.dismiss")
         }
+        // The button is 44pt high around a line of text, so it brings room of its own under the word. The card's
+        // padding below it is trimmed by that much, or the card has more below Dismiss than above the title.
+        .padding(.bottom, -HV.Space.xs)
     }
 }
 

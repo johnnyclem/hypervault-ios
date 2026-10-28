@@ -117,7 +117,7 @@ struct ChatConversationContent: View {
                             .transition(.opacity)
                     }
                     if let toolNotice = model.toolNotice {
-                        Label(toolNotice, systemImage: "wrench.and.screwdriver")
+                        Label(toolNotice, systemImage: "wrench.and.screwdriver").hvRowLabel()
                             .font(.hvFootnote)
                             .foregroundStyle(Palette.warning)
                     }

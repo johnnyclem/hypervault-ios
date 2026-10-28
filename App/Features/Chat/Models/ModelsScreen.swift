@@ -225,7 +225,7 @@ struct ChatModelsContent: View {
                 }
             }
             Button { localForm = .add } label: {
-                Label("Add a model on your network", systemImage: "plus.circle").frame(minHeight: 44, alignment: .leading)
+                Label("Add a model on your network", systemImage: "plus.circle").hvRowLabel().frame(minHeight: 44, alignment: .leading)
             }
         } header: {
             HVSectionHeader(title: "On your network")
@@ -342,19 +342,26 @@ struct ChatBackendRow: View {
     let backend: ChatBackend
     let registry: [Capabilities.ProviderSpec]
     @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
 
-    /// Two lines are enough at normal sizes; at the large ones nothing is cut to an ellipsis.
+    /// Two lines are enough for a name at normal sizes; at the large ones nothing is cut to an ellipsis.
     private var lineLimit: Int? { typeSize.isAccessibilitySize ? nil : 2 }
 
     var body: some View {
-        HStack(spacing: HV.Space.s + 2) {
-            HVIconBadge(symbol: Self.symbol(for: backend.provider), tint: Self.tint(for: backend.provider))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(backend.name).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(lineLimit)
-                Text(detail).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(lineLimit)
-                Text(usage).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(lineLimit)
+        HStack(spacing: HV.Space.xs) {
+            KeysRowLayout {
+                HVIconBadge(symbol: Self.symbol(for: backend.provider), tint: Self.tint(for: backend.provider), size: min(tile, 56))
+            } words: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(backend.name).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(lineLimit)
+                    facts(detail)
+                        .font(.hvFootnote)
+                        .foregroundStyle(Palette.textSecondary)
+                    facts(usage)
+                        .font(.hvCaption)
+                        .foregroundStyle(Palette.textTertiary)
+                }
             }
-            Spacer(minLength: HV.Space.xs)
             HVIcon(HVSymbol.open).font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
         }
         .frame(minHeight: 44)
@@ -363,16 +370,41 @@ struct ChatBackendRow: View {
         .accessibilityHint("Edit this model")
     }
 
-    private var detail: String {
+    /// Who runs the model, then which model.
+    private var detail: [String] {
         var parts = [ChatProviders.shortName(for: backend.provider, in: registry)]
         if let model = backend.defaultModel, !model.isEmpty { parts.append(model) }
-        return parts.joined(separator: " \u{00B7} ")
+        return parts
     }
 
-    private var usage: String {
+    /// When it was last used, then the key's hint.
+    private var usage: [String] {
         var parts = [backend.lastUsedAt.map { "Used \(ChatDates.relative($0))" } ?? "Not used yet"]
         if let hint = backend.keyHint, !hint.isEmpty { parts.append(hint) }
-        return parts.joined(separator: " \u{00B7} ")
+        return parts
+    }
+
+    /// A line of the row's details. Its pieces share one line, divided by a dot, while they fit. When they do not, and
+    /// at every accessibility size, each has a line of its own: a dot is never left at the end of a line, and a model
+    /// id is shrunk to fit before it is broken in the middle.
+    @ViewBuilder
+    private func facts(_ pieces: [String]) -> some View {
+        if typeSize.isAccessibilitySize {
+            stacked(pieces)
+        } else {
+            ViewThatFits(in: .horizontal) {
+                Text(pieces.joined(separator: " \u{00B7} ")).lineLimit(1)
+                stacked(pieces)
+            }
+        }
+    }
+
+    private func stacked(_ pieces: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(Array(pieces.enumerated()), id: \.offset) { _, piece in
+                Text(piece).lineLimit(1).minimumScaleFactor(0.5)
+            }
+        }
     }
 
     static func symbol(for provider: String) -> String {

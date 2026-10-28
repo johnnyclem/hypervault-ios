@@ -142,7 +142,7 @@ struct ArtifactRepairSheet: View {
                     .foregroundStyle(Palette.textSecondary)
             }
         case .done(let changed, let message):
-            Label(message, systemImage: changed ? "checkmark.circle.fill" : "info.circle.fill")
+            Label(message, systemImage: changed ? "checkmark.circle.fill" : "info.circle.fill").hvRowLabel()
                 .font(.hvCallout)
                 .foregroundStyle(changed ? Palette.success : Palette.textSecondary)
         case .failed(let message, let needsBackend):

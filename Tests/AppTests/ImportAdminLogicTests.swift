@@ -113,8 +113,10 @@ final class ImportModelTests: XCTestCase {
         return url
     }
 
+    /// Waits for the model to get there, for up to thirty seconds: a shared runner can be slow enough that a file read takes
+    /// longer than a few, and the wait ends the moment the stage is the one asked for.
     private func settle(_ model: ImportModel, until done: (ImportModel.Stage) -> Bool) async {
-        for _ in 0..<60 where !done(model.stage) { try? await Task.sleep(nanoseconds: 100_000_000) }
+        for _ in 0..<300 where !done(model.stage) { try? await Task.sleep(nanoseconds: 100_000_000) }
     }
 
     func testPastingAConversationAndSendingIt() async {
@@ -212,7 +214,7 @@ final class ImportModelTests: XCTestCase {
         var model: ImportModel? = model(transport: hanging)
         model?.previewSeedDocuments([history(3)])
         model?.start()
-        for _ in 0..<200 where hanging.started == 0 { try? await Task.sleep(nanoseconds: 10_000_000) }
+        for _ in 0..<3000 where hanging.started == 0 { try? await Task.sleep(nanoseconds: 10_000_000) }
         XCTAssertEqual(hanging.started, 1, "a request is on its way")
         XCTAssertTrue(UIApplication.shared.isIdleTimerDisabled)
 
@@ -221,7 +223,7 @@ final class ImportModelTests: XCTestCase {
         model = nil
         XCTAssertNil(gone)
 
-        for _ in 0..<200 where UIApplication.shared.isIdleTimerDisabled { try? await Task.sleep(nanoseconds: 10_000_000) }
+        for _ in 0..<3000 where UIApplication.shared.isIdleTimerDisabled { try? await Task.sleep(nanoseconds: 10_000_000) }
         XCTAssertFalse(UIApplication.shared.isIdleTimerDisabled, "the run ended with nobody to tell, and still gave the sleep back")
         XCTAssertEqual(ImportAwake.holds, 0)
         XCTAssertEqual(hanging.cancelled, 1, "the request in flight was cancelled, not left to finish unseen")
@@ -233,7 +235,7 @@ final class ImportModelTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: source) }
         var model: ImportModel? = model([])
         model?.read([source])
-        for _ in 0..<200 where model?.stage != .review { try? await Task.sleep(nanoseconds: 10_000_000) }
+        for _ in 0..<3000 where model?.stage != .review { try? await Task.sleep(nanoseconds: 10_000_000) }
         XCTAssertEqual(model?.stage, .review)
         XCTAssertEqual(copies(of: token).count, 1, "the copy lives while the review is on screen")
         try? await Task.sleep(nanoseconds: 50_000_000)

@@ -171,7 +171,10 @@ enum ChatPreviewData {
 
     /// A conversation with a live turn in it: sources, a tool step, a reply with code.
     @MainActor
-    static func conversationModel(working: Bool = false, onDevice: Bool = false, empty: Bool = false, firstTurnOnly: Bool = false, local: Bool = false) -> ChatConversationModel {
+    static func conversationModel(
+        working: Bool = false, onDevice: Bool = false, empty: Bool = false, firstTurnOnly: Bool = false, local: Bool = false,
+        branches: Bool = false
+    ) -> ChatConversationModel {
         let env = AppEnvironment.preview(routes: routes)
         let model = ChatConversationModel(
             conversationID: nil, client: env.client, cache: env.cache, namespace: "preview",
@@ -206,7 +209,8 @@ enum ChatPreviewData {
             conversation: ChatConversation(id: "c1", title: "Three days in Lisbon", visibility: .shared, shareSlug: "three-days-in-lisbon-a1b2"),
             choice: local ? .local(sampleLocal.id) : (onDevice ? .onDevice : .server("b1")),
             working: working ? Date().addingTimeInterval(-14) : nil,
-            keptNotes: rows.lastIndex(where: { $0.kind == .assistant }).map { [rows[$0].id: ChatKeptNote(slug: "tram-script-x1", url: nil, duplicate: false, isPrivate: true)] } ?? [:]
+            keptNotes: rows.lastIndex(where: { $0.kind == .assistant }).map { [rows[$0].id: ChatKeptNote(slug: "tram-script-x1", url: nil, duplicate: false, isPrivate: true)] } ?? [:],
+            recallBranches: branches ? [MindBranch(id: "main", name: "main", isDefault: true, memoryCount: 24), MindBranch(id: "ideas", name: "ideas", memoryCount: 6)] : []
         )
         return model
     }

@@ -178,7 +178,7 @@ struct ChatAssistantMessageView: View {
     }
 }
 
-/// Copy, keep, thumbs and read aloud. Each is a 44-point target.
+/// Copy, keep, save as a memory, thumbs and read aloud. Each is a 44-point target.
 struct ChatReplyActions: View {
     let row: ChatThreadRow
     let model: ChatConversationModel
@@ -186,6 +186,7 @@ struct ChatReplyActions: View {
     @Environment(AppModel.self) private var app
     @State private var copied = false
     @State private var keeping = false
+    @State private var savingMemory = false
     @ScaledMetric(relativeTo: .body) private var glyphSize: CGFloat = 16
 
     var body: some View {
@@ -212,6 +213,9 @@ struct ChatReplyActions: View {
                     }
                 }
             }
+            action(savingMemory ? "hourglass" : HVSymbol.memory, label: "Save as memory", tint: nil) {
+                saveAsMemory()
+            }
             if row.serverID != nil {
                 action(row.feedback == .up ? "hand.thumbsup.fill" : "hand.thumbsup", label: "Good reply", tint: row.feedback == .up ? Palette.mint : nil, selected: row.feedback == .up) {
                     rate(.up)
@@ -230,6 +234,20 @@ struct ChatReplyActions: View {
             Spacer(minLength: 0)
         }
         .padding(.leading, -HV.Space.xs)
+    }
+
+    private func saveAsMemory() {
+        guard !savingMemory else { return }
+        savingMemory = true
+        Task {
+            defer { savingMemory = false }
+            do {
+                let line = try await model.saveAsMemory(row)
+                app.toasts.success(line)
+            } catch {
+                app.toasts.show(error: error)
+            }
+        }
     }
 
     private func rate(_ value: ChatFeedback) {

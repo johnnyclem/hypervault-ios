@@ -127,6 +127,200 @@ final class ChatModelTests: XCTestCase {
         XCTAssertNil(model.rows.last?.feedback)
     }
 
+    // MARK: Saving a reply as a memory
+
+    private let memoryKept = """
+    {"id":"m9","title":"plan it","summary":"s","tags":["chat"],"source":"chat","links":2,"branch":"main","commit_id":"c1",
+     "message":"Kept in memory, and linked to 2 related memories."}
+    """
+
+    private func recording(_ method: HTTPMethod, _ path: String, _ json: String, into sent: ChatSentBodies) -> MockRoute {
+        MockRoute(method, path) { request in
+            sent.record(request)
+            return HTTPResponse(status: 200, data: Data(json.utf8))
+        }
+    }
+
+    /// A chat with one answered question in it: "plan it", and "Here is the answer."
+    private func answeredChat(routes: [MockRoute]) async -> ChatConversationModel {
+        let model = makeModel(routes: routes + [.json(.post, "/api/chat", turn)])
+        model.draft = "plan it"
+        model.sendDraft()
+        await settle(model)
+        return model
+    }
+
+    func testAReplySavedAsAMemoryIsNamedFromTheQuestionTaggedChatAndTheServersWordsComeBack() async throws {
+        let sent = ChatSentBodies()
+        let model = await answeredChat(routes: [recording(.post, "/api/memories", memoryKept, into: sent)])
+        let reply = try XCTUnwrap(model.rows.last)
+
+        let line = try await model.saveAsMemory(reply)
+
+        XCTAssertEqual(line, "Kept in memory, and linked to 2 related memories.")
+        XCTAssertEqual(sent.all.count, 1)
+        let body = try XCTUnwrap(sent.all.first)
+        XCTAssertEqual(body["title"] as? String, "plan it", "the web titles a reply with the message that produced it")
+        XCTAssertEqual(body["content"] as? String, "Here is the answer.")
+        XCTAssertEqual(body["tags"] as? [String], ["chat"])
+        XCTAssertEqual(body["source"] as? String, "chat")
+        XCTAssertNil(body["branch"], "the web names no branch, so the memory lands on main")
+    }
+
+    func testAMemoryTheServerSaidNothingAboutSaysKeptInMemory() async throws {
+        let sent = ChatSentBodies()
+        let model = await answeredChat(routes: [recording(.post, "/api/memories", #"{"id":"m9"}"#, into: sent)])
+        let reply = try XCTUnwrap(model.rows.last)
+        let line = try await model.saveAsMemory(reply)
+        XCTAssertEqual(line, "Kept in memory.")
+    }
+
+    func testAnImportedReplyWithNoQuestionBeforeItIsNamedFromItsFirstLine() async throws {
+        let sent = ChatSentBodies()
+        let model = makeModel(routes: [recording(.post, "/api/memories", memoryKept, into: sent)])
+        let reply = ChatThreadRow(id: "a1", kind: .assistant, text: "## Ferry times\nHourly from nine.")
+        model.seed(rows: [reply])
+
+        _ = try await model.saveAsMemory(reply)
+
+        XCTAssertEqual(sent.all.first?["title"] as? String, "Ferry times")
+    }
+
+    func testAReplyThatCameAfterToolStepsIsNamedFromItsOwnFirstLineAsOnTheWeb() async throws {
+        let sent = ChatSentBodies()
+        let model = makeModel(routes: [recording(.post, "/api/memories", memoryKept, into: sent)])
+        let reply = ChatThreadRow(id: "a1", kind: .assistant, text: "## Ferry times\nHourly from nine.")
+        model.seed(rows: [
+            ChatThreadRow(id: "u1", kind: .user, text: "when are the ferries"),
+            ChatThreadRow(kind: .tool, toolTurn: ChatToolTurn(intent: "look it up")),
+            reply,
+        ])
+
+        _ = try await model.saveAsMemory(reply)
+
+        XCTAssertEqual(sent.all.first?["title"] as? String, "Ferry times", "the web's source prompt is the row right above the reply")
+    }
+
+    func testAReplyOfOnlyBlanksIsNotSent() async {
+        let sent = ChatSentBodies()
+        let model = makeModel(routes: [recording(.post, "/api/memories", memoryKept, into: sent)])
+        let reply = ChatThreadRow(id: "a1", kind: .assistant, text: " \n ")
+        model.seed(rows: [reply])
+        do {
+            _ = try await model.saveAsMemory(reply)
+            XCTFail("expected a refusal")
+        } catch {
+            XCTAssertEqual(error.localizedDescription, HVCopy.nothingToKeepLine)
+        }
+        XCTAssertTrue(sent.all.isEmpty)
+    }
+
+    func testAMemoryTheServerRefusesShowsItsSentenceAndOneThatNeverArrivedSaysNothingWasKept() async {
+        let refusing = makeModel(routes: [.failure(.post, "/api/memories", status: 413, message: "That chunk is over the 500 kB memory limit.")])
+        let reply = ChatThreadRow(id: "a1", kind: .assistant, text: "Long reply")
+        refusing.seed(rows: [reply])
+        do {
+            _ = try await refusing.saveAsMemory(reply)
+            XCTFail("expected a refusal")
+        } catch {
+            XCTAssertEqual(error.localizedDescription, "That chunk is over the 500 kB memory limit.")
+        }
+
+        let offline = makeModel(routes: [], transport: OfflineAlways())
+        offline.seed(rows: [reply])
+        do {
+            _ = try await offline.saveAsMemory(reply)
+            XCTFail("expected a failure")
+        } catch {
+            XCTAssertEqual(error.localizedDescription, HVCopy.keepOfflineLine)
+        }
+    }
+
+    // MARK: Choosing the memory branch a chat recalls from
+
+    private let twoBranches = """
+    {"branches":[{"id":"b1","name":"main","is_default":true,"memory_count":24},{"id":"b2","name":"ideas","is_default":false,"memory_count":6}]}
+    """
+
+    /// Types a message and waits for its reply.
+    private func say(_ text: String, in model: ChatConversationModel) async {
+        model.draft = text
+        model.sendDraft()
+        await settle(model)
+    }
+
+    func testRecallStaysAPlainSwitchWithOneMemoryBranchOrNone() async {
+        let sent = ChatSentBodies()
+        let one = makeModel(routes: [
+            .json(.get, "/api/mind/branches", #"{"branches":[{"id":"b1","name":"main","is_default":true,"memory_count":3}]}"#),
+            recording(.post, "/api/chat", turn, into: sent),
+        ])
+        await one.load()
+        XCTAssertFalse(one.showsRecallBranches)
+
+        await say("hello", in: one)
+        XCTAssertEqual(sent.all.first?["use_recall"] as? Bool, true)
+        XCTAssertNil(sent.all.first?["recall_branch"])
+
+        let none = makeModel(routes: [.failure(.get, "/api/mind/branches", status: 404, message: "Not found.")])
+        await none.load()
+        XCTAssertFalse(none.showsRecallBranches)
+    }
+
+    func testSeveralMemoryBranchesLetThePersonChooseWhichOneGroundsTheReplyOrSwitchRecallOff() async {
+        let sent = ChatSentBodies()
+        let model = makeModel(routes: [
+            .json(.get, "/api/mind/branches", twoBranches),
+            recording(.post, "/api/chat", turn, into: sent),
+        ])
+        await model.load()
+        XCTAssertTrue(model.showsRecallBranches)
+        XCTAssertEqual(model.recallBranches.map(\.name), ["main", "ideas"])
+        XCTAssertEqual(model.recallChoice, "main", "recall starts on, from main")
+
+        model.chooseRecall(branch: "ideas")
+        XCTAssertEqual(model.recallChoice, "ideas")
+        await say("one", in: model)
+        XCTAssertEqual(sent.all.last?["use_recall"] as? Bool, true)
+        XCTAssertEqual(sent.all.last?["recall_branch"] as? String, "ideas")
+
+        model.chooseRecall(branch: "main")
+        await say("two", in: model)
+        XCTAssertEqual(sent.all.last?["use_recall"] as? Bool, true)
+        XCTAssertNil(sent.all.last?["recall_branch"], "main is what the route recalls from when it is not told a branch")
+
+        model.chooseRecall(branch: nil)
+        XCTAssertNil(model.recallChoice)
+        XCTAssertFalse(model.useRecall)
+        await say("three", in: model)
+        XCTAssertEqual(sent.all.last?["use_recall"] as? Bool, false)
+        XCTAssertNil(sent.all.last?["recall_branch"])
+
+        model.chooseRecall(branch: "ideas")
+        XCTAssertTrue(model.useRecall)
+        XCTAssertEqual(model.recallChoice, "ideas")
+        XCTAssertEqual(sent.all.count, 3)
+    }
+
+    func testABranchDeletedElsewhereFallsBackToMain() async {
+        let loads = ChatPostCount()
+        let model = makeModel(routes: [
+            MockRoute(.get, "/api/mind/branches") { _ in
+                let answer = loads.next() == 1
+                    ? #"{"branches":[{"id":"b1","name":"main","is_default":true},{"id":"b2","name":"ideas"},{"id":"b3","name":"work"}]}"#
+                    : #"{"branches":[{"id":"b1","name":"main","is_default":true},{"id":"b2","name":"ideas"}]}"#
+                return HTTPResponse(status: 200, data: Data(answer.utf8))
+            },
+        ])
+        await model.load()
+        model.chooseRecall(branch: "work")
+        XCTAssertEqual(model.recallChoice, "work")
+
+        await model.load()
+        XCTAssertEqual(model.recallBranches.map(\.name), ["main", "ideas"])
+        XCTAssertEqual(model.recallChoice, "main")
+    }
+
     func testAnOnDeviceTurnStreamsAndIsSaved() async {
         let model = makeModel(
             routes: [
@@ -434,6 +628,21 @@ private final class ChatSwitchedTransport: HTTPTransport, @unchecked Sendable {
         if !isUp { throw URLError(.notConnectedToInternet) }
         return try await inner.send(request)
     }
+}
+
+/// The JSON bodies a route was sent, from any thread.
+private final class ChatSentBodies: @unchecked Sendable {
+    private let lock = NSLock()
+    private var bodies: [[String: Any]] = []
+
+    func record(_ request: URLRequest) {
+        let object = (request.httpBody.flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]) ?? [:]
+        lock.lock()
+        bodies.append(object)
+        lock.unlock()
+    }
+
+    var all: [[String: Any]] { lock.lock(); defer { lock.unlock() }; return bodies }
 }
 
 /// Numbers the calls a route gets, from any thread.

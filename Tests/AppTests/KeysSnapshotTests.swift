@@ -16,7 +16,16 @@ final class KeysSnapshotTests: XCTestCase {
     }
 
     func testKeyDetail() throws {
-        try snapshot(PreviewHost(routes: KeysPreviewData.routes) { KeyDetailSnapshotHost() }, named: "keys-detail")
+        try snapshot(PreviewHost(routes: KeysPreviewData.routes + MailPreviewData.routes) { KeyDetailSnapshotHost() }, named: "keys-detail")
+    }
+
+    /// The pinned address was released: the picker has no address chosen and the web's line says why.
+    func testKeyDetailWhoseAddressWasReleased() throws {
+        let routes: [MockRoute] = [
+            .json(.get, "/rest/v1/api_keys", KeysPreviewData.releasedKeysJSON),
+            .json(.get, "/rest/v1/artifacts", KeysPreviewData.pagesJSON),
+        ] + MailPreviewData.routes
+        try snapshot(PreviewHost(routes: routes) { KeyDetailSnapshotHost() }, named: "keys-detail-released", size: CGSize(width: 393, height: 1100))
     }
 
     func testConnectPicker() throws {
@@ -39,7 +48,7 @@ final class KeysSnapshotTests: XCTestCase {
             named: "keys-account-large"
         )
         try snapshot(
-            PreviewHost(routes: KeysPreviewData.routes) { KeyDetailSnapshotHost() }.environment(\.dynamicTypeSize, accessibility),
+            PreviewHost(routes: KeysPreviewData.routes + MailPreviewData.routes) { KeyDetailSnapshotHost() }.environment(\.dynamicTypeSize, accessibility),
             named: "keys-detail-large",
             size: CGSize(width: 393, height: 1400)
         )

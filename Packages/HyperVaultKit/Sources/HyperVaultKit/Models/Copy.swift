@@ -19,6 +19,8 @@ public enum HVCopy {
     public static let nothingToKeepLine = "Nothing to keep yet. Paste something, or keep a reply."
     public static let keepFailedLine = "That could not be kept. Try again."
     public static let keepOfflineLine = "Network hiccup. Nothing was kept. Try again."
+    /// What a memory write says when the server sent no sentence of its own.
+    public static let keptInMemoryLine = "Kept in memory."
     public static let keepItLabel = "Keep it"
     public static let askInsteadLabel = "Ask instead"
     public static let keepReplyLabel = "Keep"

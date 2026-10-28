@@ -110,10 +110,7 @@ struct ChatOptionsSheet: View {
 
     private var memorySection: some View {
         Section(header: HVSectionHeader(title: "Memory")) {
-            toggle(
-                "Recall", detail: "Ground replies in memories and pages you have kept.",
-                isOn: $model.useRecall
-            )
+            recallRow
             toggle(
                 "Smart context", detail: "Squeeze the older parts of long chats so the model remembers more with fewer words.",
                 isOn: setting(.smartContext)
@@ -132,6 +129,35 @@ struct ChatOptionsSheet: View {
             }
         }
         .hvListRow()
+    }
+
+    private static let recallDetail = "Ground replies in memories and pages you have kept."
+    /// The picker's tag for Off: no branch is named "".
+    private static let recallOff = ""
+
+    /// Recall is a switch, or, once there is more than one memory branch, a picker of Off and the branches.
+    @ViewBuilder private var recallRow: some View {
+        if model.showsRecallBranches {
+            Picker(selection: recallSelection) {
+                Text("Off").tag(Self.recallOff)
+                ForEach(model.recallBranches) { branch in
+                    Text(branch.name).tag(branch.name)
+                }
+            } label: {
+                rowLabel("Recall", detail: Self.recallDetail)
+            }
+            .pickerStyle(.menu)
+            .frame(minHeight: 44)
+        } else {
+            toggle("Recall", detail: Self.recallDetail, isOn: $model.useRecall)
+        }
+    }
+
+    private var recallSelection: Binding<String> {
+        Binding(
+            get: { model.recallChoice ?? Self.recallOff },
+            set: { model.chooseRecall(branch: $0 == Self.recallOff ? nil : $0) }
+        )
     }
 
     private var toolsSection: some View {
@@ -173,13 +199,15 @@ struct ChatOptionsSheet: View {
     }
 
     private func toggle(_ title: String, detail: String, isOn: Binding<Bool>) -> some View {
-        Toggle(isOn: isOn) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.hvBody)
-                Text(detail).font(.hvCaption).foregroundStyle(Palette.textSecondary)
-            }
+        Toggle(isOn: isOn) { rowLabel(title, detail: detail) }
+            .frame(minHeight: 44)
+    }
+
+    private func rowLabel(_ title: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(.hvBody)
+            Text(detail).font(.hvCaption).foregroundStyle(Palette.textSecondary)
         }
-        .frame(minHeight: 44)
     }
 
     private func setting(_ setting: ChatSetting) -> Binding<Bool> {

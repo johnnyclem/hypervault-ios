@@ -127,6 +127,9 @@ app for itself and has taken between 5 and 22 minutes, depending on the machine 
 simulator's start are about eight of them); GitHub runs five macOS jobs at a time, so the last ones start when the first
 have finished, and a whole run has taken about 50 minutes.
 
+Xcode Cloud is set up for builds that ship (the unit tests, and an archive for TestFlight); what the repository holds for it
+and what you do in Xcode once is in [docs/XCODE_CLOUD.md](docs/XCODE_CLOUD.md).
+
 ### How it is tested
 
 Four layers, each catching what the one below cannot see:

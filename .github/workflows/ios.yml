@@ -122,6 +122,22 @@ jobs:
           git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
           git push -f -q origin "snapshots-$slug"
 
+      # Xcode Cloud (docs/XCODE_CLOUD.md) starts with ci_scripts/ci_post_clone.sh and then builds the HyperVaultCloud scheme.
+      # This runs the script as it is run there, with an identity of its own, and checks that the project it makes has the
+      # scheme and has taken the identity. Nothing after it reads the project, and the file it writes is taken away again.
+      - name: Xcode Cloud hook
+        run: |
+          rm -f Config/Local.xcconfig
+          CI_PRIMARY_REPOSITORY_PATH="$PWD" DEVELOPMENT_TEAM=ABCDE12345 HV_BUNDLE_PREFIX=com.example.cloud \
+            ci_scripts/ci_post_clone.sh
+          xcodebuild -list -project HyperVault.xcodeproj | tee list.txt
+          grep -qE "^ +HyperVaultCloud$" list.txt
+          xcodebuild -showBuildSettings -project HyperVault.xcodeproj -scheme HyperVaultCloud -configuration Release > settings.txt
+          grep -E "^ +(DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER) = " settings.txt | sort -u
+          grep -qE "^ +DEVELOPMENT_TEAM = ABCDE12345$" settings.txt
+          grep -qE "^ +PRODUCT_BUNDLE_IDENTIFIER = com\.example\.cloud\.app$" settings.txt
+          rm -f Config/Local.xcconfig
+
       - name: Summarise failures
         if: failure()
         run: |

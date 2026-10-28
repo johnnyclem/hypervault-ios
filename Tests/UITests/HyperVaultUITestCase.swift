@@ -451,7 +451,14 @@ class HyperVaultUITestCase: XCTestCase {
             goBack(file: file, line: line)
             goneBack += 1
         }
-        tap(more, "the More menu of \(tabTitle)", file: file, line: line)
+        // A tap that lands while the tab is still settling is lost, and the drag below would then scroll the page behind a menu
+        // that never opened. The menu is open once one of its items is there (the first ones are drawn at any text size; the
+        // ones below the card's fold are not, so every item is named, the first ones above all), and the button is tapped
+        // again, as a person would, until then.
+        let items = tabTitle == "Memory"
+            ? ["History", "Compare", "Time travel", "Branches", "Dreams", "Truth", "Digest"]
+            : ["Tools", "Import your AI history"]
+        tap(more, "the More menu of \(tabTitle)", until: { items.contains { button($0).exists } }, file: file, line: line)
         // At the largest text sizes every item of the menu is over a hundred points tall, and the card the menu is drawn in
         // ends about two thirds of the way down the screen: the items below its fold are not drawn until the menu is scrolled,
         // and the ones just past it exist but sit under the card's edge, where a tap would land on the page and put the menu

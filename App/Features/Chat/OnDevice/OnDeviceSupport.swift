@@ -54,10 +54,8 @@ enum OnDeviceModelAssets {
 
     static func isMissing(_ error: Error) -> Bool {
         var parts = [String(describing: error), error.localizedDescription]
-        if let debug = error as? CustomDebugStringConvertible {
-            parts.append(debug.debugDescription)
-        }
         let ns = error as NSError
+        parts.append(ns.debugDescription)
         parts.append(ns.domain)
         if let reason = ns.localizedFailureReason { parts.append(reason) }
         if let underlying = ns.userInfo[NSUnderlyingErrorKey] as? Error {

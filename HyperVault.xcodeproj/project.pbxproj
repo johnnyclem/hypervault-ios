@@ -260,6 +260,9 @@
 		EEB3C9BED2749DE8BB5E1746 /* SettingsRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9B084929503302E751B5AED /* SettingsRootView.swift */; };
 		EF43098762028968167A061C /* States.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD8A9B4EA1A75FF6EA76B0F6 /* States.swift */; };
 		EF7D52D2EF1C5CEC50193047 /* KindStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D9B65C5718494DD0A8DFFED /* KindStyle.swift */; };
+		EFCEE10E30905EE600D3C003 /* UITestHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFCEE10D30905EE600D3C003 /* UITestHarness.swift */; };
+		EFCEE11030905F3100D3C003 /* UITestWorld.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFCEE10F30905F3100D3C003 /* UITestWorld.swift */; };
+		EFCEE11230905F6200D3C003 /* UITestWorld+Screens.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFCEE11130905F6200D3C003 /* UITestWorld+Screens.swift */; };
 		EFF6A18EA4ED0B340E945BDF /* ChatSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1102600F9DB0EF94049CDE54 /* ChatSupport.swift */; };
 		F03B2EE3DAC223181DB96B85 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32EF92C718FAA3FF8217EEB1 /* AppModelTests.swift */; };
 		F04D4F270716A479E13B5151 /* MemoryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2258730F149D1B92472967 /* MemoryDetailView.swift */; };
@@ -546,6 +549,9 @@
 		ECDEBAA985575D8E6E18F1F7 /* MemoryLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryLogicTests.swift; sourceTree = "<group>"; };
 		EE2EB45543A975B48FC7B28E /* VaultItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultItemDetailView.swift; sourceTree = "<group>"; };
 		EE568893A928927DE53EB017 /* ConversationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationModel.swift; sourceTree = "<group>"; };
+		EFCEE10D30905EE600D3C003 /* UITestHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestHarness.swift; sourceTree = "<group>"; };
+		EFCEE10F30905F3100D3C003 /* UITestWorld.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestWorld.swift; sourceTree = "<group>"; };
+		EFCEE11130905F6200D3C003 /* UITestWorld+Screens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UITestWorld+Screens.swift"; sourceTree = "<group>"; };
 		F16BAE609437C30493C83286 /* MemoryAskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryAskView.swift; sourceTree = "<group>"; };
 		F3856EBCFE2A36FC76EA6EB3 /* CanvasSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasSnapshotTests.swift; sourceTree = "<group>"; };
 		F38FFC11ED8906519824A104 /* SnapshotSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotSupport.swift; sourceTree = "<group>"; };
@@ -859,6 +865,9 @@
 				7FABD7C06600C41494D28BF8 /* ToastCenter.swift */,
 				2A15ABF88E2CE414FB4EA4C5 /* WaitlistEnroller.swift */,
 				023B5E243D32BCDA58D36D96 /* WidgetRefresh.swift */,
+				EFCEE10D30905EE600D3C003 /* UITestHarness.swift */,
+				EFCEE10F30905F3100D3C003 /* UITestWorld.swift */,
+				EFCEE11130905F6200D3C003 /* UITestWorld+Screens.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -1261,7 +1270,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1430;
+				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					037889E90BD7E85CD0A24D7E = {
 						ProvisioningStyle = Automatic;
@@ -1366,6 +1375,7 @@
 				25B2686593165C2994D69223 /* ConnectAgentSheet.swift in Sources */,
 				9D37F2AC7B994B44657A2D20 /* ConnectGuideView.swift in Sources */,
 				0DD8DDC81DB65DAABCD2F096 /* ConversationListView.swift in Sources */,
+				EFCEE10E30905EE600D3C003 /* UITestHarness.swift in Sources */,
 				47B3246E7E7A79E7B88B497E /* ConversationModel.swift in Sources */,
 				C34580D10BCEBDB7BDA43288 /* ConversationScreen.swift in Sources */,
 				526A6BAAEEC7718D10B9966E /* DeepLink.swift in Sources */,
@@ -1443,6 +1453,7 @@
 				9FBDD44D41DC20F05282C026 /* PrivateTemporaryFiles.swift in Sources */,
 				A6110E4E257E4BE9C5DF2693 /* RealmClaimFlow.swift in Sources */,
 				7A0D35D425756DA9E344E48C /* RealmDetailView.swift in Sources */,
+				EFCEE11030905F3100D3C003 /* UITestWorld.swift in Sources */,
 				2AFF26F7936B65152526B446 /* RealmsModel.swift in Sources */,
 				794312F17ECE17AED6FE4AA5 /* RealmsRootView.swift in Sources */,
 				308F47458B4CDE77A9D15254 /* RoomMembersSheet.swift in Sources */,
@@ -1494,6 +1505,7 @@
 				8DBF3212E9E83F9822E9476C /* VaultItemDetailView.swift in Sources */,
 				35DC0FC57FBC05B14C74F424 /* VaultItemsModel.swift in Sources */,
 				A04678E1C8E696E5038887EE /* VaultItemsView.swift in Sources */,
+				EFCEE11230905F6200D3C003 /* UITestWorld+Screens.swift in Sources */,
 				EAD8F4FB98D2397E73E6321A /* VaultTile.swift in Sources */,
 				8A993DBBACA4326FE5C75D23 /* WaitlistEnroller.swift in Sources */,
 				2DE4DF25055C4D3E865601F6 /* WaitlistView.swift in Sources */,
@@ -1663,6 +1675,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = GV49AHY2S2;
 				ENABLE_MODULE_VERIFIER = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -1688,6 +1701,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -1700,7 +1714,6 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = Config/Generated/Share.entitlements;
-				DEVELOPMENT_TEAM = GV49AHY2S2;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/Generated/Share-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -1709,7 +1722,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "$(HV_BUNDLE_PREFIX).app.share";
+				PRODUCT_BUNDLE_IDENTIFIER = com.clem.hypervault.app.share;
 				PRODUCT_NAME = HyperVaultShare;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -1724,7 +1737,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Config/Generated/App.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = GV49AHY2S2;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/Generated/App-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -1746,7 +1758,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				DEVELOPMENT_TEAM = GV49AHY2S2;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1766,8 +1777,8 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = Config/Generated/Widgets.entitlements;
-				DEVELOPMENT_TEAM = GV49AHY2S2;
 				GENERATE_INFOPLIST_FILE = NO;
+				HV_BUNDLE_PREFIX = com.clem.hypervault;
 				INFOPLIST_FILE = "Config/Generated/Widgets-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1788,7 +1799,6 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = Config/Generated/Share.entitlements;
-				DEVELOPMENT_TEAM = GV49AHY2S2;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/Generated/Share-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -1797,7 +1807,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "$(HV_BUNDLE_PREFIX).app.share";
+				PRODUCT_BUNDLE_IDENTIFIER = com.clem.hypervault.app.share;
 				PRODUCT_NAME = HyperVaultShare;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -1810,8 +1820,8 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = Config/Generated/Widgets.entitlements;
-				DEVELOPMENT_TEAM = GV49AHY2S2;
 				GENERATE_INFOPLIST_FILE = NO;
+				HV_BUNDLE_PREFIX = com.clem.hypervault;
 				INFOPLIST_FILE = "Config/Generated/Widgets-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1866,6 +1876,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = GV49AHY2S2;
 				ENABLE_MODULE_VERIFIER = NO;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1884,6 +1895,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -1899,7 +1911,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Config/Generated/App.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = GV49AHY2S2;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/Generated/App-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -1921,7 +1932,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				DEVELOPMENT_TEAM = GV49AHY2S2;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (

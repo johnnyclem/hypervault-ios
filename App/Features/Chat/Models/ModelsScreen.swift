@@ -225,7 +225,7 @@ struct ChatModelsContent: View {
                 }
             }
             Button { localForm = .add } label: {
-                Label("Add a model on your network", systemImage: "plus.circle").frame(minHeight: 44, alignment: .leading)
+                Label("Add a model on your network", systemImage: "plus.circle").hvRowLabel().frame(minHeight: 44, alignment: .leading)
             }
         } header: {
             HVSectionHeader(title: "On your network")

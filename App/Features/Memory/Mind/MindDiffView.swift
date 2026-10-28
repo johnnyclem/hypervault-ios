@@ -221,7 +221,7 @@ struct MindStateDiffView: View {
         HStack(spacing: HV.Space.s) {
             Image(systemName: symbol)
                 .foregroundStyle(tint)
-                .frame(width: 22)
+                .hvIconSlot(22)
                 .accessibilityHidden(true)
             Text(title)
                 .font(.hvBody)
@@ -262,7 +262,7 @@ struct MindStateDiffView: View {
                 HStack(spacing: HV.Space.s) {
                     Image(systemName: "pencil.circle.fill")
                         .foregroundStyle(Palette.blue)
-                        .frame(width: 22)
+                        .hvIconSlot(22)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(change.titleTo.isEmpty ? change.titleFrom : change.titleTo)

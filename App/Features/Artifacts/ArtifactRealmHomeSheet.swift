@@ -27,7 +27,7 @@ struct ArtifactRealmHomeSheet: View {
                 }
                 .hvListRow()
                 if let warning {
-                    Section { Label(warning, systemImage: "exclamationmark.triangle.fill").font(.hvFootnote).foregroundStyle(Palette.warning) }
+                    Section { Label(warning, systemImage: "exclamationmark.triangle.fill").hvRowLabel().font(.hvFootnote).foregroundStyle(Palette.warning) }
                         .hvListRow()
                 }
                 if let error {

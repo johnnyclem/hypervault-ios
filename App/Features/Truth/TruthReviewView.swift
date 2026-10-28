@@ -137,7 +137,7 @@ struct TruthReviewScreen: View {
     }
 
     private var mirrorNote: some View {
-        Label(TruthDocketRules.mirrorReason, systemImage: "lock")
+        Label(TruthDocketRules.mirrorReason, systemImage: "lock").hvRowLabel()
             .font(.hvFootnote)
             .foregroundStyle(Palette.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -233,7 +233,7 @@ private struct WebhookDetailView: View {
                     Task { await test(hook) }
                 } label: {
                     HStack {
-                        Label("Send a test", systemImage: "paperplane")
+                        Label("Send a test", systemImage: "paperplane").hvRowLabel()
                         if testing { Spacer(); ProgressView() }
                     }
                 }
@@ -269,7 +269,7 @@ private struct WebhookDetailView: View {
             }
 
             Section {
-                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete webhook", systemImage: HVSymbol.delete).foregroundStyle(Palette.danger) }
+                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete webhook", systemImage: HVSymbol.delete).hvRowLabel(role: .destructive) }
                     .disabled(model.changing.contains(hook.id))
             } footer: {
                 Text("It stops at once, and its delivery history goes with it.")

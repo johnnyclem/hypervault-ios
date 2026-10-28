@@ -67,7 +67,7 @@ struct ChatOptionsSheet: View {
                 }
             }
             NavigationLink(value: ChatDestination.models) {
-                Label(model.backends.isEmpty ? "Connect a model" : "Connect or edit models", systemImage: "plus.circle")
+                Label(model.backends.isEmpty ? "Connect a model" : "Connect or edit models", systemImage: "plus.circle").hvRowLabel()
                     .frame(minHeight: 44, alignment: .leading)
             }
         }
@@ -265,13 +265,13 @@ struct ChatVisibilitySheet: View {
                             .foregroundStyle(Palette.textSecondary)
                             .textSelection(.enabled)
                         ShareLink(item: url) {
-                            Label("Share link", systemImage: "square.and.arrow.up").frame(minHeight: 44, alignment: .leading)
+                            Label("Share link", systemImage: "square.and.arrow.up").hvRowLabel().frame(minHeight: 44, alignment: .leading)
                         }
                         Button {
                             UIPasteboard.general.string = url.absoluteString
                             app.toasts.success("Link copied.")
                         } label: {
-                            Label("Copy link", systemImage: HVSymbol.copy).frame(minHeight: 44, alignment: .leading)
+                            Label("Copy link", systemImage: HVSymbol.copy).hvRowLabel().frame(minHeight: 44, alignment: .leading)
                         }
                     }
                     .hvListRow()

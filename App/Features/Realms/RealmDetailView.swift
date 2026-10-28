@@ -121,7 +121,7 @@ struct RealmDetailView: View {
                 Button {
                     webPage = KeysWebPage(env.artifactURL(slug: home))
                 } label: {
-                    Label("Preview the page", systemImage: "eye")
+                    Label("Preview the page", systemImage: "eye").hvRowLabel()
                 }
             }
             if let gated = options.first(where: { $0.slug == home }), gated.isGated {
@@ -129,6 +129,7 @@ struct RealmDetailView: View {
                     "That page is \(gated.visibility == "password" ? "password-gated" : "private"), so visitors to \(claim.host) get the lock page. Make it public to serve it here.",
                     systemImage: "lock.fill"
                 )
+                .hvRowLabel()
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
             }

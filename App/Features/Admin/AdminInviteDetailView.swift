@@ -51,7 +51,7 @@ struct AdminInviteDetailView: View {
             Section(header: HVSectionHeader(title: "Hand it over")) {
                 AdminCopyButton(text: invite.code, title: "Copy the code")
                 ShareLink(item: invite.shareURL(server: server), message: Text("Your HyperVault invite: \(invite.code)")) {
-                    Label("Share the invite link", systemImage: "square.and.arrow.up")
+                    Label("Share the invite link", systemImage: "square.and.arrow.up").hvRowLabel()
                 }
             }
             .hvListRow()
@@ -71,14 +71,14 @@ struct AdminInviteDetailView: View {
                     Task { await model.refresh(inviteID: invite.id) }
                 } label: {
                     HStack {
-                        Label("Check how many have used it", systemImage: "arrow.clockwise")
+                        Label("Check how many have used it", systemImage: "arrow.clockwise").hvRowLabel()
                         if model.busy.contains(invite.id) { Spacer(); ProgressView() }
                     }
                 }
                 .disabled(model.busy.contains(invite.id))
 
                 Button(role: .destructive) { confirmDestroy = true } label: {
-                    Label("Destroy this code", systemImage: HVSymbol.delete)
+                    Label("Destroy this code", systemImage: HVSymbol.delete).hvRowLabel(role: .destructive)
                 }
                 .confirmationDialog("Destroy \(invite.code)?", isPresented: $confirmDestroy, titleVisibility: .visible) {
                     Button("Destroy the code", role: .destructive) {

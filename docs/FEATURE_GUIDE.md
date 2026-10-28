@@ -208,6 +208,12 @@ floating chrome (composer, bars), never for lists. Lists are plain paper.
   `.hvDecorative()`), which VoiceOver skips; a `Label(title, systemImage:)` already hides its symbol. A symbol that is
   the whole label of a control is not decoration: the control gets an `accessibilityLabel`. One that carries a state the
   words do not (a failure triangle, a selected check without the `isSelected` trait) is left readable.
+- Symbol and words in a row: a `Label` that is a row of a list or a card (a button, a link, a note) takes
+  `.hvRowLabel()`, and `.hvRowLabel(role: .destructive)` when it is in a destructive button, because the system tints the
+  symbol of a list row with the accent whatever the role and colours only the words, which reads as two intents. At an
+  accessibility size it keeps the symbol in a column of its own so wrapped words hang beside it and not under it; a
+  row built by hand sets its symbol in `.hvIconSlot(_:)`, a column that grows with the type, never a fixed `.frame(width:)`.
+  A `Label` in a menu, a swipe action, a toolbar or a filled button is left alone.
 - Motion (handoff 2.6): never write a bare `withAnimation` or `.animation(_:value:)`. `.hvAnimation(_:value:)` and
   `HV.Motion.animate { }` are those two with Reduce Motion in front, `.hvBounce(value:)` is a symbol bounce that holds
   still under it, and `HV.Motion.entrance` is the web's entrance (ease-out, 0.2s). A looping or decorative animation

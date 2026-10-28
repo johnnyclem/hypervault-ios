@@ -86,7 +86,7 @@ struct VaultItemsView: View {
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 0, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
                 if let message = model.refreshError {
-                    Label(message, systemImage: "exclamationmark.circle")
+                    Label(message, systemImage: "exclamationmark.circle").hvRowLabel()
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.danger)
                         .listRowBackground(Color.clear)
@@ -135,7 +135,7 @@ struct VaultItemsView: View {
             if let limit = VaultLimits.entryLimitProblem(count: model.secrets.count) {
                 Text(limit).foregroundStyle(Palette.danger)
             }
-            Label(HVCopy.landingVaultLockLine, systemImage: "lock.fill")
+            Label(HVCopy.landingVaultLockLine, systemImage: "lock.fill").hvRowLabel()
         }
         .font(.hvFootnote)
         .foregroundStyle(Palette.textSecondary)

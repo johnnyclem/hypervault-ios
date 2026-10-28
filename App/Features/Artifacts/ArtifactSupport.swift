@@ -158,7 +158,7 @@ struct ArtifactErrorLine: View {
     let message: String
 
     var body: some View {
-        Label(message, systemImage: "exclamationmark.triangle.fill")
+        Label(message, systemImage: "exclamationmark.triangle.fill").hvRowLabel()
             .font(.hvFootnote)
             .foregroundStyle(Palette.danger)
             .frame(maxWidth: .infinity, alignment: .leading)

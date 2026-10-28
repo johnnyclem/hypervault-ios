@@ -68,7 +68,7 @@ struct VaultItemDetailView: View {
                 LabeledContent(VaultCopy.createdLabel, value: secret.createdAt?.keysDay ?? "Unknown")
                 LabeledContent("Last used", value: VaultCopy.sheetLastUsedLine(secret.lastAccessedAt))
             } footer: {
-                Label(VaultCopy.valueNeverShownLine, systemImage: "lock.fill")
+                Label(VaultCopy.valueNeverShownLine, systemImage: "lock.fill").hvRowLabel()
                     .font(.hvFootnote)
             }
             .hvListRow()
@@ -88,13 +88,13 @@ struct VaultItemDetailView: View {
             .hvListRow()
 
             Section {
-                Button { renaming = true } label: { Label(VaultCopy.renameLabel, systemImage: "pencil") }
-                Button { Task { await startReplacing() } } label: { Label("Replace the value", systemImage: "arrow.triangle.2.circlepath") }
+                Button { renaming = true } label: { Label(VaultCopy.renameLabel, systemImage: "pencil").hvRowLabel() }
+                Button { Task { await startReplacing() } } label: { Label("Replace the value", systemImage: "arrow.triangle.2.circlepath").hvRowLabel() }
             }
             .hvListRow()
 
             Section {
-                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: HVSymbol.delete).foregroundStyle(Palette.danger) }
+                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: HVSymbol.delete).hvRowLabel(role: .destructive) }
             } footer: {
                 Text("Deleting it cuts off every agent at once.")
             }

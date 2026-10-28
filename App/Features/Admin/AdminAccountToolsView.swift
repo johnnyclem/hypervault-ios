@@ -46,7 +46,7 @@ struct AdminAccountToolsView: View {
             if !model.log.isEmpty {
                 Section(header: HVSectionHeader(title: "Done in this visit")) {
                     ForEach(model.log, id: \.self) { line in
-                        Label(line, systemImage: "checkmark.circle.fill")
+                        Label(line, systemImage: "checkmark.circle.fill").hvRowLabel()
                             .font(.hvFootnote)
                             .foregroundStyle(Palette.textSecondary)
                     }
@@ -100,7 +100,7 @@ struct AdminAccountToolsView: View {
                     .foregroundStyle(Palette.textSecondary)
             }
             Link(destination: dashboard) {
-                Label("Open the web dashboard", systemImage: "safari")
+                Label("Open the web dashboard", systemImage: "safari").hvRowLabel()
                     .font(.system(.subheadline, weight: .semibold))
                     .frame(minHeight: 44, alignment: .leading)
             }
@@ -144,14 +144,14 @@ struct AdminAccountToolsView: View {
             Button {
                 Task { await model.change(.approve, done: "Approved \(model.shortID).") }
             } label: {
-                Label("Approve (let them in)", systemImage: "checkmark.seal")
+                Label("Approve (let them in)", systemImage: "checkmark.seal").hvRowLabel()
             }
             Button(role: .destructive) { confirm = .revoke } label: {
-                Label("Revoke access", systemImage: "hand.raised")
+                Label("Revoke access", systemImage: "hand.raised").hvRowLabel(role: .destructive)
             }
             .disabled(model.isSelf)
             Button(role: .destructive) { confirm = .dropFromWaitlist } label: {
-                Label("Remove from the waitlist", systemImage: "person.fill.xmark")
+                Label("Remove from the waitlist", systemImage: "person.fill.xmark").hvRowLabel(role: .destructive)
             }
         }
         .hvListRow()
@@ -165,7 +165,7 @@ struct AdminAccountToolsView: View {
                 let plan = model.plan
                 Task { await model.change(.plan(plan), done: "Set \(model.shortID) to \(plan.title).") }
             } label: {
-                Label("Set the plan to \(model.plan.title)", systemImage: "creditcard")
+                Label("Set the plan to \(model.plan.title)", systemImage: "creditcard").hvRowLabel()
             }
         }
         .hvListRow()
@@ -179,7 +179,7 @@ struct AdminAccountToolsView: View {
                 let name = model.displayName
                 Task { await model.change(.displayName(name), done: "Renamed \(model.shortID).") }
             } label: {
-                Label("Save the name", systemImage: "pencil")
+                Label("Save the name", systemImage: "pencil").hvRowLabel()
             }
             .disabled(model.displayName.trimmingCharacters(in: .whitespaces).isEmpty)
         }
@@ -188,7 +188,7 @@ struct AdminAccountToolsView: View {
 
         Section(header: HVSectionHeader(title: "Danger"), footer: Text("Deleting removes the sign-in and everything the person saved. There is no undo.")) {
             Button(role: .destructive) { deleting = true } label: {
-                Label("Delete this account…", systemImage: HVSymbol.delete)
+                Label("Delete this account…", systemImage: HVSymbol.delete).hvRowLabel(role: .destructive)
             }
             .disabled(model.isSelf || model.isWorking)
         }
@@ -238,7 +238,7 @@ struct AdminDeleteAccountSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.l) {
                     VStack(alignment: .leading, spacing: HV.Space.s) {
-                        Label("This cannot be undone", systemImage: "exclamationmark.triangle.fill")
+                        Label("This cannot be undone", systemImage: "exclamationmark.triangle.fill").hvRowLabel()
                             .font(.hvHeadline)
                             .foregroundStyle(Palette.danger)
                         Text("This deletes the sign-in for the account below, and with it everything that person saved: their memories, files, keys and chats. They are signed out everywhere.")

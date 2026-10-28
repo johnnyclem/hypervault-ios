@@ -287,11 +287,11 @@ struct TaskDetailView: View {
             Section {
                 Group {
                     ForEach(waitingOn) { other in
-                        Label("Waits on \(other.title)", systemImage: "arrow.turn.down.right")
+                        Label("Waits on \(other.title)", systemImage: "arrow.turn.down.right").hvRowLabel()
                             .font(.hvSubheadline)
                     }
                     ForEach(holdingUp) { other in
-                        Label("Holds up \(other.title)", systemImage: "arrow.turn.up.right")
+                        Label("Holds up \(other.title)", systemImage: "arrow.turn.up.right").hvRowLabel()
                             .font(.hvSubheadline)
                     }
                 }

@@ -22,7 +22,7 @@ struct VaultAllowedKeysSection: View {
                 .accessibilityElement(children: .combine)
             case .failed(let message):
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
-                    Label(message, systemImage: "exclamationmark.circle")
+                    Label(message, systemImage: "exclamationmark.circle").hvRowLabel()
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.danger)
                     Button(VaultScreenCopy.tryAgainLabel) { Task { await allowed.load(name: secret.name) } }

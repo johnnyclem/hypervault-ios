@@ -23,7 +23,7 @@ struct SignOutButton: View {
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
-                    .foregroundStyle(Palette.danger)
+                    .hvRowLabel(role: .destructive)
                 if let detail {
                     Text(detail)
                         .font(.hvFootnote)

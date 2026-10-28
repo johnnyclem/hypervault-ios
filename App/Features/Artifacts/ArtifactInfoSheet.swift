@@ -143,7 +143,7 @@ struct ArtifactInfoSheet: View {
                 NavigationLink {
                     ArtifactPasswordsScreen(client: detail.env.client, slug: detail.slug)
                 } label: {
-                    Label("Passwords", systemImage: "key.horizontal")
+                    Label("Passwords", systemImage: "key.horizontal").hvRowLabel()
                 }
             }
         } header: {
@@ -210,7 +210,7 @@ struct ArtifactInfoSheet: View {
                     Haptics.tap()
                     app.toasts.show("Copied", style: .info)
                 } label: {
-                    Label("Copy prompt", systemImage: HVSymbol.copy)
+                    Label("Copy prompt", systemImage: HVSymbol.copy).hvRowLabel()
                 }
             }
         }
@@ -220,7 +220,7 @@ struct ArtifactInfoSheet: View {
     private var pinSection: some View {
         Section {
             Toggle(isOn: Binding(get: { detail.isPinned }, set: { _ in Task { await detail.togglePin(toasts: app.toasts) } })) {
-                Label("Pin to Library", systemImage: "pin")
+                Label("Pin to Library", systemImage: "pin").hvRowLabel()
             }
         }
         .hvListRow()

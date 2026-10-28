@@ -284,7 +284,7 @@ struct MailMessageCard: View {
                         Haptics.tap()
                         onOpenAttachment(slug)
                     } label: {
-                        Label(attachment.filename, systemImage: "paperclip")
+                        Label(attachment.filename, systemImage: "paperclip").hvRowLabel()
                             .font(.hvSubheadline)
                             .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
                     }

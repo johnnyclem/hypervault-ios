@@ -53,10 +53,10 @@ struct TruthImportView: View {
     private var streamSection: some View {
         Section {
             if !ledger.isHosted {
-                Button { showPicker = true } label: { Label("Choose a .jsonl file", systemImage: "doc") }
+                Button { showPicker = true } label: { Label("Choose a .jsonl file", systemImage: "doc").hvRowLabel() }
                     .buttonStyle(.truthRow)
                     .hvListRow()
-                Button { paste() } label: { Label("Paste from the clipboard", systemImage: "doc.on.clipboard") }
+                Button { paste() } label: { Label("Paste from the clipboard", systemImage: "doc.on.clipboard").hvRowLabel() }
                     .buttonStyle(.truthRow)
                     .hvListRow()
                 if preview.lineCount > 0 || fileName != nil {
@@ -75,7 +75,7 @@ struct TruthImportView: View {
                     runStream()
                 } label: {
                     HStack {
-                        Label("Import into \(ledger.name)", systemImage: HVSymbol.importData).fontWeight(.semibold)
+                        Label("Import into \(ledger.name)", systemImage: HVSymbol.importData).hvRowLabel().fontWeight(.semibold)
                         Spacer()
                         if isWorking { ProgressView() }
                     }
@@ -125,7 +125,7 @@ struct TruthImportView: View {
                 filePage()
             } label: {
                 HStack {
-                    Label("File its lines for review", systemImage: "tray.and.arrow.down").fontWeight(.semibold)
+                    Label("File its lines for review", systemImage: "tray.and.arrow.down").hvRowLabel().fontWeight(.semibold)
                     Spacer()
                     if isFilingPage { ProgressView() }
                 }

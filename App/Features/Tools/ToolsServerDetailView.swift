@@ -53,7 +53,7 @@ struct ToolsServerDetailView: View {
                 refreshRow(server)
                 signInRows(server)
                 Button(role: .destructive) { confirmRemove = true } label: {
-                    Label("Remove this server", systemImage: HVSymbol.delete)
+                    Label("Remove this server", systemImage: HVSymbol.delete).hvRowLabel(role: .destructive)
                 }
                 .confirmationDialog("Remove \(server.name)?", isPresented: $confirmRemove, titleVisibility: .visible) {
                     Button("Remove", role: .destructive) {
@@ -93,7 +93,7 @@ struct ToolsServerDetailView: View {
                 if model.needsSignIn.contains(server.id) { HVTag(text: "Sign in again", tint: Palette.amber) }
             }
             if server.secretBacked {
-                Label("The sign-in is kept in your saved-secrets vault.", systemImage: "lock.shield.fill")
+                Label("The sign-in is kept in your saved-secrets vault.", systemImage: "lock.shield.fill").hvRowLabel()
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.textSecondary)
             }
@@ -170,7 +170,7 @@ struct ToolsServerDetailView: View {
             Task { await model.refresh(serverID: server.id) }
         } label: {
             HStack {
-                Label("Read the tool list again", systemImage: "arrow.clockwise")
+                Label("Read the tool list again", systemImage: "arrow.clockwise").hvRowLabel()
                 if model.busy.contains(server.id) {
                     Spacer()
                     ProgressView()
@@ -186,7 +186,7 @@ struct ToolsServerDetailView: View {
             Button {
                 signIn = ToolsAuthFlow(target: target(server), client: client, model: model)
             } label: {
-                Label("Sign in again", systemImage: "person.badge.key")
+                Label("Sign in again", systemImage: "person.badge.key").hvRowLabel()
             }
         }
         if server.authType == .headers {
@@ -194,7 +194,7 @@ struct ToolsServerDetailView: View {
                 Button {
                     app.router.open(.account(.vault))
                 } label: {
-                    Label("Change the key in Vault", systemImage: HVSymbol.vault)
+                    Label("Change the key in Vault", systemImage: HVSymbol.vault).hvRowLabel()
                 }
             } else {
                 Button {
@@ -202,7 +202,7 @@ struct ToolsServerDetailView: View {
                     flow.useToken()
                     signIn = flow
                 } label: {
-                    Label("Replace the token", systemImage: HVSymbol.key)
+                    Label("Replace the token", systemImage: HVSymbol.key).hvRowLabel()
                 }
             }
         }

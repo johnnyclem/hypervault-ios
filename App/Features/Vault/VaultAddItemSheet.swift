@@ -181,7 +181,7 @@ struct VaultAddItemSheet: View {
                 if let limit = VaultLimits.entryLimitProblem(count: model.secrets.count) {
                     KeysInlineMessage(text: limit)
                 }
-                Label(HVCopy.landingVaultLockLine, systemImage: "lock.fill")
+                Label(HVCopy.landingVaultLockLine, systemImage: "lock.fill").hvRowLabel()
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.textSecondary)
             }

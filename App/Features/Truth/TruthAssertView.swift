@@ -29,7 +29,7 @@ struct TruthAssertView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.m) {
                     if !ledger.isHosted {
-                        Label("\(ledger.name) mirrors stenographer, so nothing can be asserted into it here. Pick a hosted ledger.", systemImage: "lock")
+                        Label("\(ledger.name) mirrors stenographer, so nothing can be asserted into it here. Pick a hosted ledger.", systemImage: "lock").hvRowLabel()
                             .font(.hvCallout)
                             .foregroundStyle(Palette.textSecondary)
                     } else if model.needsHandle {

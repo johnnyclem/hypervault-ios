@@ -46,7 +46,7 @@ struct MailSettingsView: View {
                         export()
                     } label: {
                         HStack {
-                            Label("Export this mailbox", systemImage: "square.and.arrow.up")
+                            Label("Export this mailbox", systemImage: "square.and.arrow.up").hvRowLabel()
                             Spacer()
                             if isExporting { ProgressView() }
                         }

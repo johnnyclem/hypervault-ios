@@ -127,7 +127,7 @@ struct ChatAssistantMessageView: View {
             }
 
             if row.truncated {
-                Label(HVCopy.replyCutShortLine, systemImage: "scissors")
+                Label(HVCopy.replyCutShortLine, systemImage: "scissors").hvRowLabel()
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.warning)
             }
@@ -165,11 +165,11 @@ struct ChatAssistantMessageView: View {
     @ViewBuilder private var stateNote: some View {
         switch row.state {
         case .waitingToSync:
-            Label("Saved on this iPhone. It will go to your vault when you're online.", systemImage: "icloud.slash")
+            Label("Saved on this iPhone. It will go to your vault when you're online.", systemImage: "icloud.slash").hvRowLabel()
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
         case .notSaved(let message):
-            Label("This reply is only on this iPhone. \(message)", systemImage: "exclamationmark.triangle")
+            Label("This reply is only on this iPhone. \(message)", systemImage: "exclamationmark.triangle").hvRowLabel()
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.warning)
         default:
@@ -375,7 +375,7 @@ struct ChatGroundingView: View {
                         .foregroundStyle(Palette.textSecondary)
                 }
                 if let footnote = grounding.truth?.footnote {
-                    Label(footnote, systemImage: "checkmark.seal")
+                    Label(footnote, systemImage: "checkmark.seal").hvRowLabel()
                         .font(.hvCaption)
                         .foregroundStyle(Palette.textSecondary)
                 }

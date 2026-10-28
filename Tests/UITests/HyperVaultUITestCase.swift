@@ -384,12 +384,16 @@ class HyperVaultUITestCase: XCTestCase {
     /// list shows (choosing the tab again takes the person back to the first screen of the pane that is open).
     func showPaneList(file: StaticString = #filePath, line: UInt = #line) {
         openTab("You", file: file, line: line)
+        // The list is showing when any of its rows is, not only the first: at a large text size the rows are tall, and a list
+        // that was scrolled down to a pane does not draw the rows above it, so a missing first row does not say that the person
+        // is somewhere else (and there is no back button to tap on the list itself).
+        let row = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "you.pane.")).firstMatch
         var goneBack = 0
-        while !element("you.pane.general").exists, goneBack < 5 {
+        while !row.exists, goneBack < 5 {
             goBack(file: file, line: line)
             goneBack += 1
         }
-        require(element("you.pane.general"), "the list of panes", file: file, line: line)
+        require(row, "the list of panes", file: file, line: line)
     }
 
     /// Opens a row of the Account menu behind the avatar on Home (`library`, `mail`, `taskBoards`, `accountAndKeys`,

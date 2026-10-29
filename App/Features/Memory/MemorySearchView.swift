@@ -145,7 +145,7 @@ struct MemorySearchField: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(Palette.textTertiary)
                 .accessibilityHidden(true)
-            TextField(prompt, text: $text)
+            TextField(prompt, text: $text, prompt: Text.hvPrompt(prompt))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.search)

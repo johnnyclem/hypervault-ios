@@ -47,7 +47,7 @@ struct TaskDetailView: View {
     private func form(_ task: BoardTask) -> some View {
         Form {
             Section {
-                TextField("Title", text: $title, axis: .vertical)
+                TextField("Title", text: $title, prompt: Text.hvPrompt("Title"), axis: .vertical)
                     .focused($focus, equals: .title)
                     .submitLabel(.done)
                     .onSubmit { commitTitle(task) }
@@ -117,7 +117,7 @@ struct TaskDetailView: View {
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(Color.clear)
                 } footer: {
-                    Text("What you wrote under Notes goes with it as the closing note.")
+                    Text("What you wrote under Notes goes with it as the closing note.").hvSectionNote()
                 }
             }
         }
@@ -156,6 +156,7 @@ struct TaskDetailView: View {
                         Button("Hand it back") { model.enqueue(.release(taskID: task.id)) }
                     } else if task.lock?.isLive() == true {
                         Button("Take it over", role: .destructive) { confirmTakeOver = true }
+                            .foregroundStyle(Palette.danger)
                     } else {
                         Button("I'll take it") {
                             Haptics.tap()
@@ -205,7 +206,7 @@ struct TaskDetailView: View {
     private func addSubtaskRow(_ task: BoardTask, temporary: Bool) -> some View {
         HStack(spacing: HV.Space.s) {
             Image(systemName: "plus.circle.fill").foregroundStyle(.tint).accessibilityHidden(true)
-            TextField("Add a subtask", text: $newSubtask)
+            TextField("Add a subtask", text: $newSubtask, prompt: Text.hvPrompt("Add a subtask"))
                 .focused($focus, equals: .subtask)
                 .submitLabel(.done)
                 .onSubmit {
@@ -259,7 +260,7 @@ struct TaskDetailView: View {
     private func addNoteRow(_ task: BoardTask) -> some View {
         let isEmpty = newNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return HStack(alignment: .bottom, spacing: HV.Space.s) {
-            TextField("Leave a note", text: $newNote, axis: .vertical)
+            TextField("Leave a note", text: $newNote, prompt: Text.hvPrompt("Leave a note"), axis: .vertical)
                 .focused($focus, equals: .note)
                 .lineLimit(1...5)
             Button {

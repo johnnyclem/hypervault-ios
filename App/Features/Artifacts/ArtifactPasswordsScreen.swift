@@ -191,7 +191,7 @@ struct ArtifactPasswordsScreen: View {
         } header: {
             HVSectionHeader(title: "New password")
         } footer: {
-            Text("Share it with whoever should be able to open this page. Each use is counted.")
+            Text("Share it with whoever should be able to open this page. Each use is counted.").hvSectionNote()
         }
         .hvListRow()
     }

@@ -63,6 +63,13 @@ enum MemoryStyle {
         }
     }
 
+    /// What a source's dot and node are drawn in on the graph and its legend. Graphics need 3:1, not the 4.5:1 of words, so
+    /// Repository keeps a brighter orange in the light look: at the deep shade its words need (orange-700) it is too
+    /// near Agent's amber (a brown) to tell the two apart at a glance.
+    static func graphTint(forSource source: String) -> Color {
+        source == "github" ? Color(dark: 0xF97316, light: 0xEA580C) : tint(forSource: source)
+    }
+
     /// What a source's words are drawn in on its own 14% tint. The tint itself, except for manual's `primary`, which is only
     /// 4.08:1 on paper over its own fill: that one is `accent` (7.0:1), as for any small text on a `primary` tint.
     static func ink(forSource source: String) -> Color {

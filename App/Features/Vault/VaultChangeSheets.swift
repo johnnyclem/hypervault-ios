@@ -64,7 +64,8 @@ struct VaultRenameSheet: View {
                                         newName = text
                                         nameRefusal = nil
                                     }
-                                )
+                                ),
+                                prompt: Text.hvPrompt("github.com")
                             )
                             .font(.system(.body, design: .monospaced))
                             .keyboardType(.asciiCapable)

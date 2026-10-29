@@ -38,7 +38,7 @@ struct ToolsServerDetailView: View {
             Section { header(server) }
                 .hvListRow()
 
-            Section(footer: Text("Takes effect for new chats after you compile.")) {
+            Section(footer: Text("Takes effect for new chats after you compile.").hvSectionNote()) {
                 Toggle("Use in chats", isOn: Binding(
                     get: { server.enabled },
                     set: { value in Task { await model.setEnabled(value, serverID: server.id) } }

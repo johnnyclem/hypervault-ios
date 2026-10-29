@@ -158,7 +158,7 @@ struct NewBranchSheet: View {
                     .font(.hvCallout)
                     .foregroundStyle(Palette.textSecondary)
                 HVLabeledField(title: "Branch name") {
-                    TextField("ideas", text: $name)
+                    TextField("ideas", text: $name, prompt: Text.hvPrompt("ideas"))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .submitLabel(.done)

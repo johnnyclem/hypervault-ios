@@ -52,7 +52,7 @@ struct MemoryGraphScreen: View {
             case .memory:
                 return ForceGraphNode(
                     id: node.id, label: node.title,
-                    color: MemoryStyle.tint(forSource: sources[node.id] ?? "manual"),
+                    color: MemoryStyle.graphTint(forSource: sources[node.id] ?? "manual"),
                     shape: .circle, weight: 1 + min(Double(node.degree), 8) * 0.7, detail: "Memory"
                 )
             case .artifact:
@@ -75,7 +75,7 @@ struct MemoryGraphScreen: View {
             let source = sources[node.id] ?? "manual"
             if !seen.contains(source) { seen.append(source) }
         }
-        var items = seen.map { ForceGraphLegendItem(title: MemorySource.label($0), color: MemoryStyle.tint(forSource: $0)) }
+        var items = seen.map { ForceGraphLegendItem(title: MemorySource.label($0), color: MemoryStyle.graphTint(forSource: $0)) }
         if graph.nodes.contains(where: { $0.kind == .artifact }) {
             items.append(ForceGraphLegendItem(title: "Page", color: Palette.rose, shape: .diamond))
         }

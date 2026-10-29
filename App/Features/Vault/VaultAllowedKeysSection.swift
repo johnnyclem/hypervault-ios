@@ -47,7 +47,7 @@ struct VaultAllowedKeysSection: View {
         } header: {
             HVSectionHeader(title: VaultCopy.allowedKeysHeading)
         } footer: {
-            Text(VaultCopy.allowedKeysLine)
+            Text(VaultCopy.allowedKeysLine).hvSectionNote()
         }
         .hvListRow()
     }

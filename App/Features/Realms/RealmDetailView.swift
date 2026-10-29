@@ -96,7 +96,7 @@ struct RealmDetailView: View {
             } header: {
                 HVSectionHeader(title: "Look")
             } footer: {
-                Text("Every address can wear its own. Changes show on the next visit.")
+                Text("Every address can wear its own. Changes show on the next visit.").hvSectionNote()
             }
             .hvListRow()
         }
@@ -143,7 +143,7 @@ struct RealmDetailView: View {
         } header: {
             HVSectionHeader(title: "Home page")
         } footer: {
-            Text("Pick one of your pages and \(claim.host) opens straight to it, with nothing after the address.")
+            Text("Pick one of your pages and \(claim.host) opens straight to it, with nothing after the address.").hvSectionNote()
         }
         .hvListRow()
     }

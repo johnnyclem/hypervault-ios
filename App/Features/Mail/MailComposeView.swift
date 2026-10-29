@@ -25,14 +25,14 @@ struct MailComposeView: View {
                 VStack(alignment: .leading, spacing: HV.Space.m) {
                     recipient
                     HVLabeledField(title: "Subject (optional)") {
-                        TextField("What it is about", text: $subject)
+                        TextField("What it is about", text: $subject, prompt: Text.hvPrompt("What it is about"))
                             .accessibilityIdentifier("mail.compose.subject")
                             .focused($focus, equals: .subject)
                             .submitLabel(.next)
                             .onSubmit { focus = .body }
                     }
                     HVLabeledField(title: "Note") {
-                        TextField("Write to your agents", text: $text, axis: .vertical)
+                        TextField("Write to your agents", text: $text, prompt: Text.hvPrompt("Write to your agents"), axis: .vertical)
                             .accessibilityIdentifier("mail.compose.body")
                             .lineLimit(6...20)
                             .focused($focus, equals: .body)

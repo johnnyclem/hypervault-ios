@@ -463,10 +463,21 @@ extension View {
 }
 
 extension Text {
-    /// A field's hint in the tertiary grey. The system's own placeholder is under 2:1 on raised paper, so
-    /// a field that has a label above it passes this as its `prompt:`.
+    /// A field's hint in the tertiary grey. The system's own placeholder is under 2:1 on raised paper in the light
+    /// look (and 2.6:1 in the dark), so every field passes this, or its feature's own copy of it, as its `prompt:`
+    /// (scripts/check_prompts.py holds the line).
     static func hvPrompt(_ text: String) -> Text {
         Text(text).foregroundStyle(Palette.textTertiary)
+    }
+}
+
+extension View {
+    /// The note under a section of a list or form, and the value on the right of a row, in the app's own secondary
+    /// text. The system draws both in its neutral secondary label, about 3.3:1 on the light page, a different grey
+    /// from the slate of every other hint beside it; this is `muted-foreground`, which holds 4.5:1 on all three
+    /// surfaces. The size is left to the system, so Dynamic Type works as it always has.
+    func hvSectionNote() -> some View {
+        foregroundStyle(Palette.textSecondary)
     }
 }
 

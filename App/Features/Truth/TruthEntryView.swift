@@ -163,7 +163,7 @@ struct TruthEntryScreen: View {
         } header: {
             HVSectionHeader(title: "Trace")
         } footer: {
-            Text("What this rests on, one row each. The premise it fails on is marked.")
+            Text("What this rests on, one row each. The premise it fails on is marked.").hvSectionNote()
         }
     }
 
@@ -187,7 +187,7 @@ struct TruthEntryScreen: View {
         } header: {
             HVSectionHeader(title: "What rests on it")
         } footer: {
-            Text("Other entries, and the memories and pages built on them: what a change to this would reach.")
+            Text("Other entries, and the memories and pages built on them: what a change to this would reach.").hvSectionNote()
         }
     }
 
@@ -236,7 +236,7 @@ struct TruthEntryScreen: View {
             Button("Remove from this ledger", role: .destructive) { confirmRemove = true }
                 .hvListRow()
         } footer: {
-            Text("A mirror ledger is a copy of a stenographer stream. Removing an entry only removes the copy.")
+            Text("A mirror ledger is a copy of a stenographer stream. Removing an entry only removes the copy.").hvSectionNote()
         }
     }
 

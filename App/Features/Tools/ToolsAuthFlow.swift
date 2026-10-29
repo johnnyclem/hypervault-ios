@@ -254,12 +254,12 @@ struct ToolsAuthChallengeView: View {
     private var tokenForm: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
             HVLabeledField(title: "Header name") {
-                TextField("Header name", text: $flow.headerName)
+                TextField("Header name", text: $flow.headerName, prompt: Text.hvPrompt("Header name"))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
             HVLabeledField(title: "API key or token") {
-                SecureField("API key or token", text: $flow.token)
+                SecureField("API key or token", text: $flow.token, prompt: Text.hvPrompt("API key or token"))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .focused($tokenFocused)

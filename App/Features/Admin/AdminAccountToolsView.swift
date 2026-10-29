@@ -109,7 +109,7 @@ struct AdminAccountToolsView: View {
 
     private var idField: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            TextField("3f1c1a2e-…", text: $model.idText)
+            TextField("3f1c1a2e-…", text: $model.idText, prompt: Text.hvPrompt("3f1c1a2e-…"))
                 .font(.hvMono)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -128,11 +128,11 @@ struct AdminAccountToolsView: View {
     @ViewBuilder
     private var idFooter: some View {
         if model.idText.trimmingCharacters(in: .whitespaces).isEmpty {
-            Text("It looks like 3f1c1a2e-0000-4000-8000-000000000001.")
+            Text("It looks like 3f1c1a2e-0000-4000-8000-000000000001.").hvSectionNote()
         } else if model.accountID == nil {
             Text("That is not an account ID.").foregroundStyle(Palette.danger)
         } else if model.isSelf {
-            Text("That is your own account. Revoking or deleting it is not allowed.")
+            Text("That is your own account. Revoking or deleting it is not allowed.").hvSectionNote()
         }
     }
 
@@ -172,7 +172,7 @@ struct AdminAccountToolsView: View {
         .disabled(model.isWorking)
 
         Section(header: HVSectionHeader(title: "Name")) {
-            TextField("Display name", text: $model.displayName)
+            TextField("Display name", text: $model.displayName, prompt: Text.hvPrompt("Display name"))
                 .hvFieldChrome()
                 .accessibilityLabel("Display name")
             Button {
@@ -186,7 +186,7 @@ struct AdminAccountToolsView: View {
         .hvListRow()
         .disabled(model.isWorking)
 
-        Section(header: HVSectionHeader(title: "Danger"), footer: Text("Deleting removes the sign-in and everything the person saved. There is no undo.")) {
+        Section(header: HVSectionHeader(title: "Danger"), footer: Text("Deleting removes the sign-in and everything the person saved. There is no undo.").hvSectionNote()) {
             Button(role: .destructive) { deleting = true } label: {
                 Label("Delete this account…", systemImage: HVSymbol.delete).hvRowLabel(role: .destructive)
             }
@@ -251,7 +251,7 @@ struct AdminDeleteAccountSheet: View {
                     }
 
                     HVLabeledField(title: "Type DELETE to go on") {
-                        TextField("Type DELETE to confirm", text: $typed, prompt: Text(verbatim: "DELETE"))
+                        TextField("Type DELETE to confirm", text: $typed, prompt: Text.hvPrompt("DELETE"))
                             .textInputAutocapitalization(.characters)
                             .autocorrectionDisabled()
                             .focused($focused)

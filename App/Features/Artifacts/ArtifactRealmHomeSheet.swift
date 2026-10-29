@@ -23,7 +23,7 @@ struct ArtifactRealmHomeSheet: View {
                             .disabled(changing != nil)
                     }
                 } footer: {
-                    Text("The address opens straight on this page, with no list of your pages. Its link to this page still works.")
+                    Text("The address opens straight on this page, with no list of your pages. Its link to this page still works.").hvSectionNote()
                 }
                 .hvListRow()
                 if let warning {

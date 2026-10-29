@@ -1,0 +1,4 @@
+dark / the waitlist
+
+small target  TextField (waitlist.code)  32,393 326x24
+small target  Button "Paste"  151,509 87x34

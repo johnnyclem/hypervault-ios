@@ -1,0 +1,5 @@
+large / a memory
+
+small target  Button "Actions"  334,51 36x36
+small target  Button  334,51 36x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

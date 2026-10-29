@@ -1,0 +1,3 @@
+large / You, the panes
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

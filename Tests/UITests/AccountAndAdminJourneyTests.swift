@@ -18,11 +18,12 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
 
         step("Nothing on the screen claims that an agent is connected") {
             require(shows("One key per agent. A key is shown once, and comes with a setup challenge the agent completes to prove the link works."), "the pane's own description")
-            let claimed = shows("connected")
-            XCTAssertFalse(
-                claimed.exists,
-                "Agent keys claims a connection that nothing checked. It was \(claimed.identifier) labelled \(claimed.label)."
-            )
+            // The words the web puts on a key that finished its challenge ("Agent connected") and on the pane ("2 agents
+            // connected"). The bare word is not asked for: a symbol's own name has it ("point.3.connected..."), and the
+            // memory symbol is one.
+            XCTAssertFalse(shows("Agent connected").exists, "Agent keys claims a connection that nothing checked.")
+            XCTAssertFalse(shows("agents connected").exists, "Agent keys counts connections that nothing checked.")
+            XCTAssertFalse(shows("agent connected").exists, "Agent keys counts a connection that nothing checked.")
             XCTAssertFalse(shows("Setup pending").exists, "Agent keys claims a state that nothing checked.")
         }
 

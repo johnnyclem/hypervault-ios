@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Layout constants. Everything on screen sits on a 4-point grid, with the two values the web uses beside it (6 and 24).
 enum HV {
@@ -53,6 +54,16 @@ extension Color {
             opacity: opacity
         )
     }
+
+    /// One colour that is `dark` in the dark look and `light` in the light look, for a shade the web has no token for.
+    /// (The tokens are colour sets; these are not, so the pair is made here.)
+    init(dark: UInt32, light: UInt32) {
+        func component(_ hex: UInt32, _ shift: UInt32) -> CGFloat { CGFloat((hex >> shift) & 0xff) / 255 }
+        self.init(UIColor { traits in
+            let hex = traits.userInterfaceStyle == .light ? light : dark
+            return UIColor(red: component(hex, 16), green: component(hex, 8), blue: component(hex, 0), alpha: 1)
+        })
+    }
 }
 
 /// The HyperVault palette. Dark is the stock look from the web's tokens; light is the same roles with the iOS
@@ -92,19 +103,21 @@ enum Palette {
     static let skeleton = HVColor.border
 
     // The accents. The stock ones are the web's tokens and follow the appearance. Violet is the memory kind (a colour
-    // set, so it follows too). Cyan, coral and rose are decorative and stay one dark value.
+    // set, so it follows too). Cyan, coral and rose are decorative and have no token: each is its dark shade (the
+    // 400s) and, in the light look, the 700 the other accents mirror to (emerald, amber and violet are 700 there), so
+    // that they hold 4.5:1 as text and glyph on the light page and on paper, as they do in the dark.
     static let violet = HVColor.memory
     /// The web's `primary`, which is also the accent colour of the app.
     static let blue = HVColor.primary
     /// The web's `accent`: tinted text on raised paper, where `blue` falls under 4.5:1.
     static let sky = HVColor.accent
-    static let cyan = Color(hex: 0x22D3EE)
+    static let cyan = Color(dark: 0x22D3EE, light: 0x0E7490)
     /// Emerald-400, the Agent keys chips' success shade.
     static let mint = HVColor.emerald400
     /// Amber-400, the Agent keys chips' warning shade.
     static let amber = HVColor.amber400
-    static let coral = Color(hex: 0xF97316)
-    static let rose = Color(hex: 0xFB7185)
+    static let coral = Color(dark: 0xF97316, light: 0xC2410C)
+    static let rose = Color(dark: 0xFB7185, light: 0xBE123C)
 
     static let success = mint
     static let warning = amber

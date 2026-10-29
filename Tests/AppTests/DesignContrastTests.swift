@@ -156,6 +156,27 @@ final class DesignContrastTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(contrast(try value("accent-foreground"), try value("accent")), 4.5)
     }
 
+    /// The decorative tints have a light shade of their own, the 700 that emerald, amber and violet mirror to, so they
+    /// stay text and glyph in the light look: 4.5:1 on the page and on paper, and a little under on raised paper
+    /// (orange-700 is 4.44:1 there), recorded here.
+    func testTheDecorativeTintsHoldInTheLightLookToo() throws {
+        let light = UITraitCollection(userInterfaceStyle: .light)
+        func resolved(_ color: Color) -> UInt32 { DesignTokensTests.hex(of: UIColor(color).resolvedColor(with: light)) }
+        let tints: [(String, Color, UInt32)] = [
+            ("cyan", Palette.cyan, 0x0E7490), ("coral", Palette.coral, 0xC2410C), ("rose", Palette.rose, 0xBE123C),
+            ("violet", Palette.violet, try XCTUnwrap(HVTokens.lightColors["memory"])),
+        ]
+        for (name, tint, expected) in tints {
+            DesignTokensTests.assertSame(resolved(tint), expected, "\(name) in the light look")
+            for surface in ["background", "card"] {
+                let ratio = contrast(resolved(tint), try XCTUnwrap(HVTokens.lightColors[surface]))
+                XCTAssertGreaterThanOrEqual(ratio, 4.5, "\(name) on \(surface) is \(ratio):1 in the light look.")
+            }
+            let onRaised = contrast(resolved(tint), try XCTUnwrap(HVTokens.lightColors["muted"]))
+            XCTAssertGreaterThanOrEqual(onRaised, 4.4, "\(name) on muted is \(onRaised):1 in the light look.")
+        }
+    }
+
     func testTextOnTheAccentFillIsBodyText() throws {
         XCTAssertGreaterThanOrEqual(contrast(try hex("accent-foreground"), try hex("accent")), 4.5)
     }

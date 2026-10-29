@@ -2,10 +2,24 @@ import SwiftUI
 import UIKit
 import XCTest
 
+/// One of each kind of surface, drawn in both looks on every run, so a light look that slips is seen in the published
+/// renders and not on somebody's phone: a list on the page, a card, a form of fields, a form under section notes, a
+/// sheet, a chat, a graph, a diff, the tag colours, the welcome story, the lock.
+let lightLookScreens: Set<String> = [
+    "yours", "yours-empty", "you", "settings", "welcome-1-keep", "lock",
+    "chat-list", "chat-conversation", "chat-connect-form", "pane-models", "pane-general-pro",
+    "digest", "design-controls", "design-palette", "force-graph", "group-new",
+    "memory-list", "memory-ask", "memory-memorize", "mind-diff", "mind-merge-preview",
+    "keys-webhooks-add", "mail-compose", "mail-settings", "realms-detail",
+    "taskboards-board", "taskboards-task", "tools-list", "tools-add-form", "truth-entry",
+    "vault-add-card", "vault-add-login", "vault-detail-card", "admin-accounts",
+]
+
 /// Renders a SwiftUI screen the way the device would (inside a real window, so
 /// List, NavigationStack and TabView draw) and writes it as a PNG. CI uploads
-/// the folder, so a screen can be looked at without running a simulator. The app follows the system. These
-/// renders stay in the dark, the look the published PNGs are read against; pass `schemes` to draw the light look too.
+/// the folder, so a screen can be looked at without running a simulator. The app follows the system. The renders are
+/// in the dark, the look the published PNGs are read against, and the screens in `lightLookScreens` are drawn in the
+/// light look as well (`<name>-light.png`); pass `schemes` to choose for one screen.
 ///
 ///     @MainActor func testYours() throws {
 ///         try snapshot(PreviewHost(routes: [...]) { YoursRootView() }, named: "yours")
@@ -16,7 +30,7 @@ func snapshot<V: View>(
     named name: String,
     size: CGSize = CGSize(width: 393, height: 852),
     settle: TimeInterval = 1.0,
-    schemes: [UIUserInterfaceStyle] = [.dark],
+    schemes: [UIUserInterfaceStyle]? = nil,
     file: StaticString = #filePath,
     line: UInt = #line
 ) throws {
@@ -24,7 +38,7 @@ func snapshot<V: View>(
         .appendingPathComponent("snapshots", isDirectory: true)
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
-    for scheme in schemes {
+    for scheme in schemes ?? (lightLookScreens.contains(name) ? [.dark, .light] : [.dark]) {
         let host = UIHostingController(rootView: view)
         // The window must belong to the host app's scene, or nothing is drawn.
         let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first

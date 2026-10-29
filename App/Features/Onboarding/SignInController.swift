@@ -195,8 +195,13 @@ final class WebAuthPresenter: NSObject, ASWebAuthenticationPresentationContextPr
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
         MainActor.assumeIsolated {
             let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-            let window = scenes.flatMap(\.windows).first { $0.isKeyWindow } ?? scenes.first?.windows.first
-            return window ?? ASPresentationAnchor()
+            if let window = scenes.flatMap(\.windows).first(where: { $0.isKeyWindow }) ?? scenes.first?.windows.first {
+                return window
+            }
+            guard let scene = scenes.first else {
+                fatalError("No window scene available to present authentication session")
+            }
+            return UIWindow(windowScene: scene)
         }
     }
 }

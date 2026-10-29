@@ -70,7 +70,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
     func testARoomOpensAndTakesAMessage() {
         launch(.signedIn)
         openTab("Chat")
-        tap(segment("Group chats"), "the Group chats half")
+        tap(segment("Group chats"), "the Group chats half", until: { element("chat.room.r1").exists })
 
         step("A room opens to what its members said") {
             tap(element("chat.room.r1"), "the Features X and Y room")

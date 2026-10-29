@@ -18,7 +18,11 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
 
         step("Nothing on the screen claims that an agent is connected") {
             require(shows("One key per agent. A key is shown once, and comes with a setup challenge the agent completes to prove the link works."), "the pane's own description")
-            XCTAssertFalse(shows("connected").exists, "Agent keys claims a connection that nothing checked.")
+            let claimed = shows("connected")
+            XCTAssertFalse(
+                claimed.exists,
+                "Agent keys claims a connection that nothing checked. It was \(claimed.identifier) labelled \(claimed.label)."
+            )
             XCTAssertFalse(shows("Setup pending").exists, "Agent keys claims a state that nothing checked.")
         }
 

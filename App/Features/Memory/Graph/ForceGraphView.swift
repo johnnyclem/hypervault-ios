@@ -16,6 +16,41 @@ struct ForceGraphCamera: Equatable {
     func world(_ point: CGPoint) -> ForcePoint {
         ForcePoint(x: Double((point.x - translation.width) / scale), y: Double((point.y - translation.height) / scale))
     }
+
+    /// The camera that puts `point` at `middle` of the picture, at the zoom this one has if that is `minimumScale` or closer
+    /// in, and at `minimumScale` if it is further out. The picture stops framing itself from there (`userMoved`).
+    func centred(on point: ForcePoint, at middle: CGPoint, minimumScale: CGFloat) -> ForceGraphCamera {
+        let next = min(max(scale, minimumScale), 6)
+        return ForceGraphCamera(
+            scale: next,
+            translation: CGSize(width: middle.x - CGFloat(point.x) * next, height: middle.y - CGFloat(point.y) * next),
+            userMoved: true
+        )
+    }
+}
+
+/// What the Drift button says and shows. Under Reduce Motion nothing moves by itself, so it is Next, one stop for each tap;
+/// otherwise it starts the tour, and while the tour runs it stops it, looking pressed in.
+struct ForceGraphDriftLook: Equatable {
+    let label: String
+    let symbol: String
+    let isPressedIn: Bool
+
+    init(reduceMotion: Bool, isDrifting: Bool) {
+        if reduceMotion {
+            label = "Next"
+            symbol = "forward.fill"
+            isPressedIn = false
+        } else if isDrifting {
+            label = "Stop drifting"
+            symbol = "stop.fill"
+            isPressedIn = true
+        } else {
+            label = "Drift"
+            symbol = "play.fill"
+            isPressedIn = false
+        }
+    }
 }
 
 /// The height the legend takes, so the picture is framed below it however many rows it wraps to.
@@ -47,6 +82,9 @@ struct ForceGraphView: View {
     var legend: [ForceGraphLegendItem] = []
     /// Most nodes that get a permanent label; the best connected win.
     var hubLabelCount = 6
+    /// True while something is shown over the screen (a sheet). The view does not disappear then, so a tour would carry on
+    /// behind it, moving the map and speaking over whoever is using the sheet.
+    var isCovered = false
     var onOpen: (String) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -131,6 +169,9 @@ struct ForceGraphView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { stopDrift() }
+        }
+        .onChange(of: isCovered) { _, covered in
+            if covered { stopDrift() }
         }
         .onChange(of: model.points) { _, _ in
             // While the layout is still moving the frame follows it, so the graph never outgrows the screen.
@@ -262,34 +303,24 @@ struct ForceGraphView: View {
     /// Starts the tour, or ends it. While it runs by itself it looks pressed in, with Stop on it; under Reduce Motion it is
     /// Next, which takes one stop at a time.
     private var driftButton: some View {
-        let drifting = isDrifting
+        let look = ForceGraphDriftLook(reduceMotion: reduceMotion, isDrifting: isDrifting)
         return Button {
             driftTapped()
         } label: {
-            Image(systemName: driftSymbol)
+            Image(systemName: look.symbol)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(drifting ? Palette.background : Palette.textPrimary)
+                .foregroundStyle(look.isPressedIn ? Palette.background : Palette.textPrimary)
                 .frame(width: 44, height: 44)
                 .background {
-                    if drifting { Circle().fill(Palette.textPrimary).frame(width: 34, height: 34) }
+                    if look.isPressedIn { Circle().fill(Palette.textPrimary).frame(width: 34, height: 34) }
                 }
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(driftLabel)
+        .accessibilityLabel(look.label)
         .accessibilityHint(reduceMotion ? "Goes to the next node along the connections" : "Visits each node in turn along the connections")
-        .accessibilityAddTraits(drifting ? .isSelected : [])
+        .accessibilityAddTraits(look.isPressedIn ? .isSelected : [])
         .accessibilityIdentifier("graph.drift")
-    }
-
-    private var driftLabel: String {
-        if reduceMotion { return "Next" }
-        return isDrifting ? "Stop drifting" : "Drift"
-    }
-
-    private var driftSymbol: String {
-        if reduceMotion { return "forward.fill" }
-        return isDrifting ? "stop.fill" : "play.fill"
     }
 
     private var selectedNode: ForceGraphNode? {
@@ -447,7 +478,8 @@ struct ForceGraphView: View {
         } else {
             tour = nil
             driftStep()
-            scheduleDrift()
+            // One node has nowhere to go on to: the tap shows it, and no timer is left running over nothing.
+            if model.nodes.count > 1 { scheduleDrift() }
         }
     }
 
@@ -464,19 +496,14 @@ struct ForceGraphView: View {
     private func show(_ id: String) {
         guard let index = model.nodes.firstIndex(where: { $0.id == id }), index < model.points.count else { return }
         let node = model.nodes[index]
+        let isNew = selection != id
         HV.Motion.animate(.easeOut(duration: 0.18)) { selection = id }
 
         // The picture stops framing itself from here: the tour decides where it looks.
         camera.userMoved = true
-        let scale = min(max(camera.scale, Self.driftZoom), 6)
-        let point = model.points[index]
-        let middle = clearCentre
-        animate(to: ForceGraphCamera(
-            scale: scale,
-            translation: CGSize(width: middle.x - CGFloat(point.x) * scale, height: middle.y - CGFloat(point.y) * scale),
-            userMoved: true
-        ))
-        UIAccessibility.post(notification: .announcement, argument: node.label)
+        animate(to: camera.centred(on: model.points[index], at: clearCentre, minimumScale: Self.driftZoom))
+        // Said only when it is a different node, so a tap that lands where the tour already is stays quiet.
+        if isNew { VoiceOverAnnouncer.shared.announce(node.label) }
     }
 
     /// The middle of the part of the picture the legend and the callout leave clear.

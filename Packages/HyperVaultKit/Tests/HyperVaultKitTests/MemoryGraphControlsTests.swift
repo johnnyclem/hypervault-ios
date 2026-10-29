@@ -234,6 +234,19 @@ final class MemoryGraphControlsTests: XCTestCase {
         XCTAssertTrue(graph.matches("nothing like this").isEmpty)
     }
 
+    func testASearchDoesNotListAPageThatCannotBeOpened() {
+        // p3 is bridged but its name and slug were not read, so it is drawn as "Page" and opens nothing.
+        let graph = MemoryGraphBuilder.build(
+            memories: memories, links: links,
+            bridges: bridges + [MemoryBridgeRow(id: "b3", memoryId: "m2", artifactId: "p3")],
+            artifacts: artifacts
+        )
+        XCTAssertEqual(graph.node("p3")?.title, "Page")
+        XCTAssertNil(graph.node("p3")?.slug)
+        XCTAssertTrue(graph.matches("page").isEmpty, "the page with no slug is on the map but not in the results")
+        XCTAssertEqual(graph.matches("lisbon").map(\.id), ["m1", "p1"], "the pages that can be opened still are")
+    }
+
     func testASearchWithNothingInItFindsNothing() {
         let graph = build()
         XCTAssertTrue(graph.matches("").isEmpty)

@@ -40,7 +40,9 @@ struct LibraryGraphScreen: View {
             controls
             // What the search finds is laid over the map, not put above it: at a large text size the rows would take the
             // map's room, and the map would vanish while someone searches.
-            content.overlay(alignment: .top) {
+            // (One view to lay it over: `content` has the map and its caption as two, and a modifier on it would be put on
+            // each, drawing the rows twice.)
+            VStack(spacing: 0) { content }.overlay(alignment: .top) {
                 if !model.query.trimmingCharacters(in: .whitespaces).isEmpty { results }
             }
         }
@@ -62,6 +64,7 @@ struct LibraryGraphScreen: View {
                 nodes: forceNodes,
                 edges: forceEdges,
                 legend: legend,
+                isCovered: app.router.sheet != nil,
                 onOpen: open
             )
             caption

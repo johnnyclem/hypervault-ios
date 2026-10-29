@@ -22,8 +22,8 @@ final class CanvasShareTests: XCTestCase {
         #"{"shares":[\#(people.joined(separator: ","))],"roles":["view","use","edit"],"roles_enforced":true}"#
     }
 
-    private func target(_ card: CanvasCard, env: AppEnvironment = AppEnvironment.preview()) -> CanvasShareTarget? {
-        CanvasShare.target(for: card, env: env)
+    private func target(_ card: CanvasCard, env: AppEnvironment? = nil) -> CanvasShareTarget? {
+        CanvasShare.target(for: card, env: env ?? AppEnvironment.preview())
     }
 
     // MARK: Which cards offer it

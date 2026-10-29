@@ -23,6 +23,19 @@ final class MemorySnapshotTests: XCTestCase {
         try snapshot(PreviewHost(routes: routes) { MemoryTabPreview(mode: .graph) }, named: "memory-graph", settle: 5)
     }
 
+    /// The graph with its controls set: a search that finds two memories, laid over the map; one kind of node left off; and
+    /// Hide unlinked on.
+    func testGraphControls() throws {
+        try snapshot(
+            PreviewHost(routes: routes) {
+                MemoryScreenHost { list in
+                    MemoryGraphScreen(list: list, query: "pass", hiddenTypes: ["File"], hideUnlinked: true).hvScreenBackground()
+                }
+            },
+            named: "memory-graph-controls", settle: 5
+        )
+    }
+
     func testAsk() throws {
         try snapshot(PreviewHost(routes: routes) { MemoryTabPreview(mode: .ask) }, named: "memory-ask")
     }

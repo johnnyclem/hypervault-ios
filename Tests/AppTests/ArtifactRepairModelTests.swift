@@ -45,6 +45,54 @@ final class ArtifactRepairModelTests: XCTestCase {
         XCTAssertEqual(acknowledged.count, 1)
     }
 
+    private func repairBody(_ transport: MockTransport) async -> [String: Any]? {
+        let sent = await transport.requests.filter { $0.url?.path == "/api/artifacts/trip-1/repair" }
+        guard let data = sent.last?.httpBody else { return nil }
+        return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+    }
+
+    func testWithMoreThanOneModelTheChosenOneRepairsTheOtherIsNeverNamed() async {
+        let finished = FinishedFlag()
+        finished.set()
+        let transport = MockTransport(routes: routes(finished: finished) + [
+            .json(.get, "/api/backends", #"{"backends":[{"id":"b1","name":"My Claude","provider":"anthropic"},{"id":"b2","name":"My GPT","provider":"openai"}],"providers":[]}"#),
+        ])
+        let model = model(transport)
+        await model.loadBackends()
+        XCTAssertEqual(model.backends.map(\.id), ["b1", "b2"])
+        XCTAssertEqual(model.selectedBackendID, "b1", "the first is chosen until the person chooses")
+        XCTAssertFalse(model.needsModel)
+        model.selectedBackendID = "b2"
+        await model.run(renderError: nil)
+        let body = await repairBody(transport)
+        XCTAssertEqual(body?["backend_id"] as? String, "b2")
+    }
+
+    func testWithOneModelTheServerIsLeftToUseIt() async {
+        let finished = FinishedFlag()
+        finished.set()
+        let transport = MockTransport(routes: routes(finished: finished) + [
+            .json(.get, "/api/backends", #"{"backends":[{"id":"b1","name":"My Claude","provider":"anthropic"}],"providers":[]}"#),
+        ])
+        let model = model(transport)
+        await model.loadBackends()
+        XCTAssertEqual(model.selectedBackendID, "b1")
+        await model.run(renderError: nil)
+        let body = await repairBody(transport)
+        XCTAssertNil(body?["backend_id"], "nobody chose, so nothing is named")
+    }
+
+    func testWithNoModelTheSheetKnowsBeforeTheAttemptAndAListThatCouldNotBeReadDoesNotSayThat() async {
+        let none = model(MockTransport(routes: [.json(.get, "/api/backends", #"{"backends":[],"providers":[]}"#)]))
+        await none.loadBackends()
+        XCTAssertTrue(none.needsModel)
+
+        let unknown = model(MockTransport(routes: [.failure(.get, "/api/backends", status: 500, message: "Boom.")]))
+        await unknown.loadBackends()
+        XCTAssertFalse(unknown.needsModel, "not knowing is not the same as having none: the attempt is left to the server")
+        XCTAssertFalse(unknown.backendsKnown)
+    }
+
     func testASheetThatIsClosedStopsAskingAfterTheJob() async {
         let finished = FinishedFlag()
         let transport = MockTransport(routes: routes(finished: finished))

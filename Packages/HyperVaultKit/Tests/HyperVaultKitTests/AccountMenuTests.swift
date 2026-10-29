@@ -18,6 +18,11 @@ final class AccountMenuTests: XCTestCase {
         XCTAssertEqual(AccountMenu.signOut, "Sign out")
     }
 
+    func testTheDreamsAndDigestBadgeSaysHowManyAreWaitingForReview() {
+        XCTAssertEqual(AccountMenu.pendingBadgeLabel(1), "1 waiting for review")
+        XCTAssertEqual(AccountMenu.pendingBadgeLabel(120), "120 waiting for review", "VoiceOver says the whole number, as for mail")
+    }
+
     func testTheMailBadgeCountsToNinetyNineAndSaysHowManyAreUnread() {
         XCTAssertEqual(AccountMenu.badgeText(1), "1")
         XCTAssertEqual(AccountMenu.badgeText(99), "99")

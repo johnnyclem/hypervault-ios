@@ -175,26 +175,27 @@ struct ChatOptionsSheet: View {
                     isOn: $model.useTools
                 )
                 .disabled(model.runsLocally)
-            } else {
-                Button {
-                    dismiss()
-                    app.router.push(.tools)
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("Set up tools").foregroundStyle(Palette.textPrimary)
-                            Text("Connect a service and your chats can use it.")
-                                .font(.hvCaption)
-                                .foregroundStyle(Palette.textSecondary)
-                        }
-                        Spacer()
-                        HVIcon(HVSymbol.open).font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
-                    }
-                    .frame(minHeight: 44)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
             }
+            // With a toolkit this is how to see what it holds and to compile it again; without one, how to make it.
+            Button {
+                dismiss()
+                app.router.push(.tools)
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(model.hasToolkit ? "Manage tools" : "Set up tools").foregroundStyle(Palette.textPrimary)
+                        Text(model.hasToolkit ? "See what the model can use, or compile it again." : "Connect a service and your chats can use it.")
+                            .font(.hvCaption)
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                    Spacer()
+                    HVIcon(HVSymbol.open).font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textTertiary)
+                }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("chat.options.tools")
         } header: {
             HVSectionHeader(title: "Tools")
         } footer: {

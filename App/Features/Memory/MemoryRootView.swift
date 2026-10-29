@@ -41,6 +41,10 @@ struct MemoryTabScreen: View {
     @State private var query: String
     @State private var destination: MemoryDestination?
     @State private var showMemorize = false
+    /// Dreams and digest proposals waiting for a decision (the web's badge on More), read when the screen appears, which is
+    /// also when a person comes back from deciding some of them, and when the app comes to the front. Nothing polls it.
+    @State private var waiting = 0
+    @Environment(\.scenePhase) private var scenePhase
 
     init(env: AppEnvironment, mode: MemoryMode = .search, query: String = "") {
         _list = State(initialValue: MemoryListModel(env: env))
@@ -94,6 +98,10 @@ struct MemoryTabScreen: View {
         }
         .task(id: list.branch) { await list.load() }
         .task { await list.loadBranches() }
+        .onAppear { Task { await loadWaiting() } }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await loadWaiting() } }
+        }
         .task { if !query.isEmpty { list.queryChanged(query) } }
         .onChange(of: query) { _, text in list.queryChanged(text) }
         .onReceive(NotificationCenter.default.publisher(for: .hvMemoryChanged)) { _ in
@@ -156,9 +164,24 @@ struct MemoryTabScreen: View {
             }
         } label: {
             Image(systemName: "ellipsis.circle")
+                .overlay(alignment: .topTrailing) {
+                    if waiting > 0 {
+                        Circle().fill(Palette.blue).frame(width: 9, height: 9).offset(x: 3, y: -3).accessibilityHidden(true)
+                    }
+                }
         }
         .accessibilityLabel("More")
+        .accessibilityValue(waiting > 0 ? AccountMenu.pendingBadgeLabel(waiting) : "")
         .accessibilityIdentifier("memory.more")
+    }
+
+    /// A read that fails leaves the count as it was: a partial sum would say less than is waiting.
+    private func loadWaiting() async {
+        let client = list.env.client
+        async let dreams = try? await client.send(.dreamQueue)
+        async let digest = try? await client.send(.digestQueue)
+        guard let dreamQueue = await dreams, let digestQueue = await digest else { return }
+        waiting = dreamQueue.pendingCount + digestQueue.runs.filter { !$0.segments.isEmpty }.count
     }
 
     @ViewBuilder

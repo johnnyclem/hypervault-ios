@@ -1,0 +1,5 @@
+large / a room
+
+small target  Button "Room menu"  322,51 48x36
+small target  Button  322,51 48x36
+off screen    Image (AdditionalDimmingOverlay)  -120,-151 630x302

@@ -1,0 +1,104 @@
+Attributes: Application, 0x108870780, pid: 5728, label: 'HyperVault'
+Element subtree:
+ →Application, 0x108870780, pid: 5728, label: 'HyperVault'
+    Window (Main), 0x1088708c0, {{0.0, 0.0}, {390.0, 844.0}}
+      Other, 0x108870a00, {{0.0, 0.0}, {390.0, 844.0}}
+        Other, 0x108870b40, {{0.0, 0.0}, {390.0, 844.0}}
+          Other, 0x108870c80, {{0.0, 0.0}, {390.0, 844.0}}
+            Other, 0x108870dc0, {{0.0, 0.0}, {390.0, 844.0}}
+              Other, 0x108870f00, {{0.0, 47.0}, {390.0, 763.0}}
+              Other, 0x108871040, {{0.0, 0.0}, {390.0, 844.0}}
+                Other, 0x108871180, {{0.0, 0.0}, {390.0, 844.0}}
+                  Other, 0x1088712c0, {{0.0, 0.0}, {390.0, 844.0}}
+                    Other, 0x108871400, {{0.0, 0.0}, {390.0, 844.0}}
+                      Other, 0x108871540, {{0.0, 0.0}, {390.0, 844.0}}
+                        Other, 0x108871680, {{0.0, 0.0}, {390.0, 844.0}}
+                          Other, 0x1088717c0, {{0.0, 0.0}, {390.0, 844.0}}
+                            NavigationBar, 0x108871900, {{0.0, 47.0}, {390.0, 54.0}}, identifier: '_TtGC7SwiftUI32NavigationStackHosting'
+                              Other, 0x108871a40, {{20.0, 51.0}, {44.0, 36.0}}, identifier: 'canvas.account', label: 'Account'
+                                Other, 0x108871b80, {{20.0, 51.0}, {44.0, 36.0}}
+                                  Button, 0x108871cc0, {{20.0, 51.0}, {44.0, 36.0}}, identifier: 'canvas.account', label: 'Account'
+                                    StaticText, 0x108871e00, {{20.0, 51.0}, {44.0, 36.0}}, label: 'S'
+                              Other, 0x108871f40, {{331.7, 51.0}, {38.3, 36.0}}, identifier: 'canvas.yours', label: 'Open panel'
+                                Other, 0x108872080, {{331.7, 51.0}, {38.3, 36.0}}
+                                  Button, 0x1088721c0, {{331.7, 51.0}, {38.3, 36.0}}, identifier: 'canvas.yours', label: 'Open panel'
+                            Other, 0x108872300, {{0.0, 0.0}, {390.0, 844.0}}
+                              Other, 0x108872440, {{0.0, 0.0}, {390.0, 844.0}}
+                                Other, 0x108872580, {{0.0, 0.0}, {390.0, 844.0}}
+                                  Other, 0x1088726c0, {{0.0, 0.0}, {390.0, 844.0}}
+                                    Other, 0x108872800, {{-95.7, -2.2}, {612.7, 846.2}}
+                                    ScrollView, 0x108872940, {{0.0, 0.0}, {390.0, 844.0}}
+                                      Other, 0x108872a80, {{0.0, 0.0}, {390.0, 844.0}}
+                                        Other, 0x108872bc0, {{0.0, 0.0}, {390.0, 155.8}}
+                                        Other, 0x108872d00, {{0.0, 696.2}, {390.0, 147.8}}
+                                      Other, 0x108872e40, {{0.0, 0.0}, {390.0, 844.0}}
+                                        Other, 0x108872f80, {{0.0, 696.2}, {390.0, 147.8}}
+                                          Image, 0x1088730c0, {{-120.0, 701.0}, {630.0, 286.0}}, identifier: 'AdditionalDimmingOverlay'
+                                          Other, 0x108873200, {{0.0, 696.2}, {390.0, 147.8}}
+                                            Other, 0x108873340, {{0.0, 696.2}, {390.0, 147.8}}
+                                          Other, 0x108873480, {{0.0, 696.2}, {390.0, 147.8}}
+                                            Other, 0x1088735c0, {{0.0, 696.2}, {390.0, 147.8}}
+                                            Other, 0x108873700, {{0.0, 696.2}, {390.0, 147.8}}
+                                      Other, 0x108873840, {{0.0, 101.0}, {390.0, 1417.3}}
+                                        StaticText, 0x108873980, {{37.2, 229.0}, {315.7, 116.7}}, label: 'Good evening, Sam.'
+                                        StaticText, 0x108873ac0, {{28.0, 353.7}, {334.0, 331.0}}, label: 'Keep what your AI just made. Only you can open it.'
+                                        StaticText, 0x108873c00, {{30.7, 704.7}, {328.7, 121.0}}, identifier: 'canvas.hint', label: 'Paste anything here to keep it.'
+                                        Button, 0x108873d40, {{83.0, 839.7}, {224.3, 77.3}}, label: 'Paste'
+                                        Button, 0x108873e80, {{66.3, 931.0}, {257.3, 180.7}}, identifier: 'canvas.starter', label: 'Copy a starter prompt'
+                                          Image, 0x108888000, {{84.3, 935.3}, {50.7, 61.7}}, identifier: 'doc.on.doc', label: 'Copy'
+                                          StaticText, 0x108888140, {{66.3, 931.0}, {257.3, 180.7}}, label: 'Copy a starter prompt'
+                                        StaticText, 0x108888280, {{166.3, 1131.6}, {57.3, 52.7}}, label: 'Try'
+                                        Button, 0x1088883c0, {{-29.0, 1192.3}, {448.3, 74.7}}, label: 'Show my memories'
+                                        Button, 0x108888500, {{33.0, 1275.0}, {324.3, 74.7}}, label: 'Show my files'
+                                        StaticText, 0x108888640, {{28.0, 1361.6}, {334.0, 156.7}}, label: 'Ask anything else and your model answers.'
+                                      Other, 0x108888780, {{357.0, 101.0}, {30.0, 546.0}}, label: 'Vertical scroll bar, 3 pages', value: 0%
+                                        Other, 0x1088888c0, {{384.0, 104.0}, {3.0, 310.3}}
+                                      Other, 0x108888a00, {{357.0, 101.0}, {30.0, 546.0}}, label: 'Vertical scroll bar, 3 pages', value: 0%
+                                        Other, 0x108888b40, {{384.0, 104.0}, {3.0, 310.3}}
+                                    Button, 0x108888c80, {{24.0, 701.0}, {44.0, 44.0}}, identifier: 'canvas.more', label: 'More'
+                                      Button, 0x108888dc0, {{24.0, 701.0}, {44.0, 44.0}}
+                                        Image, 0x108888f00, {{39.0, 716.0}, {14.3, 14.3}}, identifier: 'plus', label: 'Add'
+                                    TextField, 0x108889040, {{76.0, 672.0}, {290.0, 64.0}}, identifier: 'canvas.field', placeholderValue: 'Ask, or paste something to keep.'
+                                      Other, 0x108889180, {{76.0, 703.0}, {290.0, 30.0}}, label: 'Horizontal scroll bar, 1 page', value: 0%
+                                        Other, 0x1088892c0, {{79.0, 730.0}, {284.0, 3.0}}
+                            Other, 0x108889400, {{0.0, 0.0}, {390.0, 844.0}}
+                              Other, 0x108889540, {{0.0, 0.0}, {390.0, 844.0}}
+                Other, 0x108889680, {{0.0, 761.0}, {390.0, 83.0}}
+                  Other, 0x1088897c0, {{0.0, 0.0}, {390.0, 844.0}}
+                    TabBar, 0x108889900, {{0.0, 761.0}, {390.0, 83.0}}, label: 'Tab Bar'
+                      Other, 0x108889a40, {{21.0, 761.0}, {348.0, 62.0}}
+                        Other, 0x108889b80, {{21.0, 761.0}, {95.0, 54.0}}
+                        Other, 0x108889cc0, {{21.0, 761.0}, {348.0, 62.0}}
+                          Button, 0x108889e00, {{25.0, 765.0}, {95.0, 54.0}}, identifier: 'house', label: 'Home', Selected
+                            Image, 0x108889f40, {{56.0, 771.0}, {33.3, 28.0}}, identifier: 'house.fill', label: 'home'
+                          Button, 0x10888a080, {{106.7, 765.0}, {95.0, 54.0}}, identifier: 'bubble.left', label: 'Chat'
+                            Image, 0x10888a1c0, {{138.7, 771.7}, {31.3, 27.7}}, identifier: 'bubble.left.fill', label: 'comment left'
+                          Button, 0x10888a300, {{188.3, 765.0}, {95.0, 54.0}}, identifier: 'point.3.connected.trianglepath.dotted', label: 'Memory'
+                            Image, 0x10888a440, {{220.3, 772.7}, {30.7, 24.3}}, identifier: 'tab-glyph-quiet', label: 'Memory'
+                          Button, 0x10888a580, {{270.0, 765.0}, {95.0, 54.0}}, identifier: 'person.crop.circle', label: 'You'
+                            Image, 0x10888a6c0, {{304.0, 771.3}, {27.3, 27.3}}, identifier: 'person.crop.circle.fill', label: 'account'
+                        Other, 0x10888a800, {{25.0, 765.0}, {95.0, 54.0}}
+                          Other, 0x10888a940, {{25.0, 765.0}, {95.0, 54.0}}
+                            Other, 0x10888aa80, {{25.0, 765.0}, {95.0, 54.0}}
+                            Other, 0x10888abc0, {{25.0, 765.0}, {95.0, 54.0}}
+                              Other, 0x10888ad00, {{25.0, 765.0}, {95.0, 54.0}}
+                                Other, 0x10888ae40, {{25.0, 765.0}, {95.0, 54.0}}
+                                  Other, 0x10888af80, {{25.0, 765.0}, {95.0, 54.0}}
+                                Other, 0x10888b0c0, {{25.0, 765.0}, {95.0, 54.0}}
+                              Other, 0x10888b200, {{25.0, 765.0}, {95.0, 54.0}}
+                  Other, 0x10888b340, {{0.0, 761.0}, {390.0, 83.0}}
+                    Other, 0x10888b480, {{0.0, 761.0}, {390.0, 83.0}}
+                      Other, 0x10888b5c0, {{0.0, 761.0}, {390.0, 83.0}}
+                        Other, 0x10888b700, {{0.0, 761.0}, {390.0, 83.0}}
+                          Other, 0x10888b840, {{0.0, 761.0}, {390.0, 83.0}}
+                            Other, 0x10888b980, {{0.0, 761.0}, {390.0, 83.0}}
+                        Other, 0x10888bac0, {{0.0, 761.0}, {390.0, 83.0}}
+                          Other, 0x10888bc00, {{0.0, 761.0}, {390.0, 83.0}}
+              Other, 0x10888bd40, {{0.0, 47.0}, {3.0, 3.0}}, identifier: 'uitest.writes', label: 'no writes'
+Path to element:
+ →Application, 0x108870780, pid: 5728, label: 'HyperVault'
+Query chain:
+ →Find: Target Application 'store.hypervault.app'
+  Output: {
+    Application, 0x10888be80, pid: 5728, label: 'HyperVault'
+  }

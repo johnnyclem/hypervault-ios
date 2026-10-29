@@ -1,0 +1,4 @@
+dark / Models
+
+small target  Button "Connect a model" (plus)  322,51 48x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

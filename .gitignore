@@ -8,3 +8,7 @@ pyvenv.cfg
 
 # This machine's team and bundle id prefix (Config/Base.xcconfig includes it). Xcode Cloud writes its own in ci_scripts/ci_post_clone.sh.
 Config/Local.xcconfig
+
+# Python bytecode from running the scripts/ checks.
+__pycache__/
+*.pyc

@@ -1,0 +1,3 @@
+dark / Connect your AI
+
+small target  Button "Cancel"  20,67 77x36

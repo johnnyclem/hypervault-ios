@@ -1,0 +1,5 @@
+dark / a key
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  Switch  297,474 63x28
+small target  Button "Mail address, Default address"  32,523 326x34

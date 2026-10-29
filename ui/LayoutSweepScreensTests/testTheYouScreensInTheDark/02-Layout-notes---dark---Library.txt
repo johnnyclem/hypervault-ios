@@ -1,0 +1,10 @@
+dark / Library
+
+small target  Button "Mail" (tray.full)  213,51 45x36
+small target  Button "Show as a graph" (library.view)  274,51 43x36
+small target  Button "New"  333,51 37x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  Button "All"  32,224 81x32
+small target  Button "Memories"  113,224 82x32
+small target  Button "Files"  195,224 81x32
+small target  Button "Keys"  276,224 82x32

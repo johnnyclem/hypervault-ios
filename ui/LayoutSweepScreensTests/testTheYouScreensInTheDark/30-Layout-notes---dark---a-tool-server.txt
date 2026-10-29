@@ -1,0 +1,8 @@
+dark / a tool server
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  Switch  297,323 63x28
+small target  Button  32,447 164x20
+small target  Switch  297,506 63x28
+small target  Switch  297,583 63x28
+small target  Switch  297,661 63x28

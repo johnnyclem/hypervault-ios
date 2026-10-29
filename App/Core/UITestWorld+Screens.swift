@@ -73,8 +73,8 @@ extension UITestWorld {
     // MARK: Your address
 
     private static let homeOptionsJSON = JSONValue.array([
-        .object(["slug": .string("bakery-landing-page-x1"), "title": .string("Bakery landing page"), "type": .string("html"), "visibility": .string("public")]),
-        .object(["slug": .string("trip-to-lisbon-q7"), "title": .string("Trip to Lisbon"), "type": .string("html"), "visibility": .string("private")]),
+        .object(["id": .string("art-bakery"), "slug": .string("bakery-landing-page-x1"), "title": .string("Bakery landing page"), "type": .string("html"), "visibility": .string("public")]),
+        .object(["id": .string("art-lisbon"), "slug": .string("trip-to-lisbon-q7"), "title": .string("Trip to Lisbon"), "type": .string("html"), "visibility": .string("private")]),
     ]).jsonString()
 
     /// A Pro plan with two addresses claimed, one with a look and a home page and one with neither.

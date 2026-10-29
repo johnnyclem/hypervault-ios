@@ -68,6 +68,35 @@ final class UITestScreensTests: XCTestCase {
         XCTAssertEqual(secrets.secrets.map(\.name), ["github.com", "visa-4242", "amex-0005", "contact", "home", "stripe-restricted-key"])
     }
 
+    // MARK: The Library's graph
+
+    /// What the Library journey stands on: the canned pages have row ids and sit unlinked, the memories are linked.
+    func testTheLibraryGraphDrawsPagesBesideLinkedMemoriesAndHidesWhatHasNoLinks() async throws {
+        let net = transport()
+        let read = try await LibraryGraphRow.pages(rest: rest(net), userID: UITestWorld.user.id)
+        XCTAssertEqual(read.pages.map(\.id), ["art-bakery", "art-lisbon"])
+        XCTAssertEqual(read.pages.map(\.type), ["html", "html"])
+        let api = client(net)
+        let connections = try await api.send(.libraryConnections)
+        let memories = try await api.send(.memoryList()).memories
+
+        func build(hideUnlinked: Bool, hidden: Set<String> = []) -> LibraryGraph {
+            LibraryGraphBuilder.build(
+                pages: read.pages, memories: memories, pageLinks: connections.pageLinks, memoryLinks: connections.memoryLinks,
+                bridges: connections.bridges, hiddenTypes: hidden, hideUnlinked: hideUnlinked
+            )
+        }
+        let everything = build(hideUnlinked: false)
+        XCTAssertEqual(everything.types.map(\.name), ["html", "memory"], "the chips the journey taps")
+        XCTAssertTrue(everything.nodes.contains { $0.title == "Bakery landing page" && $0.kind == .page })
+        XCTAssertTrue(everything.nodes.contains { $0.title == "Passport checklist" && $0.kind == .memory })
+
+        let linked = build(hideUnlinked: true)
+        XCTAssertFalse(linked.nodes.contains { $0.kind == .page }, "no page here has a link, so none stays")
+        XCTAssertTrue(linked.nodes.contains { $0.title == "Passport checklist" }, "the memories are linked to each other")
+        XCTAssertTrue(build(hideUnlinked: true, hidden: ["memory"]).nodes.isEmpty, "nothing left has a link: the journey's empty state")
+    }
+
     // MARK: Your address
 
     func testYourAddressHasAPlanTwoClaimsAndPagesToOpenTo() async throws {

@@ -57,7 +57,54 @@ final class ImportFileModelTests: XCTestCase {
         let sent = await transport.requests.filter { $0.url?.path == "/api/memories/import" }
         XCTAssertEqual(sent.count, 1)
         XCTAssertTrue(sent[0].value(forHTTPHeaderField: "Content-Type")?.hasPrefix("multipart/form-data") == true)
-        XCTAssertNil(sent[0].url?.query, "no branch: the web's import does not name one")
+        XCTAssertNil(sent[0].url?.query, "no branch named: the server reads main")
+    }
+
+    func testADocumentIsKeptOnTheBranchThePersonIsReadingSoThatTheMemoryThatOpensIsThere() async {
+        let kept = #"{"id":"m9","title":"Notes","summary":"s","tags":[],"source":"file","links":0,"branch":"draft","commit_id":"c9","message":"Imported."}"#
+        let (model, transport) = model([.json(.post, "/api/memories/import", kept)])
+        _ = await model.keep(name: "Notes.txt", data: Data("Ferry on Friday.".utf8), branch: "draft")
+        let sent = await transport.requests.filter { $0.url?.path == "/api/memories/import" }
+        XCTAssertEqual(sent.last?.url?.query, "branch=draft")
+    }
+
+    func testADocumentThatTheServerTurnsAwayAsTooBigSaysWhatTheMemoryImportSays() async {
+        let (model, _) = model([.json(.post, "/api/memories/import", "Request Entity Too Large", status: 413)])
+        let outcome = await model.keep(name: "Notes.md", data: Data("x".utf8))
+        XCTAssertEqual(outcome, .refused("That upload is too large \u{2014} the import limit is 4 MB."))
+    }
+
+    func testAPdfOrImageOverTheCeilingIsRefusedBeforeAnythingIsSentAndAnEmptyOneIsToo() async {
+        let (model, transport) = model([])
+        let pdf = await model.keep(name: "paper.pdf", data: Data(count: 50_000_001))
+        XCTAssertEqual(pdf, .refused(FileImport.pdfTooBig))
+        let image = await model.keep(name: "photo.png", data: Data(count: 50_000_001))
+        XCTAssertEqual(image, .refused(FileImport.fileTooBig))
+        let empty = await model.keep(name: "photo.png", data: Data())
+        XCTAssertEqual(empty, .refused("That file is empty."))
+        let sent = await transport.requests
+        XCTAssertTrue(sent.isEmpty)
+    }
+
+    func testAFileOnDiskIsReadByItsNameAndSizeBeforeItIsRead() async throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("import-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+
+        let big = folder.appendingPathComponent("big.md")
+        try Data(count: 4_000_001).write(to: big)
+        let small = folder.appendingPathComponent("landing.html")
+        try Data("<p>hello</p>".utf8).write(to: small)
+
+        let (model, transport) = model([.json(.post, "/api/save", saved)])
+        let refused = await model.keep(big)
+        XCTAssertEqual(refused, .refused(MemoryImportPolicy.problem(filename: "big.md", byteCount: 4_000_001) ?? ""))
+        let kept = await model.keep(small)
+        XCTAssertEqual(kept, .page(slug: "landing-x1", duplicate: false))
+        let missing = await model.keep(folder.appendingPathComponent("gone.html"))
+        XCTAssertEqual(missing, .refused("That file couldn't be read."))
+        let sent = await transport.requests
+        XCTAssertEqual(sent.count, 1, "only the page that could be read was sent")
     }
 
     func testADataExportIsPointedAtTheHistoryImporter() async {

@@ -24,8 +24,9 @@ final class ImportFileModel {
     }
 
     /// Reads the file the person picked and keeps it. The file's size is looked at first, so one that is over the limit is
-    /// refused without being read.
-    func keep(_ url: URL) async -> Outcome {
+    /// refused without being read. A document becomes a memory on `branch`, the one the person is reading, so that the memory
+    /// that opens afterwards is there.
+    func keep(_ url: URL, branch: String? = nil) async -> Outcome {
         let name = url.lastPathComponent
         guard let kind = FileImport.kind(ofFilename: name) else { return .refused(FileImport.pickAFile) }
         let scoped = url.startAccessingSecurityScopedResource()
@@ -35,11 +36,11 @@ final class ImportFileModel {
             return .refused(refusal)
         }
         guard let data = try? Data(contentsOf: url) else { return .refused("That file couldn't be read.") }
-        return await keep(name: name, data: data)
+        return await keep(name: name, data: data, branch: branch)
     }
 
     /// Keeps a file whose bytes are already in hand.
-    func keep(name: String, data: Data) async -> Outcome {
+    func keep(name: String, data: Data, branch: String? = nil) async -> Outcome {
         guard let kind = FileImport.kind(ofFilename: name) else { return .refused(FileImport.pickAFile) }
         if let refusal = FileImport.refusal(forFilename: name, kind: kind, byteCount: data.count) { return .refused(refusal) }
         isBusy = true
@@ -58,7 +59,7 @@ final class ImportFileModel {
                 let result = try await client.send(.saveArtifact(FileImport.saveRequest(htmlText: text, filename: name)))
                 return .page(slug: result.slug, duplicate: result.duplicate)
             case .document:
-                let kept = try await client.send(.memoryImport(filename: name, data: data))
+                let kept = try await client.send(.memoryImport(filename: name, data: data, branch: branch))
                 return .memory(id: kept.id, message: kept.message.isEmpty ? HVCopy.keptInMemoryLine : kept.message)
             case .export:
                 return .refused(FileImport.exportElsewhere)

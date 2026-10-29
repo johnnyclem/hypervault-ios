@@ -27,8 +27,9 @@ public enum FileImport {
     public static let maxPDFBytes = 50_000_000
     public static let maxPDFLabel = "50 MB"
 
-    /// What a person is told when the file is none of these (the web's sentence).
-    public static let pickAFile = "Unsupported file type \u{2014} try a data-export .zip/.json, .jsx, .html, .pdf, an image, or .txt/.md/.docx."
+    /// What a person is told when the file is none of these. The web's sentence also offers a .zip or .json, which the web's
+    /// menu takes; this pane sends those to the history importer instead, so its sentence says that.
+    public static let pickAFile = "Unsupported file type \u{2014} try .jsx, .html, .pdf, an image, or .txt/.md/.docx. A data export from another AI goes under Your AI history."
 
     /// What a person is told when the file is a data export: the importer for those is under Your AI history.
     public static let exportElsewhere = "That is a data export from another AI. Pick it under Your AI history, above, which reads it."

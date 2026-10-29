@@ -89,7 +89,7 @@ struct ImportPane: View {
         let model = model ?? ImportFileModel(client: env.client)
         self.model = model
         problem = nil
-        switch await model.keep(url) {
+        switch await model.keep(url, branch: MemoryBranchStore.current(for: env.user.id)) {
         case .page(let slug, let duplicate):
             app.toasts.show(duplicate ? LibraryCopy.alreadyKept : LibraryCopy.kept, style: .success)
             app.router.push(.artifact(slug: slug), on: .you)

@@ -32,16 +32,30 @@ final class FileImportTests: XCTestCase {
         }
         XCTAssertEqual(
             FileImport.pickAFile,
-            "Unsupported file type \u{2014} try a data-export .zip/.json, .jsx, .html, .pdf, an image, or .txt/.md/.docx."
+            "Unsupported file type \u{2014} try .jsx, .html, .pdf, an image, or .txt/.md/.docx. A data export from another AI goes under Your AI history."
         )
     }
 
-    func testTheFilePickerOffersExactlyTheTypesThatAreKept() {
+    func testTheFilePickerOffersExactlyTheTypesThatAreKeptAndEachIsTakenByTheWayItGoes() {
+        var offered = Set<String>()
         for ext in FileImport.extensions {
-            let kind = FileImport.kind(ofFilename: "file.\(ext)")
+            offered.insert(ext)
+            let name = "file.\(ext)"
+            let kind = FileImport.kind(ofFilename: name)
             XCTAssertNotNil(kind, ext)
             XCTAssertNotEqual(kind, .export, "an export is not offered here: the history importer takes it")
+            switch kind {
+            case .pdf?, .image?:
+                XCTAssertNotNil(ArtifactFileType.forFilename(name), "\(ext): the uploader would refuse what the picker offered")
+            case .document?:
+                XCTAssertNotNil(MemoryImportPolicy.kind(forFilename: name), "\(ext): the memory import would refuse what the picker offered")
+            default:
+                break
+            }
         }
+        // And the other way: every extension that is kept, other than a data export, is offered.
+        let kept = ["jsx", "tsx", "html", "htm", "pdf", "png", "jpg", "jpeg", "gif", "webp", "svg", "txt", "md", "markdown", "mdx", "docx"]
+        XCTAssertEqual(offered, Set(kept))
     }
 
     func testAPdfIsHeldToTheHighestPlansCeilingAndTheServerHoldsEachPlanToItsOwn() {

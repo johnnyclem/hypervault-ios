@@ -42,11 +42,11 @@ struct KeyDetailView: View {
             .hvListRow()
 
             Section {
-                LabeledContent("Key", value: key.prefixLabel)
-                LabeledContent("Made", value: key.createdAt?.keysDay ?? "Unknown")
-                LabeledContent("Last used", value: key.lastUsedAt.map { AccountWords.agoLine(seconds: Date().timeIntervalSince($0)) } ?? "Never")
+                LabeledContent("Key") { Text(key.prefixLabel).hvSectionNote() }
+                LabeledContent("Made") { Text(key.createdAt?.keysDay ?? "Unknown").hvSectionNote() }
+                LabeledContent("Last used") { Text(key.lastUsedAt.map { AccountWords.agoLine(seconds: Date().timeIntervalSince($0)) } ?? "Never").hvSectionNote() }
             } footer: {
-                Text("The key itself was shown once, when it was made. It cannot be shown again.")
+                Text("The key itself was shown once, when it was made. It cannot be shown again.").hvSectionNote()
             }
             .hvListRow()
 
@@ -74,7 +74,7 @@ struct KeyDetailView: View {
                 }
                 .disabled(model.changing.contains(key.id))
             } footer: {
-                Text("The agent using it stops working at once. The row is kept for audit.")
+                Text("The agent using it stops working at once. The row is kept for audit.").hvSectionNote()
             }
             .hvListRow()
         }
@@ -94,7 +94,7 @@ struct KeyDetailView: View {
     /// "Can send mail", the address the key reads and sends as, and the web's line when that address was released.
     private func mailSection(_ key: AgentKey) -> some View {
         let pin = AgentKeyMailPin(key: key, mailboxes: model.mailboxes)
-        return Section(footer: Text("Reading its mailbox is always allowed. Sending is your choice.")) {
+        return Section(footer: Text("Reading its mailbox is always allowed. Sending is your choice.").hvSectionNote()) {
             Toggle(AccountWords.mailSendLabel, isOn: Binding(
                 get: { key.canSendMail },
                 set: { setMail(key, $0) }

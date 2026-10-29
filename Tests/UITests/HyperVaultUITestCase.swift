@@ -8,6 +8,8 @@ enum Scenario: String, CaseIterable {
     case signedIn
     /// The app with nothing kept and no model: the first run.
     case signedInEmpty
+    /// The first run of someone with no agent key either, so the Home page asks them to connect one.
+    case signedInNoKeys
     /// Signed in but not let in until the invite code is redeemed.
     case waitlisted
     /// The same vault as `signedIn`, for a person the server knows as an admin.
@@ -17,7 +19,7 @@ enum Scenario: String, CaseIterable {
     var firstScreen: (identifier: String, description: String) {
         switch self {
         case .signedOut: return ("welcome.pages", "the welcome story")
-        case .signedIn, .signedInEmpty, .signedInAdmin: return ("canvas.field", "the canvas")
+        case .signedIn, .signedInEmpty, .signedInNoKeys, .signedInAdmin: return ("canvas.field", "the canvas")
         case .waitlisted: return ("waitlist.code", "the waitlist")
         }
     }

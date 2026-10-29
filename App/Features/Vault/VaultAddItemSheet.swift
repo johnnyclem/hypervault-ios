@@ -338,7 +338,7 @@ private struct VaultNewItemForm: View {
                         draft.typedName = text
                         nameRefusal = nil
                     }
-                ))
+                ), prompt: Text.hvPrompt(type.namePlaceholder))
                 .font(.system(.body, design: .monospaced))
                 .keyboardType(.asciiCapable)
                 .textInputAutocapitalization(.never)

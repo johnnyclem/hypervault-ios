@@ -38,7 +38,7 @@ struct MailSettingsView: View {
                         .disabled(isBusy)
                         .hvListRow()
                 } footer: {
-                    Text("When this is off, what you write is marked Not shared with agents. Mail already written does not change.")
+                    Text("When this is off, what you write is marked Not shared with agents. Mail already written does not change.").hvSectionNote()
                 }
 
                 Section {
@@ -54,7 +54,7 @@ struct MailSettingsView: View {
                     .disabled(isExporting)
                     .hvListRow()
                 } footer: {
-                    Text("Releasing an address deletes its mailbox, so keep a copy first. You get every message, as a file.")
+                    Text("Releasing an address deletes its mailbox, so keep a copy first. You get every message, as a file.").hvSectionNote()
                 }
 
                 if let errorMessage {

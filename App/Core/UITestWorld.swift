@@ -55,6 +55,8 @@ enum UITestWorld {
             return writeRoutes() + sharedRoutes(letIn: { true }, admin: true) + vaultRoutes + screenRoutes + previewRoutes + fallbackRoutes
         case .signedInEmpty:
             return sharedRoutes(letIn: { true }) + emptyVaultRoutes + previewRoutes + fallbackRoutes
+        case .signedInNoKeys:
+            return noKeysRoutes + sharedRoutes(letIn: { true }) + emptyVaultRoutes + previewRoutes + fallbackRoutes
         case .waitlisted:
             // Signed in but not let in, until the invite code is redeemed: then the same vault as `signedIn`.
             let gate = UITestGate()
@@ -200,6 +202,16 @@ enum UITestWorld {
                 version("v1", parent: nil, message: "create", kind: "system", ago: 400_000, head: false),
             ]),
         ])
+    }
+
+    /// A person with no agent key, whose profile has stamped nothing, and the route that records "I'll look around first"
+    /// (`PATCH /api/onboarding`). They go before the preview routes, which list three keys.
+    private static var noKeysRoutes: [MockRoute] {
+        [
+            .json(.get, "/rest/v1/api_keys", "[]"),
+            .json(.get, "/rest/v1/profiles", #"[{"onboarding":{}}]"#),
+            .json(.patch, "/api/onboarding", #"{"persisted":true,"onboarding":{}}"#),
+        ]
     }
 
     /// A person who has kept nothing and connected no model.

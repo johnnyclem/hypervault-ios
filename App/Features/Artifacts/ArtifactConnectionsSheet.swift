@@ -237,7 +237,7 @@ struct ArtifactConnectionsSheet: View {
         } header: {
             HVSectionHeader(title: "Connect to")
         } footer: {
-            Text("A connection shows in the graph and tells your agents the two belong together.")
+            Text("A connection shows in the graph and tells your agents the two belong together.").hvSectionNote()
         }
         .hvListRow()
     }

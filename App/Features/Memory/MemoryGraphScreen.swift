@@ -28,6 +28,9 @@ struct MemoryGraphScreen: View {
                         message: "Memories, and the links between them, show up here as you keep things."
                     )
                 }
+            } else if model.isReadingLinks {
+                // Another branch's own links are on their way: main's would be the wrong map.
+                HVLoadingState()
             } else {
                 VStack(spacing: 0) {
                     ForceGraphView(
@@ -40,7 +43,7 @@ struct MemoryGraphScreen: View {
                 }
             }
         }
-        .task { await model.load() }
+        .task(id: list.branch) { await model.load(branch: list.branch) }
     }
 
     // MARK: Mapping memories onto the generic graph
@@ -52,7 +55,7 @@ struct MemoryGraphScreen: View {
             case .memory:
                 return ForceGraphNode(
                     id: node.id, label: node.title,
-                    color: MemoryStyle.tint(forSource: sources[node.id] ?? "manual"),
+                    color: MemoryStyle.graphTint(forSource: sources[node.id] ?? "manual"),
                     shape: .circle, weight: 1 + min(Double(node.degree), 8) * 0.7, detail: "Memory"
                 )
             case .artifact:
@@ -75,7 +78,7 @@ struct MemoryGraphScreen: View {
             let source = sources[node.id] ?? "manual"
             if !seen.contains(source) { seen.append(source) }
         }
-        var items = seen.map { ForceGraphLegendItem(title: MemorySource.label($0), color: MemoryStyle.tint(forSource: $0)) }
+        var items = seen.map { ForceGraphLegendItem(title: MemorySource.label($0), color: MemoryStyle.graphTint(forSource: $0)) }
         if graph.nodes.contains(where: { $0.kind == .artifact }) {
             items.append(ForceGraphLegendItem(title: "Page", color: Palette.rose, shape: .diamond))
         }
@@ -96,8 +99,8 @@ struct MemoryGraphScreen: View {
         var parts = ["\(graph.memoryTotal) \(graph.memoryTotal == 1 ? "memory" : "memories")"]
         parts.append("\(graph.edges.count) \(graph.edges.count == 1 ? "link" : "links")")
         if graph.isCapped { parts.append("the \(graph.nodes.count) best connected are shown") }
-        if list.branch != MindBranchName.defaultName { parts.append("links are from main") }
         if graph.edges.isEmpty { parts = ["No links yet. They form as you keep related memories."] }
+        if let note = model.linkNote { parts.append(note) }
         return Text(parts.joined(separator: " \u{00B7} "))
             .font(.hvCaption)
             .foregroundStyle(Palette.textTertiary)

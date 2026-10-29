@@ -9,9 +9,12 @@ import UniformTypeIdentifiers
 /// You tab and from Yours' "More".
 struct LibraryRootView: View {
     @Environment(AppEnvironment.self) private var env
+    /// What a link chose (the web's `?filter=` and `?q=`). The Library a person opens themselves shows All, nothing typed.
+    var filter: YoursFilter = .all
+    var query = ""
 
     var body: some View {
-        LibraryScreen(env: env)
+        LibraryScreen(env: env, filter: filter, query: query)
             .jobNotices()
     }
 }
@@ -37,7 +40,10 @@ struct LibraryScreen: View {
     @AppStorage("pref.libraryGraph") private var showGraph = false
     @State private var model: LibraryModel
     @State private var filter: YoursFilter
-    @State private var query = ""
+    @State private var query: String
+    /// Set when a link chose the filter or the search: the list shows them and the graph does not, so the list is what opens,
+    /// whatever the person last left the Library on. Their saved choice is not changed; the view button hands the screen back.
+    @State private var openedByLink: Bool
     @State private var sheet: LibrarySheet?
     @State private var pendingDelete: LibraryModel.FileRow?
     @State private var pendingPublic: LibraryModel.FileRow?
@@ -46,14 +52,24 @@ struct LibraryScreen: View {
     @State private var showPhotos = false
     @State private var photo: PhotosPickerItem?
 
-    init(env: AppEnvironment, filter: YoursFilter = .all) {
-        self.init(model: LibraryModel(env: env), filter: filter)
+    init(env: AppEnvironment, filter: YoursFilter = .all, query: String = "") {
+        self.init(model: LibraryModel(env: env), filter: filter, query: query)
     }
 
-    init(model: LibraryModel, filter: YoursFilter = .all) {
+    init(model: LibraryModel, filter: YoursFilter = .all, query: String = "") {
         _model = State(initialValue: model)
         _filter = State(initialValue: filter)
+        _query = State(initialValue: query)
+        _openedByLink = State(initialValue: Self.linkNamesWhatToShow(filter: filter, query: query))
     }
+
+    /// Whether a link that arrived with this filter and search named something the list has and the graph does not.
+    static func linkNamesWhatToShow(filter: YoursFilter, query: String) -> Bool {
+        filter != .all || !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// The graph, unless the person chose it earlier and a link has since asked for the list.
+    private var graphShown: Bool { showGraph && !openedByLink }
 
     /// What makes the list read again: a different filter, or a name (after a pause).
     private struct LoadKey: Hashable {
@@ -68,7 +84,7 @@ struct LibraryScreen: View {
 
     var body: some View {
         Group {
-            if showGraph { graphView } else { listView }
+            if graphShown { graphView } else { listView }
         }
             .sheet(item: $sheet) { sheet in sheetContent(sheet) }
             .fileImporter(isPresented: $importingFile, allowedContentTypes: [.pdf, .image], allowsMultipleSelection: false) { result in
@@ -153,7 +169,7 @@ struct LibraryScreen: View {
     private var toolbar: some ToolbarContent {
         // Pins can be put in the order the person likes (the side menu keeps the same order).
         ToolbarItem(placement: .topBarLeading) {
-            if !showGraph, model.pins.artifactSlugs.count > 1, filter == .all || filter == .file, query.isEmpty {
+            if !graphShown, model.pins.artifactSlugs.count > 1, filter == .all || filter == .file, query.isEmpty {
                 EditButton()
             }
         }
@@ -167,11 +183,15 @@ struct LibraryScreen: View {
         ToolbarItem(placement: .primaryAction) {
             Button {
                 Haptics.select()
-                HV.Motion.animate(.snappy) { showGraph.toggle() }
+                HV.Motion.animate(.snappy) {
+                    let wasGraph = graphShown
+                    openedByLink = false
+                    showGraph = !wasGraph
+                }
             } label: {
-                Image(systemName: showGraph ? "list.bullet" : "point.3.connected.trianglepath.dotted")
+                Image(systemName: graphShown ? "list.bullet" : "point.3.connected.trianglepath.dotted")
             }
-            .accessibilityLabel(showGraph ? "Show as a list" : "Show as a graph")
+            .accessibilityLabel(graphShown ? "Show as a list" : "Show as a graph")
             .accessibilityIdentifier("library.view")
         }
         ToolbarItem(placement: .primaryAction) {
@@ -433,7 +453,7 @@ struct LibraryScreen: View {
     @ViewBuilder
     private func truncationNote(count: Int, files: Bool = false) -> some View {
         if count <= model.shown, count >= LibraryModel.readLimit || (files && model.artifacts.count >= 200) {
-            Text(LibraryCopy.truncated).font(.hvCaption)
+            Text(LibraryCopy.truncated).font(.hvCaption).hvSectionNote()
         }
     }
 

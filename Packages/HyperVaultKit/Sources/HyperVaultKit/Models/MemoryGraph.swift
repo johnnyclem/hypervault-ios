@@ -15,7 +15,8 @@ public struct MemoryGraphArtifact: Sendable, Hashable, Identifiable {
 
 /// The memory graph: memories as nodes, the links between them as edges, and
 /// the pages they are bridged to hanging off them. Built from the list and
-/// `/api/connections`, capped so a big wiki stays readable and smooth.
+/// `/api/connections` (and, for a branch other than main, that branch's own
+/// links from its state), capped so a big wiki stays readable and smooth.
 public struct MemoryGraph: Sendable, Equatable {
     public struct Node: Sendable, Hashable, Identifiable {
         public enum Kind: Sendable, Hashable { case memory, artifact }
@@ -144,5 +145,18 @@ public enum MemoryGraphBuilder {
             MemoryGraph.Node(id: $0.id, title: $0.title, kind: $0.kind, slug: $0.slug, degree: finalDegrees[$0.id] ?? 0)
         }
         return MemoryGraph(nodes: nodes, edges: edges, memoryTotal: memories.count)
+    }
+
+    /// A branch's own memory-to-memory links, in the rows `build` takes, from the branch's state
+    /// (`GET /api/mind/state?at=<branch>&branch=<branch>`). `/api/connections` carries main's links only.
+    ///
+    /// A link whose end is not among the state's memories is left out: it was made to something this branch no
+    /// longer holds. A kind other than manual reads as found by HyperVault, as it does on `/api/connections`.
+    public static func links(in state: MindState) -> [MemoryLinkRow] {
+        let held = Set(state.memories.map(\.id))
+        return state.links.compactMap { link in
+            guard held.contains(link.aId), held.contains(link.bId) else { return nil }
+            return MemoryLinkRow(id: link.id, aId: link.aId, bId: link.bId, kind: MemoryLinkKind(rawValue: link.kind) ?? .auto)
+        }
     }
 }

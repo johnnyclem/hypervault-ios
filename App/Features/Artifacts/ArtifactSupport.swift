@@ -32,7 +32,9 @@ struct ArtifactGlyph: View {
     var body: some View {
         let glyph = ArtifactIcon.glyph(icon: icon, title: title)
         let stops = ArtifactIcon.stops(seed: slug)
-        let ink = ArtifactIcon.prefersDarkGlyph(seed: slug) ? HVColor.background : Color.white
+        // The dark letter is a fixed ink: `HVColor.background` is the page, which is near-white in the light look, and a pale
+        // letter on a yellow or green tile is under 2:1.
+        let ink = ArtifactIcon.prefersDarkGlyph(seed: slug) ? Color(hex: 0x0B0F14) : Color.white
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
                 .fill(LinearGradient(colors: [Color(stops.first), Color(stops.second)], startPoint: .topLeading, endPoint: .bottomTrailing))

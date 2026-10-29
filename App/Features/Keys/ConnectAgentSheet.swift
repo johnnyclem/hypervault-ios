@@ -131,7 +131,7 @@ private struct ConnectPickerScreen: View {
                 } header: {
                     HVSectionHeader(title: section.group.title)
                 } footer: {
-                    if model.query.isEmpty { Text(section.group.blurb).font(.hvCaption) }
+                    if model.query.isEmpty { Text(section.group.blurb).font(.hvCaption).hvSectionNote() }
                 }
                 .hvListRow()
             }
@@ -268,7 +268,7 @@ private struct ConnectClientScreen: View {
             }
 
             HVLabeledField(title: "Name") {
-                TextField("What do you call it?", text: $model.keyName)
+                TextField("What do you call it?", text: $model.keyName, prompt: Text.hvPrompt("What do you call it?"))
                     .textInputAutocapitalization(.words)
                     .submitLabel(.done)
                     .onChange(of: model.keyName) { _, value in

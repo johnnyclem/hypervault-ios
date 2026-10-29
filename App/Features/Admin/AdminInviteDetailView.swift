@@ -58,7 +58,7 @@ struct AdminInviteDetailView: View {
 
             Section(
                 header: HVSectionHeader(title: "Manage"),
-                footer: Text("The server has no way to read a code, so the count above is as of the last time this phone asked. Check it to ask again.")
+                footer: Text("The server has no way to read a code, so the count above is as of the last time this phone asked. Check it to ask again.").hvSectionNote()
             ) {
                 Toggle("Accepting new sign-ups", isOn: Binding(
                     get: { !invite.disabled },

@@ -51,6 +51,13 @@ final class AppRouter {
     /// A link or the Account menu asked for Group chats. Chat shows that half (and clears this) when it sees it.
     var groupChats = false
 
+    /// A link named a way of looking at Memory (Search, Ask or Graph). The Memory screen takes it (and clears it) when it
+    /// sees it, which may be as it is first built.
+    var memoryMode: MemoryMode?
+
+    /// A link named a branch of the mind. The Memory screen takes it (and clears it), and switches to it if the person has it.
+    var memoryBranch: String?
+
     private var paths: [AppTab: NavigationPath]
 
     init(youIsStack: Bool) {
@@ -106,6 +113,11 @@ final class AppRouter {
         case .groupChats:
             groupChats = true
             popToRoot(.chat)
+        case .memoryTab(let mode, let branch):
+            // What the link names is all that waits: a view or a branch an earlier link left behind is not this one's.
+            memoryMode = mode
+            memoryBranch = branch
+            popToRoot(.memory)
         case .tab(let named):
             if named != .you { popToRoot(named) }
         case .route:
@@ -154,6 +166,8 @@ final class AppRouter {
         yoursPanel = false
         yoursWaitsForSheet = false
         groupChats = false
+        memoryMode = nil
+        memoryBranch = nil
         tab = .canvas
     }
 }

@@ -127,7 +127,7 @@ struct WebhooksView: View {
                 .frame(maxHeight: .infinity)
             } else {
                 List {
-                    Section(footer: Text("Each post carries a signature header the receiver checks with the secret shown when you add the webhook.").font(.hvCaption)) {
+                    Section(footer: Text("Each post carries a signature header the receiver checks with the secret shown when you add the webhook.").font(.hvCaption).hvSectionNote()) {
                         ForEach(model.hooks) { hook in
                             NavigationLink(value: WebhookDestination.hook(hook.id)) { WebhookRow(hook: hook) }
                         }
@@ -209,15 +209,15 @@ private struct WebhookDetailView: View {
     private func details(_ hook: OutboundWebhook) -> some View {
         List {
             Section {
-                LabeledContent("Name", value: hook.title)
+                LabeledContent("Name") { Text(hook.title).hvSectionNote() }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Posts to").font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                     HVAddressText(hook.url).font(.hvMono).foregroundStyle(Palette.textPrimary).fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .combine)
-                LabeledContent("Events", value: hook.events.contains("truth.*") ? "Everything" : hook.events.map(WebhookRules.eventTitle).joined(separator: ", "))
-                if !hook.authors.isEmpty { LabeledContent("Only for", value: hook.authors.joined(separator: ", ")) }
-                if let last = hook.lastDeliveredAt { LabeledContent("Last delivered", value: AccountWords.agoLine(seconds: Date().timeIntervalSince(last))) }
+                LabeledContent("Events") { Text(hook.events.contains("truth.*") ? "Everything" : hook.events.map(WebhookRules.eventTitle).joined(separator: ", ")).hvSectionNote() }
+                if !hook.authors.isEmpty { LabeledContent("Only for") { Text(hook.authors.joined(separator: ", ")).hvSectionNote() } }
+                if let last = hook.lastDeliveredAt { LabeledContent("Last delivered") { Text(AccountWords.agoLine(seconds: Date().timeIntervalSince(last))).hvSectionNote() } }
                 if hook.isFailing {
                     Text("\(hook.consecutiveFailures) failed in a row. After \(WebhookRules.disableAfterFailures) in a row it is switched off.")
                         .font(.hvFootnote)
@@ -245,7 +245,7 @@ private struct WebhookDetailView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             } footer: {
-                Text("A test is a signed truth.test ping, sent now.")
+                Text("A test is a signed truth.test ping, sent now.").hvSectionNote()
             }
             .hvListRow()
 
@@ -272,7 +272,7 @@ private struct WebhookDetailView: View {
                 Button(role: .destructive) { confirmDelete = true } label: { Label("Delete webhook", systemImage: HVSymbol.delete).hvRowLabel(role: .destructive) }
                     .disabled(model.changing.contains(hook.id))
             } footer: {
-                Text("It stops at once, and its delivery history goes with it.")
+                Text("It stops at once, and its delivery history goes with it.").hvSectionNote()
             }
             .hvListRow()
         }
@@ -357,7 +357,7 @@ private struct AddWebhookSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: HV.Space.l) {
                 HVLabeledField(title: "Address", footnote: "Where HyperVault posts. Private and local addresses are refused.") {
-                    TextField("Address", text: $url, prompt: Text(verbatim: "https://example.com/hooks/hypervault"))
+                    TextField("Address", text: $url, prompt: Text.hvPrompt("https://example.com/hooks/hypervault"))
                         .keyboardType(.URL)
                         .textContentType(.URL)
                         .textInputAutocapitalization(.never)
@@ -365,7 +365,7 @@ private struct AddWebhookSheet: View {
                 }
 
                 HVLabeledField(title: "Name (optional)") {
-                    TextField("What do you call it?", text: $name)
+                    TextField("What do you call it?", text: $name, prompt: Text.hvPrompt("What do you call it?"))
                 }
 
                 eventsCard
@@ -374,7 +374,7 @@ private struct AddWebhookSheet: View {
                     title: "Only for (optional)",
                     footnote: "Only entries whose author or signer is named are delivered. Leave empty for all. Separate names with commas."
                 ) {
-                    TextField("grok, claude", text: $authors)
+                    TextField("grok, claude", text: $authors, prompt: Text.hvPrompt("grok, claude"))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }

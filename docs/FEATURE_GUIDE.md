@@ -285,7 +285,7 @@ nothing can reach. They live in `Tests/UITests` (the `HyperVaultUITests` target,
 **The UI-test mode.** A debug build launched with `-HV_UITEST -HV_UITEST_SCENARIO <name>` builds its `AppModel` on a
 canned server instead of the real one (`App/Core/UITestHarness.swift`, one call in `HyperVaultApp`, compiled out of
 release builds). The scenarios are `signedOut` (the welcome story and the way in), `signedIn` (a few things kept, memories,
-chats, a connected model), `signedInEmpty` (the first run), `waitlisted` and `signedInAdmin` (`signedIn`, for a person the
+chats, a connected model), `signedInEmpty` (the first run), `signedInNoKeys` (the first run of someone who also has no agent key, so Home shows the connect card), `waitlisted` and `signedInAdmin` (`signedIn`, for a person the
 server knows as an admin; for everyone else the admin check gets the 403 the real routes send). The network is a
 `MockTransport` over the routes in `App/Core/UITestWorld.swift` and `UITestWorld+Screens.swift` (the keys, the address,
 a room, Truth, the task boards, the import, sharing, admin: what changes while a journey plays, such as a key being made

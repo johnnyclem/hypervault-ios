@@ -117,7 +117,7 @@ struct AppearancePane: View {
 
             Section(
                 header: HVSectionHeader(title: DashboardThemeCopy.sectionTitle),
-                footer: Text(DashboardThemeCopy.footer)
+                footer: Text(DashboardThemeCopy.footer).hvSectionNote()
             ) {
                 Picker(DashboardThemeCopy.pickerLabel, selection: Binding(
                     get: { model.selection },

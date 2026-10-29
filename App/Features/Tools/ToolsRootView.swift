@@ -131,7 +131,7 @@ struct ToolsScreen: View {
             }
             .hvListRow()
 
-            Section(footer: Text("Changes you make here are saved at once. They reach new chats after you compile.")) {
+            Section(footer: Text("Changes you make here are saved at once. They reach new chats after you compile.").hvSectionNote()) {
                 Button { sheet = .catalog } label: { Label("Browse the catalog", systemImage: "square.grid.2x2").hvRowLabel() }
                 Button { sheet = .add(nil) } label: { Label("Add by address", systemImage: "link").hvRowLabel() }
             }

@@ -58,7 +58,7 @@ struct CanvasComposer: View {
             .accessibilityLabel("More")
             .accessibilityIdentifier("canvas.more")
 
-            TextField(HVCopy.chatPlaceholder, text: $model.draft, axis: .vertical)
+            TextField(HVCopy.chatPlaceholder, text: $model.draft, prompt: Text.hvPrompt(HVCopy.chatPlaceholder), axis: .vertical)
                 .font(.hvBody)
                 .lineLimit(1...6)
                 .focused($focused)

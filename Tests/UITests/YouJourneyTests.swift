@@ -240,8 +240,9 @@ final class YouJourneyTests: HyperVaultUITestCase {
             XCTAssertEqual(element("import.history").label, "Import your AI history")
             require(shows("Bring your ChatGPT, Claude, Gemini, and Grok history home"), "the history row's line")
             require(element("import.file"), "the file button")
-            XCTAssertEqual(element("import.file").label, "Import .jsx / .pdf file")
-            require(shows("A .jsx file is auto-wrapped into a running, installable page."), "the file row's line")
+            XCTAssertEqual(element("import.file").label, "Import a file")
+            require(shows("Pick a file and it goes where it belongs."), "the file row's line")
+            require(shows("a .txt, .md or .docx file becomes a memory"), "what happens to a document")
         }
 
         step("The history row goes on to the importer, inside the pane") {

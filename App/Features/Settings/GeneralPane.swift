@@ -67,7 +67,7 @@ struct GeneralPane: View {
                     .accessibilityIdentifier("settings.haptics")
             }.hvListRow()
 
-            Section(header: HVSectionHeader(title: "Search"), footer: Text("Find your pages and memories from your Home Screen. Names and short summaries are kept on this phone for search; keys are never included.")) {
+            Section(header: HVSectionHeader(title: "Search"), footer: Text("Find your pages and memories from your Home Screen. Names and short summaries are kept on this phone for search; keys are never included.").hvSectionNote()) {
                 // Search is switched off while the lock is on; the choice comes back with it.
                 Toggle("Show in Spotlight", isOn: Binding(get: { spotlight && !biometricLock }, set: { spotlight = $0 }))
                     .accessibilityIdentifier("settings.spotlight")
@@ -75,7 +75,7 @@ struct GeneralPane: View {
                     .onChange(of: spotlight) { _, on in if !on { SpotlightIndexer.clear() } }
             }.hvListRow()
 
-            Section(header: HVSectionHeader(title: "Security"), footer: Text("Ask for \(model.lock.methodName) when you open HyperVault, and blank the app switcher. This is a lock on the screen, and your device passcode opens it too. The value of a saved login, card or key is never sent to this phone; its name and short label are. While the lock is on, widgets and Spotlight show nothing from your vault, and what you ask Siri to keep waits until you unlock the app.")) {
+            Section(header: HVSectionHeader(title: "Security"), footer: Text("Ask for \(model.lock.methodName) when you open HyperVault, and blank the app switcher. This is a lock on the screen, and your device passcode opens it too. The value of a saved login, card or key is never sent to this phone; its name and short label are. While the lock is on, widgets and Spotlight show nothing from your vault, and what you ask Siri to keep waits until you unlock the app.").hvSectionNote()) {
                 Toggle("Lock with \(model.lock.methodName)", isOn: Binding(
                     get: { biometricLock },
                     set: { wanted in
@@ -88,8 +88,8 @@ struct GeneralPane: View {
             }.hvListRow()
 
             if waiting > 0 {
-                Section(header: HVSectionHeader(title: "Waiting"), footer: Text("Things you shared while there was no connection. They are kept the next time HyperVault can reach the server.")) {
-                    LabeledContent("Waiting to keep", value: "\(waiting)")
+                Section(header: HVSectionHeader(title: "Waiting"), footer: Text("Things you shared while there was no connection. They are kept the next time HyperVault can reach the server.").hvSectionNote()) {
+                    LabeledContent("Waiting to keep") { Text(verbatim: "\(waiting)").hvSectionNote() }
                     Button("Try now") {
                         Task {
                             await env.flushOutbox(toasts: model.toasts)
@@ -100,7 +100,7 @@ struct GeneralPane: View {
             }
 
             Section(header: HVSectionHeader(title: "Advanced"), footer: advancedFooter) {
-                LabeledContent("Server", value: env.server.baseURL.host() ?? env.server.baseURL.absoluteString)
+                LabeledContent("Server") { Text(env.server.baseURL.host() ?? env.server.baseURL.absoluteString).hvSectionNote() }
                     .contextMenu {
                         Button("Copy address") { UIPasteboard.general.string = env.server.baseURL.absoluteString }
                     }
@@ -125,7 +125,7 @@ struct GeneralPane: View {
             }.hvListRow()
 
             Section(header: HVSectionHeader(title: "About")) {
-                LabeledContent("Version", value: versionText)
+                LabeledContent("Version") { Text(versionText).hvSectionNote() }
                 Link("Open hypervault.store", destination: env.server.baseURL)
                 Link("How HyperVault works", destination: env.webURL("/explain.md"))
             }.hvListRow()
@@ -163,6 +163,7 @@ struct GeneralPane: View {
     private var advancedFooter: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             Text("Only change this to use your own HyperVault deployment. The address is checked first, then you are signed out.")
+                .hvSectionNote()
             if let serverError {
                 Text(serverError).foregroundStyle(Palette.danger)
             }

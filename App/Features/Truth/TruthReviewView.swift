@@ -6,9 +6,12 @@ import SwiftUI
 /// buttons. Each action says what it does before it does it.
 struct TruthReviewView: View {
     @Environment(AppEnvironment.self) private var env
+    /// The ledger a link named (the web's `?ledger=`). Review opens on it when it is one of the person's, and on the one it
+    /// starts with otherwise.
+    var ledger: String? = nil
 
     var body: some View {
-        TruthReviewScreen(client: env.client, preferring: nil)
+        TruthReviewScreen(client: env.client, preferring: ledger)
     }
 }
 

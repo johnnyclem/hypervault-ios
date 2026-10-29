@@ -77,9 +77,12 @@ struct ForceGraphView: View {
                     if let node = selectedNode { callout(for: node) }
                 }
                 .padding(HV.Space.s)
-                controlsIfIdle
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
+            // The picture, the legend and the callout are cut off at the graph's edge (the callout slides in from it); the
+            // zoom pill is laid over that clip, not in it, so its soft shadow is not cut off in a straight line.
+            .clipped()
+            .overlay { controlsIfIdle }
             .onAppear {
                 viewSize = proxy.size
                 model.update(nodes: nodes, edges: edges, reduceMotion: reduceMotion)
@@ -90,7 +93,6 @@ struct ForceGraphView: View {
                 if !camera.userMoved { fit(animated: false) }
             }
         }
-        .clipped()
         .onChange(of: nodes) { _, _ in refresh() }
         .onChange(of: edges) { _, _ in refresh() }
         .onChange(of: model.points) { _, _ in

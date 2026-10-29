@@ -41,7 +41,7 @@ struct MemoryEditSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.m) {
                     HVLabeledField(title: "Title") {
-                        TextField("A short name", text: $title)
+                        TextField("A short name", text: $title, prompt: Text.hvPrompt("A short name"))
                             .font(.hvHeadline)
                             .focused($focus, equals: .title)
                             .accessibilityIdentifier("memory.edit.title")
@@ -67,7 +67,7 @@ struct MemoryEditSheet: View {
                     }
 
                     HVLabeledField(title: "Commit message", footnote: "Saved as a commit on \(model.branch). You can always go back from History.") {
-                        TextField("edit: \(memory.title)", text: $note)
+                        TextField("edit: \(memory.title)", text: $note, prompt: Text.hvPrompt("edit: \(memory.title)"))
                             .focused($focus, equals: .note)
                             .accessibilityIdentifier("memory.edit.note")
                     }
@@ -166,7 +166,7 @@ struct MemoryTagEditor: View {
                     }
                 }
             }
-            TextField(tags.count >= MemoryTags.maxCount ? "That is the most tags a memory can have" : "Add a tag", text: $entry)
+            TextField(tags.count >= MemoryTags.maxCount ? "That is the most tags a memory can have" : "Add a tag", text: $entry, prompt: Text.hvPrompt(tags.count >= MemoryTags.maxCount ? "That is the most tags a memory can have" : "Add a tag"))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.done)

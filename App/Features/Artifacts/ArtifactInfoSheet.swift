@@ -149,7 +149,7 @@ struct ArtifactInfoSheet: View {
         } header: {
             HVSectionHeader(title: "Who can open it")
         } footer: {
-            if current == .private { Text("People you add by email can open it too.") }
+            if current == .private { Text("People you add by email can open it too.").hvSectionNote() }
         }
         .hvListRow()
     }
@@ -181,7 +181,7 @@ struct ArtifactInfoSheet: View {
         } header: {
             HVSectionHeader(title: "Icon")
         } footer: {
-            Text("A letter or an emoji. It shows when the page is added to a home screen.")
+            Text("A letter or an emoji. It shows when the page is added to a home screen.").hvSectionNote()
         }
         .hvListRow()
     }

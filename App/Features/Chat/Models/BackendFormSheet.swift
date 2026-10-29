@@ -114,7 +114,7 @@ struct ChatBackendFormSheet: View {
                     }
                 }
             } else {
-                LabeledContent("Provider", value: spec.label)
+                LabeledContent("Provider") { Text(spec.label).hvSectionNote() }
             }
         } footer: {
             if editing != nil {

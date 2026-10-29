@@ -26,12 +26,15 @@ func keysMessage(for error: Error) -> String {
 }
 
 /// First-run state the connect card on the canvas keeps on the profile (PATCH /api/onboarding). Best effort and
-/// silent: a server that cannot record it just shows the card once per device. Only what the person does is
-/// recorded here; the app never records that an agent connected, since it has no check of that to go by.
+/// silent: a server that cannot record it leaves the card dismissed on this phone only (`ConnectCardModel` remembers
+/// it here first). Only what the person does is recorded; the app never records that an agent connected, since it has
+/// no check of that to go by.
 enum ConnectOnboarding {
-    /// "I'll look around first": the connect card was dismissed. Call it from wherever that card lives.
-    static func recordDismissed(client: HVClient) {
-        Task { _ = try? await client.send(.recordOnboarding(connectDismissed: true)) }
+    /// "I'll look around first": the connect card was dismissed. Sends `{ connect_dismissed: true }` and says whether
+    /// the server took it; the caller has no one to tell about a failure, so it may ignore the answer.
+    @discardableResult
+    static func recordDismissed(client: HVClient) async -> Bool {
+        (try? await client.send(.recordOnboarding(connectDismissed: true))) != nil
     }
 }
 

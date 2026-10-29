@@ -72,7 +72,6 @@ struct PreviewHost<Content: View>: View {
         .environment(env)
         .environment(model)
         .tint(HVColor.primary)
-        .preferredColorScheme(.dark)
     }
 }
 #endif

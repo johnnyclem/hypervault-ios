@@ -25,6 +25,10 @@ struct CanvasScreen: View {
     @State private var showYours = false
     /// The page whose people-and-role share sheet is up over the canvas.
     @State private var sharing: CanvasShareTarget?
+    /// The key whose entry's page is up over the canvas (allow, revoke and rename an agent's use of it).
+    @State private var keyEntry: CanvasKeyTarget?
+    /// The sheet closed because the key is not in the vault any more: the Vault's list opens once it has gone.
+    @State private var keyEntryIsGone = false
     @State private var starterCopied = false
     @State private var dictation = DictationController()
     @State private var dictationBase = ""
@@ -100,6 +104,14 @@ struct CanvasScreen: View {
         .sheet(item: $sharing) { target in
             CanvasShareSheet(detail: target.detail)
         }
+        .sheet(item: $keyEntry, onDismiss: openVaultIfKeyIsGone) { target in
+            CanvasKeySheet(target: target, onGone: keyEntryLeftTheVault)
+        }
+        .onChange(of: keyEntry?.id) { closed, shown in
+            // The page may have allowed or revoked an agent, or renamed the entry: the card behind it says who may use it, and by
+            // what name, so it reads the key again. (An entry that is gone has nothing to read.)
+            if shown == nil, let closed, !keyEntryIsGone { model.refreshCard(key: closed) }
+        }
         .task {
             await model.loadBackends()
             takeRouterDraft()
@@ -138,7 +150,7 @@ struct CanvasScreen: View {
     private var dictationMustStop: Bool {
         DictationPolicy.mustStop(
             tab: app.router.tab,
-            isCovered: showYours || showScanner || sharing != nil || app.router.sheet != nil,
+            isCovered: showYours || showScanner || sharing != nil || keyEntry != nil || app.router.sheet != nil,
             phase: scenePhase
         )
     }
@@ -227,8 +239,28 @@ struct CanvasScreen: View {
         case .memory:
             if let id = card.ref?.id { app.router.open(.route(.memory(id: id))) }
         case .key:
-            app.router.open(.account(.vault))
+            // The entry's own page over the canvas. (A key card always has one; the Vault's list is where Open went before.)
+            if let entry = CanvasKeyCard.target(for: card, env: env) {
+                keyEntry = entry
+            } else {
+                app.router.open(CanvasKeyCard.fallback)
+            }
         }
+    }
+
+    /// The sheet found no entry for its key: it closes, and the Vault's list opens once it has.
+    private func keyEntryLeftTheVault() {
+        guard keyEntry != nil else { return }
+        keyEntryIsGone = true
+        keyEntry = nil
+    }
+
+    /// The key's sheet is gone. If it went because the entry is no longer in the vault (deleted from the web or another phone), the
+    /// person lands where Open used to take them, with nothing said about it.
+    private func openVaultIfKeyIsGone() {
+        guard keyEntryIsGone else { return }
+        keyEntryIsGone = false
+        app.router.open(CanvasKeyCard.fallback)
     }
 
     /// Share on a page, a file or a group: the sheet that has the link and the people who can open it, over the canvas.

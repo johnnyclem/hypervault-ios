@@ -395,6 +395,13 @@ final class CanvasModel: CanvasCommandHost {
         Task { await fill(card) }
     }
 
+    /// Reads what a card on the page stands for once more. A key card's entry is changed from the page its Open shows (an
+    /// agent allowed or revoked, the entry renamed), and the card says who may use it and what it is called.
+    func refreshCard(key: String) {
+        guard let card = cards.first(where: { $0.key == key }) else { return }
+        Task { await fill(card) }
+    }
+
     private func fill(_ card: CanvasCard) async {
         guard let ref = card.ref else { return }
         do {

@@ -1,5 +1,6 @@
 import HyperVaultKit
 import SwiftUI
+import UIKit
 
 /// Where the graph is looking: how big it is drawn and how far it is moved.
 struct ForceGraphCamera: Equatable {
@@ -36,6 +37,10 @@ private enum ForceGraphDrag: Equatable {
 /// node to see what it is; tap it again, or its Open button, to go there.
 /// Drawing is a single Canvas; the layout (ForceLayout, in the Kit) settles
 /// ahead of the first frame and then eases into place unless Reduce Motion is on.
+///
+/// Drift takes a tour of the graph (see `GraphTour`): it selects the best connected node, brings it to the middle, and moves
+/// on to the next every few seconds, following the links. Any touch on the map ends it. Under Reduce Motion nothing moves
+/// by itself and the button is Next, one stop for each tap.
 struct ForceGraphView: View {
     let nodes: [ForceGraphNode]
     let edges: [ForceGraphEdge]
@@ -45,6 +50,7 @@ struct ForceGraphView: View {
     var onOpen: (String) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @State private var model = ForceGraphModel()
     @State private var camera = ForceGraphCamera()
     @State private var selection: String?
@@ -54,6 +60,17 @@ struct ForceGraphView: View {
     @State private var viewSize: CGSize = .zero
     @State private var legendHeight: CGFloat = 0
     @State private var cameraTask: Task<Void, Never>?
+    /// The tour, from the first stop until something ends it.
+    @State private var tour: GraphTour?
+    /// Moves the tour on every few seconds. It is there while Drift is running by itself, and nowhere else.
+    @State private var driftTask: Task<Void, Never>?
+
+    /// How long the tour stays on a node before it goes on to the next.
+    private static let driftInterval: UInt64 = 3_500_000_000
+    /// The zoom a stop is shown at, or the person's own if that is closer in.
+    private static let driftZoom: CGFloat = 1.2
+    /// What the callout and the button over it cover at the bottom of the picture.
+    private static let calloutReserve: CGFloat = 140
 
     var body: some View {
         GeometryReader { proxy in
@@ -69,12 +86,22 @@ struct ForceGraphView: View {
                         ForEach(nodes) { node in
                             Button(node.label) { onOpen(node.id) }
                                 .accessibilityHint("\(model.degree(of: node.id)) connections. Opens it.")
+                                .accessibilityAddTraits(selection == node.id ? .isSelected : [])
                         }
                     }
                 VStack(spacing: 0) {
                     if !legend.isEmpty { legendBar }
                     Spacer(minLength: 0)
-                    if let node = selectedNode { callout(for: node) }
+                    if let node = selectedNode {
+                        // The pill of buttons is put away while a node is selected, so the callout has the bottom; Drift stays,
+                        // because a tour is on while a node is selected, and it is how the tour ends.
+                        driftButton
+                            .hvGlass(radius: 22)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .padding(.bottom, HV.Space.xs)
+                            .transition(.opacity)
+                        callout(for: node)
+                    }
                 }
                 .padding(HV.Space.s)
             }
@@ -93,8 +120,18 @@ struct ForceGraphView: View {
                 if !camera.userMoved { fit(animated: false) }
             }
         }
-        .onChange(of: nodes) { _, _ in refresh() }
-        .onChange(of: edges) { _, _ in refresh() }
+        .onChange(of: nodes) { old, new in
+            // A tour over nodes that are not these any more would walk to places that are not there.
+            if old.map(\.id) != new.map(\.id) { stopDrift() }
+            refresh()
+        }
+        .onChange(of: edges) { _, _ in
+            stopDrift()
+            refresh()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { stopDrift() }
+        }
         .onChange(of: model.points) { _, _ in
             // While the layout is still moving the frame follows it, so the graph never outgrows the screen.
             if !camera.userMoved, model.isSimulating { follow() }
@@ -105,7 +142,10 @@ struct ForceGraphView: View {
         .onChange(of: legendHeight) { _, _ in
             if !camera.userMoved { fit(animated: false) }
         }
-        .onDisappear { model.stop() }
+        .onDisappear {
+            model.stop()
+            stopDrift()
+        }
     }
 
     // MARK: Drawing
@@ -133,13 +173,16 @@ struct ForceGraphView: View {
         if !legend.isEmpty {
             areas.append(CGRect(x: 0, y: 0, width: viewSize.width, height: legendHeight + HV.Space.s * 2))
         }
+        let buttonWidth = 44 + HV.Space.s * 2
         if selection == nil {
-            // Three 44pt buttons and their rules, with the screen's margin round them.
-            let width = 44 + HV.Space.s * 2
-            let height = 3 * 44 + 2 + HV.Space.s * 2
-            areas.append(CGRect(x: viewSize.width - width, y: viewSize.height - height, width: width, height: height))
+            // Four 44pt buttons and their rules, with the screen's margin round them.
+            let height = 4 * 44 + 3 + HV.Space.s * 2
+            areas.append(CGRect(x: viewSize.width - buttonWidth, y: viewSize.height - height, width: buttonWidth, height: height))
         } else {
             areas.append(CGRect(x: 0, y: viewSize.height - 88, width: viewSize.width, height: 88))
+            // The Drift button over the callout.
+            let height = 44 + HV.Space.xs + HV.Space.s
+            areas.append(CGRect(x: viewSize.width - buttonWidth, y: viewSize.height - 88 - height, width: buttonWidth, height: height))
         }
         return areas
     }
@@ -187,6 +230,8 @@ struct ForceGraphView: View {
 
     private var controls: some View {
         VStack(spacing: 0) {
+            driftButton
+            Divider().frame(width: 28)
             controlButton("plus", label: "Zoom in") { zoom(by: 1.4) }
             Divider().frame(width: 28)
             controlButton("minus", label: "Zoom out") { zoom(by: 1 / 1.4) }
@@ -212,6 +257,39 @@ struct ForceGraphView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+    }
+
+    /// Starts the tour, or ends it. While it runs by itself it looks pressed in, with Stop on it; under Reduce Motion it is
+    /// Next, which takes one stop at a time.
+    private var driftButton: some View {
+        let drifting = isDrifting
+        return Button {
+            driftTapped()
+        } label: {
+            Image(systemName: driftSymbol)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(drifting ? Palette.background : Palette.textPrimary)
+                .frame(width: 44, height: 44)
+                .background {
+                    if drifting { Circle().fill(Palette.textPrimary).frame(width: 34, height: 34) }
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(driftLabel)
+        .accessibilityHint(reduceMotion ? "Goes to the next node along the connections" : "Visits each node in turn along the connections")
+        .accessibilityAddTraits(drifting ? .isSelected : [])
+        .accessibilityIdentifier("graph.drift")
+    }
+
+    private var driftLabel: String {
+        if reduceMotion { return "Next" }
+        return isDrifting ? "Stop drifting" : "Drift"
+    }
+
+    private var driftSymbol: String {
+        if reduceMotion { return "forward.fill" }
+        return isDrifting ? "stop.fill" : "play.fill"
     }
 
     private var selectedNode: ForceGraphNode? {
@@ -246,6 +324,7 @@ struct ForceGraphView: View {
                     .background(Palette.softGradient, in: Capsule())
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("graph.open")
         }
         .padding(.horizontal, HV.Space.m)
         .padding(.vertical, HV.Space.xs)
@@ -354,6 +433,84 @@ struct ForceGraphView: View {
         animate(to: moved)
     }
 
+    // MARK: Drift
+
+    private var isDrifting: Bool { driftTask != nil }
+
+    private func driftTapped() {
+        guard !model.nodes.isEmpty else { return }
+        if reduceMotion {
+            // Nothing advances by itself: each tap is one stop.
+            driftStep()
+        } else if isDrifting {
+            stopDrift()
+        } else {
+            tour = nil
+            driftStep()
+            scheduleDrift()
+        }
+    }
+
+    /// Takes the tour to its next stop, the first when it has not begun, and shows it.
+    private func driftStep() {
+        if tour == nil {
+            tour = GraphTour(ids: model.nodes.map(\.id), edges: model.edges.map { ($0.source, $0.target) })
+        }
+        guard let id = tour?.next() else { return }
+        show(id)
+    }
+
+    /// Selects the node, so the callout names it, brings it to the middle of the clear part of the picture, and says its name.
+    private func show(_ id: String) {
+        guard let index = model.nodes.firstIndex(where: { $0.id == id }), index < model.points.count else { return }
+        let node = model.nodes[index]
+        HV.Motion.animate(.easeOut(duration: 0.18)) { selection = id }
+
+        // The picture stops framing itself from here: the tour decides where it looks.
+        camera.userMoved = true
+        let scale = min(max(camera.scale, Self.driftZoom), 6)
+        let point = model.points[index]
+        let middle = clearCentre
+        animate(to: ForceGraphCamera(
+            scale: scale,
+            translation: CGSize(width: middle.x - CGFloat(point.x) * scale, height: middle.y - CGFloat(point.y) * scale),
+            userMoved: true
+        ))
+        UIAccessibility.post(notification: .announcement, argument: node.label)
+    }
+
+    /// The middle of the part of the picture the legend and the callout leave clear.
+    private var clearCentre: CGPoint {
+        let top: CGFloat = legend.isEmpty ? 0 : legendHeight + HV.Space.s * 2
+        let bottom = max(viewSize.height - Self.calloutReserve, top + 60)
+        return CGPoint(x: viewSize.width / 2, y: (top + bottom) / 2)
+    }
+
+    /// Moves the tour on every few seconds until something cancels the task.
+    private func scheduleDrift() {
+        driftTask?.cancel()
+        driftTask = Task { @MainActor in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: Self.driftInterval)
+                } catch {
+                    return
+                }
+                // A cancel that came as the sleep ended must not take one more step.
+                if Task.isCancelled || tour == nil { return }
+                driftStep()
+            }
+        }
+    }
+
+    /// Ends the tour. The node it stopped on stays selected, so it can still be opened.
+    private func stopDrift() {
+        guard tour != nil || driftTask != nil else { return }
+        driftTask?.cancel()
+        driftTask = nil
+        tour = nil
+    }
+
     // MARK: Gestures
 
     private var dragGesture: some Gesture {
@@ -366,6 +523,7 @@ struct ForceGraphView: View {
         MagnifyGesture()
             .onChanged { value in
                 cameraTask?.cancel()
+                stopDrift()
                 let start = pinchStart ?? camera
                 if pinchStart == nil { pinchStart = camera }
                 let next = min(max(start.scale * value.magnification, 0.2), 6)
@@ -382,6 +540,8 @@ struct ForceGraphView: View {
 
     private func dragChanged(_ value: DragGesture.Value) {
         cameraTask?.cancel()
+        // A finger on the map is the person taking over from the tour.
+        stopDrift()
         let moved = hypot(value.translation.width, value.translation.height)
         if drag == .undecided {
             dragStart = camera.translation

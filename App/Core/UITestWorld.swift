@@ -22,6 +22,15 @@ enum UITestWorld {
     /// The one invite code the `waitlisted` scenario lets in. Any other code is refused.
     static let inviteCode = "HV-OPEN-DOOR"
 
+    /// A launch flag that puts the entry the canvas's key card stands for into the vault. The canned Yours has a key
+    /// (`OPENAI_API_KEY`, `things`) that the canned vault does not list, which is a key deleted somewhere else, and that is what
+    /// a journey finds without the flag: Open on the card falls back to the Vault's list. With it the vault has the entry too,
+    /// with the id Yours gives it (a key in Yours is a row of the vault), so Open shows the entry's page. It is a flag and not
+    /// part of the vault because tests that know nothing of this entry list the vault and count what is in it.
+    static let keyCardEntryFlag = "-HV_UITEST_KEY_CARD_ENTRY"
+
+    static var keyCardEntryRequested: Bool { CommandLine.arguments.contains(keyCardEntryFlag) }
+
     /// What the `signedIn` scenario leaves on the pasteboard, for the canvas's Paste button: long enough, and in
     /// enough lines, to wait above the field as a chip instead of going into it.
     static let pasteText = [

@@ -3,7 +3,8 @@ import SwiftUI
 
 /// The Library's graph mode: every page beside every memory, and the links among them (a page's connections, made by hand
 /// or found by the server, a memory's links, and the pages a memory is bridged to). The person can leave a type out, leave
-/// out what has no links, and find a node by name; the Memory tab's map draws the memories alone.
+/// out what has no links, and find a node by name; the Memory tab's map has the same controls (`GraphControls`) over the
+/// memories and the pages they are bridged to.
 struct LibraryGraphScreen: View {
     @Environment(AppModel.self) private var app
     @State private var model: LibraryGraphModel
@@ -83,103 +84,30 @@ struct LibraryGraphScreen: View {
     // MARK: Controls
 
     private var controls: some View {
-        VStack(spacing: HV.Space.xxs) {
-            HStack(spacing: HV.Space.xs) {
-                HVIcon("magnifyingglass").foregroundStyle(Palette.textTertiary)
-                TextField("Find a page or memory", text: Binding(get: { model.query }, set: { model.query = $0 }), prompt: Text.hvPrompt("Find a page or memory"))
-                    .accessibilityIdentifier("library.graph.search")
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .submitLabel(.search)
-                if !model.query.isEmpty {
-                    Button { model.query = "" } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(Palette.textTertiary)
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Clear the search")
-                }
-            }
-            .padding(.horizontal, HV.Space.m)
-            .frame(minHeight: 44)
-            .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
-            .padding(.horizontal, HV.Space.m)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: HV.Space.hair) {
-                    ForEach(model.graph.types) { type in
-                        HVFilterPill(title: type.name, count: type.count, isSelected: !model.hiddenTypes.contains(type.name)) {
-                            model.toggle(type: type.name)
-                        }
-                        .accessibilityIdentifier("library.graph.type.\(type.name)")
-                        .accessibilityHint(model.hiddenTypes.contains(type.name) ? "Shows them on the map" : "Leaves them off the map")
-                    }
-                    Button {
-                        Haptics.select()
-                        model.setHideUnlinked(!model.hideUnlinked)
-                    } label: {
-                        HVChip(title: "Hide unlinked", symbol: "eye.slash", isSelected: model.hideUnlinked)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Hide unlinked")
-                    .accessibilityAddTraits(model.hideUnlinked ? .isSelected : [])
-                    .accessibilityIdentifier("library.graph.unlinked")
-                    .padding(.leading, HV.Space.xs)
-                }
-                .padding(.horizontal, HV.Space.m)
-            }
-        }
-        .padding(.top, HV.Space.xs)
+        GraphControls(
+            searchTitle: "Find a page or memory",
+            query: Binding(get: { model.query }, set: { model.query = $0 }),
+            identifierPrefix: "library.graph",
+            types: model.graph.types.map { GraphFilterType(name: $0.name, count: $0.count) },
+            hiddenTypes: model.hiddenTypes,
+            hideUnlinked: model.hideUnlinked,
+            onToggleType: { model.toggle(type: $0) },
+            onToggleUnlinked: { model.setHideUnlinked(!model.hideUnlinked) }
+        )
     }
 
-    /// What the search found: the best connected first. Tapping one opens it, as a tap on its node does. It is laid over the
-    /// map and scrolls inside a height of its own, so a few matches at a large text size do not push the map away.
-    @ViewBuilder private var results: some View {
-        let found = model.matches
-        ScrollView {
-            VStack(spacing: 0) {
-                if found.isEmpty {
-                    Text("Nothing on the map has that in its name.")
-                        .font(.hvFootnote)
-                        .foregroundStyle(Palette.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, HV.Space.m)
-                        .padding(.vertical, HV.Space.s)
-                }
-                ForEach(found) { node in
-                    Button { open(node.id) } label: {
-                        HStack(spacing: HV.Space.s) {
-                            Image(systemName: node.kind == .memory ? HVSymbol.memory : "doc.text")
-                                .foregroundStyle(LibraryGraphStyle.tint(forType: node.type))
-                                .hvIconSlot(22)
-                                .accessibilityHidden(true)
-                            Text(node.title)
-                                .font(.hvSubheadline)
-                                .foregroundStyle(Palette.textPrimary)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                            Spacer(minLength: HV.Space.xs)
-                            Text(LibraryGraphStyle.detail(for: node))
-                                .font(.hvCaption)
-                                .foregroundStyle(Palette.textTertiary)
-                        }
-                        .padding(.horizontal, HV.Space.m)
-                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(node.title), \(LibraryGraphStyle.detail(for: node))")
-                    .accessibilityHint("Opens it")
-                }
-            }
-        }
-        .frame(maxHeight: 260)
-        .fixedSize(horizontal: false, vertical: true)
-        .background(Palette.surface)
-        .overlay(alignment: .bottom) { Rectangle().fill(Palette.border).frame(height: 1) }
+    /// What the search found: the best connected first. Tapping one opens it, as a tap on its node does.
+    private var results: some View {
+        GraphSearchResults(
+            results: model.matches.map { node in
+                GraphSearchResult(
+                    id: node.id, title: node.title, detail: LibraryGraphStyle.detail(for: node),
+                    symbol: node.kind == .memory ? HVSymbol.memory : "doc.text",
+                    tint: LibraryGraphStyle.tint(forType: node.type)
+                )
+            },
+            onOpen: { open($0) }
+        )
     }
 
     // MARK: The graph

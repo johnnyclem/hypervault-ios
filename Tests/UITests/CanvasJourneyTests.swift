@@ -35,7 +35,8 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
             require(button("Copy link"), "the card's Copy link button")
             // At the default text size the four actions share one row, and Share is not broken over two lines
             // ("Shar" over "e" was what a first run of this screen showed).
-            let share = button("Share")
+            // (Share opens the sheet of the people who can open the page, and is labelled with the card's title, as Open and Hide are.)
+            let share = button("Share Lisbon trip checklist")
             require(share, "the card's Share button")
             XCTAssertLessThan(share.frame.height, 60, "Share is \(share.frame.height) points tall, so its label has wrapped.")
             for name in ["Open Lisbon trip checklist", "Copy link", "Hide Lisbon trip checklist"] {

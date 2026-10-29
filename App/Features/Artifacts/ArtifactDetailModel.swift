@@ -34,10 +34,12 @@ final class ArtifactDetailModel {
     private let loader: ArtifactPageLoader
     private var hasLoaded = false
 
-    init(slug: String, env: AppEnvironment, loader: ArtifactPageLoader? = nil) {
+    /// `kindHint` is what the caller already knows of the page's kind (a card on the canvas says it), used until the list says.
+    init(slug: String, env: AppEnvironment, loader: ArtifactPageLoader? = nil, kindHint: KeptKind? = nil) {
         self.slug = slug
         self.env = env
         self.loader = loader ?? ArtifactPageLoader(baseURL: env.server.baseURL, tokens: env.auth)
+        self.kindHint = kindHint
     }
 
     // MARK: What is known
@@ -88,6 +90,17 @@ final class ArtifactDetailModel {
         if isStoredFile, case .ready(let content) = pageState, case .html(let html, _) = content.source {
             embeddedFile = ArtifactEmbeddedFile.find(in: html)
         }
+    }
+
+    /// What the share sheet reads of a page and nothing more: its title, who can open it, whether it is a group, and the
+    /// person's own addresses (a public page is linked from the first). The page itself is not fetched, so a sheet over
+    /// something other than the page (the Home canvas) opens without it.
+    func loadForSharing() async {
+        if summary == nil { summary = await cachedSummary() }
+        async let metadata: Void = loadMetadata()
+        async let claimed = readRealms()
+        await metadata
+        if let list = await claimed { realms = list }
     }
 
     /// Asks again for the markup, after a repair, an edit or a pull.

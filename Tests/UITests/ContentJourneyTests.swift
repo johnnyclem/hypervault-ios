@@ -21,7 +21,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
         step("Back returns to the list and Ask takes a question") {
             goBack(until: { element("memory.row.m1").exists })
             require(element("memory.row.m1"), "the list again")
-            tap(segment("Ask"), "the Ask mode")
+            tap(segment("Ask"), "the Ask mode", until: { self.shows("Ask your memory").exists })
             require(shows("Ask your memory"), "the introduction to Ask")
         }
 
@@ -70,7 +70,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
     func testARoomOpensAndTakesAMessage() {
         launch(.signedIn)
         openTab("Chat")
-        tap(segment("Group chats"), "the Group chats half")
+        tap(segment("Group chats"), "the Group chats half", until: { self.element("chat.room.r1").exists })
 
         step("A room opens to what its members said") {
             tap(element("chat.room.r1"), "the Features X and Y room")

@@ -124,7 +124,7 @@ struct LibraryScreen: View {
 
     // MARK: Chrome
 
-    /// The same map the Memory tab draws: memories, the links between them and the pages they are bridged to.
+    /// Every page beside every memory, and the links among them (the Memory tab draws the memories alone).
     private var graphView: some View {
         LibraryGraphScreen(env: env)
             .hvScreenBackground()

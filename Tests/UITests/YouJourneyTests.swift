@@ -49,6 +49,40 @@ final class YouJourneyTests: HyperVaultUITestCase {
             XCTAssertEqual(element("library.view").label, "Show as a list")
         }
 
+        step("Pages are on the map beside the memories, whatever links them") {
+            require(button("Bakery landing page"), "the graph's node for the Bakery page, which nothing links to")
+            require(element("library.graph.type.html"), "the chip for the pages of one type")
+            require(element("library.graph.type.memory"), "the chip for the memories")
+        }
+
+        step("A type can be left off the map and put back") {
+            tap(element("library.graph.type.memory"), "the memory chip", until: { !self.button("Passport checklist").exists })
+            requireGone(button("Passport checklist"), "the memory's node, now that memories are hidden")
+            require(button("Bakery landing page"), "the page's node, which stays")
+            tap(element("library.graph.type.memory"), "the memory chip", until: { self.button("Passport checklist").exists })
+            require(button("Passport checklist"), "the memory's node, shown again")
+        }
+
+        step("Hide unlinked drops the pages nothing links to and keeps the memories that are linked") {
+            tap(element("library.graph.unlinked"), "Hide unlinked", until: { !self.button("Bakery landing page").exists })
+            requireGone(button("Bakery landing page"), "the page nothing links to")
+            require(button("Passport checklist"), "a memory with links, which stays")
+        }
+
+        step("With nothing left to show, Show everything brings the map back") {
+            tap(element("library.graph.type.memory"), "the memory chip", until: { self.shows("Nothing left has a link").exists })
+            require(shows("Nothing left has a link"), "the words for a map with nothing linked")
+            tap(button("Show everything"), "Show everything", until: { self.button("Bakery landing page").exists })
+            require(button("Bakery landing page"), "the page's node, back")
+            require(button("Passport checklist"), "the memory's node, back")
+        }
+
+        step("A node is found by part of its name") {
+            enter("bakery", into: textField("library.graph.search"), "the search field")
+            require(button("Bakery landing page, HTML page"), "the match, which opens the page")
+            putTheKeyboardAway()
+        }
+
         step("The list view comes back") {
             tap(element("library.view"), "the view button")
             require(element("library.row.a1"), "the list again")

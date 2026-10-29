@@ -86,9 +86,12 @@ struct RouteDestination: View {
         case .room(let id): RoomScreen(roomID: id)
         case .mailThread(let id): MailThreadView(id: id)
         case .library: LibraryRootView()
+        // A second link to the same screen with other values starts it over, not on the values the first one gave it.
+        case .libraryFiltered(let filter, let query): LibraryRootView(filter: filter, query: query).id(route)
         case .mail: MailRootView()
         case .truth: TruthRootView()
         case .truthReview: TruthReviewView()
+        case .truthReviewLedger(let slug): TruthReviewView(ledger: slug).id(route)
         case .tools: ToolsRootView()
         case .importHistory: ImportRootView()
         case .dreams: DreamsRootView()

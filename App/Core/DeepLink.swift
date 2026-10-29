@@ -40,9 +40,13 @@ enum Route: Hashable {
     case room(id: String)
     case mailThread(id: String)
     case library
+    /// The Library with a filter and a search already chosen (the web's `/vault/library?filter=&q=`).
+    case libraryFiltered(filter: YoursFilter, query: String)
     case mail
     case truth
     case truthReview
+    /// The review session, opened on the ledger a link names (the web's `/vault/truth/review?ledger=`).
+    case truthReviewLedger(slug: String)
     case tools
     case importHistory
     case dreams
@@ -65,6 +69,9 @@ enum Route: Hashable {
 enum DeepLink: Hashable {
     case tab(AppTab)
     case route(Route)
+    /// The Memory tab in the view and on the branch the web's `/vault/memory?mode=&branch=` names. Either may be nil; a
+    /// link that names neither is `.tab(.memory)`. The tab's own screen takes them from the router (`AppRouter.open`).
+    case memoryTab(mode: MemoryMode?, branch: String?)
     /// A pane of the You tab. Nil is the page when nothing names a pane, which is the vault.
     case account(AccountPane?)
     /// Home, with the Yours panel open over it.
@@ -82,13 +89,14 @@ enum DeepLink: Hashable {
     var destination: (tab: AppTab, route: Route?) {
         switch self {
         case .tab(let tab): return (tab, nil)
+        case .memoryTab: return (.memory, nil)
         case .account, .pair: return (.you, nil)
         case .yours, .keep, .invite: return (.canvas, nil)
         case .groupChats: return (.chat, nil)
         case .route(let route):
             switch route {
-            case .artifact, .library, .mail, .mailThread, .taskBoards, .taskBoard, .admin: return (.canvas, route)
-            case .memory, .truth, .truthReview, .dreams, .digest: return (.memory, route)
+            case .artifact, .library, .libraryFiltered, .mail, .mailThread, .taskBoards, .taskBoard, .admin: return (.canvas, route)
+            case .memory, .truth, .truthReview, .truthReviewLedger, .dreams, .digest: return (.memory, route)
             case .conversation, .room, .tools, .importHistory: return (.chat, route)
             }
         }
@@ -102,8 +110,43 @@ enum DeepLink: Hashable {
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         let query = components?.queryItems ?? []
         func value(_ name: String) -> String? { query.first { $0.name == name }?.value }
+        /// A value as a web form writes it ("+" is a space, "%2B" a plus), trimmed. Nil when the name is not given, is
+        /// given twice, is empty, or is not text once decoded: each of those names nothing.
+        func given(_ name: String) -> String? {
+            let matches = (components?.percentEncodedQueryItems ?? []).filter { $0.name == name }
+            guard matches.count == 1, let encoded = matches[0].value,
+                  let decoded = encoded.replacingOccurrences(of: "+", with: " ").removingPercentEncoding
+            else { return nil }
+            let trimmed = decoded.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
         /// The pane `?tab=` or the hash names, the vault when neither does (`/vault/account`, handoff 7).
         func pane() -> DeepLink { .account(AccountPane.resolve(queryItems: query, fragment: components?.percentEncodedFragment)) }
+        /// `/vault/memory` as its query names it. `open` is one memory and wins; `mode` is a way of looking (Digest is a
+        /// screen of its own) and `branch` a branch of the mind. A value that names nothing is left out, and a link with
+        /// nothing left is the tab. (The memory opens on the branch the person is reading: a branch beside `open` is not used.)
+        func memoryLink() -> DeepLink {
+            if let id = given("open"), DeepLink.isPlainID(id) { return .route(.memory(id: id)) }
+            let mode = given("mode")
+            if mode == "digest" { return .route(.digest) }
+            let view = mode.flatMap { MemoryMode(rawValue: $0) }
+            let branch = given("branch").flatMap { MindBranchName.isValid($0) ? $0 : nil }
+            return view == nil && branch == nil ? .tab(.memory) : .memoryTab(mode: view, branch: branch)
+        }
+        /// `/vault/library` as the web reads it (`parseLibraryParams`): `filter` is one of the four filters in any case, and
+        /// a name that is not one is All; `q` is cut at 100 characters, and Files, which the web searches no other way, takes none.
+        func libraryLink() -> DeepLink {
+            let filter = given("filter").flatMap { YoursFilter(rawValue: $0.lowercased()) } ?? .all
+            let typed = filter == .file ? "" : (given("q") ?? "")
+            let text = String(typed.prefix(DeepLink.libraryQueryLimit)).trimmingCharacters(in: .whitespacesAndNewlines)
+            if filter == .all, text.isEmpty { return .route(.library) }
+            return .route(.libraryFiltered(filter: filter, query: text))
+        }
+        /// `/vault/truth/review`, on the ledger `?ledger=` names when that is a ledger's name (a slug).
+        func reviewLink() -> DeepLink {
+            guard let slug = given("ledger"), TruthLedgerSlug.problem(slug) == nil else { return .route(.truthReview) }
+            return .route(.truthReviewLedger(slug: slug))
+        }
 
         if scheme == "hypervault" {
             // hypervault://artifact/<slug>: the host is the first segment.
@@ -115,6 +158,7 @@ enum DeepLink: Hashable {
         }
         guard let first = parts.first?.lowercased() else { return nil }
         let second = parts.dropFirst().first
+        let third = parts.dropFirst(2).first
 
         switch first {
         case "a":
@@ -125,7 +169,7 @@ enum DeepLink: Hashable {
             guard let slug = second else { return nil }
             self = .route(.artifact(slug: slug))
         case "memory":
-            if let id = second { self = .route(.memory(id: id)) } else { self = .tab(.memory) }
+            if let id = second { self = .route(.memory(id: id)) } else { self = memoryLink() }
         case "chat", "conversation":
             // The web pins a chat as /chat?c=<id>.
             if let id = second ?? value("c") { self = .route(.conversation(id: id)) } else { self = .tab(.chat) }
@@ -136,7 +180,7 @@ enum DeepLink: Hashable {
         case "yours":
             self = .yours
         case "library":
-            self = .route(.library)
+            self = libraryLink()
         case "pair":
             self = .pair(code: value("code") ?? value("user_code"))
         case "invite":
@@ -156,7 +200,7 @@ enum DeepLink: Hashable {
         case "mail":
             if let id = second { self = .route(.mailThread(id: id)) } else { self = .route(.mail) }
         case "truth":
-            self = second?.lowercased() == "review" ? .route(.truthReview) : .route(.truth)
+            self = second?.lowercased() == "review" ? reviewLink() : .route(.truth)
         case "taskboards", "task-boards", "tasks":
             self = .route(.taskBoards)
         case "tools":
@@ -169,10 +213,15 @@ enum DeepLink: Hashable {
             // The web's /vault/<section> paths. /vault itself is the canvas: Home.
             switch second?.lowercased() {
             case nil: self = .tab(.canvas)
-            case "memory": self = .tab(.memory)
-            case "library", "new", "groups": self = .route(.library)
+            case "memory": self = memoryLink()
+            case "library": self = libraryLink()
+            case "new": self = .route(.library)
+            case "groups":
+                // /vault/groups is where groups are listed, in the Library. /vault/groups/<slug> is the web's editor for one
+                // group, which opens as the group does (/g/<slug>); /vault/groups/new makes one, and the Library has that.
+                if let slug = third, slug.lowercased() != "new" { self = .route(.artifact(slug: slug)) } else { self = .route(.library) }
             case "mail": self = .route(.mail)
-            case "truth": self = .route(.truth)
+            case "truth": self = third?.lowercased() == "review" ? reviewLink() : .route(.truth)
             case "dreams": self = .route(.dreams)
             case "digest": self = .route(.digest)
             case "import": self = .route(.importHistory)
@@ -182,5 +231,14 @@ enum DeepLink: Hashable {
         default:
             return nil
         }
+    }
+
+    /// The longest Library search a link may carry: the web's own cut (`LIBRARY_QUERY_MAX_CHARS`).
+    static let libraryQueryLimit = 100
+
+    /// A memory id as a link's query may carry it: letters, digits, "-" and "_". Anything else names nothing, so a link
+    /// cannot steer the request for a memory to another path.
+    static func isPlainID(_ id: String) -> Bool {
+        (1...128).contains(id.count) && id.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") }
     }
 }

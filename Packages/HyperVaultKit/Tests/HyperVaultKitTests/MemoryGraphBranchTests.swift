@@ -26,7 +26,7 @@ final class MemoryGraphBranchTests: XCTestCase {
         XCTAssertEqual(rows.map(\.aId), ["a", "c"])
         XCTAssertEqual(rows.map(\.bId), ["b", "b"])
         XCTAssertEqual(rows.map(\.kind), [.manual, .auto])
-        XCTAssertEqual(rows.map(\.id), ["a:b", "b:c"], "the row is named as the state names the pair, whichever way round it is written")
+        XCTAssertEqual(rows.map(\.id), ["a:b", "b:c"], "a row is named by its pair, in order, whichever way round the state writes it")
 
         let graph = MemoryGraphBuilder.build(memories: items(["a", "b", "c"]), links: rows)
         XCTAssertEqual(graph.edges.count, 2)
@@ -38,9 +38,9 @@ final class MemoryGraphBranchTests: XCTestCase {
     }
 
     func testALinkToAMemoryTheBranchDoesNotHoldIsLeftOut() throws {
-        // "gone" is on main and linked there; this branch forgot it, and "b" was never on it.
+        // "b" and "zzz" are on main (and linked there); this branch does not hold them.
         let draft = try state(
-            memories: ["a", "c", "gone-on-main"],
+            memories: ["a", "c"],
             links: #"[{"a_id":"a","b_id":"b","kind":"auto"},{"a_id":"a","b_id":"c","kind":"auto"},{"a_id":"zzz","b_id":"c","kind":"manual"}]"#
         )
         XCTAssertEqual(MemoryGraphBuilder.links(in: draft).map(\.id), ["a:c"])

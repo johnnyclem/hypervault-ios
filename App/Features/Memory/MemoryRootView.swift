@@ -96,6 +96,18 @@ struct MemoryTabScreen: View {
         .task { await list.loadBranches() }
         .task { if !query.isEmpty { list.queryChanged(query) } }
         .onChange(of: query) { _, text in list.queryChanged(text) }
+        // A link to the web's /vault/memory names a view and a branch (?mode=, ?branch=). They wait on the router until this
+        // screen sees them, which may be as it is first built.
+        .onChange(of: app.router.memoryMode, initial: true) { _, wanted in
+            guard let wanted else { return }
+            app.router.memoryMode = nil
+            mode = wanted
+        }
+        .onChange(of: app.router.memoryBranch, initial: true) { _, wanted in
+            guard let wanted else { return }
+            app.router.memoryBranch = nil
+            Task { await list.switchBranch(named: wanted) }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .hvMemoryChanged)) { _ in
             Task { await list.refresh(app: nil) }
         }

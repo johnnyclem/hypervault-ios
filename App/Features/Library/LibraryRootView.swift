@@ -9,9 +9,12 @@ import UniformTypeIdentifiers
 /// You tab and from Yours' "More".
 struct LibraryRootView: View {
     @Environment(AppEnvironment.self) private var env
+    /// What a link chose (the web's `?filter=` and `?q=`). The Library a person opens themselves shows All, nothing typed.
+    var filter: YoursFilter = .all
+    var query = ""
 
     var body: some View {
-        LibraryScreen(env: env)
+        LibraryScreen(env: env, filter: filter, query: query)
             .jobNotices()
     }
 }
@@ -37,7 +40,7 @@ struct LibraryScreen: View {
     @AppStorage("pref.libraryGraph") private var showGraph = false
     @State private var model: LibraryModel
     @State private var filter: YoursFilter
-    @State private var query = ""
+    @State private var query: String
     @State private var sheet: LibrarySheet?
     @State private var pendingDelete: LibraryModel.FileRow?
     @State private var pendingPublic: LibraryModel.FileRow?
@@ -46,13 +49,14 @@ struct LibraryScreen: View {
     @State private var showPhotos = false
     @State private var photo: PhotosPickerItem?
 
-    init(env: AppEnvironment, filter: YoursFilter = .all) {
-        self.init(model: LibraryModel(env: env), filter: filter)
+    init(env: AppEnvironment, filter: YoursFilter = .all, query: String = "") {
+        self.init(model: LibraryModel(env: env), filter: filter, query: query)
     }
 
-    init(model: LibraryModel, filter: YoursFilter = .all) {
+    init(model: LibraryModel, filter: YoursFilter = .all, query: String = "") {
         _model = State(initialValue: model)
         _filter = State(initialValue: filter)
+        _query = State(initialValue: query)
     }
 
     /// What makes the list read again: a different filter, or a name (after a pause).

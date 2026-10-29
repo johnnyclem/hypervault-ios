@@ -121,6 +121,20 @@ final class MemoryListModel {
         if isSearching { queryChanged(query) }
     }
 
+    /// A link named a branch (the web's `?branch=`). Switches to it when the person has it, the way the branch menu does; the
+    /// branches on hand are read again when they do not list it. A name that is not a branch, or a list that could not be read,
+    /// leaves the branch as it is. Says whether it switched (or was already there).
+    @discardableResult
+    func switchBranch(named name: String) async -> Bool {
+        guard MindBranchName.isValid(name) else { return false }
+        if name != MindBranchName.defaultName, !branches.contains(where: { $0.name == name }) {
+            await reloadBranches()
+            guard branches.contains(where: { $0.name == name }) else { return false }
+        }
+        switchBranch(to: name)
+        return true
+    }
+
     // MARK: Search
 
     func queryChanged(_ text: String) {

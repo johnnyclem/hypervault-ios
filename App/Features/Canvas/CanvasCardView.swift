@@ -165,15 +165,15 @@ struct CanvasCardView: View {
         .padding(.bottom, -HV.Space.s)
     }
 
-    /// Open, for a thing that was just kept its link, and for a page, a file or a group, Share (the sheet that has the link to
-    /// hand on and the people who can open it). Every one is a ghost button, which already carries its own padding and a
-    /// 44-point target, so the row adds no spacing of its own.
+    /// Open, and for a thing that was just kept, its link (copied, or handed on with the system's own share sheet). For any
+    /// other page, file or group, Share: the sheet that has the link and the people who can open it. Every one is a ghost
+    /// button, which already carries its own padding and a 44-point target, so the row adds no spacing of its own.
     @ViewBuilder
     private var leadingActions: some View {
         Button(HVCopy.cardOpenLabel, action: onOpen)
             .buttonStyle(.hvGhost)
             .accessibilityLabel("Open \(card.title)")
-        if let kept = card.kept {
+        if let kept = card.kept, let url = URL(string: kept.link) {
             Button(copied ? "Copied" : "Copy link") {
                 UIPasteboard.general.string = kept.link
                 Haptics.tap()
@@ -184,8 +184,13 @@ struct CanvasCardView: View {
                 }
             }
             .buttonStyle(.hvGhost)
-        }
-        if let onShare, let slug = card.slug {
+            ShareLink(item: url) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            .buttonStyle(.hvGhost)
+        } else if let onShare, let slug = card.slug {
+            // (A card that was just kept has the system share beside Copy link: the quick way to hand the link on, and a fifth
+            // button would not fit the row. Its people sheet is one tap away from the page.)
             Button(action: onShare) {
                 Label("Share", systemImage: "square.and.arrow.up")
             }

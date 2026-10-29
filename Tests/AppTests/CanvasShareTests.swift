@@ -37,7 +37,7 @@ final class CanvasShareTests: XCTestCase {
         }
     }
 
-    func testACardThatWasJustKeptOffersShareToo() throws {
+    func testACardThatWasJustKeptStillHasAShareTargetThoughItsRowKeepsTheSystemShare() throws {
         let kept = KeptThing(slug: "lisbon-trip-checklist-k1", url: "", kind: .page, form: "note", title: "Lisbon trip checklist", visibility: "private", duplicate: false, message: "")
         let card = CanvasState.keptCard(kept, origin: URL(string: "https://hypervault.store")!)
         XCTAssertNotNil(card.kept)

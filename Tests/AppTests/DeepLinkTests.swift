@@ -135,6 +135,203 @@ final class DeepLinkTests: XCTestCase {
         XCTAssertEqual(link("https://hypervault.store/settings"), .account(.general))
     }
 
+    // MARK: The web's query: ?open=, ?mode=, ?branch=, ?filter=, ?q=, ?ledger=
+
+    /// A table of links and what each opens. A failure names the link that broke.
+    private func assertLinks(_ table: [(String, DeepLink?)], file: StaticString = #filePath, line: UInt = #line) {
+        for (text, expected) in table {
+            XCTAssertEqual(link(text), expected, text, file: file, line: line)
+        }
+    }
+
+    func testOpenNamesTheMemoryTheWebPutsInIt() {
+        let uuid = "8b41d07a-2c93-4f55-a6e0-1d7c93b4e802"
+        assertLinks([
+            ("https://hypervault.store/vault/memory?open=7f1c", .route(.memory(id: "7f1c"))),
+            ("https://hypervault.store/vault/memory?open=\(uuid)", .route(.memory(id: uuid))),
+            ("hypervault://vault/memory?open=7f1c", .route(.memory(id: "7f1c"))),
+            ("hypervault://memory?open=7f1c", .route(.memory(id: "7f1c"))),
+            ("https://sam.vault.cool/vault/memory?open=7f1c", .route(.memory(id: "7f1c"))),
+            // The path form is the id, and a query beside it changes nothing.
+            ("hypervault://memory/7f1c?open=other&mode=graph", .route(.memory(id: "7f1c"))),
+            // A memory opens as a memory: it wins over a mode, and the branch beside it is not used.
+            ("https://hypervault.store/vault/memory?open=7f1c&mode=graph&branch=feature-x", .route(.memory(id: "7f1c"))),
+        ])
+    }
+
+    func testAnOpenThatNamesNoMemoryIsIgnored() {
+        assertLinks([
+            ("https://hypervault.store/vault/memory?open=", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?open=%20%20", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?open=a%20b", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?open=a%2Fb", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?open=..%2F..%2Fadmin", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?open=..", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?open=a&open=b", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?open=%FF", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?open=\(String(repeating: "a", count: 129))", .tab(.memory)),
+            // What is left of the link still counts.
+            ("https://hypervault.store/vault/memory?open=a%2Fb&mode=graph", .memoryTab(mode: .graph, branch: nil)),
+        ])
+        XCTAssertEqual(link("https://hypervault.store/vault/memory?open=\(String(repeating: "a", count: 128))"), .route(.memory(id: String(repeating: "a", count: 128))))
+    }
+
+    func testModeNamesTheWayOfLookingAndDigestIsItsOwnScreen() {
+        assertLinks([
+            ("https://hypervault.store/vault/memory?mode=search", .memoryTab(mode: .search, branch: nil)),
+            ("https://hypervault.store/vault/memory?mode=ask", .memoryTab(mode: .ask, branch: nil)),
+            ("https://hypervault.store/vault/memory?mode=graph", .memoryTab(mode: .graph, branch: nil)),
+            ("hypervault://vault/memory?mode=graph", .memoryTab(mode: .graph, branch: nil)),
+            ("hypervault://memory?mode=ask", .memoryTab(mode: .ask, branch: nil)),
+            ("https://hypervault.store/vault/memory?mode=digest", .route(.digest)),
+            ("https://hypervault.store/vault/memory?mode=digest&branch=feature-x", .route(.digest)),
+        ])
+        XCTAssertEqual(DeepLink.route(.digest).destination.tab, .memory, "Digest opens on the Memory tab")
+    }
+
+    func testAModeThatIsNotOneOfThemIsIgnored() {
+        assertLinks([
+            ("https://hypervault.store/vault/memory?mode=", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?mode=bogus", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?mode=Graph", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?mode=graph&mode=ask", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?mode=%FF", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?mode=graph%20ask", .tab(.memory)),
+            // The tab with a stranger's query is the tab.
+            ("https://hypervault.store/vault/memory?other=1", .tab(.memory)),
+            ("https://hypervault.store/vault/memory", .tab(.memory)),
+            ("hypervault://memory", .tab(.memory)),
+        ])
+    }
+
+    func testBranchNamesABranchOfTheMind() {
+        assertLinks([
+            ("https://hypervault.store/vault/memory?branch=feature-x", .memoryTab(mode: nil, branch: "feature-x")),
+            ("https://hypervault.store/vault/memory?branch=main", .memoryTab(mode: nil, branch: "main")),
+            ("https://hypervault.store/vault/memory?branch=exp/ideas_2", .memoryTab(mode: nil, branch: "exp/ideas_2")),
+            ("https://hypervault.store/vault/memory?branch=exp%2Fideas_2", .memoryTab(mode: nil, branch: "exp/ideas_2")),
+            ("hypervault://memory?branch=feature-x&mode=ask", .memoryTab(mode: .ask, branch: "feature-x")),
+            ("https://hypervault.store/vault/memory?mode=graph&branch=feature-x", .memoryTab(mode: .graph, branch: "feature-x")),
+            // The web trims a branch name.
+            ("https://hypervault.store/vault/memory?branch=%20feature-x%20", .memoryTab(mode: nil, branch: "feature-x")),
+        ])
+    }
+
+    func testABranchThatCannotBeOneIsIgnored() {
+        let long = String(repeating: "a", count: 64)
+        assertLinks([
+            ("https://hypervault.store/vault/memory?branch=", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?branch=Feature", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?branch=-x", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?branch=a%20b", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?branch=a..b%00", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?branch=\(long)", .tab(.memory)),
+            ("https://hypervault.store/vault/memory?branch=a&branch=b", .tab(.memory)),
+            // A good mode beside a bad branch still counts.
+            ("https://hypervault.store/vault/memory?mode=graph&branch=Feature", .memoryTab(mode: .graph, branch: nil)),
+        ])
+        XCTAssertEqual(link("https://hypervault.store/vault/memory?branch=\(String(long.dropLast()))"), .memoryTab(mode: nil, branch: String(long.dropLast())), "63 is the longest")
+    }
+
+    func testFilterAndQNameWhatTheLibraryShows() {
+        assertLinks([
+            ("https://hypervault.store/vault/library?filter=memory", .route(.libraryFiltered(filter: .memory, query: ""))),
+            ("https://hypervault.store/vault/library?filter=key", .route(.libraryFiltered(filter: .key, query: ""))),
+            ("https://hypervault.store/vault/library?filter=file", .route(.libraryFiltered(filter: .file, query: ""))),
+            ("https://hypervault.store/vault/library?filter=all", .route(.library)),
+            ("https://hypervault.store/vault/library?q=trip", .route(.libraryFiltered(filter: .all, query: "trip"))),
+            ("https://hypervault.store/vault/library?filter=memory&q=trip", .route(.libraryFiltered(filter: .memory, query: "trip"))),
+            ("hypervault://library?filter=key", .route(.libraryFiltered(filter: .key, query: ""))),
+            ("hypervault://vault/library?filter=key&q=work", .route(.libraryFiltered(filter: .key, query: "work"))),
+            // The web reads the filter in any case, and trims both.
+            ("https://hypervault.store/vault/library?filter=Memory", .route(.libraryFiltered(filter: .memory, query: ""))),
+            ("https://hypervault.store/vault/library?filter=%20KEY%20&q=%20work%20", .route(.libraryFiltered(filter: .key, query: "work"))),
+        ])
+    }
+
+    func testTheSearchIsReadAsAWebFormWritesIt() {
+        assertLinks([
+            ("https://hypervault.store/vault/library?q=trip%20notes", .route(.libraryFiltered(filter: .all, query: "trip notes"))),
+            ("https://hypervault.store/vault/library?q=trip+notes", .route(.libraryFiltered(filter: .all, query: "trip notes"))),
+            ("https://hypervault.store/vault/library?q=c%2B%2B", .route(.libraryFiltered(filter: .all, query: "c++"))),
+            ("https://hypervault.store/vault/library?q=caf%C3%A9", .route(.libraryFiltered(filter: .all, query: "caf\u{E9}"))),
+            ("https://hypervault.store/vault/library?filter=memory&q=a%26b", .route(.libraryFiltered(filter: .memory, query: "a&b"))),
+        ])
+        // Cut at the web's 100 characters.
+        let cut = link("https://hypervault.store/vault/library?q=\(String(repeating: "a", count: 120))")
+        XCTAssertEqual(cut, .route(.libraryFiltered(filter: .all, query: String(repeating: "a", count: 100))))
+    }
+
+    func testAFilterOrSearchThatNamesNothingIsIgnored() {
+        assertLinks([
+            ("https://hypervault.store/vault/library?filter=", .route(.library)),
+            ("https://hypervault.store/vault/library?filter=bogus", .route(.library)),
+            ("https://hypervault.store/vault/library?filter=memories", .route(.library)),
+            ("https://hypervault.store/vault/library?filter=memory&filter=key", .route(.library)),
+            ("https://hypervault.store/vault/library?q=", .route(.library)),
+            ("https://hypervault.store/vault/library?q=%20%20", .route(.library)),
+            ("https://hypervault.store/vault/library?q=a&q=b", .route(.library)),
+            ("https://hypervault.store/vault/library?q=%FF", .route(.library)),
+            ("https://hypervault.store/vault/library?other=1", .route(.library)),
+            // A filter the web does not know is All, as it is there, and the search still counts.
+            ("https://hypervault.store/vault/library?filter=bogus&q=trip", .route(.libraryFiltered(filter: .all, query: "trip"))),
+            // Files are the file manager, which the web does not search by a link.
+            ("https://hypervault.store/vault/library?filter=file&q=trip", .route(.libraryFiltered(filter: .file, query: ""))),
+            // Only /vault/library takes them.
+            ("https://hypervault.store/vault/new?filter=key&q=work", .route(.library)),
+            ("https://hypervault.store/vault/groups?filter=key", .route(.library)),
+        ])
+    }
+
+    func testLedgerOpensTheReviewOnThatLedger() {
+        assertLinks([
+            ("https://hypervault.store/vault/truth/review?ledger=team", .route(.truthReviewLedger(slug: "team"))),
+            ("https://hypervault.store/vault/truth/review?ledger=team_2-b", .route(.truthReviewLedger(slug: "team_2-b"))),
+            ("hypervault://truth/review?ledger=team", .route(.truthReviewLedger(slug: "team"))),
+            ("hypervault://vault/truth/review?ledger=team", .route(.truthReviewLedger(slug: "team"))),
+            ("https://hypervault.store/vault/truth/review", .route(.truthReview)),
+            ("hypervault://truth/review", .route(.truthReview)),
+            // The ledger page itself takes no ledger in a link.
+            ("https://hypervault.store/vault/truth?ledger=team", .route(.truth)),
+            ("hypervault://truth?ledger=team", .route(.truth)),
+        ])
+        XCTAssertEqual(DeepLink.route(.truthReviewLedger(slug: "team")).destination.tab, .memory)
+    }
+
+    func testALedgerThatCannotBeOneIsIgnored() {
+        let long = String(repeating: "a", count: 65)
+        assertLinks([
+            ("https://hypervault.store/vault/truth/review?ledger=", .route(.truthReview)),
+            ("https://hypervault.store/vault/truth/review?ledger=Team", .route(.truthReview)),
+            ("https://hypervault.store/vault/truth/review?ledger=_team", .route(.truthReview)),
+            ("https://hypervault.store/vault/truth/review?ledger=a%20b", .route(.truthReview)),
+            ("https://hypervault.store/vault/truth/review?ledger=..%2Fadmin", .route(.truthReview)),
+            ("https://hypervault.store/vault/truth/review?ledger=team&ledger=other", .route(.truthReview)),
+            ("https://hypervault.store/vault/truth/review?ledger=\(long)", .route(.truthReview)),
+        ])
+    }
+
+    func testAGroupOpensByItsSlugAndNewIsTheLibrary() {
+        assertLinks([
+            ("https://hypervault.store/vault/groups/trip-planner-abc123", .route(.artifact(slug: "trip-planner-abc123"))),
+            ("hypervault://vault/groups/trip-planner-abc123", .route(.artifact(slug: "trip-planner-abc123"))),
+            ("https://hypervault.store/vault/groups", .route(.library)),
+            ("https://hypervault.store/vault/groups/", .route(.library)),
+            ("https://hypervault.store/vault/groups/new", .route(.library)),
+        ])
+    }
+
+    func testTheDestinationsOfTheLinksTheQueryMakes() {
+        let memory = DeepLink.memoryTab(mode: .graph, branch: "feature-x")
+        XCTAssertEqual(memory.destination.tab, .memory)
+        XCTAssertNil(memory.destination.route, "the tab, not a pushed screen")
+        let library = Route.libraryFiltered(filter: .key, query: "work")
+        XCTAssertEqual(DeepLink.route(library).destination.tab, .canvas)
+        XCTAssertEqual(DeepLink.route(library).destination.route, library)
+        let review = Route.truthReviewLedger(slug: "team")
+        XCTAssertEqual(DeepLink.route(review).destination.route, review)
+    }
+
     // MARK: Pairing
 
     func testAPairLinkLandsOnTheYouTabWithTheCodeKept() throws {

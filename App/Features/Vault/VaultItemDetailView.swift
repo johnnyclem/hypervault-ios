@@ -64,12 +64,13 @@ struct VaultItemDetailView: View {
             .hvListRow()
 
             Section {
-                LabeledContent("Type", value: secret.kind.label)
-                LabeledContent(VaultCopy.createdLabel, value: secret.createdAt?.keysDay ?? "Unknown")
-                LabeledContent("Last used", value: VaultCopy.sheetLastUsedLine(secret.lastAccessedAt))
+                LabeledContent("Type") { Text(secret.kind.label).hvSectionNote() }
+                LabeledContent(VaultCopy.createdLabel) { Text(secret.createdAt?.keysDay ?? "Unknown").hvSectionNote() }
+                LabeledContent("Last used") { Text(VaultCopy.sheetLastUsedLine(secret.lastAccessedAt)).hvSectionNote() }
             } footer: {
                 Label(VaultCopy.valueNeverShownLine, systemImage: "lock.fill").hvRowLabel()
                     .font(.hvFootnote)
+                    .hvSectionNote()
             }
             .hvListRow()
 
@@ -96,7 +97,7 @@ struct VaultItemDetailView: View {
             Section {
                 Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: HVSymbol.delete).hvRowLabel(role: .destructive) }
             } footer: {
-                Text("Deleting it cuts off every agent at once.")
+                Text("Deleting it cuts off every agent at once.").hvSectionNote()
             }
             .hvListRow()
         }

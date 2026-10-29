@@ -433,7 +433,7 @@ struct LibraryScreen: View {
     @ViewBuilder
     private func truncationNote(count: Int, files: Bool = false) -> some View {
         if count <= model.shown, count >= LibraryModel.readLimit || (files && model.artifacts.count >= 200) {
-            Text(LibraryCopy.truncated).font(.hvCaption)
+            Text(LibraryCopy.truncated).font(.hvCaption).hvSectionNote()
         }
     }
 

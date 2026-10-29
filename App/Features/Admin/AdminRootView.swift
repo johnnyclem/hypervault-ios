@@ -61,7 +61,7 @@ struct AdminScreen: View {
 
             Section(
                 header: HVSectionHeader(title: "Minted on this phone", detail: model.book.invites.isEmpty ? nil : "\(model.book.invites.count)"),
-                footer: Text("Codes made elsewhere are in the web dashboard. The numbers here are as of the last time this phone heard from the server.")
+                footer: Text("Codes made elsewhere are in the web dashboard. The numbers here are as of the last time this phone heard from the server.").hvSectionNote()
             ) {
                 if model.book.invites.isEmpty {
                     Text("Nothing yet. Codes you create here will be listed so you can turn them off or destroy them.")
@@ -122,12 +122,12 @@ struct AdminScreen: View {
     private var mintForm: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
             HVLabeledField(title: "Uses", footnote: "How many people can join with this code.") {
-                TextField("How many people can use the code", text: $model.usesText, prompt: Text(verbatim: "1"))
+                TextField("How many people can use the code", text: $model.usesText, prompt: Text.hvPrompt("1"))
                     .keyboardType(.numberPad)
                     .accessibilityIdentifier("admin.uses")
             }
             HVLabeledField(title: "Note (optional)") {
-                TextField("Note", text: $model.note, prompt: Text(verbatim: "Launch batch"))
+                TextField("Note", text: $model.note, prompt: Text.hvPrompt("Launch batch"))
                     .accessibilityIdentifier("admin.note")
                     .focused($noteFocused)
                     .submitLabel(.done)

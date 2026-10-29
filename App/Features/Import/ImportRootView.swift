@@ -246,7 +246,7 @@ struct ImportScreen: View {
 
             if model.isPaste {
                 HVLabeledField(title: "Name it (optional)") {
-                    TextField("Conversation name", text: $model.pasteTitle, prompt: Text("A few words to find it by"))
+                    TextField("Conversation name", text: $model.pasteTitle, prompt: Text.hvPrompt("A few words to find it by"))
                 }
             }
 

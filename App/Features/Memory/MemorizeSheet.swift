@@ -141,11 +141,11 @@ struct MemorizeSheet: View {
             }
 
             HVLabeledField(title: "Title", footnote: "Optional. Left blank, it is titled for you.") {
-                TextField("A short name", text: $draft.title)
+                TextField("A short name", text: $draft.title, prompt: Text.hvPrompt("A short name"))
                     .focused($focus, equals: .title)
             }
             HVLabeledField(title: "Tags", footnote: "Optional. Separate them with commas.") {
-                TextField("trip, passports", text: $draft.tagsText)
+                TextField("trip, passports", text: $draft.tagsText, prompt: Text.hvPrompt("trip, passports"))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .focused($focus, equals: .tags)
@@ -207,7 +207,7 @@ struct MemorizeSheet: View {
                 .font(.hvCallout)
                 .foregroundStyle(Palette.textSecondary)
             HVLabeledField(title: "Link") {
-                TextField("github.com/owner/repo, or any article", text: $link)
+                TextField("github.com/owner/repo, or any article", text: $link, prompt: Text.hvPrompt("github.com/owner/repo, or any article"))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)

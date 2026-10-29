@@ -262,7 +262,7 @@ struct TaskBoardScreen: View {
                 .font(.system(size: 22))
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
-            TextField("Add a task", text: $newTitle)
+            TextField("Add a task", text: $newTitle, prompt: Text.hvPrompt("Add a task"))
                 .accessibilityIdentifier("taskboard.add")
                 .focused($addFocused)
                 .submitLabel(.done)

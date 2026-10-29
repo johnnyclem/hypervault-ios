@@ -164,7 +164,7 @@ struct YoursListView: View {
                 ForEach(model.results) { item in row(item) }
             } footer: {
                 if model.results.count >= YoursModel.pageLimit {
-                    Text(HVCopy.libraryTruncatedLine).font(.hvCaption)
+                    Text(HVCopy.libraryTruncatedLine).font(.hvCaption).hvSectionNote()
                 }
             }
         }

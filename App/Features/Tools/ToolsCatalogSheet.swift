@@ -162,6 +162,7 @@ struct ToolsCatalogSheet: View {
 
     private var footer: some View {
         Text("These are the registry's own descriptions. Look at what a server can do before you add it, and only add the ones you trust.")
+            .hvSectionNote()
     }
 
     private var emptyResults: some View {

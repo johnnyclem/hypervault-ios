@@ -147,7 +147,7 @@ struct MindMergeView: View {
             }
 
             HVLabeledField(title: "Commit message") {
-                TextField("merge \(model.source) into \(model.target)", text: Binding(get: { session.message }, set: { model.setMessage($0) }))
+                TextField("merge \(model.source) into \(model.target)", text: Binding(get: { session.message }, set: { model.setMessage($0) }), prompt: Text.hvPrompt("merge \(model.source) into \(model.target)"))
             }
 
             Button {
@@ -369,7 +369,7 @@ private struct MindCustomResolutionSheet: View {
                         .font(.hvCallout)
                         .foregroundStyle(Palette.textSecondary)
                     HVLabeledField(title: "Title") {
-                        TextField("A short name", text: $title)
+                        TextField("A short name", text: $title, prompt: Text.hvPrompt("A short name"))
                             .font(.hvHeadline)
                     }
                     HVLabeledField(title: "Text") {

@@ -270,7 +270,7 @@ struct ToolsAddServerSheet: View {
                 HVLabeledField(title: "Server address") {
                     // The example is a verbatim prompt: as a plain string key SwiftUI links the URL, and the
                     // empty field then looks filled in, in link blue.
-                    TextField("Server address", text: $flow.url, prompt: Text(verbatim: "https://mcp.example.com/mcp"))
+                    TextField("Server address", text: $flow.url, prompt: Text.hvPrompt("https://mcp.example.com/mcp"))
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -279,7 +279,7 @@ struct ToolsAddServerSheet: View {
                         .onSubmit { focus = .name }
                 }
                 HVLabeledField(title: "Name (optional)") {
-                    TextField("Name", text: $flow.name, prompt: Text(verbatim: "Team notes"))
+                    TextField("Name", text: $flow.name, prompt: Text.hvPrompt("Team notes"))
                         .focused($focus, equals: .name)
                         .submitLabel(.done)
                 }
@@ -322,12 +322,12 @@ struct ToolsAddServerSheet: View {
                     ForEach($flow.headers) { $row in
                         VStack(alignment: .leading, spacing: HV.Space.s) {
                             HVLabeledField(title: "Header name") {
-                                TextField("Header name", text: $row.name, prompt: Text(verbatim: "X-Api-Key"))
+                                TextField("Header name", text: $row.name, prompt: Text.hvPrompt("X-Api-Key"))
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
                             }
                             HVLabeledField(title: "Value") {
-                                SecureField("Value", text: $row.value, prompt: Text("The key or token"))
+                                SecureField("Value", text: $row.value, prompt: Text.hvPrompt("The key or token"))
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
                             }

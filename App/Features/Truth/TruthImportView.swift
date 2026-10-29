@@ -103,7 +103,7 @@ struct TruthImportView: View {
         } header: {
             HVSectionHeader(title: "A stenographer stream")
         } footer: {
-            Text("The export_wiki_entries file. One transaction: if any line is refused, nothing is written and every bad line is named. Importing again is safe.")
+            Text("The export_wiki_entries file. One transaction: if any line is refused, nothing is written and every bad line is named. Importing again is safe.").hvSectionNote()
         }
     }
 
@@ -137,7 +137,7 @@ struct TruthImportView: View {
         } header: {
             HVSectionHeader(title: "A page ledger")
         } footer: {
-            Text("For ledgers typed into a page of yours. Every line becomes a proposal on the docket, in \(ledger.name). Nothing is truth until you approve it there, one card at a time. The page is left as it is.")
+            Text("For ledgers typed into a page of yours. Every line becomes a proposal on the docket, in \(ledger.name). Nothing is truth until you approve it there, one card at a time. The page is left as it is.").hvSectionNote()
         }
     }
 

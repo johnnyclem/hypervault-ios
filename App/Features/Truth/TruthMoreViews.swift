@@ -320,6 +320,7 @@ struct TruthSignersScreen: View {
                     Text(signers.handle == nil
                         ? "You have not chosen a name yet."
                         : "The name on every TB you assert and every decision you make. It is set once.")
+                        .hvSectionNote()
                 }
                 Section {
                     if signers.agents.isEmpty {
@@ -331,7 +332,7 @@ struct TruthSignersScreen: View {
                 } header: {
                     HVSectionHeader(title: "Your agents")
                 } footer: {
-                    Text("An agent signs its UVs as agent:<its key name>. Nothing an agent writes is a TB: a person promotes it.")
+                    Text("An agent signs its UVs as agent:<its key name>. Nothing an agent writes is a TB: a person promotes it.").hvSectionNote()
                 }
             }
         }
@@ -459,7 +460,7 @@ struct TruthSidecarScreen: View {
             isPresented: Binding(get: { dismissing != nil }, set: { if !$0 { dismissing = nil } }),
             presenting: dismissing
         ) { proposal in
-            TextField("Reason", text: $reason)
+            TextField("Reason", text: $reason, prompt: truthPrompt("Reason"))
             Button("Dismiss") { finishDismiss(proposal) }
             Button("Cancel", role: .cancel) { reason = "" }
         } message: { _ in
@@ -504,7 +505,7 @@ struct TruthSidecarScreen: View {
         } header: {
             HVSectionHeader(title: "Awaiting a notary")
         } footer: {
-            Text("Notarizing signs the proposal under your truth handle.")
+            Text("Notarizing signs the proposal under your truth handle.").hvSectionNote()
         }
     }
 

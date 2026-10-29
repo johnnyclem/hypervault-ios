@@ -111,7 +111,7 @@ struct MailThreadScreen: View {
                     .padding(.leading, HV.Space.xxs)
             }
             HStack(alignment: .bottom, spacing: HV.Space.s) {
-                TextField("Write a reply", text: $draft, axis: .vertical)
+                TextField("Write a reply", text: $draft, prompt: Text.hvPrompt("Write a reply"), axis: .vertical)
                     .accessibilityIdentifier("mail.reply")
                     .lineLimit(1...5)
                     .focused($composerFocused)

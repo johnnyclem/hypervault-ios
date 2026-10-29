@@ -61,7 +61,7 @@ struct ChatRoomContent: View {
             }
             .sheet(isPresented: $showMembers) { ChatRoomMembersSheet(model: model, env: env) }
             .alert("Rename room", isPresented: $showRename) {
-                TextField("Room name", text: $renameText)
+                TextField("Room name", text: $renameText, prompt: chatPrompt("Room name"))
                 Button("Save") { rename() }
                 Button("Cancel", role: .cancel) {}
             }

@@ -255,7 +255,7 @@ struct GroupEditorView: View {
             GroupPreviewSheet(document: model.previewDocument, env: env)
         }
         .alert("New file", isPresented: $addingFile) {
-            TextField("app.js", text: $newFileName)
+            TextField("app.js", text: $newFileName, prompt: artifactPrompt("app.js"))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
             Button("Add") { addFile() }
@@ -264,7 +264,7 @@ struct GroupEditorView: View {
             Text(addError ?? "A .html, .css, .js or .jsx file. Use folders like styles/app.css if you like.")
         }
         .alert("Rename file", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
-            TextField("Name", text: $renameTo)
+            TextField("Name", text: $renameTo, prompt: artifactPrompt("Name"))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
             Button("Rename") { rename() }
@@ -304,6 +304,7 @@ struct GroupEditorView: View {
                 Toggle("Keep it private", isOn: Bindable(model).isPrivate)
             } footer: {
                 Text(model.isPrivate ? "Only you and people you add can open it." : "Anyone with the link can open it.")
+                    .hvSectionNote()
             }
             .hvListRow()
 
@@ -344,6 +345,7 @@ struct GroupEditorView: View {
                 HVSectionHeader(title: "Files", detail: "\(model.files.count) of \(ArtifactGroupRules.maxFiles)")
             } footer: {
                 Text("index.html is where it starts, so it can be changed but not removed.")
+                    .hvSectionNote()
             }
             .hvListRow()
 

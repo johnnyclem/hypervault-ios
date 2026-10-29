@@ -177,6 +177,28 @@ final class DesignContrastTests: XCTestCase {
         }
     }
 
+    /// The graph and its legend draw Repository in a brighter orange than its words use: graphics need 3:1, and the deep
+    /// shade is too near Agent's amber to tell apart. Held at 3:1 on the page and on paper in the light look.
+    func testTheGraphsRepositoryOrangeStaysApartFromAgentAndHoldsAsAGraphic() throws {
+        let light = UITraitCollection(userInterfaceStyle: .light)
+        func resolved(_ color: Color) -> UInt32 { DesignTokensTests.hex(of: UIColor(color).resolvedColor(with: light)) }
+        let repository = resolved(MemoryStyle.graphTint(forSource: "github"))
+        DesignTokensTests.assertSame(repository, 0xEA580C, "Repository on the graph in the light look")
+        for surface in ["background", "card"] {
+            let ratio = contrast(repository, try XCTUnwrap(HVTokens.lightColors[surface]))
+            XCTAssertGreaterThanOrEqual(ratio, 3, "Repository on \(surface) is \(ratio):1 as a graphic in the light look.")
+        }
+        // The words of the chip keep the deep shade, which is not the graph's.
+        XCTAssertNotEqual(resolved(MemoryStyle.ink(forSource: "github")), repository)
+        // And the other kinds are what they were.
+        for source in ["manual", "chat", "coding", "agent", "file", "web"] {
+            XCTAssertEqual(resolved(MemoryStyle.graphTint(forSource: source)), resolved(MemoryStyle.tint(forSource: source)), source)
+        }
+        // In the dark look Repository is the orange it always was.
+        let dark = UITraitCollection(userInterfaceStyle: .dark)
+        DesignTokensTests.assertSame(DesignTokensTests.hex(of: UIColor(MemoryStyle.graphTint(forSource: "github")).resolvedColor(with: dark)), 0xF97316, "Repository on the graph in the dark look")
+    }
+
     func testTextOnTheAccentFillIsBodyText() throws {
         XCTAssertGreaterThanOrEqual(contrast(try hex("accent-foreground"), try hex("accent")), 4.5)
     }

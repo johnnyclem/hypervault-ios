@@ -9,7 +9,7 @@ let lightLookScreens: Set<String> = [
     "yours", "yours-empty", "you", "settings", "welcome-1-keep", "lock",
     "chat-list", "chat-conversation", "chat-connect-form", "pane-models", "pane-general-pro",
     "digest", "design-controls", "design-palette", "force-graph", "group-new",
-    "memory-list", "memory-ask", "memory-memorize", "mind-diff", "mind-merge-preview",
+    "memory-list", "memory-graph", "memory-ask", "memory-memorize", "mind-diff", "mind-merge-preview", "library-all",
     "keys-webhooks-add", "mail-compose", "mail-settings", "realms-detail",
     "taskboards-board", "taskboards-task", "tools-list", "tools-add-form", "truth-entry",
     "vault-add-card", "vault-add-login", "vault-detail-card", "admin-accounts",

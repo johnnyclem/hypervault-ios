@@ -199,4 +199,15 @@ final class DeepLinkQueryTests: XCTestCase {
         XCTAssertTrue(switched)
         XCTAssertEqual(list.branch, "main")
     }
+
+    // MARK: The Library
+
+    func testALibraryLinkThatNamesAFilterOrASearchOpensTheListNotTheGraph() {
+        XCTAssertFalse(LibraryScreen.linkNamesWhatToShow(filter: .all, query: ""), "a plain Library link leaves the saved choice alone")
+        XCTAssertFalse(LibraryScreen.linkNamesWhatToShow(filter: .all, query: "   "), "spaces name nothing")
+        XCTAssertTrue(LibraryScreen.linkNamesWhatToShow(filter: .key, query: ""))
+        XCTAssertTrue(LibraryScreen.linkNamesWhatToShow(filter: .file, query: ""))
+        XCTAssertTrue(LibraryScreen.linkNamesWhatToShow(filter: .all, query: "trip"))
+        XCTAssertTrue(LibraryScreen.linkNamesWhatToShow(filter: .memory, query: "trip"))
+    }
 }

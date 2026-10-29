@@ -16,7 +16,8 @@ final class ConnectCardJourneyTests: HyperVaultUITestCase {
         }
 
         step("Connect an agent opens the Connect sheet, and Cancel leaves the card where it was") {
-            tap(element("canvas.connectCard.connect"), "Connect an agent", until: { self.isShowingTitle("Connect your AI") })
+            // (The card sits under the hints, a scroll away on a phone: it is brought clear of the bars first.)
+            open(element("canvas.connectCard.connect"), "Connect an agent", until: { self.isShowingTitle("Connect your AI") })
             waitUntil("the Connect your AI title") { isShowingTitle("Connect your AI") }
             tap(button("Cancel"), "Cancel")
             requireGone(button("Cancel"), "the sheet")
@@ -25,7 +26,7 @@ final class ConnectCardJourneyTests: HyperVaultUITestCase {
         }
 
         step("I'll look around first hides the card and tells the profile") {
-            tap(element("canvas.connectCard.dismiss"), "I'll look around first")
+            open(element("canvas.connectCard.dismiss"), "I'll look around first")
             requireGone(element("canvas.connectCard"), "the connect card")
             requireWrite("PATCH", "/api/onboarding", equal: ["connect_dismissed": "true"])
             require(element("canvas.hint"), "the page's hints, which stay")

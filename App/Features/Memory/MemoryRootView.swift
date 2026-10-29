@@ -101,11 +101,14 @@ struct MemoryTabScreen: View {
         .onChange(of: app.router.memoryMode, initial: true) { _, wanted in
             guard let wanted else { return }
             app.router.memoryMode = nil
+            // (A screen pushed from the More menu would cover the view the link names.)
+            destination = nil
             mode = wanted
         }
         .onChange(of: app.router.memoryBranch, initial: true) { _, wanted in
             guard let wanted else { return }
             app.router.memoryBranch = nil
+            destination = nil
             Task { await list.switchBranch(named: wanted) }
         }
         .onReceive(NotificationCenter.default.publisher(for: .hvMemoryChanged)) { _ in

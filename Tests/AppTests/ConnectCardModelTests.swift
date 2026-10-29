@@ -235,6 +235,33 @@ final class ConnectCardModelTests: XCTestCase {
         XCTAssertEqual(after, reads, "once the person has a key, coming back to Home asks the server nothing")
     }
 
+    func testALookThatFindsAKeyWinsOverAnEarlierLookStillWaitingOnTheProfile() async {
+        let made = MadeFlag()
+        let mock = MockTransport(routes: [
+            MockRoute(.get, "/rest/v1/api_keys") { _ in
+                HTTPResponse(status: 200, headers: ["content-type": "application/json"], data: Data((made.isOn ? KeysPreviewData.keysJSON : "[]").utf8))
+            },
+            .json(.get, "/rest/v1/profiles", noStamp),
+        ])
+        let hold = RequestHold()
+        await hold.arm()
+        let card = model(HeldTransport(base: mock, hold: hold, holds: { $0.url?.path == "/rest/v1/profiles" }))
+
+        // The first look found no key and is waiting on the profile.
+        let first = Task { await card.refresh() }
+        await eventually("the profile read to be on its way") { await hold.waiting == 1 }
+
+        // A key is made and a second look finds it.
+        made.turnOn()
+        await card.refresh()
+        XCTAssertFalse(card.isVisible)
+
+        // The first look's answer arrives late and does not put the card back for someone who has a key.
+        await hold.release()
+        await first.value
+        XCTAssertFalse(card.isVisible, "an answer that arrives after a look found a key does not show the card")
+    }
+
     func testTheCardIsLookedUpAgainWhileItIsShowing() async {
         let mock = MockTransport(routes: routes())
         let card = model(mock)

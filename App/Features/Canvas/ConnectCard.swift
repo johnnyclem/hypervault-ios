@@ -61,8 +61,8 @@ final class ConnectCardModel {
                 settle()
                 return
             }
-            // A dismissal made while the reads were on their way wins.
-            isVisible = !isDismissedHere
+            // A dismissal, or a key found by a look that finished meanwhile, wins over these reads.
+            isVisible = !isSettled && !isDismissedHere
         } catch is CancellationError {
             return
         } catch HVError.cancelled {

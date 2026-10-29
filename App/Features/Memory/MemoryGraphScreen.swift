@@ -2,7 +2,9 @@ import HyperVaultKit
 import SwiftUI
 
 /// The Graph mode: memories and the links between them, with the pages they
-/// are bridged to, as a force-directed map.
+/// are bridged to, as a force-directed map. The person can leave a kind of node
+/// out, leave out what has no links, and find a memory by name, as on the Library's
+/// graph (`GraphControls` is the same view on both).
 struct MemoryGraphScreen: View {
     let list: MemoryListModel
 
@@ -33,34 +35,113 @@ struct MemoryGraphScreen: View {
                 HVLoadingState()
             } else {
                 VStack(spacing: 0) {
-                    ForceGraphView(
-                        nodes: forceNodes(for: graph),
-                        edges: forceEdges(for: graph),
-                        legend: legend(for: graph),
-                        onOpen: { open($0, in: graph) }
-                    )
-                    caption(for: graph)
+                    controls(for: graph)
+                    // What the search finds is laid over the map, not put above it: at a large text size the rows would take
+                    // the map's room, and the map would vanish while someone searches.
+                    mapArea(for: graph).overlay(alignment: .top) {
+                        if !model.query.trimmingCharacters(in: .whitespaces).isEmpty { results(for: graph) }
+                    }
                 }
             }
         }
         .task(id: list.branch) { await model.load(branch: list.branch) }
     }
 
+    /// The picture and its caption, or why there is no picture. (One view, so the results are laid over it once.)
+    private func mapArea(for graph: MemoryGraph) -> some View {
+        VStack(spacing: 0) {
+            if graph.nodes.isEmpty {
+                HVEmptyState(
+                    symbol: "line.3.horizontal.decrease.circle",
+                    title: "Nothing to show",
+                    message: emptyMessage
+                )
+                .frame(maxHeight: .infinity)
+                Button("Show everything") { model.showEverything() }
+                    .buttonStyle(.hvGhost)
+                    .padding(.bottom, HV.Space.m)
+            } else {
+                ForceGraphView(
+                    nodes: forceNodes(for: graph),
+                    edges: forceEdges(for: graph),
+                    legend: legend(for: graph),
+                    onOpen: { open($0, in: graph) }
+                )
+                caption(for: graph)
+            }
+        }
+    }
+
+    /// Why a map with memories in the list has nothing on it.
+    private var emptyMessage: String {
+        if model.linksUnavailable && model.hideUnlinked {
+            return "The links could not be read, so nothing shows as linked. Try again in a moment."
+        }
+        if model.hideUnlinked {
+            return model.hiddenTypes.isEmpty
+                ? "Nothing has a link yet. Links form as you keep related memories."
+                : "Nothing left has a link. Show a type again above, or show everything."
+        }
+        return "Every type is hidden. Show one again above."
+    }
+
+    // MARK: Controls
+
+    private func controls(for graph: MemoryGraph) -> some View {
+        GraphControls(
+            searchTitle: "Find a memory",
+            query: Binding(get: { model.query }, set: { model.query = $0 }),
+            identifierPrefix: "memory.graph",
+            types: graph.types.map { GraphFilterType(name: $0.name, count: $0.count) },
+            hiddenTypes: model.hiddenTypes,
+            hideUnlinked: model.hideUnlinked,
+            onToggleType: { model.toggle(type: $0) },
+            onToggleUnlinked: { model.setHideUnlinked(!model.hideUnlinked) }
+        )
+    }
+
+    /// What the search found: the best connected first. Tapping one opens it, as a tap on its node does.
+    private func results(for graph: MemoryGraph) -> some View {
+        let sources = sourcesByID
+        return GraphSearchResults(
+            results: model.matches(in: graph).map { node in
+                GraphSearchResult(
+                    id: node.id, title: node.title, detail: node.type,
+                    symbol: node.kind == .memory ? HVSymbol.memory : "doc.text",
+                    tint: tint(of: node, sources: sources)
+                )
+            },
+            onOpen: { open($0, in: graph) }
+        )
+    }
+
     // MARK: Mapping memories onto the generic graph
 
+    /// Where each memory came from, by its id: what colours its node.
+    private var sourcesByID: [String: String] {
+        Dictionary(list.items.map { ($0.id, $0.source) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    private func tint(of node: MemoryGraph.Node, sources: [String: String]) -> Color {
+        switch node.kind {
+        case .memory: return MemoryStyle.graphTint(forSource: sources[node.id] ?? "manual")
+        case .artifact: return Palette.rose
+        }
+    }
+
     private func forceNodes(for graph: MemoryGraph) -> [ForceGraphNode] {
-        let sources = Dictionary(list.items.map { ($0.id, $0.source) }, uniquingKeysWith: { first, _ in first })
+        let sources = sourcesByID
         return graph.nodes.map { node in
             switch node.kind {
             case .memory:
                 return ForceGraphNode(
                     id: node.id, label: node.title,
-                    color: MemoryStyle.graphTint(forSource: sources[node.id] ?? "manual"),
+                    color: tint(of: node, sources: sources),
                     shape: .circle, weight: 1 + min(Double(node.degree), 8) * 0.7, detail: "Memory"
                 )
             case .artifact:
                 return ForceGraphNode(
-                    id: node.id, label: node.title, color: Palette.rose,
+                    id: node.id, label: node.title, color: tint(of: node, sources: sources),
                     shape: .diamond, weight: 1.6 + min(Double(node.degree), 6) * 0.5, detail: "Page"
                 )
             }
@@ -73,7 +154,7 @@ struct MemoryGraphScreen: View {
 
     private func legend(for graph: MemoryGraph) -> [ForceGraphLegendItem] {
         var seen: [String] = []
-        let sources = Dictionary(list.items.map { ($0.id, $0.source) }, uniquingKeysWith: { first, _ in first })
+        let sources = sourcesByID
         for node in graph.nodes where node.kind == .memory {
             let source = sources[node.id] ?? "manual"
             if !seen.contains(source) { seen.append(source) }
@@ -96,10 +177,17 @@ struct MemoryGraphScreen: View {
     }
 
     private func caption(for graph: MemoryGraph) -> some View {
-        var parts = ["\(graph.memoryTotal) \(graph.memoryTotal == 1 ? "memory" : "memories")"]
+        let memories = graph.nodes.filter { $0.kind == .memory }.count
+        var parts = ["\(memories) \(memories == 1 ? "memory" : "memories")"]
         parts.append("\(graph.edges.count) \(graph.edges.count == 1 ? "link" : "links")")
-        if graph.isCapped { parts.append("the \(graph.nodes.count) best connected are shown") }
-        if graph.edges.isEmpty { parts = ["No links yet. They form as you keep related memories."] }
+        // The search finds what is on the map and nothing else, so a memory past the cap is one it cannot see.
+        if graph.isCapped {
+            parts.append("the \(graph.nodes.count) best connected of \(graph.eligible) are shown, and the search finds only those")
+        }
+        // (With the map narrowed by hand, no links is what was asked for and not a young vault.)
+        if graph.edges.isEmpty, model.hiddenTypes.isEmpty, !model.hideUnlinked {
+            parts = ["No links yet. They form as you keep related memories."]
+        }
         if let note = model.linkNote { parts.append(note) }
         return Text(parts.joined(separator: " \u{00B7} "))
             .font(.hvCaption)

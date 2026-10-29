@@ -173,6 +173,8 @@ struct CanvasCardView: View {
         Button(HVCopy.cardOpenLabel, action: onOpen)
             .buttonStyle(.hvGhost)
             .accessibilityLabel("Open \(card.title)")
+            // Open on a key shows its page over the canvas, where the agents that may use it are changed; "Open" alone does not say so.
+            .accessibilityHint(card.kind == .key ? "Change which agents may use it, or rename it" : "")
         if let kept = card.kept, let url = URL(string: kept.link) {
             Button(copied ? "Copied" : "Copy link") {
                 UIPasteboard.general.string = kept.link

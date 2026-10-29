@@ -199,6 +199,15 @@ final class MemoryGraphModel {
     private(set) var isStale = false
     private(set) var linkSource = LinkSource.main
     private(set) var branchLinks: [MemoryLinkRow] = []
+    /// What the person has typed to find a memory by name.
+    var query = ""
+    /// Kinds of node left off the map, by the names in `MemoryGraph.types`.
+    private(set) var hiddenTypes: Set<String> = []
+    /// Memories and pages with no links are left off the map.
+    private(set) var hideUnlinked = false
+
+    /// The most memories the search lists at once, as the Library's graph lists.
+    static let matchLimit = 6
 
     @ObservationIgnored private let env: AppEnvironment
     @ObservationIgnored private var branch = MindBranchName.defaultName
@@ -262,8 +271,39 @@ final class MemoryGraphModel {
         return MemoryGraphBuilder.links(in: state)
     }
 
+    /// The links could not be read, so what is drawn has none: `/api/connections` failed, and a branch's own links, which
+    /// do not come from it, were not there to take their place.
+    var linksUnavailable: Bool {
+        guard case .failed = phase else { return false }
+        return linkSource != .branch
+    }
+
+    /// The map as the person has set it: without the kinds of node they left off and, when asked, without what has no links.
     func graph(for items: [MemoryItem], cap: Int = MemoryGraphBuilder.defaultCap) -> MemoryGraph {
-        MemoryGraphBuilder.build(memories: items, links: memoryLinks, bridges: connections.bridges, artifacts: artifacts, cap: cap)
+        MemoryGraphBuilder.build(
+            memories: items, links: memoryLinks, bridges: connections.bridges, artifacts: artifacts,
+            cap: cap, hideUnlinked: hideUnlinked, hiddenTypes: hiddenTypes
+        )
+    }
+
+    /// The nodes of `graph` whose name has what was typed in it, the best connected first. Only what is on the map is found,
+    /// so a memory past the cap is not.
+    func matches(in graph: MemoryGraph) -> [MemoryGraph.Node] {
+        graph.matches(query, limit: Self.matchLimit)
+    }
+
+    func setHideUnlinked(_ on: Bool) {
+        hideUnlinked = on
+    }
+
+    /// Shows or hides every node of this type.
+    func toggle(type: String) {
+        if hiddenTypes.contains(type) { hiddenTypes.remove(type) } else { hiddenTypes.insert(type) }
+    }
+
+    func showEverything() {
+        hiddenTypes = []
+        hideUnlinked = false
     }
 
     /// The links between memories that the map draws.

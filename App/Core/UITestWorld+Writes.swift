@@ -10,10 +10,11 @@ import HyperVaultKit
 /// (`UITestWritesTests`) run the same routes through the Kit's own endpoints. These routes come before the static ones in
 /// `UITestWorld.routes(for:)`: where a route here answers a path, it answers for the whole launch.
 extension UITestWorld {
-    static func writeRoutes() -> [MockRoute] {
+    /// `keyCardEntry` is the launch flag `UITestWorld.keyCardEntryFlag`: the vault also lists the entry of the canvas's key card.
+    static func writeRoutes(keyCardEntry: Bool = UITestWorld.keyCardEntryRequested) -> [MockRoute] {
         let memories = UITestMemories()
         let vault = UITestVault(memories: memories)
-        let secrets = UITestSecrets()
+        let secrets = UITestSecrets(keyCardEntry: keyCardEntry)
         let boards = UITestBoards()
         let mail = UITestMail()
         let realms = UITestRealms()
@@ -877,8 +878,17 @@ final class UITestSecrets: @unchecked Sendable {
     /// Entries (by id) whose next read of the grants adds a key the server no longer has granted.
     private var staleKeys: [String: String] = ["s1": UITestSecrets.staleKey]
 
-    init() {
-        secrets = UITestWorld.parse(VaultPreviewData.secretsJSON)["secrets"]?.array ?? []
+    /// The entry of the key card on the canvas (`UITestWorld.things`, `k1`): the row has the id Yours gives that card, as the
+    /// real server's do. Only a launch that asks for it (`UITestWorld.keyCardEntryFlag`) lists it.
+    static var keyCardRow: JSONValue {
+        .object([
+            "id": .string("k1"), "name": .string("OPENAI_API_KEY"), "kind": .string("opaque"), "description": .null, "hint": .null,
+            "created_at": .string(UITestWorld.date(400_000)), "updated_at": .string(UITestWorld.date(400_000)), "last_accessed_at": .null,
+        ])
+    }
+
+    init(keyCardEntry: Bool = false) {
+        secrets = (UITestWorld.parse(VaultPreviewData.secretsJSON)["secrets"]?.array ?? []) + (keyCardEntry ? [Self.keyCardRow] : [])
     }
 
     func rows() -> [JSONValue] {

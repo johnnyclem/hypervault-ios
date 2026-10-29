@@ -86,7 +86,7 @@ struct LibraryGraphScreen: View {
         VStack(spacing: HV.Space.xxs) {
             HStack(spacing: HV.Space.xs) {
                 HVIcon("magnifyingglass").foregroundStyle(Palette.textTertiary)
-                TextField("Find a page or memory", text: Binding(get: { model.query }, set: { model.query = $0 }))
+                TextField("Find a page or memory", text: Binding(get: { model.query }, set: { model.query = $0 }), prompt: Text.hvPrompt("Find a page or memory"))
                     .accessibilityIdentifier("library.graph.search")
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()

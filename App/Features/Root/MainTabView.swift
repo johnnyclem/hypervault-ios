@@ -30,6 +30,7 @@ struct MainTabView: View {
                 .tag(AppTab.you)
         }
         .tabBarWithoutSidebar()
+        .background(TabGlyphQuietHost())
         // Whatever Siri or the share sheet left waiting is kept once the person is in, not while the lock is up.
         .task(id: model.lock.isLocked) {
             guard !model.lock.isLocked else { return }

@@ -3,23 +3,22 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// Import, a pane of the You tab: two rows, as the web has them (components/account-sections.tsx). The first goes on to
-/// the history importer; the second keeps one file, a `.jsx` or `.tsx` component as a running page and a PDF as it is
-/// (components/jsx-import-button.tsx).
+/// the history importer; the second keeps one file, and sends it where it belongs by its type, as the web's side menu Import
+/// does (components/import-anything-button.tsx): a component or an HTML file as a running page, a PDF or an image as it is,
+/// a text, Markdown or Word file as a memory (`ImportFileModel`).
 struct ImportPane: View {
     @Environment(AppModel.self) private var app
     @Environment(AppEnvironment.self) private var env
 
     @State private var importing = false
-    @State private var isBusy = false
+    @State private var model: ImportFileModel?
     @State private var problem: String?
 
-    /// A PDF, and the component files: the picker offers them, and the name decides what each one is.
+    private var isBusy: Bool { model?.isBusy == true }
+
+    /// Everything the one-stop import keeps: the picker offers these, and the name decides what each one is.
     private static var fileTypes: [UTType] {
-        var types: [UTType] = [.pdf, .sourceCode]
-        for ext in ["jsx", "tsx"] {
-            if let type = UTType(filenameExtension: ext) { types.append(type) }
-        }
-        return types
+        FileImport.extensions.compactMap { UTType(filenameExtension: $0) }
     }
 
     var body: some View {
@@ -41,12 +40,12 @@ struct ImportPane: View {
                 ) {
                     app.router.push(.importHistory, on: .you)
                 }
-                // The web's line adds "(up to 10 MB)" after PDFs, which is older than its code: the server takes 50 MB on Pro and
-                // 1 MB on Free, and the app's own check says 50 MB (`FileImport`). The size is left out rather than be wrong.
+                // The web's account line adds "(up to 10 MB)" after PDFs, which is older than its code: the server takes 50 MB on Pro
+                // and 1 MB on Free, and the app's own check says 50 MB (`FileImport`). The size is left out rather than be wrong.
                 importRow(
                     "file", title: "A file",
-                    detail: "A .jsx file is auto-wrapped into a running, installable page. PDFs are saved as-is.",
-                    action: isBusy ? "Importing" : "Import .jsx / .pdf file", isDisabled: isBusy
+                    detail: "Pick a file and it goes where it belongs. A .jsx or .html file becomes a running, installable page; a PDF or an image is saved as it is; a .txt, .md or .docx file becomes a memory.",
+                    action: isBusy ? "Importing" : "Import a file", isDisabled: isBusy
                 ) {
                     problem = nil
                     importing = true
@@ -64,6 +63,7 @@ struct ImportPane: View {
             guard case .success(let urls) = result, let url = urls.first else { return }
             Task { await keep(url) }
         }
+        .onAppear { if model == nil { model = ImportFileModel(client: env.client) } }
     }
 
     private func importRow(
@@ -86,40 +86,19 @@ struct ImportPane: View {
 
     /// Keeps the file the person picked, and opens what it became.
     private func keep(_ url: URL) async {
-        let name = url.lastPathComponent
-        guard let kind = FileImport.kind(ofFilename: name) else {
-            problem = FileImport.pickAFile
-            return
-        }
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        if kind == .pdf, let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize, FileImport.isOverTheCeiling(bytes: size) {
-            problem = FileImport.pdfTooBig
-            return
-        }
-        guard let data = try? Data(contentsOf: url) else {
-            problem = "That file couldn't be read."
-            return
-        }
-        isBusy = true
+        let model = model ?? ImportFileModel(client: env.client)
+        self.model = model
         problem = nil
-        defer { isBusy = false }
-        do {
-            let result: ArtifactSaveResult
-            switch kind {
-            case .pdf:
-                result = try await ArtifactUploader(client: env.client).upload(data: data, filename: name)
-            case .component:
-                guard let text = String(data: data, encoding: .utf8) else {
-                    problem = "That file isn't text, so it can't be kept as a page."
-                    return
-                }
-                result = try await env.client.send(.saveArtifact(FileImport.saveRequest(componentText: text, filename: name)))
-            }
-            app.toasts.show(result.duplicate ? LibraryCopy.alreadyKept : LibraryCopy.kept, style: .success)
-            app.router.push(.artifact(slug: result.slug), on: .you)
-        } catch {
-            problem = keysMessage(for: error)
+        switch await model.keep(url) {
+        case .page(let slug, let duplicate):
+            app.toasts.show(duplicate ? LibraryCopy.alreadyKept : LibraryCopy.kept, style: .success)
+            app.router.push(.artifact(slug: slug), on: .you)
+        case .memory(let id, let message):
+            app.toasts.success(message)
+            if !id.isEmpty { app.router.push(.memory(id: id), on: .you) }
+        case .refused(let reason):
+            problem = reason
+            Haptics.failure()
         }
     }
 }

@@ -165,7 +165,9 @@ final class MemoryAskModel {
     }
 }
 
-/// The map of memories: what `/api/connections` adds to the list.
+/// The map of memories: what `/api/connections` adds to the list. That route has main's memory links and no others,
+/// so on any other branch the links are read from the branch's own state (`/api/mind/state`). The pages the memories
+/// are bridged to are not kept per branch and always come from `/api/connections`.
 @MainActor
 @Observable
 final class MemoryGraphModel {
@@ -175,37 +177,101 @@ final class MemoryGraphModel {
         case failed(String)
     }
 
+    /// Where the links between memories on the map come from.
+    enum LinkSource: Equatable {
+        /// Main's, from `/api/connections`.
+        case main
+        /// The branch's own, which are on their way.
+        case reading
+        /// The branch's own, read from its state.
+        case branch
+        /// The branch's state could not be read, so main's stand in for them.
+        case mainInstead
+    }
+
+    /// The sentences under the map when the branch's own links could not be read.
+    static let mainInsteadNote = "this branch's links could not be read, so these are main's"
+    static let unreadNote = "this branch's links could not be read"
+
     private(set) var phase: Phase = .loading
     private(set) var connections = MemoryConnections()
     private(set) var artifacts: [MemoryGraphArtifact] = []
     private(set) var isStale = false
+    private(set) var linkSource = LinkSource.main
+    private(set) var branchLinks: [MemoryLinkRow] = []
 
     @ObservationIgnored private let env: AppEnvironment
+    @ObservationIgnored private var branch = MindBranchName.defaultName
 
     init(env: AppEnvironment) {
         self.env = env
     }
 
-    func load() async {
+    /// The branch's own links are on their way, and until they are here the map would show the wrong ones.
+    var isReadingLinks: Bool { linkSource == .reading }
+
+    /// What the caption says about the links when they are not the branch's own; nil when they are.
+    var linkNote: String? {
+        guard linkSource == .mainInstead else { return nil }
+        return phase == .loaded ? Self.mainInsteadNote : Self.unreadNote
+    }
+
+    func load(branch: String) async {
+        self.branch = branch
+        let onMain = branch == MindBranchName.defaultName
+        linkSource = onMain ? .main : .reading
+        branchLinks = []
         let client = env.client
+        // Another branch's links are read at its head while main's connections load, which still carry the pages.
+        async let own = Self.ownLinks(of: branch, client: client)
+        var connectionsFailed = false
         do {
             for try await loaded in env.load("memory.connections", fetch: { try await client.send(.memoryConnections) }) {
+                guard branch == self.branch else { return }
                 connections = loaded.value
                 isStale = loaded.isStale && loaded.refreshError != nil
                 phase = .loaded
             }
         } catch {
-            guard !MemoryErrors.isCancelled(error) else { return }
+            guard !MemoryErrors.isCancelled(error), branch == self.branch else { return }
             phase = .failed(MemoryErrors.message(error))
-            return
+            connectionsFailed = true
         }
+        if !onMain {
+            let read = await own
+            guard branch == self.branch, !Task.isCancelled else { return }
+            if let read {
+                branchLinks = read
+                linkSource = .branch
+            } else {
+                linkSource = .mainInstead
+            }
+        }
+        guard !connectionsFailed else { return }
         // Names for the pages the memories are bridged to. Nice to have: the map works without them.
         if let list = try? await client.send(.yours(filter: .file, limit: 50)) {
+            guard branch == self.branch else { return }
             artifacts = list.results.map { MemoryGraphArtifact(id: $0.id, title: $0.name, slug: $0.slug) }
         }
     }
 
+    /// The links of `branch`, read from its state; nil for main (`/api/connections` is its own) and when the read fails.
+    private nonisolated static func ownLinks(of branch: String, client: HVClient) async -> [MemoryLinkRow]? {
+        guard branch != MindBranchName.defaultName else { return nil }
+        guard let state = try? await client.send(.mindState(at: .branch(branch), branch: branch)) else { return nil }
+        return MemoryGraphBuilder.links(in: state)
+    }
+
     func graph(for items: [MemoryItem], cap: Int = MemoryGraphBuilder.defaultCap) -> MemoryGraph {
-        MemoryGraphBuilder.build(memories: items, links: connections.memoryLinks, bridges: connections.bridges, artifacts: artifacts, cap: cap)
+        MemoryGraphBuilder.build(memories: items, links: memoryLinks, bridges: connections.bridges, artifacts: artifacts, cap: cap)
+    }
+
+    /// The links between memories that the map draws.
+    private var memoryLinks: [MemoryLinkRow] {
+        switch linkSource {
+        case .main, .mainInstead: return connections.memoryLinks
+        case .branch: return branchLinks
+        case .reading: return []
+        }
     }
 }

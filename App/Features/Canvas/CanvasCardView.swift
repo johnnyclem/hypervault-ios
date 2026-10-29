@@ -7,6 +7,8 @@ struct CanvasCardView: View {
     let card: CanvasCard
     let onOpen: () -> Void
     let onHide: () -> Void
+    /// Opens the people-and-role share sheet. A card that has nothing to share (a memory, a key) shows no Share whatever this is.
+    var onShare: (() -> Void)?
 
     @State private var showFiles = false
     @State private var copied = false
@@ -163,8 +165,9 @@ struct CanvasCardView: View {
         .padding(.bottom, -HV.Space.s)
     }
 
-    /// Open, and for a thing that was just kept, its link. Every one is a ghost button, which already
-    /// carries its own padding and a 44-point target, so the row adds no spacing of its own.
+    /// Open, and for a thing that was just kept, its link (copied, or handed on with the system's own share sheet). For any
+    /// other page, file or group, Share: the sheet that has the link and the people who can open it. Every one is a ghost
+    /// button, which already carries its own padding and a 44-point target, so the row adds no spacing of its own.
     @ViewBuilder
     private var leadingActions: some View {
         Button(HVCopy.cardOpenLabel, action: onOpen)
@@ -185,6 +188,16 @@ struct CanvasCardView: View {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
             .buttonStyle(.hvGhost)
+        } else if let onShare, let slug = card.slug {
+            // (A card that was just kept has the system share beside Copy link: the quick way to hand the link on, and a fifth
+            // button would not fit the row. Its people sheet is one tap away from the page.)
+            Button(action: onShare) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            .buttonStyle(.hvGhost)
+            .accessibilityLabel("Share \(card.title)")
+            .accessibilityHint("Share the link or add people")
+            .accessibilityIdentifier("canvas.share.\(slug)")
         }
     }
 

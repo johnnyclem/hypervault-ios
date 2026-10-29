@@ -19,9 +19,12 @@ struct CanvasScreen: View {
     let origin: URL
 
     @Environment(AppModel.self) private var app
+    @Environment(AppEnvironment.self) private var env
     @Environment(\.scenePhase) private var scenePhase
     @State private var model: CanvasModel
     @State private var showYours = false
+    /// The page whose people-and-role share sheet is up over the canvas.
+    @State private var sharing: CanvasShareTarget?
     @State private var starterCopied = false
     @State private var dictation = DictationController()
     @State private var dictationBase = ""
@@ -94,6 +97,9 @@ struct CanvasScreen: View {
                 app.router.open(.route(.library))
             })
         }
+        .sheet(item: $sharing) { target in
+            CanvasShareSheet(detail: target.detail)
+        }
         .task {
             await model.loadBackends()
             takeRouterDraft()
@@ -132,7 +138,7 @@ struct CanvasScreen: View {
     private var dictationMustStop: Bool {
         DictationPolicy.mustStop(
             tab: app.router.tab,
-            isCovered: showYours || showScanner || app.router.sheet != nil,
+            isCovered: showYours || showScanner || sharing != nil || app.router.sheet != nil,
             phase: scenePhase
         )
     }
@@ -148,8 +154,12 @@ struct CanvasScreen: View {
     private var content: some View {
         if model.isQuiet {
             ScrollView {
-                CanvasHints(model: model, userName: userName, onCopyStarter: copyStarter, starterCopied: starterCopied)
-                    .padding(.top, HV.Space.xxl)
+                VStack(spacing: 0) {
+                    CanvasHints(model: model, userName: userName, onCopyStarter: copyStarter, starterCopied: starterCopied)
+                        .padding(.top, HV.Space.xxl)
+                    // The first-run ask for an agent's key: there only for someone with no key who has not waved it off.
+                    ConnectCardSlot()
+                }
             }
             .scrollBounceBehavior(.basedOnSize)
             .scrollDismissesKeyboard(.interactively)
@@ -158,7 +168,12 @@ struct CanvasScreen: View {
                 ScrollView {
                     VStack(spacing: HV.Space.m) {
                         ForEach(model.cards) { card in
-                            CanvasCardView(card: card, onOpen: { open(card) }, onHide: { HV.Motion.animate(.snappy) { model.dispatch(.hide(key: card.key)) } })
+                            CanvasCardView(
+                                card: card,
+                                onOpen: { open(card) },
+                                onHide: { HV.Motion.animate(.snappy) { model.dispatch(.hide(key: card.key)) } },
+                                onShare: { share(card) }
+                            )
                                 .transition(.asymmetric(insertion: .scale(scale: 0.96).combined(with: .opacity), removal: .opacity))
                         }
                         CanvasThreadView(model: model)
@@ -214,6 +229,11 @@ struct CanvasScreen: View {
         case .key:
             app.router.open(.account(.vault))
         }
+    }
+
+    /// Share on a page, a file or a group: the sheet that has the link and the people who can open it, over the canvas.
+    private func share(_ card: CanvasCard) {
+        sharing = CanvasShare.target(for: card, env: env)
     }
 
     private func toggleDictation() {

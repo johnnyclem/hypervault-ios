@@ -143,7 +143,7 @@ Four layers, each catching what the one below cannot see:
   presents or a control nothing can reach fails CI.
 
 The UI tests need no server. A debug build launched with `-HV_UITEST -HV_UITEST_SCENARIO <signedOut | signedIn |
-signedInEmpty | waitlisted | signedInAdmin>` builds its model on a canned server inside the app
+signedInEmpty | signedInNoKeys | waitlisted | signedInAdmin>` builds its model on a canned server inside the app
 (`App/Core/UITestHarness.swift`, `UITestWorld.swift` and `UITestWorld+Screens.swift`, compiled out of release builds),
 with an in-memory secure store and scratch defaults, so a run never touches the network, the Keychain or the phone's own
 state. They cover:

@@ -11,6 +11,9 @@ enum UITestScenario: String, CaseIterable {
     case signedIn
     /// The app with nothing kept and no model connected: the first run.
     case signedInEmpty
+    /// The first run of someone who has no agent key either (`signedInEmpty` lists the preview keys), so the Home page
+    /// asks them to connect one.
+    case signedInNoKeys
     /// Signed in but not let in, until the invite code `UITestWorld.inviteCode` is redeemed.
     case waitlisted
     /// The same vault as `signedIn`, for a person the server knows as an admin (the You tab shows Admin).
@@ -21,7 +24,7 @@ enum UITestScenario: String, CaseIterable {
 
 /// The UI-test mode: a debug build that, when launched with
 ///
-///     -HV_UITEST -HV_UITEST_SCENARIO <signedOut | signedIn | signedInEmpty | waitlisted | signedInAdmin>
+///     -HV_UITEST -HV_UITEST_SCENARIO <signedOut | signedIn | signedInEmpty | signedInNoKeys | waitlisted | signedInAdmin>
 ///
 /// builds its `AppModel` on a canned server instead of the real one, so `HyperVaultUITests` can launch the whole app,
 /// tap and type through it, and never touch the network, the Keychain or anything a person left on the phone.

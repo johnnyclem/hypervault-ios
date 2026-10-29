@@ -451,7 +451,7 @@ enum UITestWorld {
 
     /// `/api/artifacts/<slug>/content`, `/feedback` and the like, by what the path ends with.
     private static var artifactDetailRoute: MockRoute {
-        MockRoute(.get, "/api/artifacts/*", handler: artifactDetail)
+        MockRoute(.get, "/api/artifacts/*") { request in artifactDetail(request) }
     }
 
     /// The reads under a page, by what the path ends with (the page the journeys open is the Bakery page).

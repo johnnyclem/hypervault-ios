@@ -16,6 +16,11 @@ final class ArtifactRepairModel {
     }
 
     private(set) var phase: Phase = .idle
+    /// The models the person has connected, once they have been read. With more than one the repair asks which.
+    private(set) var backends: [ChatBackend] = []
+    /// The list was read, so an empty one means no model is connected, which is not the same as not knowing.
+    private(set) var backendsKnown = false
+    var selectedBackendID: String?
     private let client: HVClient
     private let slug: String
     private let pollInterval: UInt64
@@ -30,6 +35,17 @@ final class ArtifactRepairModel {
         self.pollInterval = pollInterval
     }
 
+    /// No model is connected, as far as a list that was read says. The attempt would only be refused, so the sheet says so first.
+    var needsModel: Bool { backendsKnown && backends.isEmpty }
+
+    /// The models to choose among. A list that could not be read leaves the choice to the server.
+    func loadBackends() async {
+        guard !backendsKnown, let list = try? await client.send(.backends) else { return }
+        backends = list
+        backendsKnown = true
+        if !list.contains(where: { $0.id == selectedBackendID }) { selectedBackendID = list.first?.id }
+    }
+
     /// The sheet was closed. The job goes on, but the answer would reach no one here, so this stops asking and does not
     /// acknowledge it: the job notice (`JobNotices`) tells of it the next time Home or the Library is showing.
     func stopWaiting() {
@@ -40,7 +56,9 @@ final class ArtifactRepairModel {
         phase = .running
         let start: ArtifactRepairStart
         do {
-            start = try await client.send(.repairArtifact(slug: slug, renderError: renderError))
+            // Only a person who had a choice is asked what it was; with one model the server's default is that model.
+            let chosen = backends.count > 1 ? selectedBackendID : nil
+            start = try await client.send(.repairArtifact(slug: slug, renderError: renderError, backendId: chosen))
         } catch let error as HVError {
             phase = .failed(message: error.userMessage, needsBackend: error.failure?.body?["needs_backend"]?.bool == true)
             return
@@ -104,6 +122,8 @@ struct ArtifactRepairSheet: View {
                         .hvCard()
                     }
 
+                    modelChoice
+
                     result
                 }
                 .padding(HV.Space.m)
@@ -119,7 +139,39 @@ struct ArtifactRepairSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .task { await model.loadBackends() }
         .onDisappear { model.stopWaiting() }
+    }
+
+    /// Which model repairs the page, when there is more than one; and, before any attempt, that there is none.
+    @ViewBuilder
+    private var modelChoice: some View {
+        if model.backends.count > 1 {
+            LabeledContent("Repair with") {
+                Picker("Repair with", selection: Binding(get: { model.selectedBackendID ?? "" }, set: { model.selectedBackendID = $0 })) {
+                    ForEach(model.backends) { backend in
+                        Text(backend.name).tag(backend.id)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+                .accessibilityIdentifier("repair.model")
+            }
+            .hvCard()
+        } else if model.needsModel {
+            VStack(alignment: .leading, spacing: HV.Space.xs) {
+                Text("No model is connected yet. Connect one in Chat, then come back and try again.")
+                    .font(.hvCallout)
+                    .foregroundStyle(Palette.textSecondary)
+                Button("Open Chat") {
+                    dismiss()
+                    app.router.open(.tab(.chat))
+                }
+                .buttonStyle(.hvGhost)
+            }
+        }
     }
 
     private var explanation: String {
@@ -172,7 +224,7 @@ struct ArtifactRepairSheet: View {
             default:
                 Button(model.phase == .running ? "Repairing" : "Attempt repair") { start() }
                     .buttonStyle(.hvPrimary)
-                    .disabled(model.phase == .running)
+                    .disabled(model.phase == .running || model.needsModel)
             }
         }
         .padding(HV.Space.m)

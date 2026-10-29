@@ -493,6 +493,16 @@ public struct ChatToolsReport: Sendable, Hashable, Codable {
         guard status == .stale else { return nil }
         return embedder?.detail ?? "Your tools were set up with a different configuration. Set them up again under Tools."
     }
+
+    /// The web's amber note on a chat turn that had tools on while they were matched by wording alone (`chat-surface.tsx`,
+    /// `embedder.lexical`). Chat has a way to act on it (Manage tools); Memory's Ask has not, and the web's Ask does not say it.
+    public var lexicalNotice: String? {
+        guard status == .ok, embedder?.lexical == true else { return nil }
+        return "Your tools are matching by wording only, so a request has to sound like a tool's name. Recompile them under Tools, or connect a model that reads meaning."
+    }
+
+    /// What a chat turn says about its tools: they could not be used, or they were used only half as well.
+    public var chatNotice: String? { notice ?? lexicalNotice }
 }
 
 /// A choice the server could not make for the model: which tool to run.

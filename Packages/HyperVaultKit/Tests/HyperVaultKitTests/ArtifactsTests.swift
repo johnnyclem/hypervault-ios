@@ -231,6 +231,20 @@ final class ArtifactsTests: XCTestCase {
         _ = try await api.send(.acknowledgeArtifactJob(id: "j1"))
     }
 
+    func testRepairNamesTheModelThePersonChoseAndOtherwiseLeavesItToTheServer() async throws {
+        let transport = MockTransport(routes: [
+            MockRoute(.post, "/api/artifacts/p-1/repair") { _ in HTTPResponse(status: 202, data: Data(#"{"job_id":"j1","status":"pending"}"#.utf8)) },
+        ])
+        let api = client(transport)
+        _ = try await api.send(.repairArtifact(slug: "p-1"))
+        _ = try await api.send(.repairArtifact(slug: "p-1", backendId: "b2"))
+        _ = try await api.send(.repairArtifact(slug: "p-1", backendId: ""))
+        let sent = try await transport.requests.map { try XCTUnwrap(JSONSerialization.jsonObject(with: try XCTUnwrap($0.httpBody)) as? [String: Any]) }
+        XCTAssertNil(sent[0]["backend_id"])
+        XCTAssertEqual(sent[1]["backend_id"] as? String, "b2")
+        XCTAssertNil(sent[2]["backend_id"], "an empty id is no choice")
+    }
+
     func testRepairWithoutABackendSaysSo() async {
         let transport = MockTransport(routes: [
             .json(.post, "/api/artifacts/p-1/repair", #"{"error":"No LLM backend is connected — connect one (OpenAI, Anthropic, a local model, …) from Chat, then try the repair again.","needs_backend":true}"#, status: 400),

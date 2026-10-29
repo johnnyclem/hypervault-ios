@@ -28,6 +28,7 @@ final class YouJourneyTests: HyperVaultUITestCase {
                 XCTAssertTrue(item.label.contains(row.label), "The \(row.id) row says \"\(item.label)\".")
             }
             require(shows("Beta"), "the heading over Dreams and Truth")
+            require(shows("waiting for review"), "the badge on Dreams, for what waits for a decision")
             XCTAssertFalse(element("account.admin").exists, "Admin is for an admin only.")
             reveal(element("account.signOut"), "Sign out")
             XCTAssertFalse(shows("Pricing").exists, "The menu has no Pricing.")

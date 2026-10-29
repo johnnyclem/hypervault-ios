@@ -550,7 +550,7 @@ final class ChatConversationModel {
             conversation = ChatConversation(id: turn.conversationID, title: String(text.prefix(80)), updatedAt: Date())
         }
         knownServerMessages += 2 + 2 * turn.tools.turns.count
-        toolNotice = turn.tools.notice
+        toolNotice = turn.tools.chatNotice
         AccessibilityNotification.Announcement("Reply received").post()
         Task { [cache, namespace, id = turn.conversationID] in
             await cache.remove(key: "chat.conversation.\(id)", namespace: namespace)

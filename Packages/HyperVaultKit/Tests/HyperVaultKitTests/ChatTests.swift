@@ -237,6 +237,23 @@ final class ChatTests: XCTestCase {
         XCTAssertNil(ChatToolsReport.off.notice)
     }
 
+    func testToolsMatchedByWordingAloneSaySoOnAChatTurnThatHadThemOn() throws {
+        func report(_ status: String, lexical: Bool) throws -> ChatToolsReport {
+            let json = #"{"status":"\#(status)","toolkit_id":"t1","turns":[],"embedder":{"label":"x","lexical":\#(lexical),"upgrade_available":false}}"#
+            return try HVCoding.decoder(.verbatim).decode(ChatToolsReport.self, from: Data(json.utf8))
+        }
+        let lexical = try report("ok", lexical: true)
+        let note = try XCTUnwrap(lexical.chatNotice)
+        XCTAssertTrue(note.contains("matching by wording only"))
+        XCTAssertTrue(note.contains("Recompile them under Tools"))
+        XCTAssertNil(lexical.notice, "Memory's Ask shows only `notice`, and the web's Ask does not say this")
+        XCTAssertNil(try report("ok", lexical: false).chatNotice, "tools that read meaning have nothing to apologise for")
+        XCTAssertNil(try report("off", lexical: true).chatNotice, "a turn with tools off has no note about them")
+        let stale = try report("stale", lexical: true)
+        XCTAssertEqual(stale.chatNotice, "Your tools were set up with a different configuration. Set them up again under Tools.", "stale is still its own note, and wins")
+        XCTAssertEqual(stale.notice, stale.chatNotice)
+    }
+
     func testChatErrorsAreTheServersOwnSentences() async {
         let cases: [(Int, String)] = [
             (400, "backend_id is required."),

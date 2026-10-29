@@ -134,6 +134,10 @@ final class TabsJourneyTests: HyperVaultUITestCase {
             require(text("7 memories"), "the count line")
         }
 
+        step("More says what waits for review") {
+            waitUntil("the count on More") { (self.element("memory.more").value as? String ?? "").contains("waiting for review") }
+        }
+
         step("Graph draws the map") {
             tap(segment("Graph"), "the Graph mode", until: { button("Fit the whole graph").exists })
             // The map is read as its nodes, each a button that opens its memory, and its zoom controls stay reachable.

@@ -110,10 +110,12 @@ extension Endpoint where Response == ArtifactMessage {
 }
 
 extension Endpoint where Response == ArtifactRepairStart {
-    /// Hands a broken page to the person's connected model. It answers at once with a job to poll.
-    public static func repairArtifact(slug: String, renderError: String? = nil) -> Endpoint<ArtifactRepairStart> {
+    /// Hands a broken page to the person's connected model. It answers at once with a job to poll. `backendId` is the model the
+    /// person chose when they have more than one; left out, the server uses its default.
+    public static func repairArtifact(slug: String, renderError: String? = nil, backendId: String? = nil) -> Endpoint<ArtifactRepairStart> {
         var body: [String: JSONValue] = [:]
         if let renderError, !renderError.isEmpty { body["render_error"] = .string(String(renderError.prefix(2_000))) }
+        if let backendId, !backendId.isEmpty { body["backend_id"] = .string(backendId) }
         return Endpoint(.post, "/api/artifacts/\(slug)/repair", body: .jsonValue(.object(body)))
     }
 }

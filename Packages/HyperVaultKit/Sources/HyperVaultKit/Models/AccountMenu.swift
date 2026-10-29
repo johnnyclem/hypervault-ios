@@ -29,6 +29,10 @@ public enum AccountMenu {
     /// What VoiceOver says for the Mail badge (`mailBadgeLabel`).
     public static func mailBadgeLabel(_ count: Int) -> String { "\(count) unread" }
 
+    /// What VoiceOver says for the badge on Dreams (`dream_connections` waiting) and on Memory's More (those and the digest's
+    /// proposals): how many are waiting for the person to decide.
+    public static func pendingBadgeLabel(_ count: Int) -> String { "\(count) waiting for review" }
+
     /// What the badge shows.
     public static func badgeText(_ count: Int) -> String { count > badgeMax ? "\(badgeMax)+" : "\(count)" }
 }

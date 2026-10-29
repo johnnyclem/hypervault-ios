@@ -9,8 +9,10 @@ struct AccountMenuSheet: View {
     @Environment(AppModel.self) private var app
     @Environment(AppEnvironment.self) private var env
 
-    /// Unread mail, read once when the menu opens. Nothing polls it, and a read that fails shows no badge.
+    /// Unread mail, and what waits in Dreams for a decision, read once when the menu opens. Nothing polls them, and a read
+    /// that fails shows no badge.
     @State private var unread = 0
+    @State private var dreamsWaiting = 0
 
     var body: some View {
         NavigationStack {
@@ -27,7 +29,10 @@ struct AccountMenuSheet: View {
                 .hvListRow()
 
                 Section(header: HVSectionHeader(title: AccountMenu.beta)) {
-                    row("dreams", AccountMenu.dreams, symbol: "moon.stars", tint: Palette.violet, to: .route(.dreams))
+                    row(
+                        "dreams", AccountMenu.dreams, symbol: "moon.stars", tint: Palette.violet, to: .route(.dreams),
+                        badge: dreamsWaiting, badgeLabel: AccountMenu.pendingBadgeLabel
+                    )
                     row("truth", AccountMenu.truth, symbol: "checkmark.seal", tint: Palette.mint, to: .route(.truth))
                 }
                 .hvListRow()
@@ -62,10 +67,14 @@ struct AccountMenuSheet: View {
             // Whether this account is an admin decides whether Admin is here; the answer is kept for hours.
             .task { await env.probeAdmin() }
             .task { await loadUnread() }
+            .task { await loadDreamsWaiting() }
         }
     }
 
-    private func row(_ id: String, _ title: String, symbol: String, tint: Color, to link: DeepLink, badge: Int = 0) -> some View {
+    private func row(
+        _ id: String, _ title: String, symbol: String, tint: Color, to link: DeepLink, badge: Int = 0,
+        badgeLabel: @escaping (Int) -> String = AccountMenu.mailBadgeLabel
+    ) -> some View {
         Button {
             app.router.sheet = nil
             app.router.open(link)
@@ -79,7 +88,7 @@ struct AccountMenuSheet: View {
                         .padding(.vertical, 2)
                         // Small white text: on the gradient it is 5.1:1 or better, and on the flat primary 3.68.
                         .background(Palette.softGradient, in: Capsule())
-                        .accessibilityLabel(AccountMenu.mailBadgeLabel(badge))
+                        .accessibilityLabel(badgeLabel(badge))
                 }
             }
         }
@@ -90,5 +99,11 @@ struct AccountMenuSheet: View {
     private func loadUnread() async {
         guard let list = try? await env.client.send(.mailMailboxes) else { return }
         unread = list.totalUnread
+    }
+
+    /// Its own read, so a slow mail read does not hold the badge back.
+    private func loadDreamsWaiting() async {
+        guard let queue = try? await env.client.send(.dreamQueue) else { return }
+        dreamsWaiting = queue.pendingCount
     }
 }

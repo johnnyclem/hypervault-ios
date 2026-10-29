@@ -13,7 +13,7 @@ import SwiftUI
 /// that the value of a field that could be a secret is replaced by `<redacted>`. It is never the whole body, and nothing
 /// in it can be used outside the canned server: the record exists only in a debug build launched by the UI tests.
 final class UITestWriteLog: @unchecked Sendable {
-    nonisolated(unsafe) static let shared = UITestWriteLog()
+    static let shared = UITestWriteLog()
 
     private let lock = NSLock()
     private var lines: [String] = []

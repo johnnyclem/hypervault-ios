@@ -16,3 +16,6 @@ __pycache__/
 # What Xcode keeps about one person's window and scheme order (the shared schemes under xcshareddata stay tracked).
 xcuserdata/
 *.xcuserstate
+build/
+build-release/
+HyperVault.xcodeproj/project.xcworkspace/xcuserdata/

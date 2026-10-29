@@ -80,7 +80,7 @@ struct VaultItemsView: View {
         return List {
             // The pane's description, then the filters: the first thing on the page after its title.
             Section {
-                Text(AccountPane.vault.descriptionLine ?? "")
+                Text(AccountPane.vault.descriptionLine)
                     .font(.hvCallout)
                     .foregroundStyle(Palette.textSecondary)
                     .listRowBackground(Color.clear)

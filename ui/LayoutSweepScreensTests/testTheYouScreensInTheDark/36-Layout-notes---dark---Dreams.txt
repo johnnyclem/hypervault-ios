@@ -1,0 +1,5 @@
+dark / Dreams
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  Switch "Dream every night"  297,123 61x28
+small target  Switch  297,123 63x28

@@ -1,0 +1,6 @@
+dark / a mail thread
+
+small target  Button "Move this conversation"  322,51 48x36
+small target  Button  322,51 48x36
+small target  Button "Weekly plan"  33,257 107x18
+small target  TextField (mail.reply)  40,707 254x22

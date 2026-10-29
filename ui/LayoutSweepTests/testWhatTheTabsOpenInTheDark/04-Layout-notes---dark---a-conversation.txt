@@ -1,0 +1,6 @@
+dark / a conversation
+
+small target  Button "Chat menu"  322,51 48x36
+small target  Button  322,51 48x36
+off screen    Image (AdditionalDimmingOverlay)  -120,-151 630x302
+small target  TextField "Message"  32,677 326x22

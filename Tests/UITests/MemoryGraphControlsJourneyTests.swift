@@ -16,12 +16,13 @@ final class MemoryGraphControlsJourneyTests: HyperVaultUITestCase {
     }
 
     /// The row of pills is wider than a phone and the Hide unlinked chip is its last: draws the row sideways until `target`
-    /// can be tapped.
+    /// is on the screen. (Where it is, not whether it can be tapped: asked about an element past the edge of the screen,
+    /// `isHittable` fails the test with "Activation point invalid" instead of answering no.)
     private func scrollThePills(until target: XCUIElement, towardsEnd: Bool) {
         // The finger goes down on the row itself: every pill is on it, whether it is on the screen or not.
         let window = app.windows.firstMatch.frame
         let y = min(max(element("memory.graph.type.You").frame.midY / max(window.height, 1), 0.05), 0.95)
-        for _ in 0..<4 where !(target.exists && target.isHittable) {
+        for _ in 0..<4 where !isOnScreen(target) {
             let from = app.coordinate(withNormalizedOffset: CGVector(dx: towardsEnd ? 0.9 : 0.1, dy: y))
             let to = app.coordinate(withNormalizedOffset: CGVector(dx: towardsEnd ? 0.1 : 0.9, dy: y))
             from.press(forDuration: 0.05, thenDragTo: to, withVelocity: XCUIGestureVelocity(rawValue: 500), thenHoldForDuration: 0.2)

@@ -3,6 +3,13 @@ import Observation
 import XCTest
 @testable import HyperVault
 
+/// What an observation reported, in order. (The report is made from a closure that may run anywhere, so what it writes to is a class.)
+private final class ChangeLog: @unchecked Sendable {
+    private(set) var names: [String] = []
+
+    func note(_ name: String) { names.append(name) }
+}
+
 /// What the Memory map lets a person set: the kinds of node left off, the nodes with no links left out, and a memory found by
 /// part of its name. The model holds the settings and gives back the map they make; the pieces of logic under it are tested
 /// in the Kit (`MemoryGraphControlsTests`).
@@ -172,7 +179,7 @@ final class MemoryGraphControlsModelTests: XCTestCase {
         XCTAssertEqual(model.matches(in: graph).map(\.id), ["m1", "art1"])
         // m2 has two links, m3 two, m1 two; "n" is in all three titles, and the ones with equal links keep the map's order.
         model.query = "n"
-        XCTAssertEqual(model.matches(in: graph).map(\.id).prefix(3), ["m1", "m2", "m3"])
+        XCTAssertEqual(Array(model.matches(in: graph).map(\.id).prefix(3)), ["m1", "m2", "m3"])
     }
 
     func testTheSearchSeesOnlyWhatIsOnTheMap() async {
@@ -189,7 +196,7 @@ final class MemoryGraphControlsModelTests: XCTestCase {
 
     func testTheSearchCannotSeeAMemoryPastTheCapAndTheMapSaysSo() async {
         let model = await loadedModel()
-        // A cap of 3 keeps the three best connected of the six: m2, m1 and m3, with two links each.
+        // A cap of 3 keeps the three best connected of the six: m1, m2 and m3, with two links each.
         let graph = model.graph(for: items, cap: 3)
         XCTAssertEqual(graph.nodes.count, 3)
         XCTAssertTrue(graph.isCapped)
@@ -214,9 +221,13 @@ final class MemoryGraphControlsModelTests: XCTestCase {
         let model = await loadedModel()
         let graph = model.graph(for: items)
 
-        var seen: [String] = []
+        let log = ChangeLog()
         func watch(_ name: String, _ read: () -> Void) {
-            withObservationTracking(read) { seen.append(name) }
+            withObservationTracking {
+                read()
+            } onChange: {
+                log.note(name)
+            }
         }
         watch("hiddenTypes") { _ = model.graph(for: items) }
         model.toggle(type: "Chat")
@@ -224,7 +235,7 @@ final class MemoryGraphControlsModelTests: XCTestCase {
         model.setHideUnlinked(true)
         watch("query") { _ = model.matches(in: graph) }
         model.query = "trip"
-        XCTAssertEqual(seen, ["hiddenTypes", "hideUnlinked", "query"])
+        XCTAssertEqual(log.names, ["hiddenTypes", "hideUnlinked", "query"])
     }
 
     // MARK: When the links cannot be read

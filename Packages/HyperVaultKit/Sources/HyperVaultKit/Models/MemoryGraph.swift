@@ -79,7 +79,11 @@ public struct MemoryGraph: Sendable, Equatable {
     public func matches(_ query: String, limit: Int = 6) -> [Node] {
         let needle = Self.folded(query.trimmingCharacters(in: .whitespacesAndNewlines))
         guard !needle.isEmpty else { return [] }
-        let found = nodes.enumerated().filter { Self.folded($0.element.title).contains(needle) }
+        // A page whose name could not be read has no slug and opens nothing, so a row for it would be a dead end.
+        let found = nodes.enumerated().filter { entry in
+            if entry.element.kind == .artifact, entry.element.slug == nil { return false }
+            return Self.folded(entry.element.title).contains(needle)
+        }
         let ranked = found.sorted { $0.element.degree != $1.element.degree ? $0.element.degree > $1.element.degree : $0.offset < $1.offset }
         return ranked.prefix(max(limit, 0)).map(\.element)
     }

@@ -11,9 +11,14 @@ struct MemoryGraphScreen: View {
     @Environment(AppModel.self) private var app
     @State private var model: MemoryGraphModel
 
-    init(list: MemoryListModel) {
+    /// The settings are for a snapshot, which has no finger to set them with; the app starts with all of them off.
+    init(list: MemoryListModel, query: String = "", hiddenTypes: Set<String> = [], hideUnlinked: Bool = false) {
         self.list = list
-        _model = State(initialValue: MemoryGraphModel(env: list.env))
+        let model = MemoryGraphModel(env: list.env)
+        model.query = query
+        for type in hiddenTypes { model.toggle(type: type) }
+        model.setHideUnlinked(hideUnlinked)
+        _model = State(initialValue: model)
     }
 
     var body: some View {
@@ -65,6 +70,8 @@ struct MemoryGraphScreen: View {
                     nodes: forceNodes(for: graph),
                     edges: forceEdges(for: graph),
                     legend: legend(for: graph),
+                    // The tab stays alive under the others, and a sheet leaves the map on the screen: neither may leave a tour going.
+                    isCovered: app.router.sheet != nil || app.router.tab != .memory,
                     onOpen: { open($0, in: graph) }
                 )
                 caption(for: graph)

@@ -1,0 +1,5 @@
+dark / Digest
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  Switch "Auto-digest on import"  297,133 61x28
+small target  Switch  297,133 63x28

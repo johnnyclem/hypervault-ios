@@ -1,0 +1,11 @@
+large / Yours
+
+small target  Button "Account" (canvas.account)  20,51 44x36
+small target  Button "Open panel" (canvas.yours)  332,51 38x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+off screen    Button "Show my memories"  -29,1134 448x75
+small target  Button "Sheet Grabber"  157,42 76x25
+small target  Button "New"  20,67 66x36
+small target  Button "More" (yours.more)  245,67 46x36
+small target  Button  245,67 46x36
+small target  Button "Done"  307,67 63x36

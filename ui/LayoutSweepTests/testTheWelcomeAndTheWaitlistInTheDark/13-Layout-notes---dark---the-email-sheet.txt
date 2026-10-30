@@ -1,0 +1,4 @@
+dark / the email sheet
+
+small target  Button "Sheet Grabber"  157,42 76x25
+small target  TextField (email.address)  32,159 326x22

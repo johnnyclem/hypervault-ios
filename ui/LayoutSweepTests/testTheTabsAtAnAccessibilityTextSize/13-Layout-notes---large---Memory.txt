@@ -1,0 +1,8 @@
+large / Memory
+
+small target  Button "Branch: main"  20,51 88x36
+small target  Button  20,51 88x36
+small target  Button "Memorize something" (memory.memorize)  265,51 43x36
+small target  Button "More" (memory.more)  324,51 46x36
+small target  Button  324,51 46x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

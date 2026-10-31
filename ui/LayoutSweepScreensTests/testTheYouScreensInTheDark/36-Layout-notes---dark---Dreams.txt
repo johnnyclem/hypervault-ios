@@ -1,0 +1,6 @@
+dark / Dreams
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  Switch "Dream every night"  297,127 61x28
+small target  Switch  297,127 63x28
+small target  Button "Memory: Passport checklist"  32,583 326x44

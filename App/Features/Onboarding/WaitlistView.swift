@@ -22,7 +22,7 @@ struct WaitlistView: View {
                     Spacer(minLength: HV.Space.xl)
                     BrandMark(size: 72)
                     VStack(spacing: HV.Space.xs) {
-                        Text(user.firstName.map { "You're on the list, \($0)." } ?? "You're on the list.")
+                        Text("You're on the list")
                             .font(.hvHero)
                             .multilineTextAlignment(.center)
                             .accessibilityIdentifier("waitlist.title")

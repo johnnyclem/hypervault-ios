@@ -204,7 +204,7 @@ struct NewBranchSheet: View {
                 let created = try await list.createBranch(named: target, from: list.branch)
                 isWorking = false
                 Haptics.success()
-                app.toasts.success(created.message.isEmpty ? "Branched \u{201C}\(created.name)\u{201D}." : created.message)
+                app.toasts.success(created.message.isEmpty ? "Branched \u{201C}\(created.name)\u{201D}" : created.message)
                 list.switchBranch(to: created.name)
                 dismiss()
             } catch {

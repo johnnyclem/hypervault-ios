@@ -6,10 +6,10 @@ final class WaitlistJourneyTests: HyperVaultUITestCase {
     func testTheWaitlistRefusesAWrongCodeAndAcceptsTheRightOne() {
         launch(.waitlisted)
 
-        step("The waitlist greets the person by name") {
+        step("The waitlist says the person is on the list") {
             let title = element("waitlist.title")
             require(title, "the waitlist's title")
-            XCTAssertEqual(title.label, "You're on the list, Sam.")
+            XCTAssertEqual(title.label, "You're on the list")
             require(element("waitlist.redeem"), "the Use this code button")
             XCTAssertFalse(element("waitlist.redeem").isEnabled, "With no code typed, there is nothing to use.")
         }

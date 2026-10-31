@@ -210,7 +210,7 @@ struct VaultReplaceSheet: View {
         case .updated:
             draft = VaultDraft(kind: secret.kind)
             Haptics.success()
-            app.toasts.success("Replaced.")
+            app.toasts.success("Replaced")
             dismiss()
         case .entryGone:
             draft = VaultDraft(kind: secret.kind)

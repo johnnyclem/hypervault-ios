@@ -28,7 +28,7 @@ struct ToolsServerDetailView: View {
         .sheet(item: $signIn) { flow in
             ToolsReauthSheet(flow: flow) { _ in
                 signIn = nil
-                app.toasts.success("Signed in again.")
+                app.toasts.success("Signed in again")
             }
         }
     }
@@ -97,7 +97,7 @@ struct ToolsServerDetailView: View {
                     .foregroundStyle(Palette.textSecondary)
             }
             if let read = server.introspectedAt {
-                Text("Tools read \(read.formatted(.relative(presentation: .named))).")
+                Text("Tools read \(HVCopy.ago(since: read).lowercased())")
                     .font(.hvCaption)
                     .foregroundStyle(Palette.textTertiary)
             }

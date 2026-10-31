@@ -15,6 +15,9 @@ import SwiftUI
 @Observable
 final class ConnectCardModel {
     private(set) var isVisible = false
+    /// A look has finished, whatever it found. Until then the card may still turn up, so the hints above it hold back
+    /// their own Connect button rather than draw it and take it away again.
+    private(set) var hasLooked = false
 
     @ObservationIgnored private let client: HVClient
     @ObservationIgnored private let rest: AccountRest
@@ -63,6 +66,7 @@ final class ConnectCardModel {
             }
             // A dismissal, or a key found by a look that finished meanwhile, wins over these reads.
             isVisible = !isSettled && !isDismissedHere
+            hasLooked = true
         } catch is CancellationError {
             return
         } catch HVError.cancelled {
@@ -70,6 +74,7 @@ final class ConnectCardModel {
             return
         } catch {
             isVisible = false
+            hasLooked = true
         }
     }
 
@@ -80,6 +85,7 @@ final class ConnectCardModel {
         defaults.set(true, forKey: memoryKey)
         isVisible = false
         isSettled = true
+        hasLooked = true
         let client = self.client
         return Task { _ = await ConnectOnboarding.recordDismissed(client: client) }
     }
@@ -87,6 +93,7 @@ final class ConnectCardModel {
     private func settle() {
         isSettled = true
         isVisible = false
+        hasLooked = true
     }
 }
 
@@ -127,12 +134,13 @@ struct ConnectCard: View {
     }
 }
 
-/// Where the card sits on the quiet page, under the hints. It owns its model, so the page that holds it changes by one
-/// line, and it takes no room at all while the card is off.
+/// Where the card sits on the quiet page, under the hints, and it takes no room at all while the card is off. The page
+/// holds the model, so the hints above can leave out their own Connect button while the card is the one asking; the slot
+/// makes the model once there is an account to ask about.
 struct ConnectCardSlot: View {
     @Environment(AppModel.self) private var app
     @Environment(AppEnvironment.self) private var env
-    @State private var model: ConnectCardModel?
+    @Binding var model: ConnectCardModel?
 
     var body: some View {
         VStack(spacing: 0) {

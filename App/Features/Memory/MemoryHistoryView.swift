@@ -94,10 +94,6 @@ struct MemoryHistoryView: View {
                 if let branch = revision.commit?.branch, branch != model.branch {
                     HVTag(text: branch, tint: Palette.violet)
                 }
-                Spacer()
-                Text(MemoryDates.quiet(revision.commit?.createdAt))
-                    .font(.hvCaption)
-                    .foregroundStyle(Palette.textTertiary)
             }
             Text(revision.commit?.message ?? revision.title)
                 .font(.hvBody)

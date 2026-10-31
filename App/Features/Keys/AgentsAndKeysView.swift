@@ -152,7 +152,7 @@ struct AgentsAndKeysView: View {
             do {
                 try await model.revoke(key)
                 Haptics.success()
-                app.toasts.success("Key revoked.")
+                app.toasts.success("Key revoked")
             } catch {
                 app.toasts.show(error: error)
             }

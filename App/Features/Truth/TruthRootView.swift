@@ -119,8 +119,8 @@ struct TruthScreen: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
             } else {
-                entriesSection(title: "Standing", note: "Signed truth, with the UVs disputing it underneath.", rows: sections.standing, empty: "No signed truth yet.")
-                entriesSection(title: "Unverified", note: "Believed, not yet checked. Never shown as proven.", rows: sections.unverified, empty: "Nothing unverified.")
+                entriesSection(title: "Standing", note: "Signed truth, with the UVs disputing it underneath.", rows: sections.standing, empty: "No signed truth yet")
+                entriesSection(title: "Unverified", note: "Believed, not yet checked. Never shown as proven.", rows: sections.unverified, empty: "Nothing unverified")
                 historySection(sections.history)
             }
         }
@@ -198,14 +198,14 @@ struct TruthScreen: View {
         if model.active?.isHosted == true {
             HVEmptyState(
                 symbol: "checkmark.seal",
-                title: "Nothing asserted yet.",
+                title: "Nothing asserted yet",
                 message: "Say something you are sure of (a TB) or something you believe (a UV). Your agents can add UVs too.",
                 actionTitle: "Assert something"
             ) { showAssert = true }
         } else {
             HVEmptyState(
                 symbol: "tray.and.arrow.down",
-                title: "Nothing in this ledger yet.",
+                title: "Nothing in this ledger yet",
                 message: "Import a stenographer export to fill it.",
                 actionTitle: "Import"
             ) { showImport = true }

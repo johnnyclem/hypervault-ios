@@ -523,7 +523,7 @@ struct LibraryScreen: View {
                 let scoped = url.startAccessingSecurityScopedResource()
                 defer { if scoped { url.stopAccessingSecurityScopedResource() } }
                 guard let data = try? Data(contentsOf: url) else {
-                    app.toasts.show("That file couldn't be read.", style: .error)
+                    app.toasts.show("That file couldn't be read", style: .error)
                     return
                 }
                 await keep(data: data, filename: url.lastPathComponent)
@@ -534,7 +534,7 @@ struct LibraryScreen: View {
     private func importPhoto(_ item: PhotosPickerItem) {
         Task {
             guard let data = try? await item.loadTransferable(type: Data.self) else {
-                app.toasts.show("That photo couldn't be read.", style: .error)
+                app.toasts.show("That photo couldn't be read", style: .error)
                 return
             }
             let prepared = LibraryPhoto.prepare(data, contentTypes: item.supportedContentTypes)

@@ -142,7 +142,7 @@ struct LockScreen: View {
                     VStack(spacing: HV.Space.l) {
                         BrandMark(size: 76)
                         Text("HyperVault is locked").font(.hvTitle).multilineTextAlignment(.center).accessibilityAddTraits(.isHeader)
-                        Text("Unlock to continue.").font(.hvCallout).foregroundStyle(Palette.textSecondary).multilineTextAlignment(.center)
+                        Text("Unlock to continue").font(.hvCallout).foregroundStyle(Palette.textSecondary).multilineTextAlignment(.center)
                         if let message = lock.failureMessage {
                             Text(message).font(.hvFootnote).foregroundStyle(Palette.danger).multilineTextAlignment(.center)
                         }

@@ -64,10 +64,12 @@ final class ConnectCardModelTests: XCTestCase {
         let look = Task { await card.refresh() }
         await eventually("the keys read to be on its way") { await hold.waiting == 1 }
         XCTAssertFalse(card.isVisible, "while the list of keys is not known, the card is not on the page")
+        XCTAssertFalse(card.hasLooked, "and the hints above it hold back their own Connect button, since the card may still come")
 
         await hold.release()
         await look.value
         XCTAssertTrue(card.isVisible)
+        XCTAssertTrue(card.hasLooked)
     }
 
     func testAPersonWithNoKeyAndNothingStampedIsAsked() async {
@@ -82,6 +84,7 @@ final class ConnectCardModelTests: XCTestCase {
         let card = model(mock)
         await card.refresh()
         XCTAssertFalse(card.isVisible)
+        XCTAssertTrue(card.hasLooked, "a look that found a key is a look that decided")
         let profileReads = await mock.requests(matching: "/rest/v1/profiles")
         XCTAssertTrue(profileReads.isEmpty, "someone with a key is not asked whether they would rather look around")
     }
@@ -92,6 +95,7 @@ final class ConnectCardModelTests: XCTestCase {
         let card = model(flaky)
         await card.refresh()
         XCTAssertFalse(card.isVisible, "a list that could not be read says nothing about keys")
+        XCTAssertTrue(card.hasLooked, "but the look is over, so the hints may offer their own Connect button")
 
         await flaky.setOnline(true)
         await card.refresh()

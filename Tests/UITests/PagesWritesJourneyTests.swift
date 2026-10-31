@@ -41,7 +41,7 @@ final class PagesWritesJourneyTests: HyperVaultUITestCase {
         step("Keep it keeps the page and says where it is") {
             tap(button("Keep it"), "Keep it")
             require(button("Open"), "the Open button of the kept page")
-            XCTAssertTrue(isShowingTitle("Kept"))
+            XCTAssertTrue(text("Kept. Here's the link.").exists, "The kept page has no bar title now: its headline says it.")
         }
 
         step("Open shows the page, and the app sent what was typed") {

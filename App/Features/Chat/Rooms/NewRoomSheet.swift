@@ -125,7 +125,7 @@ struct ChatNewRoomSheet: View {
                 VStack(spacing: HV.Space.m) {
                     HVEmptyState(
                         symbol: HVSymbol.model,
-                        title: "Connect a model first.",
+                        title: "Connect a model first",
                         message: "Rooms are made of your connected models. Connect at least one, then come back to start a room."
                     )
                     NavigationLink(value: ChatDestination.models) { Text(HVCopy.connectAILabel) }
@@ -213,7 +213,7 @@ struct ChatNewRoomSheet: View {
                             .foregroundStyle(model.errorText != nil ? Palette.danger : Palette.textSecondary)
                             .padding(.horizontal, HV.Space.m)
                     } else if model.chosen.isEmpty {
-                        Text("Choose at least one member.")
+                        Text("Choose at least one member")
                             .font(.hvFootnote)
                             .foregroundStyle(Palette.textSecondary)
                             .padding(.horizontal, HV.Space.m)

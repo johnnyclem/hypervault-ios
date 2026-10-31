@@ -68,7 +68,7 @@ struct TaskBoardsScreen: View {
             if model.boards.isEmpty {
                 HVEmptyState(
                     symbol: "checklist",
-                    title: "No boards yet.",
+                    title: "No boards yet",
                     message: "A board is a list you share with your agents. They tick things off; you steer.",
                     actionTitle: "Start a board"
                 ) { showCreate = true }

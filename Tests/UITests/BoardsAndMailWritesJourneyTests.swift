@@ -29,7 +29,7 @@ final class BoardsAndMailWritesJourneyTests: HyperVaultUITestCase {
         step("The new board opens, empty") {
             waitUntil("the new board's screen") { self.isShowingTitle("Balcony garden") }
             require(element("taskboard.add"), "the Add a task field")
-            require(shows("Nothing here yet."), "the empty board")
+            require(shows("Nothing here yet"), "the empty board")
         }
 
         step("Two tasks are added, one line each") {

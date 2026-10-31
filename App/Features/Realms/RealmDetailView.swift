@@ -93,8 +93,6 @@ struct RealmDetailView: View {
                 }
                 .pickerStyle(.navigationLink)
                 .disabled(saving)
-            } header: {
-                HVSectionHeader(title: "Look")
             } footer: {
                 Text("Every address can wear its own. Changes show on the next visit.").hvSectionNote()
             }

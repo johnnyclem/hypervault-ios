@@ -181,8 +181,8 @@ struct ChatConversationContent: View {
     private var emptyThread: some View {
         HVEmptyState(
             symbol: HVSymbol.chat,
-            title: "Ask anything.",
-            message: "Your memories come along. The model is only the engine, so you can switch it in the middle of a chat."
+            title: "Your memories come along",
+            message: "The model is only the engine, so you can switch it in the middle of a chat"
         )
         .padding(.top, HV.Space.xxl)
     }

@@ -48,7 +48,7 @@ struct MindMergeView: View {
                 MindBranchPill(name: model.target)
             }
             // What the server does (lib/mind/merge.ts): the merge takes what the source changed since the two split.
-            Text("Merging takes what \(model.source) changed since it split from \(model.target). A memory only one branch touched merges on its own, one both changed is put to you, and links merge as sets and never conflict.")
+            Text("Takes what \(model.source) changed since it split from \(model.target). A memory both branches changed is put to you; the rest merges on its own.")
                 .font(.hvCallout)
                 .foregroundStyle(Palette.textSecondary)
         }

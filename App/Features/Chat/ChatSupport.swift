@@ -26,18 +26,10 @@ extension HVError {
 // MARK: Dates
 
 enum ChatDates {
-    private static let relative: RelativeDateTimeFormatter = {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        formatter.dateTimeStyle = .named
-        return formatter
-    }()
-
-    /// "2h ago", "yesterday", "3d ago".
+    /// "Just now", "5 min ago", "3 hr ago", "Yesterday", "3 days ago": the one how-long-ago format the whole app and
+    /// the web share (`HVCopy.ago`).
     static func relative(_ date: Date?, now: Date = Date()) -> String {
-        guard let date else { return "" }
-        if now.timeIntervalSince(date) < 60 { return "Just now" }
-        return relative.localizedString(for: date, relativeTo: now)
+        date.map { HVCopy.ago(since: $0, now: now) } ?? ""
     }
 
     enum Bucket: Int, CaseIterable, Identifiable {

@@ -311,7 +311,7 @@ struct ArtifactSourceSheet: View {
     private func save() {
         Task {
             if await model.save() {
-                app.toasts.show("Saved a new version.", style: .success)
+                app.toasts.show("Saved a new version", style: .success)
                 onSaved()
             } else if model.conflict == nil {
                 Haptics.failure()
@@ -324,7 +324,7 @@ struct ArtifactSourceSheet: View {
             switch choice {
             case .keepMine:
                 if await model.keepMine() {
-                    app.toasts.show("Saved over the newer version.", style: .success)
+                    app.toasts.show("Saved over the newer version", style: .success)
                     onSaved()
                 }
             case .useTheirs:
@@ -348,13 +348,13 @@ struct ArtifactConflictSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.m) {
-                    Text("Someone changed this page while you were editing.")
+                    Text("This page changed while you were editing")
                         .font(.hvTitle3)
                     Text(conflict.message)
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                     if let head = conflict.head {
-                        Label("\(head.authorName ?? "Someone") wrote \"\(head.message.isEmpty ? "edit" : head.message)\"", systemImage: "clock.arrow.circlepath")
+                        Label("\(head.authorName ?? "Someone") wrote “\(head.message.isEmpty ? "edit" : head.message)”", systemImage: "clock.arrow.circlepath")
                             .hvRowLabel()
                             .font(.hvFootnote)
                             .foregroundStyle(Palette.textSecondary)

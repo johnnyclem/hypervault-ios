@@ -84,7 +84,7 @@ struct TruthNoticesScreen: View {
                 HVErrorState(message: message) { Task { await model.load() } }.listRowBackground(Color.clear)
             case .loaded(let notices):
                 if notices.isEmpty {
-                    HVEmptyState(symbol: "bell", title: "Nothing has changed.", message: "When one of your entries is challenged, overturned, verified or undermined, it shows up here.")
+                    HVEmptyState(symbol: "bell", title: "Nothing has changed", message: "When one of your entries is challenged, overturned, verified or undermined, it shows up here.")
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                 } else {
@@ -183,7 +183,7 @@ struct TruthStaleScreen: View {
                 HVErrorState(message: message) { Task { await model.load() } }.listRowBackground(Color.clear)
             case .loaded(let worklist):
                 if worklist.items.isEmpty {
-                    HVEmptyState(symbol: "checkmark.seal", title: "Nothing is out of date.", message: "Every memory and page still rests on facts as it last saw them.")
+                    HVEmptyState(symbol: "checkmark.seal", title: "Nothing is out of date", message: "Every memory and page still rests on facts as it last saw them.")
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                 } else {

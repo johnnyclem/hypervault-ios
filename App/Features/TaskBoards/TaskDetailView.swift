@@ -139,7 +139,7 @@ struct TaskDetailView: View {
             Group {
                 if let holder = task.holder {
                     LabeledContent {
-                        Text(holder).foregroundStyle(task.assignee.isAgent ? Palette.violet : Palette.blue)
+                        Text(holder).foregroundStyle(Palette.textSecondary)
                     } label: {
                         Label(task.assignee.isAgent ? "Claimed by an agent" : "Yours", systemImage: task.assignee.isAgent ? "sparkle" : "person.fill")
                     }
@@ -242,7 +242,7 @@ struct TaskDetailView: View {
         return VStack(alignment: .leading, spacing: HV.Space.xxs) {
             layout {
                 Text(note.author ?? "Someone").font(.hvFootnote.weight(.semibold))
-                if note.isFromAgent { HVTag(text: "agent", tint: Palette.violet) }
+                if note.isFromAgent { HVTag(text: "agent", tint: Palette.textSecondary) }
                 if !dynamicTypeSize.isAccessibilitySize { Spacer() }
                 if let when = note.createdAt {
                     Text(when.formatted(date: .abbreviated, time: .shortened))

@@ -252,7 +252,7 @@ struct ToolsCatalogRow: View {
             .foregroundStyle(Palette.mint)
             .padding(.horizontal, HV.Space.m)
             .frame(minHeight: 44)
-            .background(Palette.mint.opacity(0.14), in: Capsule())
+            .background(Palette.mint.opacity(HV.Tint.fill), in: Capsule())
             .accessibilityElement(children: .combine)
             .accessibilityLabel("\(entry.displayName) is added")
         } else if isAdding {
@@ -263,7 +263,7 @@ struct ToolsCatalogRow: View {
                     .font(.system(.footnote, weight: .semibold))
                     .padding(.horizontal, HV.Space.m)
                     .frame(minHeight: 44)
-                    .background(Palette.blue.opacity(0.14), in: Capsule())
+                    .background(Palette.blue.opacity(HV.Tint.fill), in: Capsule())
                     .foregroundStyle(Palette.sky)
             }
             .buttonStyle(.plain)

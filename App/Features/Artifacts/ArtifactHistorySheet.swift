@@ -358,8 +358,8 @@ struct ArtifactDiffView: View {
 
     private func background(_ kind: ArtifactDiffLine.Kind) -> Color {
         switch kind {
-        case .added: return Palette.success.opacity(0.14)
-        case .removed: return Palette.danger.opacity(0.14)
+        case .added: return Palette.success.opacity(HV.Tint.fill)
+        case .removed: return Palette.danger.opacity(HV.Tint.fill)
         case .hunk: return Palette.surfaceRaised
         case .context, .note: return .clear
         }

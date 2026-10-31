@@ -244,7 +244,7 @@ struct TruthScreen: View {
                 if historyOpen {
                     ForEach(rows) { row in
                         NavigationLink(value: TruthDestination.entry(ref(row))) {
-                            TruthEntryRowView(row: row).opacity(0.8)
+                            TruthEntryRowView(row: row)
                         }
                         .hvListRow()
                     }

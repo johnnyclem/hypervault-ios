@@ -129,7 +129,8 @@ struct LibraryGraphScreen: View {
         model.graph.edges.map { ForceGraphEdge(source: $0.source, target: $0.target, isStrong: $0.isManual) }
     }
 
-    /// One entry for each type on the map: a circle for memories, a diamond for pages.
+    /// One entry for each look on the map: a circle for memories, a diamond for pages. Types drawn the same (the grey
+    /// diamond of react, game, pdf and image) share one entry that names them.
     private var legend: [ForceGraphLegendItem] {
         var seen: [String] = []
         for node in model.graph.nodes where !seen.contains(node.type) { seen.append(node.type) }
@@ -137,7 +138,7 @@ struct LibraryGraphScreen: View {
             ForceGraphLegendItem(
                 title: $0, color: LibraryGraphStyle.tint(forType: $0), shape: $0 == LibraryGraphType.memory ? .circle : .diamond
             )
-        }
+        }.foldingRowsThatLookAlike()
     }
 
     private func open(_ id: String) {

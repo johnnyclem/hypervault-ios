@@ -31,6 +31,9 @@ enum HVColor {
     static let amber400 = Color("amber-400")
     /// The memory kind: violet in the dark look, a deeper violet in the light look.
     static let memory = Color("memory")
+    /// The flat fill under white text and white glyphs at body size: #2563EB in both looks, which is the web's
+    /// light-look `primary`. White on it is 5.17:1; white on the dark look's own `primary` is 3.68:1 (bold only).
+    static let action = Color("action")
 
     // Fixed colours: drawn outside the tokens, so no look changes them (tokens.json `fixed`). The card brands are in
     // `HVCardBrandTile`.

@@ -134,7 +134,7 @@ struct SignInContent: View {
                 } else {
                     Text("G")
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(Palette.brandGradient)
+                        .foregroundStyle(Palette.textPrimary)
                 }
                 Text("Continue with Google")
             }

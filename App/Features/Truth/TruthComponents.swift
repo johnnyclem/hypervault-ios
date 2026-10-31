@@ -138,7 +138,8 @@ struct TruthTypeTag: View {
             .foregroundStyle(type == .tb ? Color.white : Palette.textPrimary)
             .padding(.horizontal, HV.Space.xs)
             .padding(.vertical, HV.Space.xxs)
-            .background(type == .tb ? AnyShapeStyle(Palette.softGradient) : AnyShapeStyle(Palette.surfaceRaised), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            // A signed truth is the one flat fill under white (5.17:1); an unverified claim is raised paper with an edge.
+            .background(type == .tb ? Palette.action : Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(type == .tb ? Color.clear : Palette.border, lineWidth: 1))
             .accessibilityLabel(type.title)
     }
@@ -168,7 +169,7 @@ struct TruthStandingBadge: View {
             .foregroundStyle(standing.tint)
             .padding(.horizontal, 8)
             .padding(.vertical, HV.Space.xxs)
-            .background(standing.tint.opacity(0.14), in: Capsule())
+            .background(standing.tint.opacity(HV.Tint.fill), in: Capsule())
             .accessibilityLabel("Standing: \(standing.title). \(standing.meaning)")
         }
     }

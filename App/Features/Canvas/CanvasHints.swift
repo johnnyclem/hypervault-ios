@@ -71,6 +71,7 @@ struct CanvasHints: View {
                         Text(HVCopy.hintConnectLine).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                         Button(HVCopy.connectAILabel) { app.router.sheet = .connectAgent }
                             .buttonStyle(.hvGhost)
+                            .tint(Palette.textSecondary)
                             .accessibilityIdentifier("canvas.connect")
                     }
                 }
@@ -94,6 +95,7 @@ struct CanvasHints: View {
                     .font(.system(.subheadline, weight: .semibold))
             }
             .buttonStyle(.hvGhost)
+            .tint(Palette.textSecondary)
             .accessibilityIdentifier("canvas.starter")
             if starterCopied {
                 Text(HVCopy.copyPromptNextLine)

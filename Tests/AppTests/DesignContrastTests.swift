@@ -81,7 +81,7 @@ final class DesignContrastTests: XCTestCase {
 
     /// `HVTag`: the colour as text over the same colour at 10% (the web's status chips), on each surface a tag sits on.
     func testTagTextIsAtLeastFourAndAHalfOverItsOwnFill() throws {
-        let tagAlpha = 0.10
+        let tagAlpha = HV.Tint.fill
         for tint in ["emerald-400", "amber-400", "muted-foreground", "accent"] {
             for surface in surfaces {
                 let fill = composite(try hex(tint), over: try hex(surface), alpha: tagAlpha)
@@ -111,12 +111,13 @@ final class DesignContrastTests: XCTestCase {
         }
     }
 
-    /// Small text on a 12 to 14% `primary` tint (the chip of a manual memory, the Add capsule of the Tools catalog, the
-    /// numbered step badges) is `accent`: `primary` over its own 14% fill is 4.08:1 on paper and 3.66:1 on raised paper, the
-    /// same known low as above, here recorded where the fill is the tint and not the surface.
+    /// Small text on a `primary` tint (the Add capsule of the Tools catalog, the numbered step badges) is `accent`:
+    /// `primary` over its own 14% fill is 4.08:1 on paper and 3.66:1 on raised paper, the same known low as above, here
+    /// recorded where the fill is the tint and not the surface. The step the app draws is `HV.Tint.fill`; 12% and 14% are
+    /// kept as the older steps (the import guide's step disc is still 14%).
     func testSmallTextOnAPrimaryTintIsAccentBecausePrimaryFallsShort() throws {
         let primary = try hex("primary"), accent = try hex("accent")
-        for alpha in [0.12, 0.14] {
+        for alpha in [HV.Tint.fill, 0.12, 0.14] {
             for surface in surfaces {
                 let fill = composite(primary, over: try hex(surface), alpha: alpha)
                 let ratio = contrast(accent, fill)
@@ -177,30 +178,112 @@ final class DesignContrastTests: XCTestCase {
         }
     }
 
-    /// The graph and its legend draw Repository in a brighter orange than its words use: graphics need 3:1, and the deep
-    /// shade is too near Agent's amber to tell apart. Held at 3:1 on the page and on paper in the light look.
-    func testTheGraphsRepositoryOrangeStaysApartFromAgentAndHoldsAsAGraphic() throws {
-        let light = UITraitCollection(userInterfaceStyle: .light)
-        func resolved(_ color: Color) -> UInt32 { DesignTokensTests.hex(of: UIColor(color).resolvedColor(with: light)) }
-        let repository = resolved(MemoryStyle.graphTint(forSource: "github"))
-        DesignTokensTests.assertSame(repository, 0xEA580C, "Repository on the graph in the light look")
-        for surface in ["background", "card"] {
-            let ratio = contrast(repository, try XCTUnwrap(HVTokens.lightColors[surface]))
-            XCTAssertGreaterThanOrEqual(ratio, 3, "Repository on \(surface) is \(ratio):1 as a graphic in the light look.")
+    /// The Memory map draws four hues that sit well apart (You blue, Chat violet, File mint, Agent amber) and the grey text
+    /// role for the rest (Coding, Repository, Web, a source it does not know), which its legend and its callout name. The
+    /// separate Repository orange that stood apart from Agent's amber is gone with the hue itself. Each colour is held at
+    /// 3:1 as a graphic on the page and on paper in both looks.
+    func testTheMemoryMapDrawsFourHuesAndGreyForTheRest() throws {
+        let fourHues: [(String, Color)] = [
+            ("manual", Palette.blue), ("chat", Palette.violet), ("agent", Palette.amber), ("file", Palette.mint),
+        ]
+        let greys = ["coding", "github", "web", "a source nothing knows"]
+        let looks: [(String, UIUserInterfaceStyle)] = [("dark", .dark), ("light", .light)]
+        for (look, style) in looks {
+            let traits = UITraitCollection(userInterfaceStyle: style)
+            func resolved(_ color: Color) -> UInt32 { DesignTokensTests.hex(of: UIColor(color).resolvedColor(with: traits)) }
+            func surface(_ name: String) throws -> UInt32 {
+                if style == .dark { return try hex(name) }
+                return try XCTUnwrap(HVTokens.lightColors[name])
+            }
+            for (source, expected) in fourHues {
+                XCTAssertEqual(resolved(MemoryStyle.graphTint(forSource: source)), resolved(expected), "\(source) in the \(look) look")
+            }
+            for source in greys {
+                XCTAssertEqual(resolved(MemoryStyle.graphTint(forSource: source)), resolved(Palette.textSecondary), "\(source) in the \(look) look")
+            }
+            for source in fourHues.map({ $0.0 }) + greys {
+                for name in ["background", "card"] {
+                    let ratio = contrast(resolved(MemoryStyle.graphTint(forSource: source)), try surface(name))
+                    XCTAssertGreaterThanOrEqual(ratio, 3, "\(source) on \(name) is \(ratio):1 as a graphic in the \(look) look.")
+                }
+            }
         }
-        // The words of the chip keep the deep shade, which is not the graph's.
-        XCTAssertNotEqual(resolved(MemoryStyle.ink(forSource: "github")), repository)
-        // And the other kinds are what they were.
-        for source in ["manual", "chat", "coding", "agent", "file", "web"] {
-            XCTAssertEqual(resolved(MemoryStyle.graphTint(forSource: source)), resolved(MemoryStyle.tint(forSource: source)), source)
-        }
-        // In the dark look Repository is the orange it always was.
-        let dark = UITraitCollection(userInterfaceStyle: .dark)
-        DesignTokensTests.assertSame(DesignTokensTests.hex(of: UIColor(MemoryStyle.graphTint(forSource: "github")).resolvedColor(with: dark)), 0xF97316, "Repository on the graph in the dark look")
     }
 
     func testTextOnTheAccentFillIsBodyText() throws {
         XCTAssertGreaterThanOrEqual(contrast(try hex("accent-foreground"), try hex("accent")), 4.5)
+    }
+
+    /// `Palette.action` is the one flat fill under white text and white glyphs at body size (the person's chat bubble, the
+    /// send buttons, the prominent icon button, the count in the Account menu). It is #2563EB in both looks, the web's
+    /// light-look `primary`, and white on it is 5.17:1 in each: no bold needed, unlike the dark look's own `primary`
+    /// (3.68:1), which is why it is a token of its own and not `primary`.
+    func testWhiteOnTheActionFillIsBodyTextInBothLooks() throws {
+        let light = HVTokens.lightColors
+        let darkAction = try hex("action"), lightAction = try XCTUnwrap(light["action"])
+        XCTAssertEqual(darkAction, 0x2563EB)
+        XCTAssertEqual(lightAction, 0x2563EB)
+        XCTAssertEqual(lightAction, try XCTUnwrap(light["primary"]), "In the light look `action` is the web's `primary`.")
+        let white = try hex("primary-foreground"), lightWhite = try XCTUnwrap(light["primary-foreground"])
+        XCTAssertEqual(white, 0xFFFFFF)
+        XCTAssertEqual(lightWhite, 0xFFFFFF)
+        let onDark = contrast(white, darkAction), onLight = contrast(lightWhite, lightAction)
+        XCTAssertEqual(onDark, 5.17, accuracy: 0.01)
+        XCTAssertEqual(onLight, 5.17, accuracy: 0.01)
+        XCTAssertGreaterThanOrEqual(onDark, 4.5, "White on action in the dark look.")
+        XCTAssertGreaterThanOrEqual(onLight, 4.5, "White on action in the light look.")
+        // And the dark look's `primary` is the one that needs it: it only clears 3:1.
+        XCTAssertLessThan(contrast(white, try hex("primary")), 4.5)
+    }
+
+    /// The tint ladder is one fill and one edge for a tag, a notice, a disc and a badge: the web's status chip, 10% with a
+    /// 40% edge (`HV.Tint`). The tag test above reads the fill from the ladder, so a step up that sends the grey tag on
+    /// raised paper under 4.5:1 fails there. Small text on a `primary` tint is `accent`, which holds at this step on
+    /// every surface.
+    func testTheTintLadderIsOneFillAndOneEdge() throws {
+        XCTAssertEqual(HV.Tint.fill, 0.10, accuracy: 0.0001)
+        XCTAssertEqual(HV.Tint.border, 0.40, accuracy: 0.0001)
+        let primary = try hex("primary"), accent = try hex("accent")
+        for surface in surfaces {
+            let tint = composite(primary, over: try hex(surface), alpha: HV.Tint.fill)
+            let ratio = contrast(accent, tint)
+            XCTAssertGreaterThanOrEqual(ratio, 4.5, "Accent text on a primary tint over \(surface) is \(ratio):1.")
+        }
+    }
+
+    /// The tint ladder in the light look. The 10% fill gives a tag, a disc or a badge text of 4.5:1 or better on most
+    /// surfaces, and the pairs listed here fall a little under it: the light shades of emerald and amber are the 700s the
+    /// web mirrors to, and amber is the lowest (3.80:1 on raised paper). They are recorded, as the other light lows are, so
+    /// that a change to a light value or to `HV.Tint.fill` that moves any pair fails here and is not stumbled on. The words
+    /// of a tag carry the meaning and the colour only echoes it.
+    func testTheTintLadderInTheLightLookHoldsExceptTheRecordedLows() throws {
+        let light = HVTokens.lightColors
+        func value(_ name: String) throws -> UInt32 { try XCTUnwrap(light[name]) }
+        let lows: [String: Double] = [
+            "emerald-400 on background": 4.45, "emerald-400 on muted": 4.11,
+            "amber-400 on background": 4.10, "amber-400 on card": 4.39, "amber-400 on muted": 3.80,
+            "accent on muted": 4.45,
+        ]
+        for tint in ["emerald-400", "amber-400", "muted-foreground", "accent"] {
+            for surface in ["background", "card", "muted"] {
+                let pair = "\(tint) on \(surface)"
+                let fill = composite(try value(tint), over: try value(surface), alpha: HV.Tint.fill)
+                let ratio = contrast(try value(tint), fill)
+                if let recorded = lows[pair] {
+                    XCTAssertEqual(ratio, recorded, accuracy: 0.02, "A \(pair) tag in the light look.")
+                } else {
+                    XCTAssertGreaterThanOrEqual(ratio, 4.5, "A \(pair) tag is \(ratio):1 in the light look.")
+                }
+            }
+        }
+        // Small text on a `primary` tint is `accent`: 4.5:1 or better on the page and on paper, 4.46:1 on raised paper.
+        let primary = try value("primary"), accent = try value("accent")
+        for surface in ["background", "card"] {
+            let ratio = contrast(accent, composite(primary, over: try value(surface), alpha: HV.Tint.fill))
+            XCTAssertGreaterThanOrEqual(ratio, 4.5, "Accent text on a primary tint over \(surface) is \(ratio):1 in the light look.")
+        }
+        let onRaised = contrast(accent, composite(primary, over: try value("muted"), alpha: HV.Tint.fill))
+        XCTAssertEqual(onRaised, 4.46, accuracy: 0.02, "Accent text on a primary tint over muted in the light look.")
     }
 
     /// The app's own decorative tints, which the web has no token for, are text as well as glyph in places.
@@ -229,6 +312,7 @@ final class DesignContrastTests: XCTestCase {
         DesignTokensTests.assertSame(resolved(Palette.textTertiary), try hex("muted-foreground"), "Palette.textTertiary")
         DesignTokensTests.assertSame(resolved(Palette.blue), try hex("primary"), "Palette.blue")
         DesignTokensTests.assertSame(resolved(Palette.sky), try hex("accent"), "Palette.sky")
+        DesignTokensTests.assertSame(resolved(Palette.action), try hex("action"), "Palette.action")
         DesignTokensTests.assertSame(resolved(Palette.danger), try hex("destructive"), "Palette.danger")
         DesignTokensTests.assertSame(resolved(Palette.success), try hex("emerald-400"), "Palette.success")
         DesignTokensTests.assertSame(resolved(Palette.warning), try hex("amber-400"), "Palette.warning")

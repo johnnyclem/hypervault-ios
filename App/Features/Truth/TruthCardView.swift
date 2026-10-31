@@ -81,7 +81,7 @@ struct TruthCardView: View {
         }
         .padding(HV.Space.s)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.amber.opacity(0.10), in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        .background(Palette.amber.opacity(HV.Tint.fill), in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
     }
 
     private func reviewNote(_ review: TruthDocketReview) -> some View {
@@ -192,6 +192,6 @@ struct TruthCardView: View {
         }
         .padding(HV.Space.s)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.violet.opacity(0.10), in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        .background(Palette.violet.opacity(HV.Tint.fill), in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
     }
 }

@@ -132,7 +132,8 @@ struct MemoryGraphScreen: View {
     private func tint(of node: MemoryGraph.Node, sources: [String: String]) -> Color {
         switch node.kind {
         case .memory: return MemoryStyle.graphTint(forSource: sources[node.id] ?? "manual")
-        case .artifact: return Palette.rose
+        // A page is the colour it is everywhere else (KeptKind), and a diamond besides.
+        case .artifact: return KeptKind.page.tint
         }
     }
 
@@ -144,7 +145,9 @@ struct MemoryGraphScreen: View {
                 return ForceGraphNode(
                     id: node.id, label: node.title,
                     color: tint(of: node, sources: sources),
-                    shape: .circle, weight: 1 + min(Double(node.degree), 8) * 0.7, detail: "Memory"
+                    // The source is said in words as well: Coding, Repository and Web share one grey on the map.
+                    shape: .circle, weight: 1 + min(Double(node.degree), 8) * 0.7,
+                    detail: "Memory \u{00B7} " + MemorySource.label(sources[node.id] ?? "manual")
                 )
             case .artifact:
                 return ForceGraphNode(
@@ -168,9 +171,10 @@ struct MemoryGraphScreen: View {
         }
         var items = seen.map { ForceGraphLegendItem(title: MemorySource.label($0), color: MemoryStyle.graphTint(forSource: $0)) }
         if graph.nodes.contains(where: { $0.kind == .artifact }) {
-            items.append(ForceGraphLegendItem(title: "Page", color: Palette.rose, shape: .diamond))
+            items.append(ForceGraphLegendItem(title: "Page", color: KeptKind.page.tint, shape: .diamond))
         }
-        return items
+        // Coding, Repository and Web share one grey: one row names the three, and the callout says which a node is.
+        return items.foldingRowsThatLookAlike()
     }
 
     private func open(_ id: String, in graph: MemoryGraph) {

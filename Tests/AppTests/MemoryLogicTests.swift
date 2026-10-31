@@ -41,6 +41,22 @@ final class MemoryLogicTests: XCTestCase {
         XCTAssertEqual(model.points.count, 24)
     }
 
+    /// Coding, Repository and Web share the grey on the Memory map: the legend names them in one row, so no two swatches
+    /// on it look alike, and a different colour or a different shape stays a row of its own.
+    func testTheLegendFoldsRowsThatLookAlike() {
+        let rows = [
+            ForceGraphLegendItem(title: "You", color: Palette.blue),
+            ForceGraphLegendItem(title: "Coding", color: Palette.textSecondary),
+            ForceGraphLegendItem(title: "Repository", color: Palette.textSecondary),
+            ForceGraphLegendItem(title: "Web", color: Palette.textSecondary),
+            ForceGraphLegendItem(title: "Page", color: Palette.blue, shape: .diamond),
+        ]
+        let folded = rows.foldingRowsThatLookAlike()
+        XCTAssertEqual(folded.map(\.title), ["You", "Coding, Repository, Web", "Page"])
+        XCTAssertEqual(folded.map(\.shape), [.circle, .circle, .diamond])
+        XCTAssertEqual(Set(folded.map(\.id)).count, folded.count)
+    }
+
     func testAReceiptNeverBreaksBeforeItsDots() {
         let receipt = MemoryProvenance(
             commitId: "8b41d07a-2c93-4f55-a6e0-1d7c93b4e802", message: "memorize: Passport checklist",

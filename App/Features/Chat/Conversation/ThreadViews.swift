@@ -79,10 +79,10 @@ struct ChatUserBubble: View {
         }
         .padding(.horizontal, HV.Space.m)
         .padding(.vertical, HV.Space.s)
-        // The deep gradient is the one fill white text reads on in both looks, and the words the person
-        // just wrote stay at full strength while the reply is on its way: the line under the bubble
+        // `action` is the one flat fill white text reads on at body size in both looks (5.17:1), and the words
+        // the person just wrote stay at full strength while the reply is on its way: the line under the bubble
         // already says the model is working.
-        .background(Palette.softGradient, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
+        .background(Palette.action, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("You said: \(row.text)")
         .accessibilityValue(row.state == .sending ? "Sending" : "")

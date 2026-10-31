@@ -160,7 +160,7 @@ struct ArtifactPasswordsScreen: View {
             .padding(.vertical, HV.Space.xs)
         }
         // Paper first, then the tint: the tint alone would take the page's colour in dark mode.
-        .listRowBackground(ZStack { Palette.surface; Palette.mint.opacity(0.14) })
+        .listRowBackground(ZStack { Palette.surface; Palette.mint.opacity(HV.Tint.fill) })
         .listRowSeparatorTint(Palette.hairline)
     }
 

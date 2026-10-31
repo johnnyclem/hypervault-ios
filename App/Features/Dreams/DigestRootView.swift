@@ -223,9 +223,9 @@ private struct DigestSegmentCard: View {
         HStack(alignment: .top, spacing: HV.Space.s) {
             Text("\(segment.ordinal + 1)")
                 .font(.system(.footnote, weight: .bold))
-                .foregroundStyle(Palette.cyan)
+                .foregroundStyle(Palette.textSecondary)
                 .frame(width: 26, height: 26)
-                .background(Palette.cyan.opacity(0.14), in: Circle())
+                .background(Palette.textSecondary.opacity(HV.Tint.fill), in: Circle())
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(segment.title)
@@ -241,7 +241,7 @@ private struct DigestSegmentCard: View {
                 }
                 if !segment.reason.isEmpty || !segment.tags.isEmpty {
                     MemoryFlowLayout(spacing: 6) {
-                        if !segment.reason.isEmpty { HVTag(text: segment.reason, tint: Palette.cyan) }
+                        if !segment.reason.isEmpty { HVTag(text: segment.reason) }
                         ForEach(segment.tags.prefix(4), id: \.self) { HVTag(text: $0) }
                     }
                 }

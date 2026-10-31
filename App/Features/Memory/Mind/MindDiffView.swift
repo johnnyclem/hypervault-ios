@@ -103,8 +103,8 @@ private struct MindDiffRowView: View {
 
     private var background: Color {
         switch row.kind {
-        case .add: return Palette.success.opacity(0.12)
-        case .del: return Palette.rose.opacity(0.10)
+        case .add: return Palette.success.opacity(HV.Tint.fill)
+        case .del: return Palette.rose.opacity(HV.Tint.fill)
         default: return .clear
         }
     }

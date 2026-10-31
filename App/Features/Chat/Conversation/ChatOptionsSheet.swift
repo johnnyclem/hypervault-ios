@@ -79,7 +79,8 @@ struct ChatOptionsSheet: View {
     @ViewBuilder
     private func choiceRow(title: String, subtitle: String, symbol: String, selected: Bool, enabled: Bool, action: @escaping () -> Void) -> some View {
         let label = HStack(spacing: HV.Space.s) {
-            HVIconBadge(symbol: symbol, tint: selected ? Color.accentColor : Palette.textSecondary, size: 32)
+            // One mark on the chosen row: the check at the end. The badge is the same grey either way.
+            HVIconBadge(symbol: symbol, tint: Palette.textSecondary, size: 32)
                 .opacity(enabled ? 1 : 0.5)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(title).font(.hvBody).foregroundStyle(enabled ? Palette.textPrimary : Palette.textSecondary).lineLimit(2)

@@ -51,6 +51,18 @@ enum HV {
     /// 36: the side of the tile at the head of a list row. `HVRow` draws it, the Vault's `HVTile` is the same size, and
     /// the text column that a row's separator starts at is this plus the gap (`Space.s`).
     static let rowTile: CGFloat = 36
+
+    /// How much of a colour a fill or an edge made from it shows: one step each, for a tag, a notice, a disc and a
+    /// badge alike, in both looks. `fill` is the web's status chip (`bg-emerald-400/10`) and `border` its edge
+    /// (`border-emerald-400/40`). The text on a fill is the colour itself, which holds 4.5:1 over its own `fill` on the
+    /// page, paper and raised paper in the dark look (`DesignContrastTests`); a step higher and the grey tag on raised
+    /// paper falls under it. Never write 0.12, 0.14, 0.16 or 0.35 for a tint: use these.
+    enum Tint {
+        /// 0.10: the fill of a tint over a surface.
+        static let fill: Double = 0.10
+        /// 0.40: the 1pt edge of a tint.
+        static let border: Double = 0.40
+    }
 }
 
 extension Color {
@@ -83,8 +95,8 @@ extension Color {
 /// Contrast (WCAG, held by `DesignContrastTests`): `textPrimary` is 13.7:1 or better on the page, paper and raised
 /// paper, and the grey text is 5.4:1 or better. Every accent below is 4.5:1 or better on all three, except `blue` as
 /// text on raised paper (4.36) and `danger` as text on raised paper (4.26). White on `blue` is 3.68:1, which holds
-/// bold text only; anything that carries body-size white text is filled with `softGradient` instead. `blue` over its own
-/// 14% tint is 4.08:1 on paper, so small text on a tint of `blue` is `sky`.
+/// bold text only; anything that carries body-size white text is filled with `action` instead (5.17:1 in both looks).
+/// `blue` over its own 10% tint is 4.31:1 on paper, so small text on a tint of `blue` is `sky`.
 enum Palette {
     /// The page: `background`.
     static let background = HVColor.background
@@ -133,27 +145,11 @@ enum Palette {
     /// The web's `destructive`.
     static let danger = HVColor.destructive
 
-    /// The mark's gradient, violet through blue to cyan. It is for the mark and for decoration, never behind text.
-    static let brandGradient = LinearGradient(
-        colors: [Color(hex: 0x8B5CF6), Color(hex: 0x3B82F6), Color(hex: 0x22D3EE)],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
-
-    /// The fill for anything that carries white text or a white glyph: the primary button, the person's
-    /// own chat bubbles, the send button. White on either end is 5.1:1 or better.
-    static let softGradient = LinearGradient(
-        colors: [Color(hex: 0x2563EB), Color(hex: 0x0369A1)],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
-
-    /// The brand gradient in shades that hold a white initial: for avatars.
-    static let avatarGradient = LinearGradient(
-        colors: [Color(hex: 0x6D28D9), Color(hex: 0x2563EB), Color(hex: 0x0E7490)],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
+    /// The one flat fill for anything that carries white text or a white glyph at body size: the person's chat bubbles,
+    /// the send buttons, the prominent icon button, the count in the Account menu. #2563EB in both looks (the web's
+    /// light-look `primary`); white on it is 5.17:1. It is the accent of an action, so it is never a tile, a tag or a
+    /// decoration, and nothing is laid over it but white.
+    static let action = HVColor.action
 }
 
 /// Type. Text styles, so everything scales with Dynamic Type, in the system face (SF Pro), which is what the web's

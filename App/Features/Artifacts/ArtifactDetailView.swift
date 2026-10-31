@@ -377,28 +377,18 @@ struct ArtifactBlockedView: View {
     var secondary: (String, () -> Void)?
 
     var body: some View {
-        VStack(spacing: HV.Space.m) {
-            ZStack {
-                Circle().fill(Palette.blue.opacity(0.12)).frame(width: 84, height: 84)
-                Image(systemName: symbol)
-                    .font(.system(size: 32, weight: .medium))
-                    .foregroundStyle(Palette.brandGradient)
-            }
-            .accessibilityHidden(true)
-            VStack(spacing: HV.Space.xs) {
-                Text(title).font(.hvTitle3).multilineTextAlignment(.center)
-                Text(message)
-                    .font(.hvCallout)
-                    .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
+        // The glyph, title and message are the app's one empty state; the two ways on go under it (it carries only one
+        // quiet action of its own, and here the first of the two is the filled button).
+        VStack(spacing: 0) {
+            HVEmptyState(symbol: symbol, title: title, message: message)
             VStack(spacing: HV.Space.xs) {
                 if let primary { Button(primary.0, action: primary.1).buttonStyle(.hvPrimary) }
                 if let secondary { Button(secondary.0, action: secondary.1).buttonStyle(.hvGhost) }
             }
             .frame(maxWidth: 280)
+            .padding(.horizontal, HV.Space.xl)
+            .padding(.bottom, HV.Space.xl)
         }
-        .padding(HV.Space.xl)
         .frame(maxWidth: 460)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

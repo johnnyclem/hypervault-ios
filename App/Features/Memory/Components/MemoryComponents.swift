@@ -50,30 +50,18 @@ enum MemoryStyle {
         }
     }
 
-    static func tint(forSource source: String) -> Color {
+    /// What a source's dot and node are drawn in on the graph and its legend. Four hues that sit well apart on the colour
+    /// wheel (You blue, Chat violet, File mint, Agent amber, the same four `KeptKind` draws a map in) and everything else
+    /// in the grey text role, so Coding, Repository and Web look alike on the map and the legend and the callout name
+    /// them. A hue is never the only signal, and each is 3:1 or better on the page and on paper in both looks.
+    static func graphTint(forSource source: String) -> Color {
         switch source {
         case "manual": return Palette.blue
         case "chat": return Palette.violet
-        case "coding": return Palette.cyan
         case "agent": return Palette.amber
         case "file": return Palette.mint
-        case "github": return Palette.coral
-        case "web": return Palette.sky
         default: return Palette.textSecondary
         }
-    }
-
-    /// What a source's dot and node are drawn in on the graph and its legend. Graphics need 3:1, not the 4.5:1 of words, so
-    /// Repository keeps a brighter orange in the light look: at the deep shade its words need (orange-700) it is too
-    /// near Agent's amber (a brown) to tell the two apart at a glance.
-    static func graphTint(forSource source: String) -> Color {
-        source == "github" ? Color(dark: 0xF97316, light: 0xEA580C) : tint(forSource: source)
-    }
-
-    /// What a source's words are drawn in on its own 14% tint. The tint itself, except for manual's `primary`, which is only
-    /// 4.08:1 on paper over its own fill: that one is `accent` (7.0:1), as for any small text on a `primary` tint.
-    static func ink(forSource source: String) -> Color {
-        source == "manual" ? Palette.sky : tint(forSource: source)
     }
 }
 
@@ -91,18 +79,8 @@ extension MindCommitKind {
         }
     }
 
-    var tint: Color {
-        switch self {
-        case .memorize: return Palette.mint
-        case .edit: return Palette.blue
-        case .forget: return Palette.rose
-        case .merge: return Palette.violet
-        case .revert: return Palette.amber
-        case .importing: return Palette.coral
-        case .link: return Palette.cyan
-        case .other: return Palette.textSecondary
-        }
-    }
+    /// One grey for every kind: the glyph above already names it, and seven hues for seven kinds said nothing more.
+    var tint: Color { Palette.textSecondary }
 }
 
 extension MindAuthorKind {
@@ -198,11 +176,11 @@ struct MemorySourceChip: View {
             Text(MemorySource.label(source))
                 .font(.system(.caption2, weight: .semibold))
         }
-        // Inked like HVTag: in light mode the accent on a tint of itself needs the darker shade to read.
-        .foregroundStyle(MemoryStyle.ink(forSource: source))
+        // Grey like the tags beside it, on the tint ladder's one fill: the glyph and the word name the source, not a hue.
+        .foregroundStyle(Palette.textSecondary)
         .padding(.horizontal, 8)
         .padding(.vertical, HV.Space.xxs)
-        .background(MemoryStyle.tint(forSource: source).opacity(0.14), in: Capsule())
+        .background(Palette.textSecondary.opacity(HV.Tint.fill), in: Capsule())
     }
 }
 

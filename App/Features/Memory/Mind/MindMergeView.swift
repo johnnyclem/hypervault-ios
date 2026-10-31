@@ -331,8 +331,9 @@ private struct MindConflictCard: View {
             }
             .padding(HV.Space.s)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(selected ? Color.accentColor.opacity(0.08) : Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.s, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: HV.Radius.s, style: .continuous).strokeBorder(selected ? Color.accentColor.opacity(0.6) : Color.clear, lineWidth: 1.5))
+            // A chosen side has one mark, the radio above (a filled circle in the accent, not colour alone), and the
+            // .isSelected trait below: no tinted fill and no outline on top of it.
+            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.s, style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)

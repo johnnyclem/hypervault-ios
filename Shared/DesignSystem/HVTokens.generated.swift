@@ -39,6 +39,7 @@ enum HVTokens {
         "emerald-400": 0x00D492,
         "amber-400": 0xFFB900,
         "memory": 0xA78BFA,
+        "action": 0x2563EB,
     ]
 
     /// The light slot of every colour set: the iOS guide's mirror of the dark value.
@@ -61,6 +62,7 @@ enum HVTokens {
         "emerald-400": 0x047857,
         "amber-400": 0xB45309,
         "memory": 0x6D28D9,
+        "action": 0x2563EB,
     ]
 
     /// `fixed`: colours drawn outside the tokens, which no theme changes.

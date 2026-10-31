@@ -191,7 +191,7 @@ struct ToolsStep: View {
                 .font(.system(.footnote, weight: .bold))
                 .foregroundStyle(Palette.sky)
                 .frame(width: 26, height: 26)
-                .background(Palette.blue.opacity(0.14), in: Circle())
+                .background(Palette.blue.opacity(HV.Tint.fill), in: Circle())
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(title).font(.hvHeadline)

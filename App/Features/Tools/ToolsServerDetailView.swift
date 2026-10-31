@@ -43,7 +43,6 @@ struct ToolsServerDetailView: View {
                     get: { server.enabled },
                     set: { value in Task { await model.setEnabled(value, serverID: server.id) } }
                 ))
-                .tint(Palette.mint)
             }
             .hvListRow()
 
@@ -154,7 +153,6 @@ struct ToolsServerDetailView: View {
                             }
                         }
                     }
-                    .tint(Palette.mint)
                     .disabled(!server.enabled)
                     .frame(minHeight: 44)
                 }

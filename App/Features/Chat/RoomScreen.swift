@@ -322,7 +322,7 @@ struct ChatRoomMessageView: View {
                     .textSelection(.enabled)
                     .padding(.horizontal, HV.Space.m)
                     .padding(.vertical, HV.Space.s)
-                    .background(Palette.softGradient, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
+                    .background(Palette.action, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("You said: \(message.content)")
@@ -359,10 +359,9 @@ struct ChatRoomMessageView: View {
                     .padding(.top, HV.Space.xxs)
                 }
             }
-            .padding(.horizontal, HV.Space.m)
-            .padding(.vertical, HV.Space.s)
-            .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous).strokeBorder(tint.opacity(0.35), lineWidth: 1))
+            // No tinted fill and no outline: the dot and the handle above already say who spoke, and a reply in the
+            // 1:1 thread is plain text the same way. The text lines up under the handle.
+            .padding(.leading, 4)
             if !message.mentions.isEmpty {
                 Text("\u{2192} " + message.mentions.map { "@" + $0 }.joined(separator: ", "))
                     .font(.hvCaption)

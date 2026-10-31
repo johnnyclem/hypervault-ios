@@ -144,7 +144,7 @@ struct MindCommitDetailView: View {
                 MemoryMetaLine(symbol: "square.stack.3d.up", text: commit.changeCounts.summary)
             }
             if commit.isMerge {
-                MemoryMetaLine(symbol: "arrow.triangle.merge", text: "A merge: it brought another branch in.", tint: Palette.violet)
+                MemoryMetaLine(symbol: "arrow.triangle.merge", text: "A merge: it brought another branch in.")
             }
             Text(commit.id)
                 .font(.system(.caption2, design: .monospaced))

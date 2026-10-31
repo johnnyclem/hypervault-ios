@@ -13,12 +13,14 @@ extension BoardTaskStatus {
         }
     }
 
+    /// Blocked is the warning shade and review the web's accent; in progress is the accent blue. The symbol is
+    /// different for every status, so the colour is never the only signal.
     var tint: Color {
         switch self {
         case .todo: return Palette.textTertiary
         case .inProgress: return Palette.blue
-        case .blocked: return Palette.coral
-        case .review: return Palette.violet
+        case .blocked: return Palette.warning
+        case .review: return Palette.sky
         case .done: return Palette.mint
         case .cancelled: return Palette.textTertiary
         }
@@ -411,7 +413,7 @@ struct TaskRowBody: View {
                     Text(holder).lineLimit(1)
                 }
                 .font(.hvCaption)
-                .foregroundStyle(task.assignee.isAgent ? Palette.violet : Palette.blue)
+                .foregroundStyle(Palette.textSecondary)
             }
         }
         .padding(.vertical, HV.Space.xxs)

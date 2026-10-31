@@ -168,7 +168,7 @@ private struct MemoryAskTurnView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, HV.Space.m)
                     .padding(.vertical, HV.Space.s)
-                    .background(Palette.softGradient, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
+                    .background(Palette.action, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
                     .textSelection(.enabled)
             }
             answer

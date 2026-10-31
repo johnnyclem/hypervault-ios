@@ -69,7 +69,7 @@ struct ConnectGuideView: View {
                         .font(.system(.footnote, weight: .bold))
                         .foregroundStyle(Palette.sky)
                         .frame(minWidth: 28, minHeight: 28)
-                        .background(Palette.blue.opacity(0.14), in: Circle())
+                        .background(Palette.blue.opacity(HV.Tint.fill), in: Circle())
                         .accessibilityHidden(true)
                     Text(step)
                         .font(.hvCallout)

@@ -34,6 +34,22 @@ struct ForceGraphLegendItem: Hashable, Identifiable {
     var id: String { title }
 }
 
+extension Sequence where Element == ForceGraphLegendItem {
+    /// One row for every look the map draws: rows with the same colour and the same shape (the grey that Coding,
+    /// Repository and Web share) become a single row that names them all, so a swatch on the legend means one thing.
+    func foldingRowsThatLookAlike() -> [ForceGraphLegendItem] {
+        var rows: [ForceGraphLegendItem] = []
+        for item in self {
+            if let index = rows.firstIndex(where: { $0.color == item.color && $0.shape == item.shape }) {
+                rows[index] = ForceGraphLegendItem(title: rows[index].title + ", " + item.title, color: item.color, shape: item.shape)
+            } else {
+                rows.append(item)
+            }
+        }
+        return rows
+    }
+}
+
 /// Runs the layout and holds where everything is. The view reads `points`.
 @MainActor
 @Observable

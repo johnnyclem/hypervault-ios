@@ -333,7 +333,6 @@ struct ToolsAddServerSheet: View {
                             }
                             Button("Remove this header", role: .destructive) { flow.removeHeader(row.id) }
                                 .buttonStyle(.hvGhost)
-                                .padding(.leading, -HV.Space.s)
                         }
                     }
                     Button {
@@ -344,7 +343,7 @@ struct ToolsAddServerSheet: View {
                     .buttonStyle(.hvGhost)
                     if flow.hasHeaders {
                         Toggle(isOn: $flow.saveToVault) {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                                 Text("Save to the saved-secrets vault").font(.hvCallout)
                                 Text("Keeps the key as a named secret you manage under Vault.")
                                     .font(.hvCaption)
@@ -393,7 +392,7 @@ struct ToolsAddServerSheet: View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
             HStack(spacing: HV.Space.s) {
                 HVIconBadge(symbol: "server.rack", tint: Palette.blue, size: 44)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(preview.name).font(.hvTitle3)
                     HVAddressText(URL(string: preview.url)?.host ?? preview.url)
                         .font(.hvFootnote)
@@ -458,7 +457,7 @@ struct ToolsToolInspectorRow: View {
                     Text("No parameters.").font(.hvCaption).foregroundStyle(Palette.textTertiary)
                 } else {
                     ForEach(parameters) { parameter in
-                        VStack(alignment: .leading, spacing: 1) {
+                        VStack(alignment: .leading, spacing: HV.Space.xxs) {
                             HStack(spacing: 6) {
                                 Text(parameter.name).font(.hvMono)
                                 if let type = parameter.type { Text(type).font(.hvCaption).foregroundStyle(Palette.textTertiary) }
@@ -475,7 +474,7 @@ struct ToolsToolInspectorRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, HV.Space.xs)
         } label: {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(tool.name).font(.hvMono).foregroundStyle(Palette.textPrimary)
                 if !expanded, !tool.description.isEmpty {
                     Text(tool.description)

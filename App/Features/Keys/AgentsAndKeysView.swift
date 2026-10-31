@@ -69,7 +69,8 @@ struct AgentsAndKeysView: View {
 
             Section {
                 connectCard
-                    .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.xl, trailing: HV.Space.m))
+                    // No bottom inset: the list's own gap between sections sits under this one, as it does under the others.
+                    .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: 0, trailing: HV.Space.m))
                     .listRowBackground(Color.clear)
             }
 
@@ -133,7 +134,6 @@ struct AgentsAndKeysView: View {
             .multilineTextAlignment(.center)
             .accessibilityIdentifier("keys.connect")
         }
-        .padding(.vertical, HV.Space.xs)
     }
 
     private var emptyKeys: some View {
@@ -180,7 +180,7 @@ struct KeyRow: View {
                 size: min(tile, 56)
             )
         } words: {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(key.displayName ?? "Untitled key")
                     .font(.hvBody)
                     .foregroundStyle(Palette.textPrimary)
@@ -193,32 +193,17 @@ struct KeyRow: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// The prefix and the last use share a line while they fit. At accessibility sizes each gets its own, so
-    /// neither is cut short ("Last used 19...").
-    @ViewBuilder
+    /// The prefix and the last use each get their own line at every size, so the rows of one list are the same height
+    /// and none is cut short ("Last used 19...") or wraps ("Last used 14 / days ago").
     private var detail: some View {
         let usage = isRevoking ? KeysCopy.revoking : AccountWords.lastUsedLine(key.lastUsedAt)
-        if isLarge {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(key.prefixLabel)
-                Text(usage)
-            }
-            .font(.hvFootnote)
-            .foregroundStyle(Palette.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
-        } else {
-            // One line while both fit; when they do not, each gets its own rather than "Last used 14 / days ago".
-            ViewThatFits(in: .horizontal) {
-                Text("\(key.prefixLabel) \u{00B7} \(usage)")
-                    .lineLimit(1)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(key.prefixLabel)
-                    Text(usage)
-                }
-            }
-            .font(.hvFootnote)
-            .foregroundStyle(Palette.textSecondary)
+        return VStack(alignment: .leading, spacing: HV.Space.xxs) {
+            Text(key.prefixLabel)
+            Text(usage)
         }
+        .font(.hvFootnote)
+        .foregroundStyle(Palette.textSecondary)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 

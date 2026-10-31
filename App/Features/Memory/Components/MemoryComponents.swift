@@ -201,7 +201,7 @@ struct MemorySourceChip: View {
         // Inked like HVTag: in light mode the accent on a tint of itself needs the darker shade to read.
         .foregroundStyle(MemoryStyle.ink(forSource: source))
         .padding(.horizontal, 8)
-        .padding(.vertical, 3)
+        .padding(.vertical, HV.Space.xxs)
         .background(MemoryStyle.tint(forSource: source).opacity(0.14), in: Capsule())
     }
 }
@@ -296,7 +296,7 @@ struct MemoryCard: View {
             // The date beside the title while the title has the room. At an accessibility size it would leave the title a
             // sliver ("Trip to…"), so it goes under it and the title takes the whole width.
             if isLarge {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     title
                     date
                 }
@@ -315,7 +315,7 @@ struct MemoryCard: View {
                     .multilineTextAlignment(.leading)
             }
             MemoryTagList(tags: item.tags, source: item.source, limit: 3)
-                .padding(.top, 2)
+                .padding(.top, HV.Space.xxs)
         }
         .hvCard()
         .accessibilityElement(children: .combine)
@@ -343,7 +343,7 @@ struct MemoryMarkdownView: View {
     let blocks: [MarkdownBlock]
 
     var body: some View {
-        LazyVStack(alignment: .leading, spacing: HV.Space.s + 2) {
+        LazyVStack(alignment: .leading, spacing: HV.Space.s) {
             ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
                 blockView(block)
             }
@@ -359,7 +359,7 @@ struct MemoryMarkdownView: View {
             inline(text)
                 .font(headingFont(level))
                 .foregroundStyle(Palette.textPrimary)
-                .padding(.top, level <= 2 ? HV.Space.xs : 2)
+                .padding(.top, level <= 2 ? HV.Space.xs : HV.Space.xxs)
                 .accessibilityAddTraits(.isHeader)
         case .paragraph(let text):
             inline(text)

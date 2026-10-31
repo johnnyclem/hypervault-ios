@@ -32,7 +32,7 @@ struct WaitlistView: View {
                             .multilineTextAlignment(.center)
                     }
 
-                    VStack(spacing: HV.Space.s + 2) {
+                    VStack(spacing: HV.Space.s) {
                         TextField("Invite code", text: $code, prompt: .hvPrompt("HV-XXXX-XXXX"))
                             .font(.system(.title3, design: .monospaced, weight: .semibold))
                             .multilineTextAlignment(.center)

@@ -60,7 +60,7 @@ struct TruthImportView: View {
                     .buttonStyle(.truthRow)
                     .hvListRow()
                 if preview.lineCount > 0 || fileName != nil {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         if let fileName { Text(fileName).font(.hvFootnote.weight(.semibold)).foregroundStyle(Palette.textPrimary) }
                         Text(preview.summary).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                         if let problem = preview.firstProblem {

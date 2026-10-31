@@ -205,7 +205,7 @@ struct ArtifactPasswordsScreen: View {
             }
             ForEach(list.passwords) { item in
                 HStack(spacing: HV.Space.s) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         Text(item.displayLabel).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(1)
                         Text(item.usageLine).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                     }

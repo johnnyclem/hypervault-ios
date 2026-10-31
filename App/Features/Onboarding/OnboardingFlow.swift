@@ -67,7 +67,8 @@ struct OnboardingFlow: View {
                         .multilineTextAlignment(.center)
                         .accessibilityIdentifier("welcome.haveAccount")
                 } else {
-                    Color.clear.frame(height: 36)
+                    // The height of the ghost button on page 1, so the dots and Continue stay where they are when the page turns.
+                    Color.clear.frame(height: 44)
                 }
             }
             .padding(.horizontal, HV.Space.l)
@@ -88,11 +89,11 @@ struct PageDots: View {
     let current: Int
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: HV.Space.hair) {
             ForEach(0..<count, id: \.self) { index in
                 Capsule()
                     .fill(index == current ? Color.accentColor : Palette.border)
-                    .frame(width: index == current ? 22 : 7, height: 7)
+                    .frame(width: index == current ? HV.Space.wide : HV.Space.xs, height: HV.Space.xs)
             }
         }
         .hvAnimation(.snappy, value: current)
@@ -240,11 +241,11 @@ struct WelcomePageTalk: View {
             .padding(.horizontal, HV.Space.m)
             .padding(.vertical, HV.Space.s)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous)
                     .fill(isUser ? AnyShapeStyle(Palette.softGradient) : AnyShapeStyle(Palette.surface))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous)
                     .strokeBorder(isUser ? Color.clear : Palette.border, lineWidth: 1)
             )
             .frame(maxWidth: .infinity, alignment: isUser ? .trailing : .leading)
@@ -266,15 +267,15 @@ struct WelcomePageSecrets: View {
     }
 
     private func secretRow(symbol: String, tint: Color, title: String, label: String?) -> some View {
-        HStack(spacing: HV.Space.s + 2) {
-            HVIconBadge(symbol: symbol, tint: tint)
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: HV.Space.s) {
+            HVIconBadge(symbol: symbol, tint: tint, size: 36)
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(title).font(.system(.subheadline, weight: .semibold))
                 if let label { Text(label).font(.hvMono).foregroundStyle(Palette.textSecondary) }
             }
             Spacer()
         }
-        .padding(HV.Space.s + 2)
+        .padding(HV.Space.m)
         .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
     }
@@ -337,12 +338,13 @@ struct FlowLayout: Layout {
         for (rowIndex, row) in rows.enumerated() {
             let rowWidth = widths[rowIndex] - spacing
             var x = bounds.minX + (bounds.width - rowWidth) / 2
-            var rowHeight: CGFloat = 0
-            for index in row {
-                let size = subviews[index].sizeThatFits(.unspecified)
-                subviews[index].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            let sizes = row.map { subviews[$0].sizeThatFits(.unspecified) }
+            let rowHeight = sizes.map(\.height).max() ?? 0
+            for (position, index) in row.enumerated() {
+                let size = sizes[position]
+                // Centred on the row's line, so a short child (a label) shares a line with tall ones (the 44pt chips).
+                subviews[index].place(at: CGPoint(x: x, y: y + (rowHeight - size.height) / 2), proposal: ProposedViewSize(size))
                 x += size.width + spacing
-                rowHeight = max(rowHeight, size.height)
             }
             y += rowHeight + spacing
         }

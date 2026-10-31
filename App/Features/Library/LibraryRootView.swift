@@ -216,7 +216,7 @@ struct LibraryScreen: View {
             }
             .padding(.horizontal, HV.Space.m)
             .padding(.vertical, HV.Space.xs)
-            .hvGlass(radius: 22)
+            .hvGlass(radius: HV.Radius.floating)
             .padding(.bottom, HV.Space.m)
             .transition(.move(edge: .bottom).combined(with: .opacity))
         }

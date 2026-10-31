@@ -21,7 +21,7 @@ struct SignOutButton: View {
                 Task { await model.signOut() }
             }
         } label: {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
                     .hvRowLabel(role: .destructive)
                 if let detail {

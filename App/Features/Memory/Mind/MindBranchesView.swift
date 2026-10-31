@@ -71,8 +71,8 @@ struct MindBranchesView: View {
                 list.switchBranch(to: branch.name)
             } label: {
                 HStack(spacing: HV.Space.s) {
-                    HVIconBadge(symbol: branch.isDefault ? "house" : "arrow.triangle.branch", tint: isCurrent ? Palette.blue : Palette.textSecondary)
-                    VStack(alignment: .leading, spacing: 2) {
+                    HVIconBadge(symbol: branch.isDefault ? "house" : "arrow.triangle.branch", tint: isCurrent ? Palette.blue : Palette.textSecondary, size: 36)
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         HStack(spacing: 6) {
                             Text(branch.name)
                                 .font(.hvHeadline)

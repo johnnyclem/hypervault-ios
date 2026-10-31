@@ -162,7 +162,7 @@ struct TruthScreen: View {
                 .hvListRow()
 
                 Toggle(isOn: Binding(get: { overview.chatTruth }, set: { setCiting($0) })) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         Text("Cite in chat")
                         Text("Put the ledger at the head of every chat turn, so a signed TB outranks recalled memory.")
                             .font(.hvCaption)
@@ -178,9 +178,9 @@ struct TruthScreen: View {
     /// The row to the review. Its second line is the whole sentence about what waits, never cut short: the
     /// shared row stops at two lines, and "1 nominated by ag..." loses what it was there to say.
     private func docketRow(_ overview: TruthOverview) -> some View {
-        HStack(spacing: HV.Space.s + 2) {
-            HVIconBadge(symbol: "checklist", tint: Palette.blue)
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: HV.Space.s) {
+            HVIconBadge(symbol: "checklist", tint: Palette.blue, size: 36)
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(overview.review?.due == true ? "A review is due" : "Review docket")
                     .font(.hvBody)
                     .foregroundStyle(Palette.textPrimary)
@@ -230,7 +230,7 @@ struct TruthScreen: View {
                 }
             }
         } header: {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 HVSectionHeader(title: title, detail: "\(rows.count)")
                 Text(note).font(.hvCaption).foregroundStyle(Palette.textSecondary).textCase(nil)
             }
@@ -326,7 +326,7 @@ struct TruthScreen: View {
         } label: {
             VStack(spacing: 0) {
                 Text("Truth").font(.hvHeadline).foregroundStyle(Palette.textPrimary)
-                HStack(spacing: 3) {
+                HStack(spacing: HV.Space.xxs) {
                     Text(model.active?.name ?? "Ledger").lineLimit(1)
                     HVIcon(HVSymbol.fold).font(.system(size: 8, weight: .bold))
                 }

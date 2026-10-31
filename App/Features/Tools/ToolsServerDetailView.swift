@@ -144,7 +144,7 @@ struct ToolsServerDetailView: View {
                         get: { server.isToolEnabled(tool.name) },
                         set: { model.setTool(tool.name, on: $0, serverID: server.id) }
                     )) {
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: HV.Space.xxs) {
                             Text(tool.name).font(.hvMono).foregroundStyle(Palette.textPrimary)
                             if !tool.description.isEmpty {
                                 Text(tool.description)

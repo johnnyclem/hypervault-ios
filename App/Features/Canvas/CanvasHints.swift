@@ -27,7 +27,7 @@ struct CanvasHints: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            VStack(spacing: HV.Space.s + 2) {
+            VStack(spacing: HV.Space.s) {
                 Text(HVCopy.hintKeepLine)
                     .font(.hvCallout)
                     .foregroundStyle(Palette.textSecondary)

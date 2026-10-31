@@ -132,7 +132,7 @@ struct MindTimeTravelView: View {
                     .foregroundStyle(Palette.textSecondary)
                     .lineLimit(2)
             }
-            HStack(spacing: HV.Space.xs) {
+            HStack(spacing: HV.Space.m) {
                 if exists {
                     NavigationLink(value: Route.memory(id: memory.id)) {
                         Text("Open now")
@@ -146,7 +146,6 @@ struct MindTimeTravelView: View {
                 Spacer(minLength: 0)
                 if model.restoringID == memory.id { ProgressView() }
             }
-            .padding(.leading, -HV.Space.s)
         }
         .hvCard()
     }

@@ -168,7 +168,7 @@ struct TaskBoardScreen: View {
                         Spacer(minLength: HV.Space.xs)
                         updatedLine
                     }
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         progressFigures(summary)
                         updatedLine
                     }
@@ -392,7 +392,7 @@ struct TaskRowBody: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: HV.Space.xxs) {
             Text(task.title)
                 .font(.hvBody)
                 .foregroundStyle(task.status == .done || task.status == .cancelled ? Palette.textTertiary : Palette.textPrimary)

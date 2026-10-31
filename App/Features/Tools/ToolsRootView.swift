@@ -193,7 +193,7 @@ struct ToolsStep: View {
                 .frame(width: 26, height: 26)
                 .background(Palette.blue.opacity(0.14), in: Circle())
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(title).font(.hvHeadline)
                 Text(text).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
             }
@@ -217,7 +217,7 @@ struct ToolsServerRow: View {
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
                     HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle, subtitleIsAddress: true)
                     HStack(spacing: HV.Space.xs) { markers }
-                        .padding(.leading, 36 + HV.Space.s + 2)
+                        .padding(.leading, HV.rowTile + HV.Space.s)
                 }
             } else {
                 HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle, subtitleIsAddress: true) {
@@ -280,8 +280,8 @@ struct ToolsToolkitCard: View {
     let needsCompile: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: HV.Space.s + 2) {
-            HVIconBadge(symbol: status.toolkit == nil ? "hammer" : "checkmark.seal", tint: needsCompile ? Palette.amber : Palette.mint, size: 40)
+        HStack(alignment: .top, spacing: HV.Space.s) {
+            HVIconBadge(symbol: status.toolkit == nil ? "hammer" : "checkmark.seal", tint: needsCompile ? Palette.amber : Palette.mint, size: 36)
             VStack(alignment: .leading, spacing: 4) {
                 headline
                 Text(detail).font(.hvFootnote).foregroundStyle(Palette.textSecondary)

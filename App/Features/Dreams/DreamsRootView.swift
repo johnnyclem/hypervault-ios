@@ -59,17 +59,18 @@ private struct DreamsContent: View {
 
     // MARK: Settings
 
-    private var settingsWords: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Dream every night")
-                .font(.hvHeadline)
-                .foregroundStyle(Palette.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("While you sleep, HyperVault looks for connections you never made by hand, between your memories and your pages, and stages them here for you to review.")
-                .font(.hvFootnote)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+    private var settingsTitle: some View {
+        Text("Dream every night")
+            .font(.hvHeadline)
+            .foregroundStyle(Palette.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var settingsDetail: some View {
+        Text("While you sleep, HyperVault looks for connections you never made by hand, between your memories and your pages, and stages them here for you to review.")
+            .font(.hvFootnote)
+            .foregroundStyle(Palette.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var dreamSwitch: some View {
@@ -80,23 +81,28 @@ private struct DreamsContent: View {
 
     private var settings: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            // Badge, words and switch in a row while the words have the room. At an accessibility size they would get a
-            // narrow column between the badge and the switch ("connec-/tions"), so the switch goes up beside the badge
-            // and the words have the whole width below.
+            // The sentence has the card's whole width: between the badge and the switch it was left about half of it
+            // and ran to six lines. The title shares the badge's row while it fits; at an accessibility size the title
+            // would get a narrow column ("Dream / every / night"), so the switch goes up beside the badge and the
+            // title goes below it.
             if dynamicTypeSize.isAccessibilitySize {
                 HStack(spacing: HV.Space.s) {
-                    HVIconBadge(symbol: "moon.stars", tint: Palette.violet, size: 40)
+                    HVIconBadge(symbol: "moon.stars", tint: Palette.violet, size: 36)
                     Spacer(minLength: HV.Space.xs)
                     dreamSwitch
                 }
-                settingsWords
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
+                    settingsTitle
+                    settingsDetail
+                }
             } else {
-                HStack(alignment: .top, spacing: HV.Space.s) {
-                    HVIconBadge(symbol: "moon.stars", tint: Palette.violet, size: 40)
-                    settingsWords
+                HStack(spacing: HV.Space.s) {
+                    HVIconBadge(symbol: "moon.stars", tint: Palette.violet, size: 36)
+                    settingsTitle
                     Spacer(minLength: HV.Space.xs)
                     dreamSwitch
                 }
+                settingsDetail
             }
             if model.enabled {
                 Button {
@@ -184,7 +190,7 @@ private struct DreamsContent: View {
             Text("\(run.connections.count) proposed \(run.connections.count == 1 ? "connection" : "connections") to review")
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
-            HStack(spacing: HV.Space.xs) {
+            HStack(spacing: HV.Space.m) {
                 Button("Accept all") { decide(run: run, .accept) }
                     .buttonStyle(DreamTintedButtonStyle())
                 Button("Reject all") { rejecting = run }
@@ -329,8 +335,9 @@ private struct DreamConnectionCard: View {
             HStack(spacing: HV.Space.xs) {
                 Capsule()
                     .fill(isWoven ? AnyShapeStyle(Palette.brandGradient) : AnyShapeStyle(Palette.border))
-                    .frame(width: 3, height: 18)
-                    .padding(.leading, 18)
+                    .frame(width: 2, height: 16)
+                    // 17: the centre of the 36pt tile (18) less half of the bar (1), so it hangs from the tile's centre.
+                    .padding(.leading, 17)
                 Text(connection.edgeType.label)
                     .font(.system(.caption2, weight: .semibold))
                     .foregroundStyle(Palette.textTertiary)
@@ -357,7 +364,7 @@ private struct DreamConnectionCard: View {
                 .transition(.scale(scale: 0.9).combined(with: .opacity))
                 .accessibilityElement(children: .combine)
             } else {
-                HStack(spacing: HV.Space.xs) {
+                HStack(spacing: HV.Space.m) {
                     Button("Accept", action: onAccept)
                         .buttonStyle(DreamTintedButtonStyle())
                         .accessibilityIdentifier("dream.accept.\(connection.id)")

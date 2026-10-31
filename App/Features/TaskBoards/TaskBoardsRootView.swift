@@ -112,8 +112,8 @@ struct TaskBoardRowView: View {
     let summary: TaskBoardSummary?
 
     var body: some View {
-        HStack(spacing: HV.Space.s + 2) {
-            HVIconBadge(symbol: "checklist", tint: Palette.mint, size: 40)
+        HStack(spacing: HV.Space.s) {
+            HVIconBadge(symbol: "checklist", tint: Palette.mint, size: 36)
             VStack(alignment: .leading, spacing: 6) {
                 Text(board.displayTitle)
                     .font(.hvBody)

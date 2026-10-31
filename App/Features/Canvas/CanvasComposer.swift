@@ -15,7 +15,7 @@ struct CanvasComposer: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(spacing: HV.Space.xs + 2) {
+        VStack(spacing: HV.Space.xs) {
             if let staged = model.staged {
                 StagedChip(
                     characters: staged.count,
@@ -75,7 +75,7 @@ struct CanvasComposer: View {
         }
         .padding(.horizontal, HV.Space.xs)
         .padding(.vertical, HV.Space.xs)
-        .hvGlass(radius: 26)
+        .hvGlass(radius: HV.Radius.floating)
     }
 
     /// Return, or the Send key: send what is in the field, or keep the paste waiting above it.
@@ -141,20 +141,23 @@ private struct StagedChip: View {
                 .lineLimit(1)
                 .accessibilityIdentifier("canvas.pasted")
             Spacer(minLength: 0)
-            Button(isKeeping ? HVCopy.keepingLine : HVCopy.keepItLabel, action: keep)
-                .buttonStyle(.hvGhost)
-                .disabled(isKeeping)
-                .accessibilityIdentifier("canvas.keep")
-            if canAsk {
-                Button(HVCopy.askInsteadLabel, action: ask)
+            // The ghost style has no side padding, so the two ways out are set apart here and do not read as one phrase.
+            HStack(spacing: HV.Space.m) {
+                Button(isKeeping ? HVCopy.keepingLine : HVCopy.keepItLabel, action: keep)
                     .buttonStyle(.hvGhost)
-                    .foregroundStyle(Palette.textSecondary)
-                    .accessibilityIdentifier("canvas.askInstead")
+                    .disabled(isKeeping)
+                    .accessibilityIdentifier("canvas.keep")
+                if canAsk {
+                    Button(HVCopy.askInsteadLabel, action: ask)
+                        .buttonStyle(.hvGhost)
+                        .foregroundStyle(Palette.textSecondary)
+                        .accessibilityIdentifier("canvas.askInstead")
+                }
             }
         }
         .padding(.horizontal, HV.Space.m)
         .padding(.vertical, 4)
-        .hvGlass(radius: 18)
+        .hvGlass(radius: HV.Radius.floating)
         .accessibilityElement(children: .contain)
     }
 }

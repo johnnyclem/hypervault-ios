@@ -142,7 +142,7 @@ struct KeepWidgetView: View {
             } else if family == .accessoryInline {
                 Label("Keep something", systemImage: "tray.and.arrow.down")
             } else {
-                VStack(spacing: 10) {
+                VStack(spacing: HV.Space.s) {
                     BrandMark(size: 46)
                     Text("Keep something")
                         .font(.system(.subheadline, weight: .semibold))

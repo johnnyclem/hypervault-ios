@@ -71,7 +71,7 @@ struct SignInContent: View {
 
                         Spacer(minLength: HV.Space.l)
 
-                        VStack(spacing: HV.Space.s + 2) {
+                        VStack(spacing: HV.Space.s) {
                             if providers.apple { appleButton }
                             if providers.google { googleButton }
                             if providers.email { emailButton }

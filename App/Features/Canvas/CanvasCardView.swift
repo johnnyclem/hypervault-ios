@@ -18,7 +18,7 @@ struct CanvasCardView: View {
     private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: HV.Space.s + 2) {
+        VStack(alignment: .leading, spacing: HV.Space.s) {
             header
             if let kept = card.kept { keptSection(kept) }
             if card.kind == .group, let files = card.detail?.files, !files.isEmpty { groupFiles(files) }
@@ -30,9 +30,9 @@ struct CanvasCardView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top, spacing: HV.Space.s + 2) {
-            HVIconBadge(symbol: card.kind.symbol, tint: card.kind.tint, size: 40)
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(alignment: .top, spacing: HV.Space.s) {
+            HVIconBadge(symbol: card.kind.symbol, tint: card.kind.tint, size: 36)
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(card.title)
                     .font(.hvHeadline)
                     .foregroundStyle(Palette.textPrimary)
@@ -40,9 +40,10 @@ struct CanvasCardView: View {
                 // Side by side while the words have the room. At an accessibility size each half would get a
                 // sliver of the card and be broken mid-word ("MEM-ORY", "Bud-get"), so the kind sits over the line.
                 if isLarge {
-                    VStack(alignment: .leading, spacing: 2) { kindLabel; subtitleLabel }
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) { kindLabel; subtitleLabel }
                 } else {
-                    HStack(spacing: HV.Space.xs) {
+                    // On the first line of the subtitle, so a subtitle that wraps does not leave the kind between its lines.
+                    HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
                         kindLabel
                         if hasSubtitle {
                             Text("·").foregroundStyle(Palette.textTertiary)
@@ -109,7 +110,6 @@ struct CanvasCardView: View {
                 HV.Motion.animate(.snappy) { showFiles.toggle() }
             }
             .buttonStyle(.hvGhost)
-            .padding(.leading, -HV.Space.s)
             if showFiles {
                 ForEach(files, id: \.path) { file in
                     HStack {
@@ -130,7 +130,7 @@ struct CanvasCardView: View {
             if agents.isEmpty {
                 Text("No agents allowed").font(.hvFootnote).foregroundStyle(Palette.textTertiary)
             } else {
-                FlowLayout(spacing: 6) {
+                FlowLayout(spacing: HV.Space.hair) {
                     ForEach(agents) { agent in
                         HVTag(text: agent.name, tint: Palette.amber)
                     }
@@ -143,13 +143,13 @@ struct CanvasCardView: View {
     /// each action has one, so no label is ever broken across two lines.
     private var actions: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 0) {
+            HStack(spacing: HV.Space.m) {
                 leadingActions
                 Spacer(minLength: HV.Space.xs)
                 hideButton
             }
             VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 0) { leadingActions }
+                HStack(spacing: HV.Space.m) { leadingActions }
                 hideButton
             }
             VStack(alignment: .leading, spacing: 0) {
@@ -158,7 +158,6 @@ struct CanvasCardView: View {
             }
         }
         .lineLimit(1)
-        .padding(.leading, -HV.Space.s)
         // The buttons are 44 points tall with their words in the middle, which is already a dozen points of air under
         // the words; the card's own padding is not added on top of it, or the card has twice as much room under its last
         // line as over its first. (The buttons' tap areas still end inside the card.)
@@ -167,7 +166,8 @@ struct CanvasCardView: View {
 
     /// Open, and for a thing that was just kept, its link (copied, or handed on with the system's own share sheet). For any
     /// other page, file or group, Share: the sheet that has the link and the people who can open it. Every one is a ghost
-    /// button, which already carries its own padding and a 44-point target, so the row adds no spacing of its own.
+    /// button, which has a 44-point target and no padding of its own: the first word sits on the card's edge, and the
+    /// row puts the space between the words.
     @ViewBuilder
     private var leadingActions: some View {
         Button(HVCopy.cardOpenLabel, action: onOpen)

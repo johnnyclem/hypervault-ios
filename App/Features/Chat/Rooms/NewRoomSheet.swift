@@ -156,7 +156,7 @@ struct ChatNewRoomSheet: View {
             ForEach($model.seats) { $seat in
                 Section {
                     Toggle(isOn: $seat.isOn) {
-                        VStack(alignment: .leading, spacing: 1) {
+                        VStack(alignment: .leading, spacing: HV.Space.xxs) {
                             Text(seat.backend.name).font(.hvBody)
                             Text(seat.backend.modelLine).font(.hvCaption).foregroundStyle(Palette.textSecondary)
                         }

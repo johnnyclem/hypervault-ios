@@ -18,8 +18,9 @@ enum HV {
     }
 
     /// Corner radii. The role names are the web's (handoff 2.5); the ones that come from the stock tokens read
-    /// `HVTokens`. Every shape that uses one is `.continuous`. `s` and `m` are the app's older sizes and match nothing
-    /// on the web: new code names the role it is drawing, and a screen that still uses them moves when it is next touched.
+    /// `HVTokens`. Every shape that uses one is `.continuous`. `s` and `m` are aliases of `control` (8) and `card` (16):
+    /// the app's older sizes (10 and 14) are gone and the names stay only so call sites compile. New code names the role
+    /// it is drawing.
     enum Radius {
         /// 8, `rounded-lg`: buttons and inputs.
         static let control: CGFloat = 8
@@ -33,15 +34,23 @@ enum HV {
         static let sheet = HVTokens.RadiusPx.radius3xl
         /// 5, `rounded-[5px]`: the card-brand tile.
         static let brandTile: CGFloat = 5
+        /// 24: glass that floats over content, the composer and the staged chip. `hvGlass` draws it by default.
+        static let floating: CGFloat = 24
 
-        static let s: CGFloat = 10
-        static let m: CGFloat = 14
+        /// Alias of `control` (8). Use `control`.
+        static let s: CGFloat = control
+        /// Alias of `card` (16). Use `card`.
+        static let m: CGFloat = card
         static let l: CGFloat = 20
         static let xl: CGFloat = 28
     }
 
     /// The width content stops growing at on iPad and landscape.
     static let readableWidth: CGFloat = 640
+
+    /// 36: the side of the tile at the head of a list row. `HVRow` draws it, the Vault's `HVTile` is the same size, and
+    /// the text column that a row's separator starts at is this plus the gap (`Space.s`).
+    static let rowTile: CGFloat = 36
 }
 
 extension Color {

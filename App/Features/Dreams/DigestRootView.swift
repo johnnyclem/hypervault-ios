@@ -69,17 +69,18 @@ private struct DigestContent: View {
         }
     }
 
-    private var settingsWords: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Auto-digest on import")
-                .font(.hvHeadline)
-                .foregroundStyle(Palette.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("A big import or a pasted chat can land as one memory when it is really many. Digest proposes how to split it, and nothing changes until you say so.")
-                .font(.hvFootnote)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+    private var settingsTitle: some View {
+        Text("Auto-digest on import")
+            .font(.hvHeadline)
+            .foregroundStyle(Palette.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var settingsDetail: some View {
+        Text("A big import or a pasted chat can land as one memory when it is really many. Digest proposes how to split it, and nothing changes until you say so.")
+            .font(.hvFootnote)
+            .foregroundStyle(Palette.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var digestSwitch: some View {
@@ -90,23 +91,28 @@ private struct DigestContent: View {
 
     private var settings: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            // Badge, words and switch in a row while the words have the room. At an accessibility size they would get a
-            // narrow column between the badge and the switch ("Auto-/digest"), so the switch goes up beside the badge
-            // and the words have the whole width below.
+            // The sentence has the card's whole width: between the badge and the switch it was left about half of it
+            // and ran to six lines. The title shares the badge's row while it fits; at an accessibility size the title
+            // would get a narrow column ("Auto-/digest"), so the switch goes up beside the badge and the title goes
+            // below it.
             if dynamicTypeSize.isAccessibilitySize {
                 HStack(spacing: HV.Space.s) {
-                    HVIconBadge(symbol: "scissors", tint: Palette.cyan, size: 40)
+                    HVIconBadge(symbol: "scissors", tint: Palette.cyan, size: 36)
                     Spacer(minLength: HV.Space.xs)
                     digestSwitch
                 }
-                settingsWords
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
+                    settingsTitle
+                    settingsDetail
+                }
             } else {
-                HStack(alignment: .top, spacing: HV.Space.s) {
-                    HVIconBadge(symbol: "scissors", tint: Palette.cyan, size: 40)
-                    settingsWords
+                HStack(spacing: HV.Space.s) {
+                    HVIconBadge(symbol: "scissors", tint: Palette.cyan, size: 36)
+                    settingsTitle
                     Spacer(minLength: HV.Space.xs)
                     digestSwitch
                 }
+                settingsDetail
             }
             Text("You can always digest a memory yourself: open it and choose Digest this. The switch only controls the automatic proposals.")
                 .font(.hvCaption)
@@ -174,7 +180,6 @@ private struct DigestRunCard: View {
                     .foregroundStyle(Palette.textSecondary)
                 Button("Read the original", action: onOpenSource)
                     .buttonStyle(.hvGhost)
-                    .padding(.leading, -HV.Space.s)
             }
 
             VStack(spacing: HV.Space.xs) {
@@ -187,7 +192,7 @@ private struct DigestRunCard: View {
                 .font(.hvCaption)
                 .foregroundStyle(Palette.textTertiary)
 
-            HStack(spacing: HV.Space.xs) {
+            HStack(spacing: HV.Space.m) {
                 Button(action: onApply) {
                     if isBusy { ProgressView() } else { Text("Apply split") }
                 }
@@ -244,7 +249,7 @@ private struct DigestSegmentCard: View {
             Spacer(minLength: 0)
         }
         .padding(HV.Space.s)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Piece \(segment.ordinal + 1) of \(total): \(segment.title)")
     }

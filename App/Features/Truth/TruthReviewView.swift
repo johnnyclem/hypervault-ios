@@ -166,7 +166,7 @@ struct TruthReviewScreen: View {
             if let next = model.deck.next {
                 TruthCardView(item: next, replies: [])
                     .scaleEffect(0.95)
-                    .offset(y: 10)
+                    .offset(y: HV.Space.xs)
                     .opacity(0.55)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
@@ -241,7 +241,7 @@ struct TruthReviewScreen: View {
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
                     ForEach(TruthAction.allCases) { action in
                         let state = model.state(of: action, for: item)
-                        VStack(alignment: .leading, spacing: 1) {
+                        VStack(alignment: .leading, spacing: HV.Space.xxs) {
                             Text(state.label).font(.hvFootnote.weight(.semibold))
                             Text(state.explanation).font(.hvCaption).foregroundStyle(Palette.textSecondary)
                         }
@@ -362,7 +362,7 @@ struct TruthReviewScreen: View {
             }
             .padding(.horizontal, HV.Space.m)
             .padding(.vertical, HV.Space.xxs)
-            .hvGlass(radius: 22)
+            .hvGlass(radius: HV.Radius.floating)
             .padding(.horizontal, HV.Space.m)
             .padding(.bottom, HV.Space.xs)
             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -393,7 +393,7 @@ struct TruthReviewScreen: View {
             } label: {
                 VStack(spacing: 0) {
                     Text("Review").font(.hvHeadline).foregroundStyle(Palette.textPrimary)
-                    HStack(spacing: 3) {
+                    HStack(spacing: HV.Space.xxs) {
                         Text(model.ledger?.name ?? "Ledger").lineLimit(1)
                         HVIcon(HVSymbol.fold).font(.system(size: 8, weight: .bold))
                     }

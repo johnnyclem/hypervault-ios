@@ -9,8 +9,6 @@ struct VaultAllowedKeysSection: View {
     let secret: VaultSecret
     let onConnect: () -> Void
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
     var body: some View {
         Section {
             switch allowed.phase {
@@ -27,7 +25,6 @@ struct VaultAllowedKeysSection: View {
                         .foregroundStyle(Palette.danger)
                     Button(VaultScreenCopy.tryAgainLabel) { Task { await allowed.load(name: secret.name) } }
                         .buttonStyle(.hvGhost)
-                        .padding(.leading, -HV.Space.s)
                 }
             case .ready(let keys, _):
                 if keys.isEmpty {
@@ -37,7 +34,6 @@ struct VaultAllowedKeysSection: View {
                             .foregroundStyle(Palette.textSecondary)
                         Button(VaultScreenCopy.connectAnAgentLabel, action: onConnect)
                             .buttonStyle(.hvGhost)
-                            .padding(.leading, -HV.Space.s)
                     }
                 } else {
                     ForEach(keys) { key in switchRow(key) }
@@ -78,13 +74,10 @@ struct VaultAllowedKeysSection: View {
         }
     }
 
-    /// The prefix first, in monospace, then the key's name unless it is "default". At accessibility sizes the name goes
-    /// under the prefix, so neither is squeezed into a sliver beside the switch.
+    /// The prefix first, in monospace, then the key's name unless it is "default", under it at every size: a name
+    /// beside the prefix wraps in the narrow column left of the switch, and the rows of one list would differ in height.
     private func keyLabel(_ key: AgentKey) -> some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2))
-            : AnyLayout(HStackLayout(spacing: HV.Space.xs))
-        return layout {
+        VStack(alignment: .leading, spacing: HV.Space.xxs) {
             Text(key.prefixLabel).font(.system(.footnote, design: .monospaced))
             if let name = key.displayName {
                 Text(name).font(.hvFootnote).foregroundStyle(Palette.textSecondary)

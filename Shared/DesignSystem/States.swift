@@ -131,11 +131,13 @@ struct HVListSkeleton: View {
     var body: some View {
         VStack(spacing: HV.Space.m) {
             ForEach(0..<rows, id: \.self) { _ in
-                HStack(spacing: HV.Space.s + 2) {
-                    HVSkeleton(height: 36, width: 36)
-                    VStack(alignment: .leading, spacing: 8) {
-                        HVSkeleton(height: 14, width: 180)
-                        HVSkeleton(height: 11, width: 110)
+                // The shape of an `HVRow`: a tile (`HV.rowTile`, 36), 12 to the words, and a title line and a subtitle
+                // line that add up to the tile's height.
+                HStack(spacing: HV.Space.s) {
+                    HVSkeleton(height: HV.rowTile, width: HV.rowTile)
+                    VStack(alignment: .leading, spacing: HV.Space.xs) {
+                        HVSkeleton(height: 16, width: 176)
+                        HVSkeleton(height: 12, width: 112)
                     }
                     Spacer()
                 }

@@ -176,7 +176,7 @@ private struct ClientRow: View {
         KeysRowLayout {
             HVIconBadge(symbol: info.group.symbol, tint: tint, size: min(tile, 56))
         } words: {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(info.name)
                     .font(.hvBody)
                     .foregroundStyle(Palette.textPrimary)
@@ -186,7 +186,7 @@ private struct ClientRow: View {
                     .foregroundStyle(Palette.textSecondary)
                     .lineLimit(isLarge ? nil : 2)
                 // Under the words at accessibility sizes, where beside them it would take their width.
-                if isLarge, !info.verified { HVTag(text: "Untested", tint: Palette.warning).padding(.top, 2) }
+                if isLarge, !info.verified { HVTag(text: "Untested", tint: Palette.warning).padding(.top, HV.Space.xxs) }
             }
         } trailing: {
             if !info.verified { HVTag(text: "Untested", tint: Palette.warning) }
@@ -277,7 +277,7 @@ private struct ConnectClientScreen: View {
             }
 
             Toggle(isOn: $model.canSendMail) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(AccountWords.mailSendLabel).font(.hvBody)
                     Text("Reading its mailbox is always allowed. Sending is your choice.")
                         .font(.hvCaption)
@@ -322,7 +322,7 @@ private struct ConnectClientScreen: View {
                         .foregroundStyle(Palette.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(HV.Space.s + 2)
+                        .padding(HV.Space.s)
                         .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
                         .accessibilityLabel("Your key, shown once. Use the copy button.")
                         .keysHidesWhenInactive()

@@ -109,7 +109,7 @@ private struct MemoryDetailContent: View {
             }
             if !page.memory.tags.isEmpty {
                 MemoryTagList(tags: page.memory.tags)
-                    .padding(.top, 2)
+                    .padding(.top, HV.Space.xxs)
             }
         }
     }
@@ -159,7 +159,7 @@ private struct MemoryDetailContent: View {
                 )
             }
             ForEach(truth.restsOn) { edge in
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(edge.entryText.isEmpty ? edge.entryId : edge.entryText)
                         .font(.hvSubheadline)
                         .foregroundStyle(Palette.textPrimary)
@@ -178,7 +178,6 @@ private struct MemoryDetailContent: View {
                     .font(.hvSubheadline.weight(.semibold))
             }
             .buttonStyle(.hvGhost)
-            .padding(.leading, -HV.Space.s)
         }
         .hvCard()
     }

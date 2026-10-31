@@ -178,7 +178,7 @@ struct MemorizeSheet: View {
                     HVIcon(picked == nil ? "doc.badge.plus" : "doc.text.fill")
                         .font(.system(size: 20))
                         .foregroundStyle(Palette.coral)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         Text(picked?.name ?? "Choose a file")
                             .font(.hvBody)
                             .foregroundStyle(Palette.textPrimary)

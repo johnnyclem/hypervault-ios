@@ -223,7 +223,7 @@ struct TruthStaleScreen: View {
                         Text("Replaced by").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textSecondary)
                         TruthBriefRow(entry: successor)
                         Button("Move to the new one") { resolve(.relink, item: item, edge: edge) }
-                            .truthAlignedGhost()
+                            .buttonStyle(.hvGhost)
                             .accessibilityIdentifier("truth.stale.relink.\(item.key)")
                     }
                 }
@@ -238,7 +238,7 @@ struct TruthStaleScreen: View {
                 Button("Stop tracking", role: .destructive) { confirmStop = item }
                     .accessibilityIdentifier("truth.stale.unlink.\(item.key)")
             }
-            .truthAlignedGhost()
+            .buttonStyle(.hvGhost)
             .disabled(model.busy.contains(item.id))
             .hvListRow()
         } header: {
@@ -492,7 +492,7 @@ struct TruthSidecarScreen: View {
                             Button("Dismiss", role: .destructive) { dismissing = proposal }
                                 .disabled(!inbox.notary || model.busy.contains(proposal.id))
                         }
-                        .truthAlignedGhost()
+                        .buttonStyle(.hvGhost)
                     }
                     .padding(.vertical, HV.Space.xxs)
                     .hvListRow()
@@ -515,7 +515,7 @@ struct TruthSidecarScreen: View {
             if let list = inbox.objections {
                 if list.isEmpty { Text("No objections pending.").foregroundStyle(Palette.textSecondary).hvListRow() }
                 ForEach(list) { objection in
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         if let literal = objection.literal { Text("“\(literal)”").font(.system(.callout, design: .serif)).italic() }
                         if let text = objection.objection { Text(verbatim: text).font(.hvCallout) }
                         if let tb = objection.tbId { Text("Contradicts TB \(TruthID.short(tb))").font(.hvCaption).foregroundStyle(Palette.textSecondary) }

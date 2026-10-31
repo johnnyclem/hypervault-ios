@@ -68,7 +68,7 @@ struct ConnectGuideView: View {
                     Text("\(index + 1)")
                         .font(.system(.footnote, weight: .bold))
                         .foregroundStyle(Palette.sky)
-                        .frame(width: 26, height: 26)
+                        .frame(minWidth: 28, minHeight: 28)
                         .background(Palette.blue.opacity(0.14), in: Circle())
                         .accessibilityHidden(true)
                     Text(step)
@@ -123,7 +123,7 @@ struct ConnectGuideView: View {
                 .font(.hvMono)
                 .foregroundStyle(Palette.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(HV.Space.s + 2)
+                .padding(HV.Space.s)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -131,7 +131,7 @@ struct ConnectGuideView: View {
                     .font(.hvMono)
                     .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: true, vertical: true)
-                    .padding(HV.Space.s + 2)
+                    .padding(HV.Space.s)
             }
         }
     }

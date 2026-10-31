@@ -205,7 +205,7 @@ struct VaultAddItemSheet: View {
         } label: {
             VStack(alignment: .leading, spacing: HV.Space.s) {
                 HVTile(symbol: choice.symbol)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(choice.title).font(.hvHeadline).foregroundStyle(Palette.textPrimary)
                     Text(choice.detail)
                         .font(.hvCaption)

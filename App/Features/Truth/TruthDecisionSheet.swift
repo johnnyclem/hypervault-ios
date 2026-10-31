@@ -163,7 +163,7 @@ struct TruthDecisionSheet: View {
                     HStack(alignment: .top, spacing: HV.Space.s) {
                         Image(systemName: draft.appealTarget == uv.id ? "largecircle.fill.circle" : "circle")
                             .foregroundStyle(draft.appealTarget == uv.id ? Color.accentColor : Palette.textTertiary)
-                        VStack(alignment: .leading, spacing: 1) {
+                        VStack(alignment: .leading, spacing: HV.Space.xxs) {
                             Text(verbatim: uv.assertion).font(.hvCallout).foregroundStyle(Palette.textPrimary)
                             Text(uv.author).font(.hvCaption).foregroundStyle(Palette.textSecondary)
                         }
@@ -222,7 +222,7 @@ struct TruthDecisionSheet: View {
                 Text("No reply yet. The record on the card is what stands.").font(.hvFootnote).foregroundStyle(Palette.textSecondary)
             }
             ForEach(replies) { reply in
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(reply.handle ?? "agent").font(.hvCaption.weight(.semibold))
                     Text(verbatim: reply.content).font(.hvFootnote)
                 }

@@ -217,7 +217,7 @@ struct ImportScreen: View {
             VStack(alignment: .leading, spacing: HV.Space.s) {
                 HStack(spacing: HV.Space.s) {
                     HVIconBadge(symbol: model.platform.guide.symbol, tint: model.platform.guide.tint, size: 44)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         Text(model.isPaste ? "A pasted conversation" : "\(model.platform.title) history")
                             .font(.hvHeadline)
                         if let name = model.fileName {
@@ -372,7 +372,7 @@ struct ImportScreen: View {
     }
 
     private func count(_ value: Int, _ label: String) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: HV.Space.xxs) {
             Text(value.formatted()).font(.system(.title2, weight: .bold))
             Text(label).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
         }
@@ -415,13 +415,13 @@ struct ImportSourceCard: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: HV.Space.s) {
                 HVIconBadge(symbol: platform.guide.symbol, tint: platform.guide.tint, size: 36)
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(platform.cardTitle).font(.hvHeadline).foregroundStyle(Palette.textPrimary)
                     Text(platform.cardSubtitle).font(.hvCaption).foregroundStyle(Palette.textSecondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(HV.Space.s + 2)
+            .padding(HV.Space.m)
             .frame(minHeight: 44)
             .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
             .overlay(

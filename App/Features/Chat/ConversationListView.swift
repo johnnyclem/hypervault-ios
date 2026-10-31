@@ -182,7 +182,7 @@ struct ChatConversationRow: View {
     /// Where it came from, who can read it, when it last moved: on one line, or stacked at large text sizes.
     @ViewBuilder private var meta: some View {
         if typeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: 2) { details }
+            VStack(alignment: .leading, spacing: HV.Space.xxs) { details }
         } else {
             HStack(spacing: HV.Space.xs) { details }
         }

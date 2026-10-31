@@ -80,7 +80,7 @@ struct MailComposeView: View {
                     recipientName
                     recipientAddress
                 }
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     recipientName
                     recipientAddress
                 }

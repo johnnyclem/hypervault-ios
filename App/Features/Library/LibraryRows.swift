@@ -2,10 +2,10 @@ import HyperVaultKit
 import SwiftUI
 
 enum LibraryRow {
-    /// The mark at the head of every row, as wide as `HVIconBadge` is by default.
+    /// The mark at the head of every row, as wide as the tile of an `HVRow` (36).
     static let markSize: CGFloat = 36
-    /// The room between the mark and the words.
-    static let gap: CGFloat = HV.Space.s + 2
+    /// The room between the mark and the words, the same as an `HVRow`'s.
+    static let gap: CGFloat = HV.Space.s
 
     /// The mark grows with the type, but stops short of taking the row from its words.
     static func scaled(_ size: CGFloat) -> CGFloat { min(size, 44) }
@@ -43,7 +43,7 @@ struct LibraryRowFrame<Mark: View, Meta: View, Trailing: View>: View {
     var body: some View {
         HStack(spacing: LibraryRow.gap) {
             mark(LibraryRow.scaled(markSize))
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(title)
                     .font(.hvBody)
                     .foregroundStyle(Palette.textPrimary)
@@ -161,7 +161,7 @@ struct LibraryFileRow: View {
                             .foregroundStyle(Palette.textSecondary)
                     }
                     if row.connections > 0 {
-                        HStack(spacing: 3) {
+                        HStack(spacing: HV.Space.xxs) {
                             Image(systemName: "link")
                             Text("\(row.connections)")
                         }
@@ -171,7 +171,7 @@ struct LibraryFileRow: View {
                         .accessibilityLabel(row.connections == 1 ? "1 connection" : "\(row.connections) connections")
                     }
                 }
-                .padding(.top, 2)
+                .padding(.top, HV.Space.xxs)
             }
         } trailing: {
             ArtifactVisibilityMark(visibility: summary.visibility)

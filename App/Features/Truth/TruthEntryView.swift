@@ -125,7 +125,7 @@ struct TruthEntryScreen: View {
                         TruthEvidenceRow(evidence: evidence)
                     }
                 }
-                .padding(.vertical, 2)
+                .padding(.vertical, HV.Space.xxs)
                 .hvListRow()
             }
             detail("Id", row.line.id, isReference: true)
@@ -136,7 +136,7 @@ struct TruthEntryScreen: View {
 
     /// A label over its value. An id is a reference to copy, so it is set as one.
     private func detail(_ title: String, _ value: String, isReference: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: HV.Space.xxs) {
             Text(title).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
             Text(verbatim: value)
                 .font(isReference ? .hvMono : .hvBody)
@@ -209,7 +209,7 @@ struct TruthEntryScreen: View {
                     .foregroundStyle(Palette.textSecondary)
                     .hvIconSlot(24)
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(verbatim: context.title).font(.hvBody).foregroundStyle(Palette.textPrimary)
                     Text(context.relationPhrase + (context.stale ? " · out of date" : ""))
                         .font(.hvCaption)

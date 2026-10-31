@@ -95,12 +95,13 @@ private struct ChatFailedNote: View {
     var onEdit: () -> Void
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: 2) {
+        VStack(alignment: .trailing, spacing: HV.Space.xxs) {
             Text(message)
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.danger)
                 .multilineTextAlignment(.trailing)
-            HStack(spacing: HV.Space.xs) {
+            // The ghost style has no side padding, so the gap between the two words is set here.
+            HStack(spacing: HV.Space.m) {
                 Button("Edit", action: onEdit).buttonStyle(.hvGhost)
                 Button("Try again", action: onRetry).buttonStyle(.hvGhost)
             }
@@ -303,7 +304,7 @@ struct ChatKeptNoteView: View {
     private var message: some View {
         HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(Palette.mint).accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(note.line).font(.hvFootnote.weight(.medium))
                 if note.isPrivate {
                     Text(HVCopy.onlyYouLine).font(.hvCaption).foregroundStyle(Palette.textSecondary)
@@ -409,7 +410,7 @@ struct ChatGroundingView: View {
     /// width, so nothing the reply leaned on is cut to an ellipsis.
     private func sourceChip(_ title: String, symbol: String) -> some View {
         let large = typeSize.isAccessibilitySize
-        return HStack(alignment: large ? .firstTextBaseline : .center, spacing: 5) {
+        return HStack(alignment: large ? .firstTextBaseline : .center, spacing: HV.Space.hair) {
             HVIcon(symbol).font(.system(size: glyphSize, weight: .semibold))
             Text(title)
                 .lineLimit(large ? 4 : 1)
@@ -418,7 +419,7 @@ struct ChatGroundingView: View {
         }
         .font(.hvCaption.weight(.medium))
         .foregroundStyle(Palette.textSecondary)
-        .padding(.horizontal, 10)
+        .padding(.horizontal, HV.Space.s)
         .padding(.vertical, 6)
         // The flow layout offers the chip the full width, which a greedy frame would take: only the
         // large-text chip spreads, the rest hug their words and wrap side by side.
@@ -522,7 +523,7 @@ struct ChatToolStepView: View {
 
     @ViewBuilder private var detail: some View {
         if let refinement = step.refinement {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(refinement.question).font(.hvFootnote)
                 ForEach(Array(refinement.options.enumerated()), id: \.offset) { _, option in
                     Text("\u{2022} \(option.label)").font(.hvCaption).foregroundStyle(Palette.textSecondary)
@@ -590,7 +591,7 @@ struct ChatThinkingDots: View {
     }
 
     private func dots(phase: Double) -> some View {
-        HStack(spacing: 5) {
+        HStack(spacing: HV.Space.xxs) {
             ForEach(0..<3, id: \.self) { index in
                 let wave = (sin(phase * 3.2 - Double(index) * 0.7) + 1) / 2
                 Circle()
@@ -635,8 +636,6 @@ struct ChatThinkingBubble: View {
                     }
                     .buttonStyle(.hvGhost)
                     .frame(minHeight: 44)
-                    // The ghost button pads its own label; take that back so "Stop" lines up with the text above.
-                    .padding(.leading, -HV.Space.s)
                     .transition(.opacity)
                 }
             }

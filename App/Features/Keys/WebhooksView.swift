@@ -153,10 +153,10 @@ private struct WebhookRow: View {
         KeysRowLayout {
             HVIconBadge(symbol: "dot.radiowaves.left.and.right", tint: tint, size: min(tile, 56))
         } words: {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 HVAddressText(hook.title).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(isLarge ? nil : 1)
                 Text(summary).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(isLarge ? nil : 2)
-                if isLarge, let statusTag { statusTag.padding(.top, 2) }
+                if isLarge, let statusTag { statusTag.padding(.top, HV.Space.xxs) }
             }
         } trailing: {
             if let statusTag { statusTag }
@@ -210,7 +210,7 @@ private struct WebhookDetailView: View {
         List {
             Section {
                 LabeledContent("Name") { Text(hook.title).hvSectionNote() }
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text("Posts to").font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                     HVAddressText(hook.url).font(.hvMono).foregroundStyle(Palette.textPrimary).fixedSize(horizontal: false, vertical: true)
                 }
@@ -253,7 +253,7 @@ private struct WebhookDetailView: View {
                 Section(header: HVSectionHeader(title: "Recent deliveries")) {
                     ForEach(deliveries) { delivery in
                         HStack {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                                 Text(delivery.status?.capitalized ?? "Sent").font(.hvBody)
                                 if let created = delivery.createdAt {
                                     Text(AccountWords.agoLine(seconds: Date().timeIntervalSince(created))).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
@@ -456,7 +456,7 @@ private struct AddWebhookSheet: View {
                 Text(secret)
                     .font(.system(.footnote, design: .monospaced, weight: .medium))
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(HV.Space.s + 2)
+                    .padding(HV.Space.s)
                     .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
                     .accessibilityLabel("Signing secret, shown once. Use the copy button.")
                     .keysHidesWhenInactive()

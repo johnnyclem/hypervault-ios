@@ -189,7 +189,8 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   The light look records its own lows in the same test (`primary` on muted, `destructive` on the page and on muted,
   `amber-400` on muted). White on the light primary, destructive, and accent fills stays at or above 4.5:1.
 - Shapes, type and borders are the web's (handoff 2.4 and 2.5). Corner radii are named for their role in `HV.Radius`
-  (`control` 8 for buttons and inputs, `card` 16, `surface` 20, `brandTile` 5), always `.continuous`. Type is the system
+  (`control` 8 for buttons and inputs, `card` 16, `surface` 20, `brandTile` 5, `floating` 24 for glass that floats over
+  content), always `.continuous`. Type is the system
   face; no `design: .rounded` anywhere, and monospace only for what is typed or matched (`hvMono`) and for code
   (`HVCodePanel`). Section headings (`HVSectionHeader`) are sentence case. Borders are the border token at reduced
   strength: `Palette.border` (60%) on surfaces, `Palette.controlBorder` (70%) on controls, `Palette.divider` (50%)

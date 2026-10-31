@@ -175,7 +175,7 @@ struct VaultItemDetailView: View {
             switch await model.delete(secret) {
             case .deleted, .entryGone:
                 Haptics.success()
-                app.toasts.success("Deleted.")
+                app.toasts.success("Deleted")
             case .failure(let failure):
                 app.toasts.show(failure.message, style: .error)
             }

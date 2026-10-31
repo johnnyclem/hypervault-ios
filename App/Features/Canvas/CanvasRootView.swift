@@ -13,6 +13,7 @@ struct CanvasRootView: View {
 }
 
 struct CanvasScreen: View {
+    /// The page no longer greets by name (the avatar opens the Account menu); the initialisers still take it.
     let userName: String?
     let avatarName: String
     let avatarURL: URL?
@@ -30,6 +31,8 @@ struct CanvasScreen: View {
     /// The sheet closed because the key is not in the vault any more: the Vault's list opens once it has gone.
     @State private var keyEntryIsGone = false
     @State private var starterCopied = false
+    /// The first-run card's own state, held here so the hints know when the card is the one asking for an agent.
+    @State private var connectCard: ConnectCardModel?
     @State private var dictation = DictationController()
     @State private var dictationBase = ""
     @State private var showScanner = false
@@ -167,10 +170,10 @@ struct CanvasScreen: View {
         if model.isQuiet {
             ScrollView {
                 VStack(spacing: 0) {
-                    CanvasHints(model: model, userName: userName, onCopyStarter: copyStarter, starterCopied: starterCopied)
+                    CanvasHints(model: model, connectCardMayAsk: connectCard.map { $0.isVisible || !$0.hasLooked } ?? true, onCopyStarter: copyStarter, starterCopied: starterCopied)
                         .padding(.top, HV.Space.xxl)
                     // The first-run ask for an agent's key: there only for someone with no key who has not waved it off.
-                    ConnectCardSlot()
+                    ConnectCardSlot(model: $connectCard)
                 }
             }
             .scrollBounceBehavior(.basedOnSize)

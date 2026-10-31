@@ -15,10 +15,10 @@ extension AppEnvironment {
         if !result.kept.isEmpty {
             Haptics.success()
             WidgetRefresh.reload()
-            toasts.success(result.kept.count == 1 ? "Kept the thing you shared." : "Kept \(result.kept.count) things you shared.")
+            toasts.success(result.kept.count == 1 ? "Kept the thing you shared" : "Kept \(result.kept.count) things you shared")
         }
         if !result.dropped.isEmpty {
-            toasts.show("\(result.dropped.count) shared item\(result.dropped.count == 1 ? " was" : "s were") too large to keep.", style: .error)
+            toasts.show("\(result.dropped.count) shared item\(result.dropped.count == 1 ? " was" : "s were") too large to keep", style: .error)
         }
     }
 }

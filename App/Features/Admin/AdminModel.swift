@@ -97,7 +97,7 @@ final class AdminModel {
             book.remove(id: inviteID)
             if justMinted?.id == inviteID { justMinted = nil }
             save()
-            reportSuccess("Invite code destroyed.")
+            reportSuccess("Invite code destroyed")
             return true
         } catch {
             reportError(error)

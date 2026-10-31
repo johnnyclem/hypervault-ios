@@ -155,7 +155,8 @@ struct NewArtifactView: View {
                 }
             }
             .hvScreenBackground()
-            .navigationTitle(model.result == nil ? "New page" : "Kept")
+            // The kept page has no bar title: its headline (the web's "Kept. Here's the link.") already says it.
+            .navigationTitle(model.result == nil ? "New page" : "")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(model.result == nil ? "Cancel" : "Done") { onDone(nil) } }
@@ -374,7 +375,10 @@ struct ArtifactKeptView: View {
                     .padding(.top, HV.Space.xl)
                     .accessibilityHidden(true)
                 VStack(spacing: HV.Space.xs) {
-                    Text(result.duplicate ? LibraryCopy.alreadyKept : LibraryCopy.kept).font(.hvTitle)
+                    // The bar has no title in this state, so this is the page's heading for VoiceOver.
+                    Text(result.duplicate ? LibraryCopy.alreadyKept : LibraryCopy.kept)
+                        .font(.hvTitle)
+                        .accessibilityAddTraits(.isHeader)
                     if !result.message.isEmpty {
                         Text(extraLines)
                             .font(.hvCallout)

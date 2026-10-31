@@ -5,7 +5,9 @@ import SwiftUI
 /// quiet things to do. It goes away the moment anything is on the page.
 struct CanvasHints: View {
     let model: CanvasModel
-    let userName: String?
+    /// The first-run card is up, or has not finished looking, and asks for the agent's key itself, so this page does
+    /// not ask a second time. It is false once the card has decided it is not wanted.
+    let connectCardMayAsk: Bool
     var onCopyStarter: () -> Void
     var starterCopied: Bool
 
@@ -15,17 +17,10 @@ struct CanvasHints: View {
     var body: some View {
         VStack(spacing: HV.Space.l) {
             BrandMark(size: 68)
-            VStack(spacing: HV.Space.xs) {
-                if let userName {
-                    Text(greeting(for: userName))
-                        .font(.system(.subheadline, weight: .medium))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                Text(HVCopy.landingLine)
-                    .font(.hvTitle)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            Text(HVCopy.landingLine)
+                .font(.hvTitle)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
 
             VStack(spacing: HV.Space.s) {
                 Text(HVCopy.hintKeepLine)
@@ -69,10 +64,14 @@ struct CanvasHints: View {
                         Text(HVCopy.hintAskLine).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                     } else {
                         Text(HVCopy.hintConnectLine).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
-                        Button(HVCopy.connectAILabel) { app.router.sheet = .connectAgent }
-                            .buttonStyle(.hvGhost)
-                            .tint(Palette.textSecondary)
-                            .accessibilityIdentifier("canvas.connect")
+                        // The card below has the one Connect button while it shows; this one comes once the card has
+                        // looked and is not there.
+                        if !connectCardMayAsk {
+                            Button(HVCopy.connectAILabel) { app.router.sheet = .connectAgent }
+                                .buttonStyle(.hvGhost)
+                                .tint(Palette.textSecondary)
+                                .accessibilityIdentifier("canvas.connect")
+                        }
                     }
                 }
             }
@@ -105,11 +104,5 @@ struct CanvasHints: View {
             }
         }
         .hvAnimation(HV.Motion.entrance, value: starterCopied)
-    }
-
-    private func greeting(for name: String) -> String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        let part = hour < 5 ? "Hello" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
-        return "\(part), \(name)."
     }
 }

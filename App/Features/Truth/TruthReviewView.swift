@@ -344,7 +344,7 @@ struct TruthReviewScreen: View {
         if let last = model.deferral {
             HStack(spacing: HV.Space.s) {
                 HVIcon("clock.fill").foregroundStyle(Palette.textSecondary)
-                Text("Put off for a week.").font(.hvSubheadline)
+                Text("Put off for a week").font(.hvSubheadline)
                 Spacer()
                 Button("Undo") {
                     Haptics.tap()

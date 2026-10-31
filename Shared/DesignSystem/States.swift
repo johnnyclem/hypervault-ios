@@ -158,7 +158,7 @@ struct HVListSkeleton: View {
 
 /// A one-line notice that what is on screen is the saved copy.
 struct HVStaleBanner: View {
-    var message = "Showing what was saved. Pull to refresh when you are back online."
+    var message = "Showing the saved copy"
 
     var body: some View {
         HStack(spacing: HV.Space.xs) {

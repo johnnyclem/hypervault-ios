@@ -75,7 +75,7 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
             look(mode, "Connect your AI", key: shows("Just make a key"), "the way to make a key for anything not listed")
             // The app is found the way a person finds one in a long list, by its name: the sheet's search field floats over the
             // list, and scrolling a row out from under it (and from the sheet's own pull-down to close) is not reliable.
-            enter("Cursor", into: searchField("Search apps, like Cursor or curl"), "the app search")
+            enter("Cursor", into: searchField("Search"), "the app search")
             // The keyboard goes away before the page is scrolled: a drag that starts on the keyboard types, and the list that was
             // searched for is lost.
             putTheKeyboardAway()

@@ -109,8 +109,8 @@ struct TruthDraftsScreen: View {
         .refreshable { await model.load() }
         .sheet(item: $shared) { file in TruthActivitySheet(items: [file.url]) }
         .confirmationDialog("Export the open drafts?", isPresented: $confirmExport, titleVisibility: .visible) {
-            Button("Export and mark them exported") { export(mark: true) }
-            Button("Just look (do not mark them)") { export(mark: false) }
+            Button("Export and mark exported") { export(mark: true) }
+            Button("Export without marking") { export(mark: false) }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Marking continues the ledger's proposals file, so the next export picks up where this one stops.")

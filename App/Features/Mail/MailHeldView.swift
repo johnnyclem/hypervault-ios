@@ -125,7 +125,7 @@ struct MailHeldScreen: View {
             do {
                 try await model.release(message)
                 Haptics.success()
-                app.toasts.success("Your agents can see it now.")
+                app.toasts.success("Your agents can see it now")
                 onChange()
             } catch {
                 app.toasts.show(mailError: error)

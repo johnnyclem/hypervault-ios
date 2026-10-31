@@ -118,7 +118,7 @@ struct MemorizeSheet: View {
                             .frame(minHeight: 150)
                         if draft.content.isEmpty {
                             // A hint inside the editor; the label above is what names it. The insets are the editor's own.
-                            Text("A chat, a decision, a note worth keeping")
+                            Text("Paste or write something")
                                 .foregroundStyle(Palette.textTertiary)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 8)

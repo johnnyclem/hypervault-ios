@@ -82,7 +82,7 @@ struct ArtifactRealmHomeSheet: View {
                     .setRealmHome(subdomain: realm.subdomain, baseDomain: realm.baseDomain, slug: makeHome ? detail.slug : nil)
                 )
                 warning = result.warning
-                app.toasts.show(result.message.isEmpty ? (makeHome ? "Done." : "Back to your list of public pages.") : result.message, style: .success)
+                app.toasts.show(result.message.isEmpty ? (makeHome ? "Done." : "Back to your list of public pages") : result.message, style: .success)
                 await detail.refreshRealms()
             } catch {
                 self.error = ArtifactErrors.message(error)

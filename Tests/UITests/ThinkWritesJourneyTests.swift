@@ -196,7 +196,7 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
         }
 
         step("Nothing is left, and the list says so") {
-            require(shows("Nothing is out of date."), "the empty worklist")
+            require(shows("Nothing is out of date"), "the empty worklist")
         }
     }
     func testARoomIsMadeItsAgentsChangedItIsRenamedAndDeleted() {

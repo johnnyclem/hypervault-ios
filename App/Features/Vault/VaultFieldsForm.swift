@@ -121,7 +121,7 @@ struct VaultFieldsForm: View {
         HVLabeledField(title: "CVC (optional)") {
             VaultSecretField(
                 title: "CVC (optional)", identifier: "security-code", spokenName: "security code",
-                text: limited("cvc", 4), keyboard: .numberPad, contentType: .creditCardSecurityCode
+                text: limited("cvc", 4), keyboard: .numberPad, contentType: .creditCardSecurityCode, prompt: "123"
             )
         }
         labelled("Cardholder (optional)") {
@@ -219,7 +219,7 @@ struct VaultFieldsForm: View {
 /// app leaves the foreground, and it only exists in the forms that create or replace a value: a saved value is
 /// never shown.
 struct VaultSecretField: View {
-    /// The field's name for VoiceOver, and its placeholder.
+    /// The field's name for VoiceOver.
     let title: String
     /// What follows `vault.field.` in the field's accessibility identifier.
     let identifier: String
@@ -228,6 +228,9 @@ struct VaultSecretField: View {
     @Binding var text: String
     var keyboard: UIKeyboardType = .default
     var contentType: UITextContentType?
+    /// What the empty field shows. Empty when the label above already says what goes there; never bullets, which
+    /// would read as characters already typed.
+    var prompt = ""
 
     @State private var revealed = false
     @Environment(\.scenePhase) private var scenePhase
@@ -261,10 +264,10 @@ struct VaultSecretField: View {
     @ViewBuilder
     private var field: some View {
         if revealed {
-            TextField(title, text: $text, prompt: .hvPrompt(title))
+            TextField(title, text: $text, prompt: .hvPrompt(prompt))
                 .accessibilityIdentifier("vault.field.\(identifier)")
         } else {
-            SecureField(title, text: $text, prompt: .hvPrompt(title))
+            SecureField(title, text: $text, prompt: .hvPrompt(prompt))
                 .accessibilityIdentifier("vault.field.\(identifier)")
         }
     }

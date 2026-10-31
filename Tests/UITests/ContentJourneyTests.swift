@@ -81,7 +81,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
 
         step("What is said to the room is answered by a member") {
             enter("claude, summarise the plan", into: textField("room.field"), "the message field")
-            require(shows("Goes to @claude."), "the line that says who the message goes to")
+            require(shows("Goes to @claude"), "the line that says who the message goes to")
             tap(button("Send"), "Send")
             require(shows("Noted: claude, summarise the plan"), "claude's answer", timeout: 40)
         }

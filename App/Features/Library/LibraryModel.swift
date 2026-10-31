@@ -289,7 +289,7 @@ final class LibraryModel {
         sharedWithYou.removeAll { $0.shareId == item.shareId }
         do {
             _ = try await env.client.send(.endShare(id: item.shareId))
-            toasts.show("You left \u{201C}\(item.title)\u{201D}.", style: .success)
+            toasts.show("You left \u{201C}\(item.title)\u{201D}", style: .success)
         } catch {
             sharedWithYou = before
             toasts.show(error: error)

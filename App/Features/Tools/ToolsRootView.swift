@@ -131,7 +131,7 @@ struct ToolsScreen: View {
             }
             .hvListRow()
 
-            Section(footer: Text("Changes you make here are saved at once. They reach new chats after you compile.").hvSectionNote()) {
+            Section(footer: Text("Saved at once").hvSectionNote()) {
                 Button { sheet = .catalog } label: { Label("Browse the catalog", systemImage: "square.grid.2x2").hvRowLabel() }
                 Button { sheet = .add(nil) } label: { Label("Add by address", systemImage: "link").hvRowLabel() }
             }
@@ -154,8 +154,8 @@ struct ToolsScreen: View {
             VStack(spacing: HV.Space.l) {
                 HVEmptyState(
                     symbol: "wrench.and.screwdriver",
-                    title: "Give your chats more to work with",
-                    message: "Tools are other services, like your calendar, GitHub or a notes app, that a chat can use for you. Connect one and ask for things in plain words."
+                    title: "No tool servers yet",
+                    message: "Tools are other services, like your calendar, GitHub or a notes app, that a chat can use for you"
                 )
                 VStack(alignment: .leading, spacing: HV.Space.m) {
                     ToolsStep(number: 1, title: "Connect a service", text: "Pick one from the catalog or paste its address. Some ask you to sign in first.")
@@ -277,7 +277,7 @@ struct ToolsToolkitCard: View {
             HVTile(symbol: status.toolkit == nil ? "hammer" : "checkmark.seal", size: HV.glyphBox(scaled: tile, base: HV.rowTile))
             VStack(alignment: .leading, spacing: 4) {
                 headline
-                Text(detail).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
+                if let detail { Text(detail).font(.hvFootnote).foregroundStyle(Palette.textSecondary) }
                 if let toolkit = status.toolkit, toolkit.isLexical {
                     Text("Matches by wording only, so a request has to sound like the tool's name.")
                         .font(.hvCaption)
@@ -314,12 +314,11 @@ struct ToolsToolkitCard: View {
         return "\(toolkit.stats.toolCount) tool\(toolkit.stats.toolCount == 1 ? "" : "s") ready for chats"
     }
 
-    private var detail: String {
-        guard let toolkit = status.toolkit else {
-            return "Compile once and your chats can use the tools you switch on."
-        }
-        guard let date = toolkit.compiledAt else { return "Built by HyperVault." }
-        return "Built \(date.formatted(.relative(presentation: .named))) from \(toolkit.stats.providerCount) server\(toolkit.stats.providerCount == 1 ? "" : "s")."
+    /// Nothing under the title while there is no toolkit: the bar under the list already says to compile.
+    private var detail: String? {
+        guard let toolkit = status.toolkit else { return nil }
+        guard let date = toolkit.compiledAt else { return "Built by HyperVault" }
+        return "Built \(HVCopy.ago(since: date).lowercased()) from \(toolkit.stats.providerCount) server\(toolkit.stats.providerCount == 1 ? "" : "s")"
     }
 }
 

@@ -259,7 +259,7 @@ final class ArtifactDetailModel {
             pins = next
             _ = try await env.client.send(.replaceSidebarPins(next.pins))
             Haptics.tap()
-            toasts.show(next.contains(artifact: slug) ? "Pinned to your Library." : "Unpinned.", style: .info)
+            toasts.show(next.contains(artifact: slug) ? "Pinned to your Library" : "Unpinned", style: .info)
         } catch {
             pins = previous
             toasts.show(error: error)

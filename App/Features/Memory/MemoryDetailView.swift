@@ -273,7 +273,7 @@ private struct MemoryDetailContent: View {
             Button {
                 UIPasteboard.general.string = page.memory.content
                 Haptics.success()
-                app.toasts.success("Copied.")
+                app.toasts.success("Copied")
             } label: { Label("Copy text", systemImage: HVSymbol.copy) }
             ShareLink(item: shareText(page.memory), subject: Text(page.memory.title)) {
                 Label("Share", systemImage: "square.and.arrow.up")

@@ -316,7 +316,7 @@ private struct WebhookDetailView: View {
             do {
                 try await model.delete(hook)
                 Haptics.success()
-                app.toasts.success("Webhook deleted.")
+                app.toasts.success("Webhook deleted")
                 dismiss()
             } catch {
                 app.toasts.show(error: error)
@@ -374,7 +374,7 @@ private struct AddWebhookSheet: View {
                 }
 
                 HVLabeledField(title: "Name (optional)") {
-                    TextField("What do you call it?", text: $name, prompt: Text.hvPrompt("What do you call it?"))
+                    TextField("What do you call it?", text: $name, prompt: Text.hvPrompt("grok"))
                 }
 
                 eventsCard

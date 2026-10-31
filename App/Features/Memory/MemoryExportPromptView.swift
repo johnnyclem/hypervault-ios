@@ -42,19 +42,16 @@ struct MemoryExportPromptView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HV.Space.l) {
-                VStack(alignment: .leading, spacing: HV.Space.xs) {
-                    Text("Bring memories from another AI")
-                        .font(.hvTitle)
-                    Text("Your old assistant already knows you. Make it hand that over: paste this prompt into ChatGPT, Gemini, Grok, or any AI with memory. It replies with everything it has stored about you in one code block. Paste that reply into Memorize, and repeat if it says more remain.")
-                        .font(.hvCallout)
-                        .foregroundStyle(Palette.textSecondary)
-                }
+                // The navigation title above already names the screen; the paragraph opens it.
+                Text("Your old assistant already knows you. Make it hand that over: paste this prompt into ChatGPT, Gemini, Grok, or any AI with memory. It replies with everything it has stored about you in one code block. Paste that reply into Memorize, and repeat if it says more remain.")
+                    .font(.hvCallout)
+                    .foregroundStyle(Palette.textSecondary)
 
                 Button {
                     UIPasteboard.general.string = MemoryExportPrompt.text
                     Haptics.success()
                     copied = true
-                    app.toasts.success("Prompt copied.")
+                    app.toasts.success("Prompt copied")
                     Task {
                         try? await Task.sleep(nanoseconds: UInt64(HV.Motion.copiedHold * 1_000_000_000))
                         copied = false

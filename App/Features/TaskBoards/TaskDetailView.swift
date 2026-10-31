@@ -27,7 +27,7 @@ struct TaskDetailView: View {
             if let task {
                 form(task)
             } else {
-                HVEmptyState(symbol: "checklist", title: "That task is gone.")
+                HVEmptyState(symbol: "checklist", title: "That task is gone")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }

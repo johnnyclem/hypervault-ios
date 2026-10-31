@@ -271,7 +271,7 @@ final class LibrarySnapshotTests: XCTestCase {
                     onOpen: {}, onAnother: {}
                 )
                 .hvScreenBackground()
-                .navigationTitle("Kept")
+                .navigationTitle("")
                 .navigationBarTitleDisplayMode(.inline)
             }
         }

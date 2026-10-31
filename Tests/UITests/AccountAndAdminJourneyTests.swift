@@ -30,7 +30,7 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
         step("Connect your AI offers the apps an agent lives in") {
             tap(element("keys.connect"), "Connect an agent")
             require(shows("Just make a key"), "the way to make a key for anything not listed")
-            let search = searchField("Search apps, like Cursor or curl")
+            let search = searchField("Search")
             enter("Cursor", into: search, "the app search")
             require(element("connect.client.cursor"), "the Cursor row")
         }
@@ -141,7 +141,7 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
             tap(accounts, "Accounts & waitlist", until: { isShowingTitle("Accounts") })
             waitUntil("the Accounts title") { isShowingTitle("Accounts") }
             require(shows("Open the web dashboard, copy the account's ID"), "the line that says where the IDs are")
-            require(textField("3f1c1a2e-…"), "the field for an account ID")
+            require(textField("Account ID"), "the field for an account ID")
         }
     }
 }

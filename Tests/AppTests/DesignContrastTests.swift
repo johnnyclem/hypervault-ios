@@ -90,7 +90,9 @@ final class DesignContrastTests: XCTestCase {
             }
         }
         let decorative: [(String, Color)] = [
-            ("violet", Palette.violet), ("cyan", Palette.cyan), ("coral", Palette.coral), ("rose", Palette.rose),
+            ("violet", Palette.violet),
+            // The three hues the palette has no token for are a model family's colour and live in `ChatAgentTone`.
+            ("chat coral", ChatAgentTone.coral.color), ("chat cyan", ChatAgentTone.cyan.color), ("chat rose", ChatAgentTone.rose.color),
         ]
         for (name, tint) in decorative {
             for surface in surfaces {
@@ -164,7 +166,8 @@ final class DesignContrastTests: XCTestCase {
         let light = UITraitCollection(userInterfaceStyle: .light)
         func resolved(_ color: Color) -> UInt32 { DesignTokensTests.hex(of: UIColor(color).resolvedColor(with: light)) }
         let tints: [(String, Color, UInt32)] = [
-            ("cyan", Palette.cyan, 0x0E7490), ("coral", Palette.coral, 0xC2410C), ("rose", Palette.rose, 0xBE123C),
+            ("chat cyan", ChatAgentTone.cyan.color, 0x0E7490), ("chat coral", ChatAgentTone.coral.color, 0xC2410C),
+            ("chat rose", ChatAgentTone.rose.color, 0xBE123C),
             ("violet", Palette.violet, try XCTUnwrap(HVTokens.lightColors["memory"])),
         ]
         for (name, tint, expected) in tints {
@@ -289,7 +292,9 @@ final class DesignContrastTests: XCTestCase {
     /// The app's own decorative tints, which the web has no token for, are text as well as glyph in places.
     func testTheDecorativeTintsAreAtLeastFourAndAHalfOnEverySurface() throws {
         let tints: [(String, Color)] = [
-            ("violet", Palette.violet), ("cyan", Palette.cyan), ("coral", Palette.coral), ("rose", Palette.rose),
+            ("violet", Palette.violet),
+            // The three hues the palette has no token for are a model family's colour and live in `ChatAgentTone`.
+            ("chat coral", ChatAgentTone.coral.color), ("chat cyan", ChatAgentTone.cyan.color), ("chat rose", ChatAgentTone.rose.color),
         ]
         for (name, tint) in tints {
             for surface in surfaces {

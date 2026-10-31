@@ -343,7 +343,7 @@ struct TruthReviewScreen: View {
     private var undoBar: some View {
         if let last = model.deferral {
             HStack(spacing: HV.Space.s) {
-                HVIcon("clock.fill").foregroundStyle(Palette.amber)
+                HVIcon("clock.fill").foregroundStyle(Palette.textSecondary)
                 Text("Put off for a week.").font(.hvSubheadline)
                 Spacer()
                 Button("Undo") {
@@ -356,7 +356,7 @@ struct TruthReviewScreen: View {
                 Button {
                     model.dismissUndo()
                 } label: {
-                    Image(systemName: HVSymbol.close).font(.system(size: 12, weight: .bold)).frame(width: 44, height: 44)
+                    Image(systemName: HVSymbol.close).font(.system(.caption, weight: .semibold)).frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("Dismiss")
             }
@@ -395,7 +395,7 @@ struct TruthReviewScreen: View {
                     Text("Review").font(.hvHeadline).foregroundStyle(Palette.textPrimary)
                     HStack(spacing: HV.Space.xxs) {
                         Text(model.ledger?.name ?? "Ledger").lineLimit(1)
-                        HVIcon(HVSymbol.fold).font(.system(size: 8, weight: .bold))
+                        HVIcon(HVSymbol.fold).font(.system(.caption2, weight: .semibold)).imageScale(.small)
                     }
                     .font(.hvCaption)
                     .foregroundStyle(Palette.textSecondary)
@@ -416,7 +416,7 @@ struct TruthReviewScreen: View {
                     }
                 }
                 if model.isHosted {
-                    Button { showAssert = true } label: { Label("Assert a TB or UV", systemImage: "plus.circle") }
+                    Button { showAssert = true } label: { Label("Assert a TB or UV", systemImage: HVSymbol.add) }
                 }
             } label: {
                 Image(systemName: "ellipsis.circle").frame(minWidth: 44, minHeight: 44)

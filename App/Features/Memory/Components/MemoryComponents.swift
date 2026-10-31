@@ -42,7 +42,7 @@ enum MemoryStyle {
         case "manual": return "square.and.pencil"
         case "chat": return HVSymbol.chat
         case "coding": return "chevron.left.forwardslash.chevron.right"
-        case "agent": return "sparkles"
+        case "agent": return HVSymbol.agent
         case "file": return "doc.text"
         case "github": return "shippingbox"
         case "web": return "globe"
@@ -78,17 +78,14 @@ extension MindCommitKind {
         case .other: return "circle.dashed"
         }
     }
-
-    /// One grey for every kind: the glyph above already names it, and seven hues for seven kinds said nothing more.
-    var tint: Color { Palette.textSecondary }
 }
 
 extension MindAuthorKind {
     var symbol: String {
         switch self {
-        case .user: return "person.fill"
-        case .agent: return "key.horizontal.fill"
-        case .system: return "gearshape.fill"
+        case .user: return HVSymbol.contact
+        case .agent: return HVSymbol.agent
+        case .system: return HVSymbol.general
         }
     }
 }
@@ -172,7 +169,7 @@ struct MemorySourceChip: View {
     var body: some View {
         HStack(spacing: 4) {
             HVIcon(MemoryStyle.symbol(forSource: source))
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(.caption2, weight: .semibold))
             Text(MemorySource.label(source))
                 .font(.system(.caption2, weight: .semibold))
         }
@@ -198,7 +195,7 @@ struct MemoryRowDivider: View {
 struct MemoryChevron: View {
     var body: some View {
         Image(systemName: HVSymbol.open)
-            .font(.system(size: 12, weight: .semibold))
+            .font(.system(.footnote, weight: .semibold))
             .foregroundStyle(Palette.textTertiary)
             .accessibilityHidden(true)
     }
@@ -415,9 +412,9 @@ struct MemoryMetaLine: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Image(systemName: symbol)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(.caption, weight: .semibold))
                 .foregroundStyle(tint)
-                .frame(width: 16)
+                .hvIconSlot(16)
                 .accessibilityHidden(true)
             Text(text)
                 .font(.hvFootnote)

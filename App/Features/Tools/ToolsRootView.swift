@@ -215,12 +215,12 @@ struct ToolsServerRow: View {
                 // The tag and the key take the room the name needs, so at these sizes they sit under it,
                 // lined up with the name.
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
-                    HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle, subtitleIsAddress: true)
+                    HVRow(symbol: symbol, title: server.name, subtitle: subtitle, subtitleIsAddress: true)
                     HStack(spacing: HV.Space.xs) { markers }
-                        .padding(.leading, HV.rowTile + HV.Space.s)
+                        .hvRowWordsInset()
                 }
             } else {
-                HVRow(symbol: symbol, tint: tint, title: server.name, subtitle: subtitle, subtitleIsAddress: true) {
+                HVRow(symbol: symbol, title: server.name, subtitle: subtitle, subtitleIsAddress: true) {
                     HStack(spacing: HV.Space.xs) { markers }
                 }
             }
@@ -233,27 +233,17 @@ struct ToolsServerRow: View {
     private var markers: some View {
         if let tag { HVTag(text: tag.text, tint: tag.tint) }
         if server.hasAuth {
-            Image(systemName: server.secretBacked ? "lock.shield.fill" : "key.fill")
-                .font(.system(size: 13))
-                .foregroundStyle(Palette.textTertiary)
+            // Outline, and the size of the footnote beside it, so it follows the type.
+            Image(systemName: server.secretBacked ? "lock.shield" : HVSymbol.key)
+                .font(.footnote)
+                .foregroundStyle(Palette.textSecondary)
                 .accessibilityLabel(server.secretBacked ? "Sign-in kept in the saved-secrets vault" : "Needs a sign-in")
         }
     }
 
-    private var symbol: String {
-        switch server.status {
-        case .off: return "power"
-        default: return "server.rack"
-        }
-    }
-
-    private var tint: Color {
-        switch server.status {
-        case .off: return Palette.textSecondary
-        case .noTools, .allToolsOff: return Palette.amber
-        case .on: return Palette.blue
-        }
-    }
+    /// One glyph for a server. Whether it is on, off or has no tools is said in words, in the subtitle ("· off",
+    /// "· no tools listed") and the tag ("All off"), and not by the tile.
+    private var symbol: String { "server.rack" }
 
     private var subtitle: String {
         switch server.status {
@@ -278,10 +268,13 @@ struct ToolsServerRow: View {
 struct ToolsToolkitCard: View {
     let status: McpToolkitStatus
     let needsCompile: Bool
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = HV.rowTile
 
     var body: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
-            HVIconBadge(symbol: status.toolkit == nil ? "hammer" : "checkmark.seal", tint: needsCompile ? Palette.amber : Palette.mint, size: 36)
+            // The neutral tile, as a row's is. Whether the toolkit is built is the glyph (hammer or seal) and the
+            // title; whether it is out of date is the "Out of date" tag, so no hue carries either.
+            HVTile(symbol: status.toolkit == nil ? "hammer" : "checkmark.seal", size: HV.glyphBox(scaled: tile, base: HV.rowTile))
             VStack(alignment: .leading, spacing: 4) {
                 headline
                 Text(detail).font(.hvFootnote).foregroundStyle(Palette.textSecondary)

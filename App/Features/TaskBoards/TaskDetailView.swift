@@ -15,6 +15,8 @@ struct TaskDetailView: View {
     @State private var isSliding = false
     @State private var confirmTakeOver = false
     @FocusState private var focus: Field?
+    /// The round glyphs of the board are one size (`TaskCheck.glyphSize`): the subtask row's plus and the note's send here.
+    @ScaledMetric(relativeTo: .title3) private var glyph: CGFloat = TaskCheck.glyphSize
 
     private enum Field: Hashable { case title, subtask, note }
 
@@ -141,7 +143,7 @@ struct TaskDetailView: View {
                     LabeledContent {
                         Text(holder).foregroundStyle(Palette.textSecondary)
                     } label: {
-                        Label(task.assignee.isAgent ? "Claimed by an agent" : "Yours", systemImage: task.assignee.isAgent ? "sparkle" : "person.fill")
+                        Label(task.assignee.isAgent ? "Claimed by an agent" : "Yours", systemImage: task.assignee.holderSymbol)
                     }
                     if let expires = task.lock?.expiresAt, task.lock?.isLive() == true {
                         Text("Held until \(expires.formatted(date: .omitted, time: .shortened))")
@@ -205,7 +207,10 @@ struct TaskDetailView: View {
 
     private func addSubtaskRow(_ task: BoardTask, temporary: Bool) -> some View {
         HStack(spacing: HV.Space.s) {
-            Image(systemName: "plus.circle.fill").foregroundStyle(.tint).accessibilityHidden(true)
+            Image(systemName: "plus.circle.fill")
+                .font(.system(size: HV.glyphBox(scaled: glyph, base: TaskCheck.glyphSize)))
+                .foregroundStyle(.tint)
+                .accessibilityHidden(true)
             TextField("Add a subtask", text: $newSubtask, prompt: Text.hvPrompt("Add a subtask"))
                 .focused($focus, equals: .subtask)
                 .submitLabel(.done)
@@ -270,7 +275,7 @@ struct TaskDetailView: View {
                 newNote = ""
                 Haptics.tap()
             } label: {
-                Image(systemName: "arrow.up.circle.fill").font(.system(size: 28))
+                Image(systemName: "arrow.up.circle.fill").font(.system(size: HV.glyphBox(scaled: glyph, base: TaskCheck.glyphSize)))
             }
             .buttonStyle(.plain)
             .foregroundStyle(isEmpty ? Palette.textTertiary : Color.accentColor)

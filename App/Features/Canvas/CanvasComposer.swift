@@ -51,7 +51,8 @@ struct CanvasComposer: View {
                 if let onScan { Button("Scan a page", systemImage: "doc.viewfinder", action: onScan) }
             } label: {
                 Image(systemName: HVSymbol.add)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(.body, weight: .semibold))
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .foregroundStyle(Palette.textSecondary)
                     .frame(width: 44, height: 44)
             }
@@ -96,7 +97,8 @@ struct CanvasComposer: View {
                 Task { await model.send() }
             } label: {
                 Image(systemName: "arrow.up")
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.system(.body, weight: .semibold))
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
                     .background(Palette.action, in: Circle())
@@ -114,7 +116,8 @@ struct CanvasComposer: View {
     private func micButton(_ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: isDictating ? "waveform" : "mic")
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(.body, weight: .semibold))
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .foregroundStyle(isDictating ? Color.accentColor : Palette.textSecondary)
                 .symbolEffect(.variableColor.iterative, isActive: isDictating && !reduceMotion)
                 .frame(width: 44, height: 44)
@@ -134,8 +137,6 @@ private struct StagedChip: View {
 
     var body: some View {
         HStack(spacing: HV.Space.s) {
-            HVIcon("doc.on.clipboard")
-                .foregroundStyle(Palette.textSecondary)
             Text(HVCopy.pastedLine(characters: characters))
                 .font(.system(.subheadline, weight: .medium))
                 .lineLimit(1)
@@ -183,7 +184,7 @@ private struct NoticeLine: View {
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
-                .font(.system(size: 11, weight: .bold))
+                .font(.system(.caption, weight: .semibold))
                 .accessibilityLabel("Dismiss")
         }
         .foregroundStyle(notice.kind == .error ? Palette.danger : Palette.textSecondary)

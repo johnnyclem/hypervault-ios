@@ -33,7 +33,8 @@ struct MindCompareView: View {
                         model.swap()
                     } label: {
                         Image(systemName: "arrow.up.arrow.down")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(.callout, weight: .semibold))
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                             .foregroundStyle(Palette.textSecondary)
                             .frame(width: 44, height: 28)
                     }
@@ -138,7 +139,7 @@ struct MindRefPicker: View {
                             .lineLimit(1)
                         Spacer(minLength: 0)
                         HVIcon("chevron.up.chevron.down")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(.caption, weight: .semibold))
                             .foregroundStyle(Palette.textTertiary)
                     }
                     .hvFieldChrome()

@@ -54,35 +54,29 @@ struct ArtifactVisibilityMark: View {
     var body: some View {
         switch visibility {
         case .private:
-            Image(systemName: "lock.fill")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Palette.textTertiary)
-                .accessibilityLabel("Private")
+            mark.accessibilityLabel("Private")
         case .password:
-            Image(systemName: "key.fill")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Palette.textTertiary)
-                .accessibilityLabel("Password protected")
+            mark.accessibilityLabel("Password protected")
         case .public:
             EmptyView()
         }
     }
+
+    /// The outline glyph `ArtifactVisibility.symbol` names, at the size of the caption it sits beside.
+    private var mark: some View {
+        Image(systemName: visibility.symbol)
+            .font(.hvCaption.weight(.semibold))
+            .foregroundStyle(Palette.textTertiary)
+    }
 }
 
 extension ArtifactVisibility {
+    /// Outline glyphs only, and the lock and the key are the ones the vault and a key draw everywhere else.
     var symbol: String {
         switch self {
         case .public: return "globe"
-        case .private: return "lock.fill"
-        case .password: return "key.fill"
-        }
-    }
-
-    var tint: Color {
-        switch self {
-        case .public: return Palette.mint
-        case .private: return Palette.blue
-        case .password: return Palette.amber
+        case .private: return HVSymbol.vault
+        case .password: return HVSymbol.key
         }
     }
 }

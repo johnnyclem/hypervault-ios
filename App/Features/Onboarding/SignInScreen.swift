@@ -35,8 +35,9 @@ struct SignInContent: View {
             HStack {
                 if let onBack {
                     Button(action: onBack) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 17, weight: .semibold))
+                        Image(systemName: HVSymbol.back)
+                            .font(.system(.body, weight: .semibold))
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel("Back")

@@ -312,7 +312,7 @@ struct GroupEditorView: View {
                 ForEach(model.files) { file in
                     NavigationLink(value: file.path) {
                         HStack {
-                            HVIcon(icon(for: file.path)).foregroundStyle(Palette.blue).hvIconSlot(22)
+                            HVIcon(icon(for: file.path)).foregroundStyle(Palette.textSecondary).hvIconSlot(22)
                             Text(file.path).font(.hvMono).foregroundStyle(Palette.textPrimary).lineLimit(1).truncationMode(.middle)
                             Spacer(minLength: HV.Space.xs)
                             Text(ByteCountFormatter.string(fromByteCount: Int64(file.content.utf8.count), countStyle: .file))

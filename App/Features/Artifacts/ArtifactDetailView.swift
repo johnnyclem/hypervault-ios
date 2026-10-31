@@ -133,7 +133,7 @@ struct ArtifactDetailScreen: View {
     private func symbol(for block: ArtifactBlock) -> String {
         switch block {
         case .notFound: return "questionmark.folder"
-        case .notAllowed: return "lock.fill"
+        case .notAllowed: return HVSymbol.vault
         case .unavailable: return "hourglass"
         case .offline: return "wifi.slash"
         case .failed: return "exclamationmark.triangle"
@@ -224,6 +224,9 @@ struct ArtifactActionBar: View {
     var onOpenSafari: () -> Void
 
     @Environment(AppModel.self) private var app
+    /// The glyph of a bar item follows the type, by a quarter at most (`HV.glyphBox`). The cap on the bar (below) holds the
+    /// labels but not this metric, which a view reads from the type size it was given and not from its own modifiers.
+    @ScaledMetric(relativeTo: .title3) private var glyph: CGFloat = 19
 
     var body: some View {
         HStack(spacing: 0) {
@@ -255,10 +258,11 @@ struct ArtifactActionBar: View {
     }
 
     private func item(_ title: String, _ symbol: String) -> some View {
-        VStack(spacing: HV.Space.xxs) {
+        let side = HV.glyphBox(scaled: glyph, base: 19)
+        return VStack(spacing: HV.Space.xxs) {
             HVIcon(symbol)
-                .font(.system(size: 19, weight: .medium))
-                .frame(height: 24)
+                .font(.system(size: side, weight: .medium))
+                .frame(height: side + 5)
             Text(title).font(.system(.caption2, weight: .medium))
         }
         .foregroundStyle(Palette.textPrimary)
@@ -285,7 +289,7 @@ struct ArtifactActionBar: View {
                     }
                 }
             } label: {
-                item(current?.title ?? "Access", current?.symbol ?? "lock")
+                item(current?.title ?? "Access", current?.symbol ?? HVSymbol.vault)
             }
             .accessibilityLabel("Who can open it: \(current?.title ?? "unknown")")
             .accessibilityIdentifier("artifact.access")

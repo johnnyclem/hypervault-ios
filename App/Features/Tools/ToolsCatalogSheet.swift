@@ -201,12 +201,14 @@ struct ToolsCatalogRow: View {
     let isAdding: Bool
     var onOpen: () -> Void
     var onAdd: () -> Void
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = HV.rowTile
 
     var body: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
             Button(action: onOpen) {
                 HStack(alignment: .top, spacing: HV.Space.s) {
-                    HVIconBadge(symbol: "globe", tint: entry.dead ? Palette.textTertiary : Palette.sky, size: 36)
+                    // The neutral tile, the same for every entry: a dead one is the "Unreachable" tag and the faded name.
+                    HVTile(symbol: "globe", size: tileSide)
                     VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         HStack(spacing: HV.Space.xs) {
                             Text(entry.displayName)
@@ -234,11 +236,14 @@ struct ToolsCatalogRow: View {
         .frame(minHeight: 44)
         // Without this the list measures the separator from the "Added" label on the one row that has it,
         // and draws a stub under it. Every row's separator starts at its title instead, past the icon.
-        .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + Self.titleColumn }
+        .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] + titleColumn }
     }
 
-    /// The icon badge and the gap after it: where a row's title begins.
-    private static let titleColumn: CGFloat = HV.rowTile + HV.Space.s
+    /// The side of the tile at the current text size.
+    private var tileSide: CGFloat { HV.glyphBox(scaled: tile, base: HV.rowTile) }
+
+    /// The tile and the gap after it: where a row's title begins. The tile grows with the type, so this does too.
+    private var titleColumn: CGFloat { tileSide + HV.Space.s }
 
     @ViewBuilder
     private var addControl: some View {

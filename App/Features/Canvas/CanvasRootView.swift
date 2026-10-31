@@ -222,7 +222,8 @@ struct CanvasScreen: View {
             Button {
                 showYours = true
             } label: {
-                Image(systemName: "square.stack.3d.up")
+                // Not the layered square a group is drawn with (`KeptKind.group`): the panel is a stack of what was kept.
+                Image(systemName: "rectangle.stack")
             }
             .accessibilityLabel("Open panel")
             .accessibilityIdentifier("canvas.yours")

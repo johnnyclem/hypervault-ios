@@ -152,9 +152,9 @@ struct WelcomePageKeep: View {
             message: "Only you can open it."
         ) {
             ZStack {
-                FloatingCard(symbol: "doc.richtext", label: "Pricing page", tint: Palette.blue, x: -74, y: -112, phase: 0)
-                FloatingCard(symbol: "note.text", label: "Trip notes", tint: Palette.violet, x: 96, y: 90, phase: 1.3)
-                FloatingCard(symbol: HVSymbol.key, label: "Deploy key", tint: Palette.mint, x: -84, y: 128, phase: 2.1)
+                FloatingCard(symbol: "doc.richtext", label: "Pricing page", x: -74, y: -112, phase: 0)
+                FloatingCard(symbol: "note.text", label: "Trip notes", x: 96, y: 90, phase: 1.3)
+                FloatingCard(symbol: HVSymbol.key, label: "Deploy key", x: -84, y: 128, phase: 2.1)
                 BrandMark(size: 104)
             }
         }
@@ -165,7 +165,6 @@ struct WelcomePageKeep: View {
 struct FloatingCard: View {
     let symbol: String
     let label: String
-    let tint: Color
     let x: CGFloat
     let y: CGFloat
     let phase: Double
@@ -175,7 +174,7 @@ struct FloatingCard: View {
         TimelineView(.animation(minimumInterval: 1.0 / 24.0, paused: reduceMotion)) { context in
             let t = context.date.timeIntervalSinceReferenceDate + phase
             HStack(spacing: 8) {
-                HVIconBadge(symbol: symbol, tint: tint, size: 28)
+                HVTile(symbol: symbol, size: 28)
                 Text(label).font(.system(.footnote, weight: .semibold))
             }
             .padding(.horizontal, 10)
@@ -258,17 +257,20 @@ struct WelcomePageSecrets: View {
     var body: some View {
         WelcomePage(title: HVCopy.landingVaultSaveLine, message: HVCopy.landingVaultLockLine) {
             VStack(spacing: HV.Space.s) {
-                secretRow(symbol: HVSymbol.login, tint: Palette.blue, title: "Bakery admin", label: "sam@bakery.co")
-                secretRow(symbol: HVSymbol.card, tint: Palette.violet, title: "Work card", label: "Visa \u{2022}\u{2022}\u{2022}\u{2022} 4242")
-                secretRow(symbol: HVSymbol.key, tint: Palette.mint, title: "Deploy key", label: nil)
+                // The tiles the Vault draws for a login, a card and a key.
+                secretRow(title: "Bakery admin", label: "sam@bakery.co") { HVTile(monogram: "B") }
+                secretRow(title: "Work card", label: "Visa \u{2022}\u{2022}\u{2022}\u{2022} 4242") {
+                    HVCardBrandTile(brand: .visa).frame(width: 36, height: 36)
+                }
+                secretRow(title: "Deploy key", label: nil) { HVTile(symbol: HVSymbol.key) }
             }
             .padding(.horizontal, HV.Space.xl)
         }
     }
 
-    private func secretRow(symbol: String, tint: Color, title: String, label: String?) -> some View {
+    private func secretRow<Tile: View>(title: String, label: String?, @ViewBuilder tile: () -> Tile) -> some View {
         HStack(spacing: HV.Space.s) {
-            HVIconBadge(symbol: symbol, tint: tint, size: 36)
+            tile()
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(title).font(.system(.subheadline, weight: .semibold))
                 if let label { Text(label).font(.hvMono).foregroundStyle(Palette.textSecondary) }

@@ -13,7 +13,7 @@ enum LibraryRow {
 
 /// The shape every Library row shares: a mark, a title, a line under it and whatever trails. It sets
 /// type and spacing as `HVRow` does in Yours (two lines, any number at the accessibility sizes), so a row
-/// here and a row there line up. The mark is the thing's own (a page's icon, a kind's badge), which is
+/// here and a row there line up. The mark is the thing's own (a page's icon, a kind's neutral tile), which is
 /// why this is not `HVRow` itself; it is given the size to draw at.
 struct LibraryRowFrame<Mark: View, Meta: View, Trailing: View>: View {
     let title: String
@@ -108,7 +108,7 @@ struct LibraryItemRow: View {
                 LibraryRowTime(text: ago)
                 if showsChevron {
                     Image(systemName: HVSymbol.open)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(.footnote, weight: .semibold))
                         .foregroundStyle(Palette.textTertiary)
                         .accessibilityHidden(true)
                 }
@@ -132,10 +132,11 @@ struct LibraryItemRow: View {
             if let slug = item.slug {
                 ArtifactGlyph(slug: slug, title: item.name, size: size)
             } else {
-                HVIconBadge(symbol: item.kind.symbol, tint: item.kind.tint, size: size)
+                HVTile(symbol: item.kind.symbol, size: size)
             }
         case .memory, .key:
-            HVIconBadge(symbol: item.kind.symbol, tint: item.kind.tint, size: size)
+            // The neutral tile, as Yours draws it: the kind is the glyph's shape, not a colour.
+            HVTile(symbol: item.kind.symbol, size: size)
         }
     }
 }

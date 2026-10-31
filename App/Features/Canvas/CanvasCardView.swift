@@ -31,6 +31,7 @@ struct CanvasCardView: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
+            // The kind's own colour lives here, on the Home card; every list draws the neutral tile.
             HVIconBadge(symbol: card.kind.symbol, tint: card.kind.tint, size: 36)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(card.title)
@@ -187,19 +188,17 @@ struct CanvasCardView: View {
             }
             .buttonStyle(.hvGhost)
             ShareLink(item: url) {
-                Label("Share", systemImage: "square.and.arrow.up")
+                Text("Share")
             }
             .buttonStyle(.hvGhost)
         } else if let onShare, let slug = card.slug {
             // (A card that was just kept has the system share beside Copy link: the quick way to hand the link on, and a fifth
             // button would not fit the row. Its people sheet is one tap away from the page.)
-            Button(action: onShare) {
-                Label("Share", systemImage: "square.and.arrow.up")
-            }
-            .buttonStyle(.hvGhost)
-            .accessibilityLabel("Share \(card.title)")
-            .accessibilityHint("Share the link or add people")
-            .accessibilityIdentifier("canvas.share.\(slug)")
+            Button("Share", action: onShare)
+                .buttonStyle(.hvGhost)
+                .accessibilityLabel("Share \(card.title)")
+                .accessibilityHint("Share the link or add people")
+                .accessibilityIdentifier("canvas.share.\(slug)")
         }
     }
 

@@ -93,12 +93,10 @@ struct AdminAccountToolsView: View {
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            HStack(alignment: .top, spacing: HV.Space.s) {
-                HVIconBadge(symbol: "person.text.rectangle", tint: Palette.rose)
-                Text("HyperVault does not send the app a list of accounts or of the waitlist. Open the web dashboard, copy the account's ID, and paste it here.")
-                    .font(.hvFootnote)
-                    .foregroundStyle(Palette.textSecondary)
-            }
+            // The sentence carries the message, so there is no tile in front of it.
+            Text("HyperVault does not send the app a list of accounts or of the waitlist. Open the web dashboard, copy the account's ID, and paste it here.")
+                .font(.hvFootnote)
+                .foregroundStyle(Palette.textSecondary)
             Link(destination: dashboard) {
                 Label("Open the web dashboard", systemImage: "safari").hvRowLabel()
                     .font(.system(.subheadline, weight: .semibold))

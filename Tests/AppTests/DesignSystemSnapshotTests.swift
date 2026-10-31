@@ -92,7 +92,7 @@ final class DesignSystemSnapshotTests: XCTestCase {
                 }
                 HStack(spacing: HV.Space.xs) {
                     HVTag(text: "agent", tint: Palette.violet)
-                    HVTag(text: "Found for you", tint: Palette.cyan)
+                    HVTag(text: "Found for you", tint: Palette.sky)
                     HVTag(text: "Default")
                     HVTag(text: "#tag")
                 }

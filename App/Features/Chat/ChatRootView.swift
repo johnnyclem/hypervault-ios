@@ -48,7 +48,7 @@ struct ChatRootView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 NavigationLink(value: ChatDestination.models) {
-                    Image(systemName: "cpu").frame(width: 44, height: 44)
+                    Image(systemName: HVSymbol.model).frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("Models")
             }

@@ -162,7 +162,7 @@ struct MailInboxScreen: View {
                     } label: {
                         HStack(spacing: 4) {
                             Text(address).lineLimit(1)
-                            HVIcon(HVSymbol.fold).font(.system(size: 10, weight: .bold))
+                            HVIcon(HVSymbol.fold).font(.system(.caption2, weight: .semibold))
                         }
                         .frame(minHeight: 44, alignment: .leading)
                         .contentShape(Rectangle())
@@ -238,8 +238,8 @@ struct MailInboxScreen: View {
         Button {
             showHeld = true
         } label: {
-            HVRow(symbol: "hand.raised", tint: Palette.amber, title: "\(model.heldCount) held", subtitle: "Mail your agents cannot see") {
-                HVIcon(HVSymbol.open).font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.textTertiary)
+            HVRow(symbol: "hand.raised", title: "\(model.heldCount) held", subtitle: "Mail your agents cannot see") {
+                HVIcon(HVSymbol.open).font(.footnote.weight(.semibold)).foregroundStyle(Palette.textTertiary)
             }
             .frame(minHeight: 44)
         }

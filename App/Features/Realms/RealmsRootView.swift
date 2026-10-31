@@ -164,7 +164,7 @@ struct RealmsRootView: View {
                 Button {
                     webPage = KeysWebPage(env.webURL("/upgrade"))
                 } label: {
-                    HVRow(symbol: "safari", tint: Palette.blue, title: "See plans on the web", subtitle: RealmPlanCopy.upgradeDetail) { KeysChevron() }
+                    HVRow(symbol: "safari", title: "See plans on the web", subtitle: RealmPlanCopy.upgradeDetail) { KeysChevron() }
                 }
             }
         }
@@ -179,7 +179,7 @@ struct RealmsRootView: View {
             }
             ForEach(features, id: \.self) { feature in
                 HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
-                    Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(tint).accessibilityHidden(true)
+                    Image(systemName: "checkmark").font(.hvFootnote.weight(.semibold)).foregroundStyle(tint).accessibilityHidden(true)
                     Text(feature).font(.hvFootnote).foregroundStyle(Palette.textPrimary).fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -195,13 +195,14 @@ struct RealmRow: View {
 
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = HV.rowTile
 
     private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
         KeysRowLayout {
-            HVIconBadge(symbol: HVSymbol.domain, tint: Palette.blue, size: min(tile, 56))
+            // The neutral tile, as every list draws it; it grows with the type to 44, as `HVRow`'s does.
+            HVTile(symbol: HVSymbol.domain, size: HV.glyphBox(scaled: tile, base: HV.rowTile))
         } words: {
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 // An address is one word: it shrinks to fit before it is allowed to break in the middle.

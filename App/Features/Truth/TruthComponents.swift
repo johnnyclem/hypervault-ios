@@ -162,7 +162,7 @@ struct TruthStandingBadge: View {
     var body: some View {
         if let standing, standing != .sound || showsSound {
             HStack(spacing: HV.Space.xxs) {
-                HVIcon(standing.symbol).font(.system(size: 10, weight: .bold))
+                HVIcon(standing.symbol).font(.system(.caption2, weight: .semibold))
                 Text(standing.title)
             }
             .font(.system(.caption2, weight: .semibold))
@@ -221,7 +221,7 @@ struct TruthEntryRowView: View {
             }
             ForEach(row.contestedBy) { uv in
                 HStack(alignment: .top, spacing: HV.Space.xs) {
-                    Image(systemName: "arrow.turn.down.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.amber)
+                    Image(systemName: "arrow.turn.down.right").font(.system(.caption, weight: .semibold)).foregroundStyle(Palette.textSecondary)
                         .accessibilityHidden(true)
                     Text("Contested by \(uv.author ?? "someone"): \(uv.text)")
                         .font(.hvFootnote)
@@ -314,7 +314,7 @@ struct TruthEvidenceEditor: View {
         } label: {
             HStack(spacing: HV.Space.xxs) {
                 Text(row.wrappedValue.kind.title).font(.system(.footnote, design: .monospaced, weight: .semibold))
-                HVIcon("chevron.up.chevron.down").font(.system(size: 9, weight: .bold))
+                HVIcon("chevron.up.chevron.down").font(.system(.caption2, weight: .semibold)).imageScale(.small)
             }
             .foregroundStyle(Palette.textPrimary)
             .padding(.horizontal, HV.Space.s)
@@ -348,10 +348,6 @@ struct TruthTraceRowView: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 TruthTagFlow {
-                    if node.failing != nil {
-                        Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 12)).foregroundStyle(Palette.amber)
-                            .accessibilityLabel("Fails here")
-                    }
                     Text(node.typeTag)
                         .font(.system(.caption2, design: .monospaced, weight: .bold))
                         .foregroundStyle(Palette.textPrimary)

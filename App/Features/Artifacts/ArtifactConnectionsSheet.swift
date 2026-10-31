@@ -205,7 +205,7 @@ struct ArtifactConnectionsSheet: View {
     }
 
     private func linkedRow(_ item: ArtifactLinkedItem) -> some View {
-        HVRow(symbol: item.kind.symbol, tint: item.kind.tint, title: item.name, subtitle: item.kind.singular) {
+        HVRow(symbol: item.kind.symbol, title: item.name, subtitle: item.kind.singular) {
             if item.isAuto { HVTag(text: "Found for you") }
         }
         .contentShape(Rectangle())
@@ -226,7 +226,7 @@ struct ArtifactConnectionsSheet: View {
                 Button {
                     connect(item)
                 } label: {
-                    HVRow(symbol: item.kind.symbol, tint: item.kind.tint, title: item.name, subtitle: item.kind.singular) {
+                    HVRow(symbol: item.kind.symbol, title: item.name, subtitle: item.kind.singular) {
                         Image(systemName: "plus.circle").foregroundStyle(.tint)
                     }
                 }

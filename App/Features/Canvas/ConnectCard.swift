@@ -98,7 +98,8 @@ struct ConnectCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
             KeysRowLayout {
-                HVIconBadge(symbol: HVSymbol.key, tint: Palette.amber, size: 36)
+                // The key's own tile, as on a key card: this is a Home card, where the kind colour lives.
+                HVIconBadge(symbol: HVSymbol.key, tint: KeptKind.key.tint, size: 36)
             } words: {
                 Text(ConnectCardCopy.title)
                     .font(.hvHeadline)

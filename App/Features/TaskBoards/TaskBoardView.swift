@@ -27,6 +27,12 @@ extension BoardTaskStatus {
     }
 }
 
+extension BoardAssignee {
+    /// The mark for who holds a task: the key for an agent (as an agent's author line draws it in a page's history) and
+    /// the person for a person. Both are outline, and the words beside it, or the label, name who it is.
+    var holderSymbol: String { isAgent ? HVSymbol.agent : HVSymbol.contact }
+}
+
 struct TaskRef: Hashable, Identifiable {
     let id: String
 }
@@ -44,6 +50,8 @@ struct TaskBoardView: View {
 struct TaskBoardScreen: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dynamicTypeSize) private var typeSize
+    /// The add row's plus, in the size of the round mark at the left of a task (`TaskCheck`), so the two line up.
+    @ScaledMetric(relativeTo: .title3) private var addGlyph: CGFloat = TaskCheck.glyphSize
     @State private var model: TaskBoardModel
     @State private var newTitle = ""
     @State private var collapsed: Set<BoardTaskStatus> = [.done, .cancelled]
@@ -261,7 +269,7 @@ struct TaskBoardScreen: View {
     private var addRow: some View {
         HStack(spacing: HV.Space.s) {
             Image(systemName: "plus.circle.fill")
-                .font(.system(size: 22))
+                .font(.system(size: HV.glyphBox(scaled: addGlyph, base: TaskCheck.glyphSize)))
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
             TextField("Add a task", text: $newTitle, prompt: Text.hvPrompt("Add a task"))
@@ -370,11 +378,15 @@ struct TaskBoardScreen: View {
 struct TaskCheck: View {
     let status: BoardTaskStatus
     let action: () -> Void
+    /// One size for the round glyphs of a board: this mark, the add rows' plus and the note's send. It grows with the
+    /// type by no more than a quarter and stops at 44 (`HV.glyphBox`), inside the 44pt target.
+    static let glyphSize: CGFloat = 24
+    @ScaledMetric(relativeTo: .title3) private var glyph: CGFloat = TaskCheck.glyphSize
 
     var body: some View {
         Button(action: action) {
             Image(systemName: status.symbol)
-                .font(.system(size: 24, weight: .regular))
+                .font(.system(size: HV.glyphBox(scaled: glyph, base: Self.glyphSize), weight: .regular))
                 .foregroundStyle(status.tint)
                 .hvBounce(value: status == .done)
                 .frame(width: 44, height: 44)
@@ -409,7 +421,7 @@ struct TaskRowBody: View {
             }
             if let holder = task.holder {
                 HStack(spacing: 4) {
-                    HVIcon(task.assignee.isAgent ? "sparkle" : "person.fill").font(.system(size: 10, weight: .bold))
+                    HVIcon(task.assignee.holderSymbol).font(.system(.caption2, weight: .semibold))
                     Text(holder).lineLimit(1)
                 }
                 .font(.hvCaption)

@@ -94,7 +94,7 @@ struct MemoryAskView: View {
                                 }
                             }
                         } label: {
-                            Label(model.selectedBackend?.name ?? "Model", systemImage: "cpu")
+                            Label(model.selectedBackend?.name ?? "Model", systemImage: HVSymbol.model)
                                 .font(.hvCaption)
                         }
                     }
@@ -278,10 +278,7 @@ private struct MemoryAskTurnView: View {
                                 .multilineTextAlignment(.leading)
                         }
                         Spacer(minLength: 0)
-                        Image(systemName: HVSymbol.open)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Palette.textTertiary)
-                            .accessibilityHidden(true)
+                        MemoryChevron()
                     }
                     .padding(HV.Space.s)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -320,7 +317,7 @@ private struct MemoryAskAnswerActions: View {
                     copied = false
                 }
             }
-            action(keeping ? "hourglass" : "tray.and.arrow.down", label: "Keep this answer", tint: nil) {
+            action(keeping ? "hourglass" : HVSymbol.keep, label: "Keep this answer", tint: nil) {
                 guard !keeping else { return }
                 keeping = true
                 let id = turn.id
@@ -338,12 +335,12 @@ private struct MemoryAskAnswerActions: View {
                 action(turn.feedback == .up ? "hand.thumbsup.fill" : "hand.thumbsup", label: "Good answer", tint: turn.feedback == .up ? Palette.mint : nil, selected: turn.feedback == .up) {
                     rate(.up)
                 }
-                action(turn.feedback == .down ? "hand.thumbsdown.fill" : "hand.thumbsdown", label: "Bad answer", tint: turn.feedback == .down ? Palette.rose : nil, selected: turn.feedback == .down) {
+                action(turn.feedback == .down ? "hand.thumbsdown.fill" : "hand.thumbsdown", label: "Bad answer", tint: turn.feedback == .down ? Palette.danger : nil, selected: turn.feedback == .down) {
                     rate(.down)
                 }
             }
             action(
-                speech.isSpeaking(speechID) ? "stop.circle.fill" : "speaker.wave.2",
+                speech.isSpeaking(speechID) ? "stop.circle.fill" : HVSymbol.speak,
                 label: speech.isSpeaking(speechID) ? "Stop reading" : "Read aloud",
                 tint: speech.isSpeaking(speechID) ? Color.accentColor : nil
             ) {

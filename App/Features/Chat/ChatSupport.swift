@@ -144,16 +144,25 @@ struct ChatFlowLayout: Layout {
 enum ChatAgentTone: CaseIterable, Hashable {
     case coral, mint, blue, violet, amber, cyan, sky, rose
 
+    /// The three tones the palette has no token for. They are a model family's colour and nothing else's: no tile, tag
+    /// or glyph takes a hue for being a destination, so `Palette` no longer carries them. Each is its dark shade and, in
+    /// the light look, the 700 the other accents mirror to.
+    private enum Ramp {
+        static let coral = Color(dark: 0xF97316, light: 0xC2410C)
+        static let cyan = Color(dark: 0x22D3EE, light: 0x0E7490)
+        static let rose = Color(dark: 0xFB7185, light: 0xBE123C)
+    }
+
     var color: Color {
         switch self {
-        case .coral: return Palette.coral
+        case .coral: return Ramp.coral
         case .mint: return Palette.mint
         case .blue: return Palette.blue
-        case .rose: return Palette.rose
+        case .rose: return Ramp.rose
         case .amber: return Palette.amber
         case .violet: return Palette.violet
         case .sky: return Palette.sky
-        case .cyan: return Palette.cyan
+        case .cyan: return Ramp.cyan
         }
     }
 
@@ -263,5 +272,41 @@ final class ChatBackgroundGrace {
         guard identifier != .invalid else { return }
         UIApplication.shared.endBackgroundTask(identifier)
         identifier = .invalid
+    }
+}
+
+// MARK: The tile on a model's row
+
+/// The neutral tile at the head of a model's row on the Models screen and in the options sheet, so a connection looks
+/// the same on both: `HVTile` at the side `HVRow` gives its own (36, growing with the type to 44). A connection to a
+/// provider carries the first letter of the provider's name; where a model runs (this Mac, this iPhone) has a glyph of
+/// its own. The provider's colour is the small dot by its name, never the tile. The tile is decoration and hidden from
+/// VoiceOver; the row's words say which provider it is.
+struct ChatModelTile: View {
+    private enum Mark {
+        case symbol(String)
+        case monogram(String)
+    }
+
+    private let mark: Mark
+    @ScaledMetric(relativeTo: .body) private var scaled: CGFloat = HV.rowTile
+
+    init(symbol: String) { mark = .symbol(symbol) }
+
+    init(monogram: String) { mark = .monogram(monogram) }
+
+    /// The tile of a connection to `provider`: the first letter of its short name ("A" for Anthropic, not the first letter
+    /// of the name the person gave the connection). An empty registry falls back to the built-in list.
+    init(provider: String, registry: [Capabilities.ProviderSpec] = []) {
+        let name = ChatProviders.shortName(for: provider, in: registry)
+        self.init(monogram: name.first.map { String($0).uppercased() } ?? "?")
+    }
+
+    var body: some View {
+        let side = HV.glyphBox(scaled: scaled, base: HV.rowTile)
+        switch mark {
+        case .symbol(let name): HVTile(symbol: name, size: side)
+        case .monogram(let letter): HVTile(monogram: letter, size: side)
+        }
     }
 }

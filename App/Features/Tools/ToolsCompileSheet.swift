@@ -119,7 +119,8 @@ struct ToolsCompileSheet: View {
         VStack(spacing: HV.Space.s) {
             ZStack {
                 Circle().fill(Palette.mint.opacity(HV.Tint.fill)).frame(width: 84, height: 84)
-                Image(systemName: "checkmark").font(.system(size: 34, weight: .semibold)).foregroundStyle(Palette.mint)
+                // Large title is 34pt at the default size, and it follows the type; the disc is already past 44, so it stays.
+                Image(systemName: "checkmark").font(.system(.largeTitle, weight: .semibold)).foregroundStyle(Palette.mint)
             }
             .padding(.top, HV.Space.l)
             .accessibilityHidden(true)

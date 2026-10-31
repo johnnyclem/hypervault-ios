@@ -48,7 +48,7 @@ struct ConfettiBurst: View {
         .accessibilityHidden(true)
         .onAppear {
             start = Date()
-            let palette: [Color] = [Palette.violet, Palette.blue, Palette.cyan, Palette.mint, Palette.amber, Palette.rose]
+            let palette: [Color] = [Palette.violet, Palette.blue, Palette.mint, Palette.amber]
             pieces = (0..<70).map { index in
                 Piece(
                     id: index,

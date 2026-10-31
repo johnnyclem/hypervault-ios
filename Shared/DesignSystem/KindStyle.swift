@@ -3,8 +3,9 @@ import SwiftUI
 
 /// How each of the five nouns looks wherever it appears: a card, a row, a chip, a node on a graph.
 ///
-/// `tint` is the one place a noun is given a colour. The cards and rows read it, and so do the Library graph and the
-/// Memory map's page diamond, so a page is blue in all of them. Chat's colours say who spoke (`ChatAgentTone`) and are
+/// `tint` is the one place a noun is given a colour. The Home card and the graphs read it (the Library graph and the
+/// Memory map's page diamond), so a page is blue in all of them; every list draws the neutral tile (`HVTile`) and not a
+/// colour for the noun. Chat's colours say who spoke (`ChatAgentTone`) and are
 /// not these. The Memory map colours a memory by where it came from, in its own four hues (`MemoryStyle.graphTint`), so a
 /// memory is not always violet there.
 ///

@@ -91,13 +91,13 @@ private struct DigestContent: View {
 
     private var settings: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            // The sentence has the card's whole width: between the badge and the switch it was left about half of it
-            // and ran to six lines. The title shares the badge's row while it fits; at an accessibility size the title
-            // would get a narrow column ("Auto-/digest"), so the switch goes up beside the badge and the title goes
+            // The sentence has the card's whole width: between the tile and the switch it was left about half of it
+            // and ran to six lines. The title shares the tile's row while it fits; at an accessibility size the title
+            // would get a narrow column ("Auto-/digest"), so the switch goes up beside the tile and the title goes
             // below it.
             if dynamicTypeSize.isAccessibilitySize {
                 HStack(spacing: HV.Space.s) {
-                    HVIconBadge(symbol: "scissors", tint: Palette.cyan, size: 36)
+                    HVTile(symbol: "scissors", size: 36)
                     Spacer(minLength: HV.Space.xs)
                     digestSwitch
                 }
@@ -107,7 +107,7 @@ private struct DigestContent: View {
                 }
             } else {
                 HStack(spacing: HV.Space.s) {
-                    HVIconBadge(symbol: "scissors", tint: Palette.cyan, size: 36)
+                    HVTile(symbol: "scissors", size: 36)
                     settingsTitle
                     Spacer(minLength: HV.Space.xs)
                     digestSwitch
@@ -124,7 +124,7 @@ private struct DigestContent: View {
     private var emptyState: some View {
         Group {
             if model.appliedThisSitting > 0 {
-                HVEmptyState(symbol: "sparkles", title: "All reviewed", message: "Your memory is a little tidier.")
+                HVEmptyState(symbol: "checkmark.seal", title: "All reviewed", message: "Your memory is a little tidier.")
             } else {
                 HVEmptyState(
                     symbol: "scissors",

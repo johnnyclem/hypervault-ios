@@ -124,7 +124,7 @@ struct MindTimeTravelView: View {
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: HV.Space.xs)
-                if !exists { HVTag(text: "Forgotten since", tint: Palette.rose) }
+                if !exists { HVTag(text: "Forgotten since", tint: Palette.danger) }
             }
             if !memory.summary.isEmpty {
                 Text(memory.summary)

@@ -29,13 +29,14 @@ public enum AccountPane: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// The SF Symbol for the pane (handoff 2.7).
+    /// The SF Symbol for the pane (handoff 2.7). Models is the chip, as Chat draws a model, and not the web's sparkles:
+    /// the app has no sparkle for AI anywhere.
     public var symbol: String {
         switch self {
         case .general: return "gearshape"
         case .vault: return "lock"
         case .keys: return "key"
-        case .backends: return "sparkles"
+        case .backends: return "cpu"
         case .domain: return "globe"
         case .appearance: return "paintpalette"
         case .import: return "square.and.arrow.down"

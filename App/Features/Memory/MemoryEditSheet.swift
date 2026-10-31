@@ -152,7 +152,8 @@ struct MemoryTagEditor: View {
                             HStack(spacing: 4) {
                                 Text(tag)
                                 Image(systemName: HVSymbol.close)
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(.system(.caption2, weight: .semibold))
+                                    .imageScale(.small)
                             }
                             .font(.system(.footnote, weight: .medium))
                             .foregroundStyle(Palette.textPrimary)

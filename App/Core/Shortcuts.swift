@@ -89,7 +89,8 @@ struct HyperVaultShortcuts: AppShortcutsProvider {
             intent: OpenCanvasIntent(),
             phrases: ["Open \(.applicationName)"],
             shortTitle: "Open Home",
-            systemImageName: "sparkles"
+            // The Home tab's glyph (`HVSymbol.home`), as a literal: the App Intents metadata is read from the source.
+            systemImageName: "house"
         )
     }
 }

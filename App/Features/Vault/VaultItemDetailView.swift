@@ -68,7 +68,7 @@ struct VaultItemDetailView: View {
                 LabeledContent(VaultCopy.createdLabel) { Text(secret.createdAt?.keysDay ?? "Unknown").hvSectionNote() }
                 LabeledContent("Last used") { Text(VaultCopy.sheetLastUsedLine(secret.lastAccessedAt)).hvSectionNote() }
             } footer: {
-                Label(VaultCopy.valueNeverShownLine, systemImage: "lock.fill").hvRowLabel()
+                Label(VaultCopy.valueNeverShownLine, systemImage: HVSymbol.vault).hvRowLabel()
                     .font(.hvFootnote)
                     .hvSectionNote()
             }

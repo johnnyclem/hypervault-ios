@@ -187,7 +187,7 @@ private struct MemoryDetailContent: View {
             HVSectionHeader(title: "Linked memories", detail: "\(memories.count)")
             MemoryRowStack(items: memories) { memory in
                 NavigationLink(value: Route.memory(id: memory.id)) {
-                    HVRow(symbol: KeptKind.memory.symbol, tint: KeptKind.memory.tint, title: memory.title, subtitle: memory.summary) {
+                    HVRow(symbol: KeptKind.memory.symbol, title: memory.title, subtitle: memory.summary) {
                         MemoryChevron()
                     }
                     .padding(.vertical, HV.Space.xs)
@@ -204,7 +204,7 @@ private struct MemoryDetailContent: View {
             HVSectionHeader(title: "Linked pages", detail: "\(pages.count)")
             MemoryRowStack(items: pages) { artifact in
                 NavigationLink(value: Route.artifact(slug: artifact.slug)) {
-                    HVRow(symbol: KeptKind.page.symbol, tint: KeptKind.page.tint, title: artifact.title, subtitle: artifact.type) {
+                    HVRow(symbol: KeptKind.page.symbol, title: artifact.title, subtitle: artifact.type) {
                         MemoryChevron()
                     }
                     .padding(.vertical, HV.Space.xs)
@@ -224,7 +224,7 @@ private struct MemoryDetailContent: View {
                 }
             } label: {
                 HVRow(
-                    symbol: "clock.arrow.circlepath", tint: Palette.violet, title: "History",
+                    symbol: "clock.arrow.circlepath", title: "History",
                     subtitle: page.revisionCount > 0 ? "\(page.revisionCount) \(page.revisionCount == 1 ? "revision" : "revisions")" : "Every change is a commit"
                 ) {
                     MemoryChevron()
@@ -239,7 +239,7 @@ private struct MemoryDetailContent: View {
                 Button {
                     showConnect = true
                 } label: {
-                    HVRow(symbol: "link", tint: Palette.blue, title: "Link to\u{2026}", subtitle: "Join it to another memory or a page") {
+                    HVRow(symbol: "link", title: "Link to\u{2026}", subtitle: "Join it to another memory or a page") {
                         MemoryChevron()
                     }
                     .padding(.vertical, HV.Space.xs)
@@ -252,7 +252,7 @@ private struct MemoryDetailContent: View {
             Button {
                 digest()
             } label: {
-                HVRow(symbol: "scissors", tint: Palette.cyan, title: "Digest this", subtitle: "Split it into smaller memories, for you to review") {
+                HVRow(symbol: "scissors", title: "Digest this", subtitle: "Split it into smaller memories, for you to review") {
                     if model.isWorking { ProgressView() }
                 }
                 .padding(.vertical, HV.Space.xs)

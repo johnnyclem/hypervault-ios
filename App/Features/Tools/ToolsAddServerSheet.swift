@@ -194,6 +194,7 @@ struct ToolsAddServerSheet: View {
     @State private var running: Task<Void, Never>?
     @State private var started = false
     @FocusState private var focus: Field?
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = HV.rowTile
     let model: ToolsModel
 
     private enum Field { case url, name }
@@ -338,7 +339,7 @@ struct ToolsAddServerSheet: View {
                     Button {
                         flow.addHeader()
                     } label: {
-                        Label("Add a header", systemImage: "plus.circle")
+                        Label("Add a header", systemImage: HVSymbol.add)
                     }
                     .buttonStyle(.hvGhost)
                     if flow.hasHeaders {
@@ -391,7 +392,8 @@ struct ToolsAddServerSheet: View {
     private func previewContent(_ preview: McpPreview) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
             HStack(spacing: HV.Space.s) {
-                HVIconBadge(symbol: "server.rack", tint: Palette.blue, size: 44)
+                // The tile a server has in the list it is about to join, at the same size.
+                HVTile(symbol: "server.rack", size: HV.glyphBox(scaled: tile, base: HV.rowTile))
                 VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(preview.name).font(.hvTitle3)
                     HVAddressText(URL(string: preview.url)?.host ?? preview.url)

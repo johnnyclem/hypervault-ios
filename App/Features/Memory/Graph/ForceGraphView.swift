@@ -291,7 +291,8 @@ struct ForceGraphView: View {
     private func controlButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(.callout, weight: .semibold))
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .foregroundStyle(Palette.textPrimary)
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
@@ -308,7 +309,8 @@ struct ForceGraphView: View {
             driftTapped()
         } label: {
             Image(systemName: look.symbol)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(.callout, weight: .semibold))
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .foregroundStyle(look.isPressedIn ? Palette.background : Palette.textPrimary)
                 .frame(width: 44, height: 44)
                 .background {

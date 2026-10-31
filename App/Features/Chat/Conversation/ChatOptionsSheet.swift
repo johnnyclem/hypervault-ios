@@ -43,7 +43,7 @@ struct ChatOptionsSheet: View {
         Section(header: HVSectionHeader(title: "Answers from")) {
             ForEach(model.backends) { backend in
                 choiceRow(
-                    title: backend.name, subtitle: backend.modelLine, symbol: "cpu",
+                    title: backend.name, subtitle: backend.modelLine, tile: ChatModelTile(provider: backend.provider),
                     selected: model.choice == .server(backend.id), enabled: true
                 ) {
                     model.select(.server(backend.id))
@@ -51,7 +51,7 @@ struct ChatOptionsSheet: View {
             }
             ForEach(model.localModels) { local in
                 choiceRow(
-                    title: local.displayName, subtitle: "On your network \u{00B7} \(local.model)", symbol: "desktopcomputer",
+                    title: local.displayName, subtitle: "On your network \u{00B7} \(local.model)", tile: ChatModelTile(symbol: "desktopcomputer"),
                     selected: model.choice == .local(local.id), enabled: true
                 ) {
                     model.select(.local(local.id))
@@ -61,13 +61,13 @@ struct ChatOptionsSheet: View {
                 choiceRow(
                     title: ChatOnDeviceModels.title,
                     subtitle: model.onDeviceUsable ? ChatOnDeviceModels.subtitle : model.onDeviceStatus.explanation,
-                    symbol: "iphone", selected: model.choice == .onDevice, enabled: model.onDeviceUsable
+                    tile: ChatModelTile(symbol: "iphone"), selected: model.choice == .onDevice, enabled: model.onDeviceUsable
                 ) {
                     model.select(.onDevice)
                 }
             }
             NavigationLink(value: ChatDestination.models) {
-                Label(model.backends.isEmpty ? "Connect a model" : "Connect or edit models", systemImage: "plus.circle").hvRowLabel()
+                Label(model.backends.isEmpty ? "Connect a model" : "Connect or edit models", systemImage: HVSymbol.add).hvRowLabel()
                     .frame(minHeight: 44, alignment: .leading)
             }
         }
@@ -75,12 +75,13 @@ struct ChatOptionsSheet: View {
     }
 
     /// A model to answer with. One that is not available is not a button: it keeps the reason in plain
-    /// sight, and only its badge is dimmed.
+    /// sight, and only its tile is dimmed.
     @ViewBuilder
-    private func choiceRow(title: String, subtitle: String, symbol: String, selected: Bool, enabled: Bool, action: @escaping () -> Void) -> some View {
+    private func choiceRow(title: String, subtitle: String, tile: ChatModelTile, selected: Bool, enabled: Bool, action: @escaping () -> Void) -> some View {
         let label = HStack(spacing: HV.Space.s) {
-            // One mark on the chosen row: the check at the end. The badge is the same grey either way.
-            HVIconBadge(symbol: symbol, tint: Palette.textSecondary, size: 32)
+            // One mark on the chosen row: the check at the end. The tile is the same neutral one either way, and the one
+            // the Models screen draws for this connection.
+            tile
                 .opacity(enabled ? 1 : 0.5)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(title).font(.hvBody).foregroundStyle(enabled ? Palette.textPrimary : Palette.textSecondary).lineLimit(2)

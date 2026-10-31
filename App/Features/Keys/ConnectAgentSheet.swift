@@ -113,7 +113,7 @@ private struct ConnectPickerScreen: View {
             if model.fresh == nil, model.existingKey == nil, model.query.isEmpty {
                 Section {
                     NavigationLink(value: ConnectRoute.justAKey) {
-                        HVRow(symbol: HVSymbol.key, tint: Palette.amber, title: "Just make a key", subtitle: "For anything not listed. You choose where it goes.")
+                        HVRow(symbol: HVSymbol.key, title: "Just make a key", subtitle: "For anything not listed. You choose where it goes.")
                     }
                 }
                 .hvListRow()
@@ -168,13 +168,14 @@ private struct ClientRow: View {
     let info: AgentClientInfo
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
 
     private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
+        // No mark: the section header names the group, and a tile repeated on every row of it said nothing more while it
+        // took the width a name like "Claude mobile (iPhone, Android)" needs.
         KeysRowLayout {
-            HVIconBadge(symbol: info.group.symbol, tint: tint, size: min(tile, 56))
+            EmptyView()
         } words: {
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(info.name)
@@ -194,14 +195,6 @@ private struct ClientRow: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(info.verified ? info.name : "\(info.name), untested")
-    }
-
-    private var tint: Color {
-        switch info.group {
-        case .chatApps: return Palette.violet
-        case .codingAgents: return Palette.blue
-        case .automation: return Palette.mint
-        }
     }
 }
 

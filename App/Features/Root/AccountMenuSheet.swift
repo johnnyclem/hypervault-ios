@@ -18,28 +18,28 @@ struct AccountMenuSheet: View {
         NavigationStack {
             List {
                 Section {
-                    row("library", AccountMenu.library, symbol: "folder", tint: Palette.blue, to: .route(.library))
-                    row("mail", AccountMenu.mail, symbol: "tray.full", tint: Palette.sky, to: .route(.mail), badge: unread)
-                    row("taskBoards", AccountMenu.taskBoards, symbol: "checklist", tint: Palette.mint, to: .route(.taskBoards))
-                    row("accountAndKeys", AccountMenu.accountAndKeys, symbol: HVSymbol.agentKeys, tint: Palette.amber, to: .account(nil))
-                    row("groupChats", AccountMenu.groupChats, symbol: "person.2", tint: Palette.violet, to: .groupChats)
-                    row("tools", AccountMenu.tools, symbol: "wrench.and.screwdriver", tint: Palette.coral, to: .route(.tools))
-                    row("import", AccountMenu.importAnything, symbol: HVSymbol.importData, tint: Palette.coral, to: .account(.import))
+                    row("library", AccountMenu.library, symbol: "folder", to: .route(.library))
+                    row("mail", AccountMenu.mail, symbol: "envelope", to: .route(.mail), badge: unread)
+                    row("taskBoards", AccountMenu.taskBoards, symbol: "checklist", to: .route(.taskBoards))
+                    row("accountAndKeys", AccountMenu.accountAndKeys, symbol: HVSymbol.agentKeys, to: .account(nil))
+                    row("groupChats", AccountMenu.groupChats, symbol: "person.2", to: .groupChats)
+                    row("tools", AccountMenu.tools, symbol: "wrench.and.screwdriver", to: .route(.tools))
+                    row("import", AccountMenu.importAnything, symbol: HVSymbol.importData, to: .account(.import))
                 }
                 .hvListRow()
 
                 Section(header: HVSectionHeader(title: AccountMenu.beta)) {
                     row(
-                        "dreams", AccountMenu.dreams, symbol: "moon.stars", tint: Palette.violet, to: .route(.dreams),
+                        "dreams", AccountMenu.dreams, symbol: "moon.stars", to: .route(.dreams),
                         badge: dreamsWaiting, badgeLabel: AccountMenu.pendingBadgeLabel
                     )
-                    row("truth", AccountMenu.truth, symbol: "checkmark.seal", tint: Palette.mint, to: .route(.truth))
+                    row("truth", AccountMenu.truth, symbol: "checkmark.seal", to: .route(.truth))
                 }
                 .hvListRow()
 
                 if env.isAdmin {
                     Section {
-                        row("admin", AccountMenu.admin, symbol: "person.badge.shield.checkmark", tint: Palette.rose, to: .route(.admin))
+                        row("admin", AccountMenu.admin, symbol: "person.badge.shield.checkmark", to: .route(.admin))
                     }
                     .hvListRow()
                 }
@@ -72,14 +72,14 @@ struct AccountMenuSheet: View {
     }
 
     private func row(
-        _ id: String, _ title: String, symbol: String, tint: Color, to link: DeepLink, badge: Int = 0,
+        _ id: String, _ title: String, symbol: String, to link: DeepLink, badge: Int = 0,
         badgeLabel: @escaping (Int) -> String = AccountMenu.mailBadgeLabel
     ) -> some View {
         Button {
             app.router.sheet = nil
             app.router.open(link)
         } label: {
-            HVRow(symbol: symbol, tint: tint, title: title) {
+            HVRow(symbol: symbol, title: title) {
                 if badge > 0 {
                     Text(AccountMenu.badgeText(badge))
                         .font(.hvCaption.weight(.semibold))

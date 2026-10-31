@@ -176,7 +176,7 @@ struct LibraryScreen: View {
         // Mail is its own place, not a fifth way to filter what is kept.
         ToolbarItem(placement: .primaryAction) {
             NavigationLink(value: Route.mail) {
-                Image(systemName: "tray.full")
+                Image(systemName: "envelope")
             }
             .accessibilityLabel("Mail")
         }

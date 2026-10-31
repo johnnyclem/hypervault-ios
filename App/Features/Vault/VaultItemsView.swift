@@ -135,7 +135,7 @@ struct VaultItemsView: View {
             if let limit = VaultLimits.entryLimitProblem(count: model.secrets.count) {
                 Text(limit).foregroundStyle(Palette.danger)
             }
-            Label(HVCopy.landingVaultLockLine, systemImage: "lock.fill").hvRowLabel()
+            Label(HVCopy.landingVaultLockLine, systemImage: HVSymbol.vault).hvRowLabel()
         }
         .font(.hvFootnote)
         .foregroundStyle(Palette.textSecondary)

@@ -12,6 +12,7 @@ struct ArtifactRealmHomeSheet: View {
     @State private var changing: String?
     @State private var warning: String?
     @State private var error: String?
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = HV.rowTile
 
     var body: some View {
         NavigationStack {
@@ -50,7 +51,7 @@ struct ArtifactRealmHomeSheet: View {
     private func row(_ realm: ArtifactRealm) -> some View {
         let isHome = realm.defaultArtifactSlug == detail.slug
         return HStack(spacing: HV.Space.s) {
-            HVIconBadge(symbol: HVSymbol.domain, tint: Palette.blue, size: 32)
+            HVTile(symbol: HVSymbol.domain, size: HV.glyphBox(scaled: tile, base: HV.rowTile))
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 HVAddressText(realm.host).font(.hvBody).foregroundStyle(Palette.textPrimary)
                 Text(isHome ? "Opens on this page" : (realm.defaultArtifactSlug == nil ? "Opens on your list of public pages" : "Opens on another page"))

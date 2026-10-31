@@ -130,7 +130,7 @@ struct MindMergeView: View {
                     Button("Keep the version on \(model.target)") { model.resolveRemaining(.ours) }
                     Button("Take the version from \(model.source)") { model.resolveRemaining(.theirs) }
                 } label: {
-                    Label("Settle the rest in one go", systemImage: "wand.and.stars")
+                    Label("Settle the rest in one go", systemImage: "checklist")
                         .font(.hvSubheadline.weight(.semibold))
                 }
                 .disabled(session.unresolved.isEmpty)

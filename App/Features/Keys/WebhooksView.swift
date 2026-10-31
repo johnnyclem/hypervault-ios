@@ -151,7 +151,7 @@ private struct WebhookRow: View {
 
     var body: some View {
         KeysRowLayout {
-            HVIconBadge(symbol: "dot.radiowaves.left.and.right", tint: tint, size: min(tile, 56))
+            mark
         } words: {
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 HVAddressText(hook.title).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(isLarge ? nil : 1)
@@ -171,7 +171,16 @@ private struct WebhookRow: View {
         return nil
     }
 
-    private var tint: Color { !hook.enabled ? Palette.textSecondary : (hook.isFailing ? Palette.warning : Palette.coral) }
+    /// The neutral tile the Vault draws, at the side HVRow's tile has. Its glyph is warning-coloured only while the hook is
+    /// failing, and the Failing tag says the same in words; a healthy hook and one that is off are the same grey.
+    private var mark: some View {
+        let side = HV.glyphBox(scaled: tile, base: HV.rowTile)
+        return HVTile(size: side) {
+            Text(Image(systemName: "dot.radiowaves.left.and.right"))
+                .font(.system(size: side * 0.44))
+                .foregroundStyle(hook.enabled && hook.isFailing ? Palette.warning : HVColor.mutedForeground)
+        }
+    }
 
     private var summary: String {
         hook.events.contains("truth.*") ? "Everything" : hook.events.map(WebhookRules.eventTitle).joined(separator: ", ")

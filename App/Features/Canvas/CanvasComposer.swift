@@ -51,9 +51,9 @@ struct CanvasComposer: View {
                 if let onScan { Button("Scan a page", systemImage: "doc.viewfinder", action: onScan) }
             } label: {
                 Image(systemName: HVSymbol.add)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(.body, weight: .semibold))
                     .foregroundStyle(Palette.textSecondary)
-                    .frame(width: 44, height: 44)
+                    .frame(minWidth: 44, minHeight: 44)
             }
             .accessibilityLabel("More")
             .accessibilityIdentifier("canvas.more")
@@ -96,9 +96,9 @@ struct CanvasComposer: View {
                 Task { await model.send() }
             } label: {
                 Image(systemName: "arrow.up")
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.system(.body, weight: .semibold))
                     .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
+                    .frame(minWidth: 44, minHeight: 44)
                     .background(Palette.action, in: Circle())
             }
             .accessibilityLabel("Send")
@@ -114,10 +114,10 @@ struct CanvasComposer: View {
     private func micButton(_ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: isDictating ? "waveform" : "mic")
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(.body, weight: .semibold))
                 .foregroundStyle(isDictating ? Color.accentColor : Palette.textSecondary)
                 .symbolEffect(.variableColor.iterative, isActive: isDictating && !reduceMotion)
-                .frame(width: 44, height: 44)
+                .frame(minWidth: 44, minHeight: 44)
         }
         .accessibilityLabel(isDictating ? "Stop dictating" : "Dictate")
     }
@@ -183,7 +183,7 @@ private struct NoticeLine: View {
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
-                .font(.system(size: 11, weight: .bold))
+                .font(.system(.caption, weight: .semibold))
                 .accessibilityLabel("Dismiss")
         }
         .foregroundStyle(notice.kind == .error ? Palette.danger : Palette.textSecondary)

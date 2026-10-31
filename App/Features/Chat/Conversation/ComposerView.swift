@@ -49,7 +49,7 @@ struct ChatComposerView: View {
             HStack(spacing: HV.Space.xs) {
                 Button(action: onOptions) {
                     HStack(spacing: 6) {
-                        HVIcon(model.isOnDevice ? "iphone" : (model.runsLocally ? "desktopcomputer" : "cpu")).font(.hvFootnote.weight(.semibold))
+                        HVIcon(model.isOnDevice ? "iphone" : (model.runsLocally ? "desktopcomputer" : HVSymbol.model)).font(.hvFootnote.weight(.semibold))
                         Text(model.modelName).lineLimit(1)
                         HVIcon("chevron.up.chevron.down").font(.hvCaption.weight(.bold)).imageScale(.small)
                     }

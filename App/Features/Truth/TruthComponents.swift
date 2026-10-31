@@ -348,10 +348,6 @@ struct TruthTraceRowView: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 TruthTagFlow {
-                    if node.failing != nil {
-                        Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 12)).foregroundStyle(Palette.amber)
-                            .accessibilityLabel("Fails here")
-                    }
                     Text(node.typeTag)
                         .font(.system(.caption2, design: .monospaced, weight: .bold))
                         .foregroundStyle(Palette.textPrimary)

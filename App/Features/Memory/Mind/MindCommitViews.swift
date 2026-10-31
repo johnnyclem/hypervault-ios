@@ -56,7 +56,7 @@ struct MindCommitRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
-            HVIconBadge(symbol: commit.kind.symbol, tint: commit.kind.tint, size: 36)
+            HVTile(symbol: commit.kind.symbol, size: 36)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(commit.message.isEmpty ? "(no message)" : commit.message)
                     .font(.hvBody)
@@ -133,7 +133,7 @@ struct MindCommitDetailView: View {
         let commit = model.commit
         return VStack(alignment: .leading, spacing: HV.Space.xs) {
             HStack(spacing: HV.Space.s) {
-                HVIconBadge(symbol: commit.kind.symbol, tint: commit.kind.tint, size: 40)
+                HVTile(symbol: commit.kind.symbol, size: 40)
                 Text(commit.message.isEmpty ? "(no message)" : commit.message)
                     .font(.hvTitle3)
                     .foregroundStyle(Palette.textPrimary)
@@ -160,7 +160,7 @@ struct MindCommitDetailView: View {
                 .font(.hvCallout)
                 .foregroundStyle(Palette.textSecondary)
             ForEach(state.memories) { memory in
-                HVRow(symbol: KeptKind.memory.symbol, tint: KeptKind.memory.tint, title: memory.title, subtitle: memory.summary)
+                HVRow(symbol: KeptKind.memory.symbol, title: memory.title, subtitle: memory.summary)
                     .padding(.vertical, 4)
             }
         }

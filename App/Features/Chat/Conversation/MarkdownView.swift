@@ -142,7 +142,8 @@ private struct ChatListItemView: View {
         HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
             if let checked = item.checked {
                 Image(systemName: checked ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 14))
+                    // The text style of the item's words, so the glyph grows with them.
+                    .font(font)
                     .foregroundStyle(checked ? Palette.mint : Palette.textTertiary)
                     .accessibilityLabel(checked ? "Done" : "Not done")
             } else {

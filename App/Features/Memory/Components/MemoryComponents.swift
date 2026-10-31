@@ -42,7 +42,7 @@ enum MemoryStyle {
         case "manual": return "square.and.pencil"
         case "chat": return HVSymbol.chat
         case "coding": return "chevron.left.forwardslash.chevron.right"
-        case "agent": return "sparkles"
+        case "agent": return "key.horizontal"
         case "file": return "doc.text"
         case "github": return "shippingbox"
         case "web": return "globe"
@@ -78,9 +78,6 @@ extension MindCommitKind {
         case .other: return "circle.dashed"
         }
     }
-
-    /// One grey for every kind: the glyph above already names it, and seven hues for seven kinds said nothing more.
-    var tint: Color { Palette.textSecondary }
 }
 
 extension MindAuthorKind {

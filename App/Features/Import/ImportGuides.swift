@@ -4,9 +4,9 @@ import SwiftUI
 /// How to get an export out of each service, in plain steps. The menu names
 /// are the web page's own (app/vault/import/page.tsx); the extra words say
 /// where the file ends up on a phone.
+///
+/// No glyph and no hue per service: its name and its caption on the choice card say which it is.
 struct ImportGuide {
-    let symbol: String
-    let tint: Color
     let headline: String
     let steps: [String]
     let footnote: String?
@@ -15,7 +15,6 @@ struct ImportGuide {
         switch platform {
         case .chatgpt:
             return ImportGuide(
-                symbol: "bubble.left.and.bubble.right.fill", tint: Palette.mint,
                 headline: "Get your ChatGPT export",
                 steps: [
                     "In ChatGPT, open Settings.",
@@ -28,7 +27,6 @@ struct ImportGuide {
             )
         case .claude:
             return ImportGuide(
-                symbol: "sparkle", tint: Palette.coral,
                 headline: "Get your Claude export",
                 steps: [
                     "In Claude, open Settings, then Privacy.",
@@ -41,7 +39,6 @@ struct ImportGuide {
             )
         case .gemini:
             return ImportGuide(
-                symbol: "sparkles", tint: Palette.blue,
                 headline: "Get your Gemini history",
                 steps: [
                     "On this phone, open takeout.google.com in Safari and sign in.",
@@ -54,7 +51,6 @@ struct ImportGuide {
             )
         case .grok:
             return ImportGuide(
-                symbol: "bolt.fill", tint: Palette.violet,
                 headline: "Get your Grok history",
                 steps: [
                     "On x.com in Safari, open Settings.",
@@ -66,7 +62,6 @@ struct ImportGuide {
             )
         case .other:
             return ImportGuide(
-                symbol: "doc.on.clipboard", tint: Palette.amber,
                 headline: "Paste a conversation",
                 steps: [
                     "Open the chat in the app and copy the conversation.",

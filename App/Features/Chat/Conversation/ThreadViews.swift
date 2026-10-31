@@ -201,7 +201,7 @@ struct ChatReplyActions: View {
                     copied = false
                 }
             }
-            action(keeping ? "hourglass" : "tray.and.arrow.down", label: "Keep this reply", tint: nil) {
+            action(keeping ? "hourglass" : HVSymbol.keep, label: "Keep this reply", tint: nil) {
                 guard !keeping else { return }
                 keeping = true
                 Task {
@@ -214,19 +214,19 @@ struct ChatReplyActions: View {
                     }
                 }
             }
-            action(savingMemory ? "hourglass" : HVSymbol.memory, label: "Save as memory", tint: nil) {
+            action(savingMemory ? "hourglass" : HVSymbol.saveMemory, label: "Save as memory", tint: nil) {
                 saveAsMemory()
             }
             if row.serverID != nil {
                 action(row.feedback == .up ? "hand.thumbsup.fill" : "hand.thumbsup", label: "Good reply", tint: row.feedback == .up ? Palette.mint : nil, selected: row.feedback == .up) {
                     rate(.up)
                 }
-                action(row.feedback == .down ? "hand.thumbsdown.fill" : "hand.thumbsdown", label: "Bad reply", tint: row.feedback == .down ? Palette.rose : nil, selected: row.feedback == .down) {
+                action(row.feedback == .down ? "hand.thumbsdown.fill" : "hand.thumbsdown", label: "Bad reply", tint: row.feedback == .down ? Palette.danger : nil, selected: row.feedback == .down) {
                     rate(.down)
                 }
             }
             action(
-                speech.isSpeaking(row.id) ? "stop.circle.fill" : "speaker.wave.2",
+                speech.isSpeaking(row.id) ? "stop.circle.fill" : HVSymbol.speak,
                 label: speech.isSpeaking(row.id) ? "Stop reading" : "Read aloud",
                 tint: speech.isSpeaking(row.id) ? Color.accentColor : nil
             ) {

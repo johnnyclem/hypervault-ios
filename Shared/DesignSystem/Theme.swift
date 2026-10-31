@@ -52,6 +52,14 @@ enum HV {
     /// the text column that a row's separator starts at is this plus the gap (`Space.s`).
     static let rowTile: CGFloat = 36
 
+    /// The side of a box that holds a glyph, at the current text size. `scaled` is `base` run through
+    /// `@ScaledMetric(relativeTo: .body)`. The box grows with the type but by no more than a quarter, and it stops at 44,
+    /// as the Library's marks do, so a row's tile follows its words without taking the line from them. A box that is
+    /// already 44 or more keeps its size.
+    static func glyphBox(scaled: CGFloat, base: CGFloat) -> CGFloat {
+        min(scaled, max(base, min(base * 1.25, 44)))
+    }
+
     /// How much of a colour a fill or an edge made from it shows: one step each, for a tag, a notice, a disc and a
     /// badge alike, in both looks. `fill` is the web's status chip (`bg-emerald-400/10`) and `border` its edge
     /// (`border-emerald-400/40`). The text on a fill is the colour itself, which holds 4.5:1 over its own `fill` on the

@@ -179,7 +179,6 @@ struct TruthScreen: View {
     /// shared row stops at two lines, and "1 nominated by ag..." loses what it was there to say.
     private func docketRow(_ overview: TruthOverview) -> some View {
         HStack(spacing: HV.Space.s) {
-            HVIconBadge(symbol: "checklist", tint: Palette.blue, size: 36)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(overview.review?.due == true ? "A review is due" : "Review docket")
                     .font(.hvBody)

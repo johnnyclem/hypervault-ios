@@ -31,6 +31,7 @@ struct CanvasCardView: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
+            // The kind's own colour lives here, on the Home card; every list draws the neutral tile.
             HVIconBadge(symbol: card.kind.symbol, tint: card.kind.tint, size: 36)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(card.title)

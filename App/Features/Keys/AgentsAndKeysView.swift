@@ -94,7 +94,7 @@ struct AgentsAndKeysView: View {
 
             Section(header: HVSectionHeader(title: "Advanced")) {
                 NavigationLink(value: KeysDestination.webhooks) {
-                    HVRow(symbol: "dot.radiowaves.left.and.right", tint: Palette.coral, title: "Webhooks", subtitle: "Be told when a truth is challenged")
+                    HVRow(symbol: "dot.radiowaves.left.and.right", title: "Webhooks", subtitle: "Be told when a truth is challenged")
                 }
             }
             .hvListRow()
@@ -174,11 +174,8 @@ struct KeyRow: View {
 
     var body: some View {
         KeysRowLayout(alignment: .top) {
-            HVIconBadge(
-                symbol: key.isPaired ? "link" : HVSymbol.key,
-                tint: Palette.amber,
-                size: min(tile, 56)
-            )
+            // The neutral tile the Vault draws, at the side HVRow's tile has: it follows the type, to 44 at most.
+            HVTile(symbol: key.isPaired ? "link" : HVSymbol.key, size: HV.glyphBox(scaled: tile, base: HV.rowTile))
         } words: {
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(key.displayName ?? "Untitled key")

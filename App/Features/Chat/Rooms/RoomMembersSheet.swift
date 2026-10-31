@@ -98,7 +98,7 @@ struct ChatRoomMembersSheet: View {
         if !adding {
             Section {
                 Button { startAdding() } label: {
-                    Label("Add a member", systemImage: "plus.circle").hvRowLabel().frame(minHeight: 44, alignment: .leading)
+                    Label("Add a member", systemImage: HVSymbol.add).hvRowLabel().frame(minHeight: 44, alignment: .leading)
                 }
                 .disabled(backends.backends.isEmpty)
             } footer: {

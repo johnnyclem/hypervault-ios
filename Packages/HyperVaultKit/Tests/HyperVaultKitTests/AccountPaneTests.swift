@@ -28,7 +28,7 @@ final class AccountPaneTests: XCTestCase {
     func testSymbolsAreThoseOfHandoffSection2_7() {
         XCTAssertEqual(
             AccountPane.allCases.map(\.symbol),
-            ["gearshape", "lock", "key", "sparkles", "globe", "paintpalette", "square.and.arrow.down"]
+            ["gearshape", "lock", "key", "cpu", "globe", "paintpalette", "square.and.arrow.down"]
         )
     }
 

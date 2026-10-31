@@ -308,7 +308,7 @@ struct TruthSignersScreen: View {
             case .loaded(let signers):
                 Section {
                     if let handle = signers.handle {
-                        Label(handle, systemImage: "person.fill").font(.hvBody).hvListRow()
+                        Label(handle, systemImage: HVSymbol.contact).font(.hvBody).hvRowLabel().hvListRow()
                     } else {
                         TruthHandleForm { try await save($0) }
                             .listRowInsets(EdgeInsets())
@@ -327,7 +327,7 @@ struct TruthSignersScreen: View {
                         Text("No agent keys yet.").foregroundStyle(Palette.textSecondary).hvListRow()
                     }
                     ForEach(signers.agents) { signer in
-                        Label(signer.id, systemImage: "sparkle").hvListRow()
+                        Label(signer.id, systemImage: HVSymbol.agentKeys).hvRowLabel().hvListRow()
                     }
                 } header: {
                     HVSectionHeader(title: "Your agents")

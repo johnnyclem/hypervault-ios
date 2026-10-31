@@ -177,7 +177,7 @@ struct YoursListView: View {
         let stacksTime = dynamicTypeSize.isAccessibilitySize
         return Button { onSelect(item) } label: {
             HVRow(
-                symbol: item.kind.symbol, tint: item.kind.tint, title: item.name,
+                symbol: item.kind.symbol, title: item.name,
                 subtitle: stacksTime ? [subtitle(for: item), ago].compactMap { $0 }.joined(separator: " \u{00B7} ") : subtitle(for: item)
             ) {
                 if !stacksTime, let ago {
@@ -192,7 +192,7 @@ struct YoursListView: View {
             Button("Open", systemImage: "arrow.up.forward.square") { onOpen(item) }
             if let url = link(for: item) {
                 ShareLink(item: url) { Label("Share link", systemImage: "square.and.arrow.up") }
-                Button("Copy link", systemImage: "link") { UIPasteboard.general.string = url.absoluteString }
+                Button("Copy link", systemImage: HVSymbol.copy) { UIPasteboard.general.string = url.absoluteString }
             }
         }
         .accessibilityElement(children: .combine)

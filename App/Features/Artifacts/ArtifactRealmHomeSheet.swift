@@ -51,7 +51,7 @@ struct ArtifactRealmHomeSheet: View {
         let isHome = realm.defaultArtifactSlug == detail.slug
         return HStack(spacing: HV.Space.s) {
             HVIconBadge(symbol: HVSymbol.domain, tint: Palette.blue, size: 32)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 HVAddressText(realm.host).font(.hvBody).foregroundStyle(Palette.textPrimary)
                 Text(isHome ? "Opens on this page" : (realm.defaultArtifactSlug == nil ? "Opens on your list of public pages" : "Opens on another page"))
                     .font(.hvFootnote)

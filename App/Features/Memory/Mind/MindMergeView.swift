@@ -258,7 +258,6 @@ private struct MindConflictCard: View {
                     HV.Motion.animate(.easeInOut(duration: 0.2)) { showDiffs.toggle() }
                 }
                 .buttonStyle(.hvGhost)
-                .padding(.leading, -HV.Space.s)
                 if showDiffs {
                     VStack(alignment: .leading, spacing: HV.Space.xs) {
                         Text("\(session.target), against where they split")

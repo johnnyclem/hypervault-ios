@@ -156,7 +156,7 @@ struct ToolsCompileSheet: View {
     }
 
     private func stat(_ value: Int, _ title: String, _ help: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: HV.Space.xxs) {
             Text("\(value)").font(.system(.title, weight: .bold))
             Text(title).font(.hvFootnote).foregroundStyle(Palette.textPrimary)
         }
@@ -178,7 +178,7 @@ struct ToolsCompileSheet: View {
         DisclosureGroup {
             VStack(alignment: .leading, spacing: HV.Space.xs) {
                 ForEach(Array(result.collisions.prefix(8).enumerated()), id: \.offset) { _, pair in
-                    VStack(alignment: .leading, spacing: 1) {
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         Text("\(pair.selectorA) and \(pair.selectorB)").font(.hvMono)
                         if !pair.hint.isEmpty { Text(pair.hint).font(.hvCaption).foregroundStyle(Palette.textSecondary) }
                     }

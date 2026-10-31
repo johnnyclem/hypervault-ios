@@ -143,7 +143,7 @@ struct ChatRoomRow: View {
     /// The name, and when it last moved: side by side, or stacked when the text is too big to share a line.
     @ViewBuilder private var titleLine: some View {
         if typeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 title
                 updated
             }
@@ -171,7 +171,7 @@ struct ChatHandleChip: View {
     let handle: String
     let color: Color
     var font: Font = .hvCaption.weight(.medium)
-    var verticalPadding: CGFloat = 3
+    var verticalPadding: CGFloat = HV.Space.xxs
 
     var body: some View {
         Text("@\(handle)")

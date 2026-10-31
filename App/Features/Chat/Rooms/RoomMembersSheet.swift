@@ -74,9 +74,9 @@ struct ChatRoomMembersSheet: View {
     }
 
     private func memberRow(_ member: ChatRoomMember, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: HV.Space.xxs) {
             HStack(spacing: 6) {
-                Circle().fill(color).frame(width: 9, height: 9).accessibilityHidden(true)
+                Circle().fill(color).frame(width: 8, height: 8).accessibilityHidden(true)
                 Text("@\(member.handle)").font(.hvBody.weight(.medium))
                 if let model = member.backend?.defaultModel, !model.isEmpty {
                     Text(model).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(1)
@@ -147,7 +147,9 @@ struct ChatRoomMembersSheet: View {
                             .foregroundStyle(errorText != nil ? Palette.danger : Palette.textSecondary)
                             .padding(.horizontal, HV.Space.m)
                     }
-                    Button("Cancel") { adding = false; errorText = nil }.buttonStyle(.hvGhost)
+                    Button("Cancel") { adding = false; errorText = nil }
+                        .buttonStyle(.hvGhost)
+                        .padding(.horizontal, HV.Space.m)
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())

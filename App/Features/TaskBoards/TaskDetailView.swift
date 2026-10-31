@@ -237,9 +237,9 @@ struct TaskDetailView: View {
         // Side by side while there is room. At an accessibility size three things on one line leave each a sliver ("Clau/de
         // Cod/e", "age/nt"), so the author, the tag and the time each take a line.
         let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2))
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: HV.Space.xxs))
             : AnyLayout(HStackLayout(spacing: HV.Space.xs))
-        return VStack(alignment: .leading, spacing: 3) {
+        return VStack(alignment: .leading, spacing: HV.Space.xxs) {
             layout {
                 Text(note.author ?? "Someone").font(.hvFootnote.weight(.semibold))
                 if note.isFromAgent { HVTag(text: "agent", tint: Palette.violet) }
@@ -253,7 +253,7 @@ struct TaskDetailView: View {
             }
             Text(verbatim: note.body).font(.hvBody)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, HV.Space.xxs)
         .accessibilityElement(children: .combine)
     }
 

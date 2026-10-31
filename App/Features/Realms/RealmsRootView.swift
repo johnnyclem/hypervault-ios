@@ -203,7 +203,7 @@ struct RealmRow: View {
         KeysRowLayout {
             HVIconBadge(symbol: HVSymbol.domain, tint: Palette.blue, size: min(tile, 56))
         } words: {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 // An address is one word: it shrinks to fit before it is allowed to break in the middle.
                 Text(claim.host)
                     .font(.system(.body, design: .monospaced))
@@ -211,7 +211,7 @@ struct RealmRow: View {
                     .lineLimit(1)
                     .minimumScaleFactor(isLarge ? 0.5 : 0.75)
                 Text(subtitle).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(isLarge ? nil : 2)
-                if isLarge, isPro { HVTag(text: "Pro", tint: Palette.blue).padding(.top, 2) }
+                if isLarge, isPro { HVTag(text: "Pro", tint: Palette.blue).padding(.top, HV.Space.xxs) }
             }
         } trailing: {
             if isPro { HVTag(text: "Pro", tint: Palette.blue) }

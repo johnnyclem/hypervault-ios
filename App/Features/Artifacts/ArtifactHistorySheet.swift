@@ -149,7 +149,7 @@ struct ArtifactVersionRow: View {
             .font(.hvFootnote)
             .foregroundStyle(Palette.textSecondary)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, HV.Space.xxs)
         .accessibilityElement(children: .combine)
     }
 }

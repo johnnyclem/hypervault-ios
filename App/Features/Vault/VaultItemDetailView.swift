@@ -127,7 +127,7 @@ struct VaultItemDetailView: View {
             : AnyLayout(HStackLayout(spacing: HV.Space.m))
         return layout {
             VaultTile(secret: secret, size: 48)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 // The name is what tells two entries apart, so it wraps as far as it needs.
                 Text(secret.name).font(.hvTitle3)
                 Text(secret.subtitle)
@@ -202,10 +202,7 @@ struct VaultCopyButton: View {
         } label: {
             Label(copied ? VaultScreenCopy.copiedLabel : VaultScreenCopy.copyLabel, systemImage: copied ? HVSymbol.copied : HVSymbol.copy)
         }
-        // The ghost style pads its text in from the edge for a 44pt target; in a column of text that would set the
-        // button's words in from the text above it.
         .buttonStyle(.hvGhost)
-        .padding(.leading, -HV.Space.s)
         .accessibilityLabel(copied ? VaultScreenCopy.copiedLabel : VaultScreenCopy.copyFetchCommandLabel)
     }
 }

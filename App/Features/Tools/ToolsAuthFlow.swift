@@ -209,7 +209,7 @@ struct ToolsAuthChallengeView: View {
     private var header: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
             HVIconBadge(symbol: "lock.fill", tint: Palette.amber)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text("\(flow.target.displayName) wants you to sign in")
                     .font(.hvHeadline)
                 Text(flow.mode == .choose
@@ -231,20 +231,18 @@ struct ToolsAuthChallengeView: View {
             .buttonStyle(.hvPrimary)
             .disabled(flow.isWorking)
 
-            // A ghost button carries its own side padding for the tap target; pulling the outer
-            // ones back lets their words line up with the edges of the card's content.
+            // A ghost button has no side padding of its own (its 44pt target is a minimum size), so the outer
+            // words line up with the edges of the card's content.
             HStack {
                 if flow.offersToken {
                     Button("Use a token instead") { flow.useToken() }
                         .buttonStyle(.hvGhost)
-                        .padding(.leading, -HV.Space.s)
                         .disabled(flow.isWorking)
                 }
                 if let onCancel {
                     Spacer()
                     Button("Cancel", action: onCancel)
                         .buttonStyle(.hvGhost)
-                        .padding(.trailing, -HV.Space.s)
                         .disabled(flow.isWorking)
                 }
             }
@@ -276,13 +274,11 @@ struct ToolsAuthChallengeView: View {
             HStack {
                 Button("Back") { flow.backToChoice() }
                     .buttonStyle(.hvGhost)
-                    .padding(.leading, -HV.Space.s)
                     .disabled(flow.isWorking)
                 if let onCancel {
                     Spacer()
                     Button("Cancel", action: onCancel)
                         .buttonStyle(.hvGhost)
-                        .padding(.trailing, -HV.Space.s)
                         .disabled(flow.isWorking)
                 }
             }
@@ -293,7 +289,7 @@ struct ToolsAuthChallengeView: View {
     private var vaultToggle: some View {
         if flow.target.existing == nil {
             Toggle(isOn: $flow.saveToVault) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text("Save to the saved-secrets vault").font(.hvCallout)
                     Text("Keeps the key as a named secret you can manage under Vault, instead of only on this server.")
                         .font(.hvCaption)

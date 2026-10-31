@@ -102,7 +102,7 @@ struct ChatMarkdownBlockView: View {
         case .code(let language, let code):
             ChatCodeBlockView(language: language, code: code)
         case .list(let items):
-            VStack(alignment: .leading, spacing: HV.Space.xxs + 2) {
+            VStack(alignment: .leading, spacing: HV.Space.hair) {
                 ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                     ChatListItemView(item: item, font: font)
                 }

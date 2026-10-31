@@ -197,7 +197,7 @@ struct ArtifactShareSheet: View {
 
     private var peopleSection: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            HVSectionHeader(title: LibraryCopy.sharePeople).artifactCardCaption()
+            HVSectionHeader(title: LibraryCopy.sharePeople)
             switch model.list {
             case .loading:
                 HVLoadingState()
@@ -209,7 +209,8 @@ struct ArtifactShareSheet: View {
                 if !list.people.isEmpty {
                     VStack(spacing: 0) {
                         ForEach(Array(list.people.enumerated()), id: \.element.id) { index, person in
-                            if index > 0 { Divider().padding(.leading, dynamicTypeSize.isAccessibilitySize ? HV.Space.m : 56) }
+                            // Under the words: the row's side padding, the 32pt avatar and the gap after it.
+                            if index > 0 { Divider().padding(.leading, dynamicTypeSize.isAccessibilitySize ? HV.Space.m : HV.Space.m + 32 + HV.Space.s) }
                             personRow(person, list: list)
                         }
                     }
@@ -278,21 +279,19 @@ struct ArtifactShareSheet: View {
         if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: HV.Space.xs) {
                 HVAvatar(name: person.name, size: min(avatar, 56))
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     HVAddressText(person.name).font(.hvBody)
                     Text(role.title)
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                 }
                 removeButton(person)
-                    // The button's own padding would set the word in from the address above it.
-                    .padding(.leading, -HV.Space.s)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } else {
             HStack(spacing: HV.Space.s) {
                 HVAvatar(name: person.name, size: 32)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(person.name).font(.hvBody).lineLimit(1)
                     Text(role.title)
                         .font(.hvFootnote)

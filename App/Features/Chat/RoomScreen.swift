@@ -138,15 +138,15 @@ struct ChatRoomContent: View {
     private var roster: some View {
         ChatFlowLayout(spacing: 6) {
             ForEach(model.members) { member in
-                HStack(spacing: 5) {
+                HStack(spacing: HV.Space.hair) {
                     Circle().fill(palette.color(for: member)).frame(width: 8, height: 8)
                     Text("@\(member.handle)").font(.hvCaption.weight(.medium))
                     if let name = member.backend?.defaultModel, !name.isEmpty {
                         Text(name).font(.hvCaption).foregroundStyle(Palette.textTertiary).lineLimit(1)
                     }
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
+                .padding(.horizontal, HV.Space.s)
+                .padding(.vertical, HV.Space.hair)
                 .background(Palette.surfaceRaised, in: Capsule())
                 .accessibilityElement(children: .combine)
             }
@@ -154,7 +154,7 @@ struct ChatRoomContent: View {
                 Text("\(model.budget) turn\(model.budget == 1 ? "" : "s") left in this round")
                     .font(.hvCaption)
                     .foregroundStyle(Palette.textTertiary)
-                    .padding(.vertical, 5)
+                    .padding(.vertical, HV.Space.hair)
             }
         }
     }
@@ -173,7 +173,7 @@ struct ChatRoomContent: View {
 
     private var continueCard: some View {
         HStack(spacing: HV.Space.s) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text("\(model.pending.count) turn\(model.pending.count == 1 ? "" : "s") still waiting")
                     .font(.hvFootnote.weight(.semibold))
                 Text("Nobody is running this round.").font(.hvCaption).foregroundStyle(Palette.textSecondary)
@@ -234,9 +234,9 @@ struct ChatRoomContent: View {
                 }
                 .padding(.leading, HV.Space.m)
                 .padding(.trailing, HV.Space.xs)
-                .padding(.bottom, 2)
+                .padding(.bottom, HV.Space.xs)
             }
-            .hvGlass(radius: 26)
+            .hvGlass(radius: HV.Radius.floating)
         }
         .padding(.horizontal, HV.Space.m)
         .padding(.top, HV.Space.xs)
@@ -351,7 +351,7 @@ struct ChatRoomMessageView: View {
             VStack(alignment: .leading, spacing: HV.Space.s) {
                 ChatMarkdownView(text: message.content)
                 if !message.toolTurns.isEmpty {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         ForEach(Array(message.toolTurns.enumerated()), id: \.offset) { _, turn in
                             toolLine(turn)
                         }

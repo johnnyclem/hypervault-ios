@@ -79,16 +79,6 @@ struct TruthTagFlow: Layout {
     }
 }
 
-extension View {
-    /// Ghost buttons carry 12pt of padding of their own so the tap target is wide enough. In the body of a
-    /// row that pushes their words in from the text above them, so it is taken back here.
-    func truthAlignedGhost() -> some View {
-        self
-            .buttonStyle(.hvGhost)
-            .padding(.horizontal, -HV.Space.s)
-    }
-}
-
 /// The hint inside an empty field. The system's own is too faint to read; this is the quietest grey that
 /// still passes, so it reads as a hint beside the typed text and not as a value.
 func truthPrompt(_ text: String) -> Text {
@@ -146,8 +136,8 @@ struct TruthTypeTag: View {
         Text(type.tag)
             .font(.system(.caption2, design: .monospaced, weight: .bold))
             .foregroundStyle(type == .tb ? Color.white : Palette.textPrimary)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
+            .padding(.horizontal, HV.Space.xs)
+            .padding(.vertical, HV.Space.xxs)
             .background(type == .tb ? AnyShapeStyle(Palette.softGradient) : AnyShapeStyle(Palette.surfaceRaised), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(type == .tb ? Color.clear : Palette.border, lineWidth: 1))
             .accessibilityLabel(type.title)
@@ -170,14 +160,14 @@ struct TruthStandingBadge: View {
 
     var body: some View {
         if let standing, standing != .sound || showsSound {
-            HStack(spacing: 3) {
+            HStack(spacing: HV.Space.xxs) {
                 HVIcon(standing.symbol).font(.system(size: 10, weight: .bold))
                 Text(standing.title)
             }
             .font(.system(.caption2, weight: .semibold))
             .foregroundStyle(standing.tint)
             .padding(.horizontal, 8)
-            .padding(.vertical, 3)
+            .padding(.vertical, HV.Space.xxs)
             .background(standing.tint.opacity(0.14), in: Capsule())
             .accessibilityLabel("Standing: \(standing.title). \(standing.meaning)")
         }
@@ -266,7 +256,7 @@ struct TruthEvidenceRow: View {
             Text(evidence.kind)
                 .font(.system(.caption, design: .monospaced, weight: .semibold))
                 .foregroundStyle(evidence.isSettling ? Palette.textPrimary : Palette.textSecondary)
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(verbatim: evidence.ref).font(.hvFootnote).foregroundStyle(Palette.textPrimary)
                 if let detail = evidence.detail, !detail.isEmpty {
                     Text(verbatim: detail).font(.hvCaption).foregroundStyle(Palette.textSecondary)
@@ -309,7 +299,7 @@ struct TruthEvidenceEditor: View {
             } label: {
                 Label("Add evidence", systemImage: HVSymbol.add)
             }
-            .truthAlignedGhost()
+            .buttonStyle(.hvGhost)
         }
     }
 
@@ -321,7 +311,7 @@ struct TruthEvidenceEditor: View {
                 }
             }
         } label: {
-            HStack(spacing: 3) {
+            HStack(spacing: HV.Space.xxs) {
                 Text(row.wrappedValue.kind.title).font(.system(.footnote, design: .monospaced, weight: .semibold))
                 HVIcon("chevron.up.chevron.down").font(.system(size: 9, weight: .bold))
             }
@@ -352,7 +342,7 @@ struct TruthTraceRowView: View {
                 Rectangle()
                     .fill(node.failing == nil ? Palette.border : Palette.amber)
                     .frame(width: 2)
-                    .padding(.leading, CGFloat(min(row.depth - 1, 4)) * 14)
+                    .padding(.leading, CGFloat(min(row.depth - 1, 4)) * HV.Space.m)
                     .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 4) {
@@ -364,7 +354,7 @@ struct TruthTraceRowView: View {
                     Text(node.typeTag)
                         .font(.system(.caption2, design: .monospaced, weight: .bold))
                         .foregroundStyle(Palette.textPrimary)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .padding(.horizontal, HV.Space.xs).padding(.vertical, HV.Space.xxs)
                         .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
                     HVTag(text: node.statusLabel, tint: node.missing ? Palette.textSecondary : TruthStatus.tone(node.status).tint)
                     TruthStandingBadge(standing: node.standing)

@@ -7,7 +7,7 @@ struct CanvasThreadView: View {
     let model: CanvasModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: HV.Space.s + 2) {
+        VStack(alignment: .leading, spacing: HV.Space.s) {
             ForEach(Array(model.messages.enumerated()), id: \.element.id) { index, message in
                 MessageRow(message: message, canKeep: !model.isKeeping) {
                     model.keepReply(at: index)
@@ -38,7 +38,7 @@ private struct MessageRow: View {
     let choose: (KeptItem) -> Void
 
     var body: some View {
-        VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 6) {
+        VStack(alignment: message.role == .user ? .trailing : .leading, spacing: HV.Space.hair) {
             bubble
             if message.role == .assistant, !message.isLocal {
                 footer
@@ -56,7 +56,7 @@ private struct MessageRow: View {
             .foregroundStyle(message.role == .user ? Color.white : (message.isLocal ? Palette.textSecondary : Palette.textPrimary))
             .textSelection(.enabled)
             .padding(.horizontal, HV.Space.m)
-            .padding(.vertical, HV.Space.s + 2)
+            .padding(.vertical, HV.Space.s)
             .background(background)
             .frame(maxWidth: 520, alignment: message.role == .user ? .trailing : .leading)
             .accessibilityLabel(message.spokenLine)
@@ -94,7 +94,6 @@ private struct MessageRow: View {
             .buttonStyle(.hvGhost)
             .disabled(!canKeep)
             .accessibilityLabel("Keep this reply")
-            .padding(.leading, -HV.Space.s)
         }
         .padding(.leading, HV.Space.xs)
     }
@@ -129,11 +128,11 @@ private struct ThinkingRow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: HV.Space.hair) {
             ForEach(0..<3, id: \.self) { index in
                 Circle()
                     .fill(Palette.textTertiary)
-                    .frame(width: 7, height: 7)
+                    .frame(width: HV.Space.xs, height: HV.Space.xs)
                     .scaleEffect(phase ? 1 : 0.55)
                     // A reply can take minutes; with Reduce Motion on the dots hold still at full size.
                     .animation(reduceMotion ? nil : Animation.easeInOut(duration: 0.6).repeatForever().delay(Double(index) * 0.15), value: phase)

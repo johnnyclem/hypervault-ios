@@ -115,8 +115,8 @@ struct ToastHost: View {
                         .lineLimit(3)
                 }
                 .padding(.horizontal, HV.Space.m)
-                .padding(.vertical, HV.Space.s + 2)
-                .hvGlass(radius: 22)
+                .padding(.vertical, HV.Space.s)
+                .hvGlass(radius: HV.Radius.floating)
                 .shadow(color: .black.opacity(0.18), radius: 18, x: 0, y: 8)
                 .padding(.horizontal, HV.Space.m)
                 .padding(.top, HV.Space.xs)

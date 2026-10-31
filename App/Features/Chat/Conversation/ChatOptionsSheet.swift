@@ -81,7 +81,7 @@ struct ChatOptionsSheet: View {
         let label = HStack(spacing: HV.Space.s) {
             HVIconBadge(symbol: symbol, tint: selected ? Color.accentColor : Palette.textSecondary, size: 32)
                 .opacity(enabled ? 1 : 0.5)
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(title).font(.hvBody).foregroundStyle(enabled ? Palette.textPrimary : Palette.textSecondary).lineLimit(2)
                 Text(subtitle).font(.hvCaption).foregroundStyle(Palette.textSecondary).lineLimit(4)
             }
@@ -182,7 +182,7 @@ struct ChatOptionsSheet: View {
                 app.router.push(.tools)
             } label: {
                 HStack {
-                    VStack(alignment: .leading, spacing: 1) {
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         Text(model.hasToolkit ? "Manage tools" : "Set up tools").foregroundStyle(Palette.textPrimary)
                         Text(model.hasToolkit ? "See what the model can use, or compile it again." : "Connect a service and your chats can use it.")
                             .font(.hvCaption)
@@ -212,7 +212,7 @@ struct ChatOptionsSheet: View {
     }
 
     private func rowLabel(_ title: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: HV.Space.xxs) {
             Text(title).font(.hvBody)
             Text(detail).font(.hvCaption).foregroundStyle(Palette.textSecondary)
         }
@@ -246,7 +246,7 @@ struct ChatVisibilitySheet: View {
                     ForEach(ChatVisibility.allCases, id: \.self) { visibility in
                         Button { choose(visibility) } label: {
                             HStack(spacing: HV.Space.s) {
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                                     Text(visibility.title).font(.hvBody).foregroundStyle(Palette.textPrimary)
                                     Text(visibility.detail).font(.hvCaption).foregroundStyle(Palette.textSecondary)
                                 }

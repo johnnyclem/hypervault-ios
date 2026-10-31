@@ -218,7 +218,7 @@ struct ChatBackendFormSheet: View {
     private var advancedSection: some View {
         Section {
             Toggle(isOn: $draft.skipTest) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text("Skip the connection test")
                     Text("Saves it as it is, without sending a test message first.")
                         .font(.hvCaption)
@@ -254,7 +254,9 @@ struct ChatBackendFormSheet: View {
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                         .padding(.horizontal, HV.Space.m)
-                    Button("Stop", action: stop).buttonStyle(.hvGhost)
+                    Button("Stop", action: stop)
+                        .buttonStyle(.hvGhost)
+                        .padding(.horizontal, HV.Space.m)
                 } else if let errorText {
                     Text(errorText)
                         .font(.hvFootnote)

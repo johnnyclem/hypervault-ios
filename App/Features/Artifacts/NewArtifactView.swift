@@ -204,7 +204,6 @@ struct NewArtifactView: View {
                 if let error = model.error { ArtifactErrorLine(message: error) }
             }
             .padding(HV.Space.m)
-            .padding(.bottom, 88)
             .hvReadableWidth()
         }
         .scrollDismissesKeyboard(.interactively)
@@ -235,7 +234,7 @@ struct NewArtifactView: View {
     private var contentField: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             HStack(spacing: HV.Space.xs) {
-                HVSectionHeader(title: "Paste from chat").padding(.leading, HV.Space.m)
+                HVSectionHeader(title: "Paste from chat")
                 Spacer()
                 // Both pills are set at the same size and shape, with the system's own type: the paste
                 // control cannot be restyled, so the file button follows it.
@@ -263,9 +262,9 @@ struct NewArtifactView: View {
                 placeholder: "Paste HTML or a React component. We'll work out which and make it run."
             )
                 .frame(height: 260)
-                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous)
+                    RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous)
                         .strokeBorder(Palette.border, lineWidth: 1)
                         .allowsHitTesting(false)
                 )
@@ -283,7 +282,7 @@ struct NewArtifactView: View {
 
     private var titleField: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HVSectionHeader(title: "Title").artifactCardCaption()
+            HVSectionHeader(title: "Title")
             TextField("Title", text: Bindable(model).title, prompt: artifactPrompt("Untitled"))
                 .accessibilityIdentifier("artifact.new.title")
                 .focused($titleFocused)
@@ -294,7 +293,7 @@ struct NewArtifactView: View {
 
     private var visibilityField: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HVSectionHeader(title: "Who can open it").artifactCardCaption()
+            HVSectionHeader(title: "Who can open it")
             HVChoicePicker(title: "Who can open it", selection: Bindable(model).visibility) {
                 Text("Only me").tag(ArtifactVisibility.private)
                 Text("Anyone with the link").tag(ArtifactVisibility.public)
@@ -304,7 +303,6 @@ struct NewArtifactView: View {
                 : "Anyone who has the link can open it. You can change this any time.")
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
-                .artifactCardCaption()
         }
     }
 

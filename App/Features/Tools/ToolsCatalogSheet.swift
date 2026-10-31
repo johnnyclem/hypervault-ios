@@ -205,9 +205,9 @@ struct ToolsCatalogRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
             Button(action: onOpen) {
-                HStack(alignment: .top, spacing: HV.Space.s + 2) {
-                    HVIconBadge(symbol: "globe", tint: entry.dead ? Palette.textTertiary : Palette.sky)
-                    VStack(alignment: .leading, spacing: 3) {
+                HStack(alignment: .top, spacing: HV.Space.s) {
+                    HVIconBadge(symbol: "globe", tint: entry.dead ? Palette.textTertiary : Palette.sky, size: 36)
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         HStack(spacing: HV.Space.xs) {
                             Text(entry.displayName)
                                 .font(.hvBody)
@@ -238,7 +238,7 @@ struct ToolsCatalogRow: View {
     }
 
     /// The icon badge and the gap after it: where a row's title begins.
-    private static let titleColumn: CGFloat = 36 + HV.Space.s + 2
+    private static let titleColumn: CGFloat = HV.rowTile + HV.Space.s
 
     @ViewBuilder
     private var addControl: some View {

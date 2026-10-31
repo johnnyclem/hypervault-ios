@@ -69,7 +69,10 @@ struct HVDestructiveButtonStyle: ButtonStyle {
     }
 }
 
-/// A text-only action.
+/// A text-only action. The 44pt target is a minimum size and a `contentShape`, with no padding of its own, so a ghost
+/// button lines up with the text beside it and nothing needs to pull it back with a negative padding. A label 44pt wide
+/// or more sits exactly on the edge it is placed on; a shorter one ("Done", "Back", "Edit") is centred in its 44pt box
+/// and sits a few points in.
 struct HVGhostButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
@@ -77,7 +80,6 @@ struct HVGhostButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(.subheadline, weight: .semibold))
             .foregroundStyle(ink(for: configuration.role))
-            .padding(.horizontal, HV.Space.s)
             .frame(minWidth: 44, minHeight: 44)
             .contentShape(Rectangle())
             .opacity(configuration.isPressed ? 0.55 : 1)
@@ -143,8 +145,9 @@ extension View {
             .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
     }
 
-    /// Glass: for the composer, floating bars and sheets only. Lists and cards stay paper.
-    func hvGlass(radius: CGFloat = HV.Radius.xl) -> some View {
+    /// Glass: for the composer, floating bars and sheets only. Lists and cards stay paper. The corners are
+    /// `HV.Radius.floating` unless a shape of another role is asked for.
+    func hvGlass(radius: CGFloat = HV.Radius.floating) -> some View {
         modifier(HVGlassModifier(shape: RoundedRectangle(cornerRadius: radius, style: .continuous)))
     }
 
@@ -211,8 +214,9 @@ struct HVChip: View {
     let title: String
     var symbol: String?
     var isSelected = false
-    /// The height of the area that answers a tap. The pill is shorter than a finger, so the room around it counts
-    /// (nothing is drawn there); pass 0 where a chip is only drawn, never tapped.
+    /// The width and height of the area that answers a tap. The pill is shorter than a finger, and a short word ("All")
+    /// is narrower than one, so the room around it counts (nothing is drawn there); pass 0 where a chip is only drawn,
+    /// never tapped.
     var minTarget: CGFloat = 44
 
     var body: some View {
@@ -223,14 +227,14 @@ struct HVChip: View {
             Text(title).font(.system(.subheadline, weight: .medium))
         }
         .foregroundStyle(isSelected ? Palette.background : Palette.textPrimary)
-        .padding(.horizontal, HV.Space.m - 2)
+        .padding(.horizontal, HV.Space.s)
         .padding(.vertical, 8)
         .background(
             Capsule().fill(isSelected ? AnyShapeStyle(Palette.textPrimary) : AnyShapeStyle(Palette.surfaceRaised))
         )
         .overlay(Capsule().strokeBorder(isSelected ? Color.clear : Palette.border, lineWidth: 1))
         .hvAnimation(.easeOut(duration: 0.15), value: isSelected)
-        .frame(minHeight: minTarget)
+        .frame(minWidth: minTarget, minHeight: minTarget)
         .contentShape(Rectangle())
     }
 }
@@ -253,7 +257,7 @@ struct HVTag: View {
             .lineLimit(wraps ? nil : 1)
             .fixedSize(horizontal: !wraps, vertical: true)
             .padding(.horizontal, 8)
-            .padding(.vertical, 3)
+            .padding(.vertical, HV.Space.xxs)
             .background(tint.opacity(0.10), in: Capsule())
             .overlay(Capsule().strokeBorder(tint.opacity(0.4), lineWidth: 1))
     }
@@ -269,7 +273,7 @@ struct HVSectionHeader: View {
         // and whatever else shares the row leave the title a sliver, and a word is broken in two ("Progr / ess").
         Group {
             if dynamicTypeSize.isAccessibilitySize, detail != nil {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     titleText
                     detailText
                 }
@@ -335,6 +339,9 @@ struct HVRow<Trailing: View>: View {
     var subtitle: String?
     /// The subtitle is a host, a URL or an email, which breaks between its parts and not inside one (`HVAddressText`).
     var subtitleIsAddress = false
+    /// The side of the leading tile. `HV.rowTile` (36) in every list, as the Vault's tile is (`HVTile`); a row that
+    /// needs another size says so here and not by drawing its own badge.
+    var tileSize: CGFloat = HV.rowTile
     @ViewBuilder var trailing: () -> Trailing
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -344,6 +351,7 @@ struct HVRow<Trailing: View>: View {
         title: String,
         subtitle: String? = nil,
         subtitleIsAddress: Bool = false,
+        tileSize: CGFloat = HV.rowTile,
         @ViewBuilder trailing: @escaping () -> Trailing
     ) {
         self.symbol = symbol
@@ -351,13 +359,14 @@ struct HVRow<Trailing: View>: View {
         self.title = title
         self.subtitle = subtitle
         self.subtitleIsAddress = subtitleIsAddress
+        self.tileSize = tileSize
         self.trailing = trailing
     }
 
     var body: some View {
-        HStack(spacing: HV.Space.s + 2) {
-            HVIconBadge(symbol: symbol, tint: tint)
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: HV.Space.s) {
+            HVIconBadge(symbol: symbol, tint: tint, size: tileSize)
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(title)
                     .font(.hvBody)
                     .foregroundStyle(Palette.textPrimary)
@@ -382,8 +391,8 @@ struct HVRow<Trailing: View>: View {
 }
 
 extension HVRow where Trailing == EmptyView {
-    init(symbol: String, tint: Color = Palette.blue, title: String, subtitle: String? = nil, subtitleIsAddress: Bool = false) {
-        self.init(symbol: symbol, tint: tint, title: title, subtitle: subtitle, subtitleIsAddress: subtitleIsAddress) { EmptyView() }
+    init(symbol: String, tint: Color = Palette.blue, title: String, subtitle: String? = nil, subtitleIsAddress: Bool = false, tileSize: CGFloat = HV.rowTile) {
+        self.init(symbol: symbol, tint: tint, title: title, subtitle: subtitle, subtitleIsAddress: subtitleIsAddress, tileSize: tileSize) { EmptyView() }
     }
 }
 
@@ -397,7 +406,7 @@ struct HVSheetHeader: View {
         HStack(alignment: .top) {
             // Never cut short: a sheet with the keyboard up is short, and a header squeezed to one line read
             // "Sign in wi..." at a large text size.
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(title).font(.hvHeadline).fixedSize(horizontal: false, vertical: true)
                 if let subtitle {
                     Text(subtitle)
@@ -412,7 +421,7 @@ struct HVSheetHeader: View {
                     Image(systemName: HVSymbol.close)
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(Palette.textSecondary)
-                        .frame(width: 30, height: 30)
+                        .frame(width: 32, height: 32)
                         .background(Palette.surfaceRaised, in: Circle())
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())

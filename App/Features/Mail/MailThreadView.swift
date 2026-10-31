@@ -131,7 +131,7 @@ struct MailThreadScreen: View {
             }
         }
         .padding(HV.Space.s)
-        .hvGlass(radius: 26)
+        .hvGlass(radius: HV.Radius.floating)
         .padding(.horizontal, HV.Space.m)
         .padding(.vertical, HV.Space.xs)
     }

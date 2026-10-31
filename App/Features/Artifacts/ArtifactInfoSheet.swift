@@ -99,7 +99,7 @@ struct ArtifactInfoSheet: View {
         Section {
             HStack(spacing: HV.Space.m) {
                 ArtifactGlyph(slug: detail.slug, title: detail.title, icon: summary?.icon, size: 52)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(detail.title).font(.hvTitle3).lineLimit(2)
                     Text(subtitle).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                 }
@@ -125,7 +125,7 @@ struct ArtifactInfoSheet: View {
                 } label: {
                     HStack(spacing: HV.Space.s) {
                         HVIconBadge(symbol: option.symbol, tint: option.tint, size: 32)
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: HV.Space.xxs) {
                             Text(option.title).font(.hvBody).foregroundStyle(Palette.textPrimary)
                             Text(option.detail).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
                         }
@@ -240,11 +240,11 @@ struct ArtifactInfoSheet: View {
     }
 
     private func aboutRow(_ title: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: HV.Space.xxs) {
             Text(title).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
             Text(value).font(.hvCallout).textSelection(.enabled)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, HV.Space.xxs)
         .accessibilityElement(children: .combine)
     }
 

@@ -202,9 +202,9 @@ struct ChatModelsContent: View {
         Section {
             ForEach(locals) { local in
                 Button { localForm = .edit(local) } label: {
-                    HStack(spacing: HV.Space.s + 2) {
-                        HVIconBadge(symbol: "desktopcomputer", tint: ChatAgentTone(provider: "ollama").color)
-                        VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: HV.Space.s) {
+                        HVIconBadge(symbol: "desktopcomputer", tint: ChatAgentTone(provider: "ollama").color, size: 36)
+                        VStack(alignment: .leading, spacing: HV.Space.xxs) {
                             Text(local.displayName).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(nil)
                             Text("\(local.model) \u{00B7} \(URL(string: ChatLocalModel.normalizedBase(local.baseURL))?.host ?? local.baseURL)")
                                 .font(.hvFootnote)
@@ -321,8 +321,8 @@ struct ChatOnDeviceRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
-            HVIconBadge(symbol: "iphone", tint: status.isAvailable ? Palette.mint : Palette.textSecondary)
-            VStack(alignment: .leading, spacing: 2) {
+            HVIconBadge(symbol: "iphone", tint: status.isAvailable ? Palette.mint : Palette.textSecondary, size: 36)
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 HStack(spacing: HV.Space.xs) {
                     Text(ChatOnDeviceModels.subtitle).font(.hvBody)
                     HVTag(text: status.isAvailable ? "Ready" : "Not available", tint: status.isAvailable ? Palette.mint : Palette.textSecondary)
@@ -352,7 +352,7 @@ struct ChatBackendRow: View {
             KeysRowLayout {
                 HVIconBadge(symbol: Self.symbol(for: backend.provider), tint: Self.tint(for: backend.provider), size: min(tile, 56))
             } words: {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(backend.name).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(lineLimit)
                     facts(detail)
                         .font(.hvFootnote)
@@ -400,7 +400,7 @@ struct ChatBackendRow: View {
     }
 
     private func stacked(_ pieces: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: HV.Space.xxs) {
             ForEach(Array(pieces.enumerated()), id: \.offset) { _, piece in
                 Text(piece).lineLimit(1).minimumScaleFactor(0.5)
             }

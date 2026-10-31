@@ -50,7 +50,7 @@ struct GeneralPane: View {
             }.hvListRow()
 
             Section {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text("On this phone")
                         .font(.hvTitle3)
                         .accessibilityAddTraits(.isHeader)
@@ -195,7 +195,7 @@ struct GeneralPane: View {
     /// Pro or Free, and for Free what Pro gets you. No price and no way to buy: payment is on the website.
     private var planRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text("Plan").font(.hvBody)
                 if let plan, !plan.isPro {
                     Text("Pro gets you an address of your own, like you.vault.cool.")

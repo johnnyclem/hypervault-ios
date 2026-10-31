@@ -243,6 +243,7 @@ struct ArtifactActionBar: View {
         .buttonStyle(.plain)
         .padding(.horizontal, HV.Space.xs)
         .padding(.vertical, 6)
+        // 30, half the bar's 60pt: a capsule, which is the one shape of floating glass that is not `HV.Radius.floating`.
         .hvGlass(radius: 30)
         .padding(.horizontal, HV.Space.m)
         .padding(.bottom, HV.Space.xxs)
@@ -254,7 +255,7 @@ struct ArtifactActionBar: View {
     }
 
     private func item(_ title: String, _ symbol: String) -> some View {
-        VStack(spacing: 3) {
+        VStack(spacing: HV.Space.xxs) {
             HVIcon(symbol)
                 .font(.system(size: 19, weight: .medium))
                 .frame(height: 24)

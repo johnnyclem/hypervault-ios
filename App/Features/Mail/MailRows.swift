@@ -71,7 +71,7 @@ private struct MailRowHeader: View {
                 Spacer(minLength: HV.Space.xs)
                 time
             }
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 sender
                 time
             }
@@ -83,7 +83,7 @@ private struct MailRowHeader: View {
     private var sender: some View {
         let stacked = dynamicTypeSize.isAccessibilitySize
         let layout = stacked
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2))
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: HV.Space.xxs))
             : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: HV.Space.xs))
         return layout {
             Text(author.label)
@@ -115,7 +115,7 @@ struct MailThreadRow: View {
                 .frame(width: 10, height: 10)
                 .padding(.top, 6)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 MailRowHeader(author: newest.author, date: newest.createdAt, weight: thread.unread ? .bold : .semibold)
                 Text(newest.displaySubject)
                     .font(.system(.subheadline, weight: thread.unread ? .semibold : .regular))
@@ -153,7 +153,7 @@ struct MailHitRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: HV.Space.xxs) {
             MailRowHeader(author: message.author, date: message.createdAt)
             Text(message.displaySubject)
                 .font(.hvSubheadline)
@@ -227,7 +227,7 @@ struct MailMessageCard: View {
                 Spacer(minLength: HV.Space.xs)
                 timestamp
             }
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 sender
                 timestamp
             }
@@ -259,7 +259,7 @@ struct MailMessageCard: View {
             Text(message.displaySubject)
                 .font(.hvHeadline)
                 .foregroundStyle(Palette.textPrimary)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(message.author.label)
                     .font(.hvSubheadline)
                     .foregroundStyle(Palette.textPrimary)

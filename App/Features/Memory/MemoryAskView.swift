@@ -132,7 +132,7 @@ struct MemoryAskView: View {
             .padding(.leading, HV.Space.xxs)
             .padding(.trailing, HV.Space.xs)
             .padding(.vertical, HV.Space.xxs)
-            .hvGlass(radius: 28)
+            .hvGlass(radius: HV.Radius.floating)
         }
         .padding(.horizontal, HV.Space.m)
         .padding(.vertical, HV.Space.xs)
@@ -266,7 +266,7 @@ private struct MemoryAskTurnView: View {
                             .foregroundStyle(usedTitles.contains(hit.title) ? Palette.success : Palette.textTertiary)
                             .hvIconSlot(22)
                             .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: HV.Space.xxs) {
                             Text(hit.title)
                                 .font(.hvSubheadline.weight(.semibold))
                                 .foregroundStyle(Palette.textPrimary)

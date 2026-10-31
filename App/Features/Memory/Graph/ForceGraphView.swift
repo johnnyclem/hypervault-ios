@@ -134,7 +134,7 @@ struct ForceGraphView: View {
                         // The pill of buttons is put away while a node is selected, so the callout has the bottom; Drift stays,
                         // because a tour is on while a node is selected, and it is how the tour ends.
                         driftButton
-                            .hvGlass(radius: 22)
+                            .hvGlass(radius: HV.Radius.floating)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                             .padding(.bottom, HV.Space.xs)
                             .transition(.opacity)
@@ -282,7 +282,7 @@ struct ForceGraphView: View {
                 fit(animated: true)
             }
         }
-        .hvGlass(radius: 22)
+        .hvGlass(radius: HV.Radius.floating)
         .fixedSize()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         .padding(HV.Space.s)
@@ -332,7 +332,7 @@ struct ForceGraphView: View {
         HStack(spacing: HV.Space.s) {
             ForceGraphShapeView(shape: node.shape, color: node.color)
                 .frame(width: 14, height: 14)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(node.label)
                     .font(.hvHeadline)
                     .foregroundStyle(Palette.textPrimary)
@@ -359,7 +359,7 @@ struct ForceGraphView: View {
         }
         .padding(.horizontal, HV.Space.m)
         .padding(.vertical, HV.Space.xs)
-        .hvGlass(radius: 24)
+        .hvGlass(radius: HV.Radius.floating)
         .transition(.move(edge: .bottom).combined(with: .opacity))
         .frame(maxWidth: 520)
     }

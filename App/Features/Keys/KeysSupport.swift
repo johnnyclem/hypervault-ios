@@ -93,9 +93,8 @@ struct KeysCopyButton: View {
         switch style {
         case .primary: button.buttonStyle(.hvPrimary)
         case .secondary: button.buttonStyle(.hvSecondary)
-        // The ghost style pads its text in from the edge for a 44pt target. In a column of text that would
-        // set the button's words in from the text above it, so it is pulled back by the same amount.
-        case .compact: button.buttonStyle(.hvGhost).padding(.leading, -HV.Space.s)
+        // The ghost style has no padding of its own, so its words start where the text above them starts.
+        case .compact: button.buttonStyle(.hvGhost)
         }
     }
 
@@ -200,7 +199,7 @@ struct KeysNotice: View {
                 .foregroundStyle(Palette.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(HV.Space.s + 2)
+        .padding(HV.Space.s)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(tint.opacity(0.35), lineWidth: 1))
@@ -267,7 +266,7 @@ struct KeysRowLayout<Mark: View, Words: View, Trailing: View>: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } else {
-            HStack(alignment: alignment, spacing: HV.Space.s + 2) {
+            HStack(alignment: alignment, spacing: HV.Space.s) {
                 mark
                 words
                 Spacer(minLength: HV.Space.xs)

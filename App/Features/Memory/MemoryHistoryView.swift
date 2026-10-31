@@ -107,7 +107,7 @@ struct MemoryHistoryView: View {
                 MemoryMetaLine(symbol: commit.authorKind.symbol, text: "\(commit.author) \u{00B7} \(MemoryDates.full(commit.createdAt))")
             }
             if canDiff || canRestore {
-                HStack(spacing: HV.Space.xs) {
+                HStack(spacing: HV.Space.m) {
                     if canDiff {
                         Button(isOpen ? "Hide changes" : "Show changes") { toggle(revision) }
                             .buttonStyle(.hvGhost)
@@ -120,7 +120,6 @@ struct MemoryHistoryView: View {
                     Spacer(minLength: 0)
                     if model.restoringID == revision.revisionId { ProgressView() }
                 }
-                .padding(.leading, -HV.Space.s)
             }
             if isOpen { diffView(for: revision) }
         }

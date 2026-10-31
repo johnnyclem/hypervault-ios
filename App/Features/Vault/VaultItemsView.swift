@@ -200,7 +200,8 @@ struct VaultRow: View {
     private var isLarge: Bool { dynamicTypeSize.isAccessibilitySize }
     /// The tile is 36pt, whatever the text size (handoff 4.3).
     private let tileSize: CGFloat = 36
-    private let spacing = HV.Space.s + 2
+    /// The gap between the tile and the words: `KeysRowLayout`'s, which the separator guide below reads.
+    private let spacing = HV.Space.s
 
     /// What VoiceOver reads for the row: the name, the hint with a card's mask as "ending in 4242", and when an agent last
     /// read it ("Never used", "Last used 2 days ago").
@@ -213,7 +214,7 @@ struct VaultRow: View {
             KeysRowLayout {
                 VaultTile(secret: secret, size: tileSize)
             } words: {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     HVAddressText(secret.name)
                         .font(.hvBody)
                         .foregroundStyle(Palette.textPrimary)

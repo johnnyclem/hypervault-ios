@@ -48,7 +48,7 @@ struct TruthCardView: View {
     }
 
     private func labelled(_ title: String, _ text: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: HV.Space.xxs) {
             Text(title).font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textSecondary)
             Text(verbatim: text).font(.hvCallout).foregroundStyle(Palette.textPrimary)
         }
@@ -69,7 +69,7 @@ struct TruthCardView: View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             Text("Contested by").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.textSecondary)
             ForEach(item.contestedBy) { uv in
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(verbatim: uv.assertion).font(.hvCallout)
                     Text("\(uv.author) · \(TruthID.short(uv.id))").font(.hvCaption).foregroundStyle(Palette.textTertiary)
                 }
@@ -159,7 +159,7 @@ struct TruthCardView: View {
                     .foregroundStyle(Palette.textSecondary)
             }
             ForEach(Array(approvals.list.enumerated()), id: \.offset) { _, approval in
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(approverLine(approval))
                         .font(.hvCaption.weight(.semibold))
                     if !approval.evidence.isEmpty {
@@ -183,7 +183,7 @@ struct TruthCardView: View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             Text("The room answered").font(.hvCaption.weight(.semibold)).foregroundStyle(Palette.violet)
             ForEach(replies) { reply in
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(reply.handle ?? "agent").font(.hvCaption.weight(.semibold))
                     Text(verbatim: reply.content).font(.hvFootnote)
                 }

@@ -110,7 +110,7 @@ struct AdminScreen: View {
     private var notice: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
             HVIconBadge(symbol: "info.circle", tint: Palette.blue)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text("About the lists").font(.hvHeadline)
                 Text("HyperVault does not send the app its invite codes, its waitlist or its accounts, so they cannot be listed here yet. You can create codes and act on a code or an account you have the ID of.")
                     .font(.hvFootnote)
@@ -151,9 +151,9 @@ struct AdminInviteRow: View {
     let invite: AdminInvite
 
     var body: some View {
-        HStack(spacing: HV.Space.s + 2) {
-            HVIconBadge(symbol: "ticket", tint: tint)
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: HV.Space.s) {
+            HVIconBadge(symbol: "ticket", tint: tint, size: 36)
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(invite.code)
                     .font(.system(.body, design: .monospaced, weight: .medium))
                     .foregroundStyle(Palette.textPrimary)
@@ -219,7 +219,7 @@ struct AdminMintedCard: View {
             }
             .font(.system(.subheadline, weight: .semibold))
             .buttonStyle(.borderless)
-            Button("Done", action: onDismiss).buttonStyle(.hvGhost).padding(.leading, -HV.Space.s)
+            Button("Done", action: onDismiss).buttonStyle(.hvGhost)
         }
     }
 }

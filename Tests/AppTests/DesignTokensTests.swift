@@ -103,6 +103,16 @@ final class DesignTokensTests: XCTestCase {
         XCTAssertEqual(HV.Radius.xl, HV.Radius.sheet)
     }
 
+    /// `s` and `m` stay as names so call sites compile, and are the control and card radii; moving either moves every
+    /// corner that still uses it. `floating` is the app's own role for glass over content, and the tile of a list row
+    /// is one size in every list.
+    func testTheOlderRadiusNamesAreAliasesAndTheFloatingRoleAndRowTileAreFixed() {
+        XCTAssertEqual(HV.Radius.s, HV.Radius.control)
+        XCTAssertEqual(HV.Radius.m, HV.Radius.card)
+        XCTAssertEqual(HV.Radius.floating, 24)
+        XCTAssertEqual(HV.rowTile, 36)
+    }
+
     func testTheCodePanelAndTheCardBrandsAreFixed() {
         XCTAssertEqual(HVTokens.Fixed.docPanelBackground, 0x14161B)
         XCTAssertEqual(HVTokens.Fixed.docPanelForeground, 0xE6E8EC)

@@ -41,10 +41,12 @@ struct ShareView: View {
                     .font(.system(.body, weight: .bold))
                     .disabled(model.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             } else {
-                Color.clear.frame(width: 56, height: 1)
+                // As wide as Keep's box (the ghost button's 44pt minimum), so the title does not shift when Keep appears.
+                Color.clear.frame(width: 44, height: 1)
             }
         }
-        .padding(.horizontal, HV.Space.s)
+        // 20, the content's own margin below: Cancel's word sits on it now that the ghost button has no padding of its own.
+        .padding(.horizontal, HV.Space.l)
         .frame(height: 52)
     }
 
@@ -93,8 +95,8 @@ struct ShareView: View {
                 .font(.hvBody)
                 .scrollContentBackground(.hidden)
                 .padding(HV.Space.s)
-                .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+                .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
                 .frame(maxHeight: 260)
         }
     }

@@ -41,7 +41,7 @@ struct ChatComposerView: View {
                 .lineLimit(1...8)
                 .focused(focus)
                 .padding(.horizontal, HV.Space.m)
-                .padding(.top, HV.Space.s + 2)
+                .padding(.top, HV.Space.s)
                 .padding(.bottom, HV.Space.xs)
                 .accessibilityLabel("Message")
                 .accessibilityHint("Sends to \(model.modelName)")
@@ -56,7 +56,7 @@ struct ChatComposerView: View {
                     .font(.hvFootnote.weight(.medium))
                     .foregroundStyle(Palette.textSecondary)
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                    .padding(.horizontal, 10)
+                    .padding(.horizontal, HV.Space.s)
                     .padding(.vertical, 6)
                     .background(Palette.surfaceRaised, in: Capsule())
                     .frame(minHeight: 44)
@@ -95,9 +95,9 @@ struct ChatComposerView: View {
             }
             .padding(.leading, HV.Space.s)
             .padding(.trailing, HV.Space.xs)
-            .padding(.bottom, 2)
+            .padding(.bottom, HV.Space.xxs)
         }
-        .hvGlass(radius: 26)
+        .hvGlass(radius: HV.Radius.floating)
     }
 
     private var showsCounter: Bool {
@@ -140,6 +140,6 @@ struct ChatComposerView: View {
             .buttonStyle(.hvPrimary)
         }
         .padding(HV.Space.m)
-        .hvGlass(radius: 24)
+        .hvGlass(radius: HV.Radius.floating)
     }
 }

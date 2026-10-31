@@ -142,7 +142,7 @@ struct TruthDraftsScreen: View {
             if let verify = proposal.verifyBy { Text("Verify by: \(verify)").font(.hvFootnote).foregroundStyle(Palette.textSecondary) }
             if let signal = proposal.signalDetail { Text("Signal: \(signal)").font(.hvFootnote).foregroundStyle(Palette.textSecondary) }
             Text(footer(proposal)).font(.hvCaption).foregroundStyle(Palette.textTertiary)
-            HStack(spacing: HV.Space.xs) {
+            HStack(spacing: HV.Space.m) {
                 ForEach(proposal.status.moves) { next in
                     // Dismissing is the one move that cannot be undone from here, so it reads as such.
                     Button(next.moveTitle, role: next == .dismissed ? .destructive : nil) {
@@ -151,7 +151,7 @@ struct TruthDraftsScreen: View {
                     .disabled(model.busy.contains(proposal.id))
                 }
             }
-            .truthAlignedGhost()
+            .buttonStyle(.hvGhost)
         }
         .padding(.vertical, HV.Space.xxs)
     }

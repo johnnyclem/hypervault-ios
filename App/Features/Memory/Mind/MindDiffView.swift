@@ -143,6 +143,8 @@ struct MindStateDiffView: View {
     var words = Words.changes
 
     @State private var expanded: Set<String> = []
+    /// The width `hvIconSlot(22)` gives the symbol of a row, so what hangs under a title can start where the title does.
+    @ScaledMetric(relativeTo: .body) private var slot: CGFloat = 22
 
     /// What the three kinds of memory are called. A change between two points added, edited or forgot them; two
     /// branches set side by side only have some that the other has not.
@@ -264,7 +266,7 @@ struct MindStateDiffView: View {
                         .foregroundStyle(Palette.blue)
                         .hvIconSlot(22)
                         .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         Text(change.titleTo.isEmpty ? change.titleFrom : change.titleTo)
                             .font(.hvBody)
                             .foregroundStyle(Palette.textPrimary)
@@ -294,11 +296,11 @@ struct MindStateDiffView: View {
                     ForEach(change.tagsAdded, id: \.self) { HVTag(text: "+ \($0)", tint: Palette.success) }
                     ForEach(change.tagsRemoved, id: \.self) { HVTag(text: "\u{2212} \($0)", tint: Palette.rose) }
                 }
-                .padding(.leading, 30)
+                .padding(.leading, slot + HV.Space.s)
             }
             if isOpen {
                 MindDiffView(diff: change.diff)
-                    .padding(.top, 2)
+                    .padding(.top, HV.Space.xxs)
             }
         }
         .padding(.vertical, 6)

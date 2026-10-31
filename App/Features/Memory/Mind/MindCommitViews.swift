@@ -56,8 +56,8 @@ struct MindCommitRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
-            HVIconBadge(symbol: commit.kind.symbol, tint: commit.kind.tint)
-            VStack(alignment: .leading, spacing: 3) {
+            HVIconBadge(symbol: commit.kind.symbol, tint: commit.kind.tint, size: 36)
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(commit.message.isEmpty ? "(no message)" : commit.message)
                     .font(.hvBody)
                     .foregroundStyle(Palette.textPrimary)
@@ -84,7 +84,7 @@ struct MindCommitRow: View {
                 }
             }
         }
-        .padding(HV.Space.s + 2)
+        .padding(HV.Space.m)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))

@@ -1,0 +1,6 @@
+large / Home with its hints
+
+small target  Button "Account" (canvas.account)  20,51 44x36
+small target  Button "Open panel" (canvas.yours)  331,51 39x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+off screen    Button "Show my memories"  -27,1188 444x75

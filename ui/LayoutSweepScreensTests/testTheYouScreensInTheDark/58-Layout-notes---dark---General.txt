@@ -1,0 +1,5 @@
+dark / General
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  Switch  297,692 63x28
+small target  Switch  297,799 63x28

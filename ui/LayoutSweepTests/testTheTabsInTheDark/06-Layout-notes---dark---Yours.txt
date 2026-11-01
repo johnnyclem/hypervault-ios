@@ -1,0 +1,15 @@
+dark / Yours
+
+small target  Button "Account" (canvas.account)  20,51 44x36
+small target  Button "Open panel" (canvas.yours)  336,51 32x36
+small target  Button "Paste"  151,361 87x34
+small target  TextField (canvas.field)  76,714 290x22
+small target  Button "Sheet Grabber"  157,42 76x25
+small target  Button "New"  20,67 58x36
+small target  Button "More" (yours.more)  262,67 38x36
+small target  Button  262,67 38x36
+small target  Button "Done"  316,67 54x36
+small target  Button "All"  32,223 81x32
+small target  Button "Memories"  113,223 82x32
+small target  Button "Files"  195,223 81x32
+small target  Button "Keys"  276,223 82x32

@@ -73,7 +73,7 @@ that finds problems fastest. Each line says what should happen.
 - The app switcher card is blank.
 - With the lock on, widgets show a placeholder and Siri keeps queue until you unlock.
 - VoiceOver on: nothing behind the lock can be reached.
-- The words say what it is: the lock screen says "HyperVault is locked" and "Unlock to continue.", and a passcode
+- The words say what it is: the lock screen says "HyperVault is locked" and "Unlock to continue", and a passcode
   opens it as well as Face ID.
 - **Lock off, a screen with a value:** Vault > Add, pick Card, type a number, then open the app switcher: the card is
   the blank one with the mark, not the form. The same for the Replace and Edit sheets, a freshly made agent key, a

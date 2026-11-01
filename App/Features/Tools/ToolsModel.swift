@@ -254,7 +254,7 @@ final class ToolsModel {
             needsSignIn.remove(serverID)
             markChanged()
             saveServers()
-            reportSuccess("Read \(result.tools.count) tool\(result.tools.count == 1 ? "" : "s").")
+            reportSuccess("Read \(result.tools.count) tool\(result.tools.count == 1 ? "" : "s")")
         } catch let error as HVError where error.isMcpAuthRequired {
             needsSignIn.insert(serverID)
             reportError(error)
@@ -274,7 +274,7 @@ final class ToolsModel {
             servers.removeAll { $0.id == serverID }
             markChanged()
             saveServers()
-            reportSuccess(ack.message ?? "Removed.")
+            reportSuccess(ack.message ?? "Removed")
             return true
         } catch {
             reportError(error)

@@ -58,9 +58,9 @@ struct MindCommitRow: View {
         HStack(alignment: .top, spacing: HV.Space.s) {
             HVTile(symbol: commit.kind.symbol, size: 36)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
-                Text(commit.message.isEmpty ? "(no message)" : commit.message)
+                Text(commit.message.isEmpty ? "No message" : commit.message)
                     .font(.hvBody)
-                    .foregroundStyle(Palette.textPrimary)
+                    .foregroundStyle(commit.message.isEmpty ? Palette.textSecondary : Palette.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 // The short id sits at the end of the author's line, so the message keeps the whole width.
@@ -134,9 +134,9 @@ struct MindCommitDetailView: View {
         return VStack(alignment: .leading, spacing: HV.Space.xs) {
             HStack(spacing: HV.Space.s) {
                 HVTile(symbol: commit.kind.symbol, size: 40)
-                Text(commit.message.isEmpty ? "(no message)" : commit.message)
+                Text(commit.message.isEmpty ? "No message" : commit.message)
                     .font(.hvTitle3)
-                    .foregroundStyle(Palette.textPrimary)
+                    .foregroundStyle(commit.message.isEmpty ? Palette.textSecondary : Palette.textPrimary)
                     .textSelection(.enabled)
             }
             MemoryMetaLine(symbol: commit.authorKind.symbol, text: "\(commit.author) \u{00B7} \(MemoryDates.full(commit.createdAt))")

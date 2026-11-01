@@ -95,7 +95,7 @@ private struct ConnectPickerScreen: View {
                 .hvListRow()
             } else if let existing = model.existingKey {
                 Section {
-                    Text("Steps for \(existing.displayName ?? existing.prefixLabel). Its key was shown once, so the steps show where it goes.")
+                    Text("Steps for \(existing.displayName ?? existing.prefixLabel)")
                         .font(.hvCallout)
                         .foregroundStyle(Palette.textSecondary)
                 }
@@ -147,7 +147,7 @@ private struct ConnectPickerScreen: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .searchable(text: $model.query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search apps, like Cursor or curl")
+        .searchable(text: $model.query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search")
         .navigationTitle(ConnectCopy.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -208,7 +208,7 @@ private struct FreshKeyBanner: View {
             Label("Your key is ready", systemImage: "checkmark.circle.fill")
                 .font(.hvHeadline)
                 .foregroundStyle(Palette.success)
-            Text("Pick the app to see its steps with this key filled in. It is shown once and goes when you close this.")
+            Text("Pick the app to see its steps with this key filled in")
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
             KeysCopyButton(title: "Copy key", text: fresh.key, isSecret: true) { model.markCopied() }
@@ -261,7 +261,7 @@ private struct ConnectClientScreen: View {
             }
 
             HVLabeledField(title: "Name") {
-                TextField("What do you call it?", text: $model.keyName, prompt: Text.hvPrompt("What do you call it?"))
+                TextField("What do you call it?", text: $model.keyName, prompt: Text.hvPrompt("Claude Code"))
                     .textInputAutocapitalization(.words)
                     .submitLabel(.done)
                     .onChange(of: model.keyName) { _, value in
@@ -293,7 +293,7 @@ private struct ConnectClientScreen: View {
             }
             .buttonStyle(.hvPrimary)
             .disabled(isMaking)
-            .accessibilityHint("Makes a key that is shown once.")
+            .accessibilityHint("Makes a key")
         }
     }
 

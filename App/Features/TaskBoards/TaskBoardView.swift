@@ -138,7 +138,7 @@ struct TaskBoardScreen: View {
             Section { addRow }
             if let current = model.board, current.tasks.isEmpty {
                 Section {
-                    HVEmptyState(symbol: "checklist", title: "Nothing here yet.", message: "Add the first task above. Your agents will see it too.")
+                    HVEmptyState(symbol: "checklist", title: "Nothing here yet", message: "Add the first task above. Your agents will see it too.")
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                 }

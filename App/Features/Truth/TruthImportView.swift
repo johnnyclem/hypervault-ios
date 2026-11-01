@@ -85,7 +85,7 @@ struct TruthImportView: View {
                 .hvListRow()
                 // The button above is off until there is something to send; this says what turns it on.
                 if !preview.canSend, preview.lineCount == 0, fileName == nil {
-                    Text("Choose a file or paste from the clipboard to turn import on.")
+                    Text("Choose a file or paste to import")
                         .font(.hvCaption)
                         .foregroundStyle(Palette.textSecondary)
                         .hvListRow()

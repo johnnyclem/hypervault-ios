@@ -227,7 +227,7 @@ struct ImportScreen: View {
                     }
                 }
                 if !model.sampleTitles.isEmpty {
-                    Text("Includes " + model.sampleTitles.map { "“\($0)”" }.joined(separator: ", ") + (model.conversationCount > model.sampleTitles.count ? " and more." : "."))
+                    Text("Includes " + model.sampleTitles.map { "“\($0)”" }.joined(separator: ", ") + (model.conversationCount > model.sampleTitles.count ? " and more" : ""))
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                 }

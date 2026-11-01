@@ -259,7 +259,7 @@ struct WelcomePageSecrets: View {
             VStack(spacing: HV.Space.s) {
                 // The tiles the Vault draws for a login, a card and a key.
                 secretRow(title: "Bakery admin", label: "sam@bakery.co") { HVTile(monogram: "B") }
-                secretRow(title: "Work card", label: "Visa \u{2022}\u{2022}\u{2022}\u{2022} 4242") {
+                secretRow(title: "Work card", label: "Visa \u{2022}\u{2022}\u{2022}\u{2022} 8317") {
                     HVCardBrandTile(brand: .visa).frame(width: 36, height: 36)
                 }
                 secretRow(title: "Deploy key", label: nil) { HVTile(symbol: HVSymbol.key) }

@@ -54,7 +54,7 @@ struct ChatConversationListView: View {
             if model.conversations.isEmpty {
                 HVEmptyState(
                     symbol: HVSymbol.chat,
-                    title: "No chats yet.",
+                    title: "No chats yet",
                     message: "Start one, or bring in your history from ChatGPT, Claude, Gemini or Grok.",
                     actionTitle: "Import your history"
                 ) {

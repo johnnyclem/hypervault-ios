@@ -113,7 +113,7 @@ struct ChatRoomContent: View {
                         }
                     }
                     if let next = model.pending.first {
-                        ChatTypingLine(next: next, later: Array(model.pending.dropFirst()), members: model.members, isRunning: model.isDriving)
+                        ChatTypingLine(next: next, later: Array(model.pending.dropFirst()), isRunning: model.isDriving)
                     }
                     if model.canContinue {
                         continueCard
@@ -176,7 +176,7 @@ struct ChatRoomContent: View {
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text("\(model.pending.count) turn\(model.pending.count == 1 ? "" : "s") still waiting")
                     .font(.hvFootnote.weight(.semibold))
-                Text("Nobody is running this round.").font(.hvCaption).foregroundStyle(Palette.textSecondary)
+                Text("Nobody is running this round").font(.hvCaption).foregroundStyle(Palette.textSecondary)
             }
             Spacer(minLength: 0)
             Button("Continue") { model.resume() }.buttonStyle(.hvGhost).frame(minHeight: 44)
@@ -268,8 +268,8 @@ struct ChatRoomContent: View {
 
     private var addressLine: String {
         let who = model.addressed
-        if who.isEmpty { return "No one named: everyone answers, in order." }
-        return "Goes to " + who.map { "@" + $0 }.joined(separator: ", ") + "."
+        if who.isEmpty { return "No one named: everyone answers, in order" }
+        return "Goes to " + who.map { "@" + $0 }.joined(separator: ", ")
     }
 
     // MARK: Actions
@@ -394,7 +394,6 @@ struct ChatRoomMessageView: View {
 struct ChatTypingLine: View {
     let next: ChatRoomTurn
     let later: [ChatRoomTurn]
-    let members: [ChatRoomMember]
     let isRunning: Bool
 
     var body: some View {
@@ -408,12 +407,10 @@ struct ChatTypingLine: View {
     }
 
     private var line: String {
-        var text = "@\(next.handle) is thinking..."
-        if let model = members.first(where: { $0.handle == next.handle })?.backend?.defaultModel, !model.isEmpty {
-            text = "@\(next.handle) (\(model)) is thinking..."
-        }
-        if !later.isEmpty { text += " Then " + later.map { "@" + $0.handle }.joined(separator: ", ") + "." }
-        return isRunning ? text : text.replacingOccurrences(of: "is thinking...", with: "is next.")
+        let head = isRunning ? "@\(next.handle) is thinking..." : "@\(next.handle) is next"
+        guard !later.isEmpty else { return head }
+        let tail = "then " + later.map { "@" + $0.handle }.joined(separator: ", ")
+        return head + (isRunning ? " " : ", ") + tail
     }
 }
 

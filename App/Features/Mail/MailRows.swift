@@ -22,9 +22,13 @@ enum MailTimeFormat {
         }
     }
 
-    /// The full stamp on a message in a thread.
-    static func full(_ date: Date?) -> String {
+    /// The stamp on a message in a thread: the day and the time, and the year only when it is not this year, as
+    /// the rows of the inbox do.
+    static func full(_ date: Date?, now: Date = Date()) -> String {
         guard let date else { return "" }
+        if Calendar.current.component(.year, from: date) == Calendar.current.component(.year, from: now) {
+            return date.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+        }
         return date.formatted(date: .abbreviated, time: .shortened)
     }
 }
@@ -247,8 +251,8 @@ struct MailMessageCard: View {
         Text(MailTimeFormat.full(message.createdAt))
             .font(.hvCaption)
             .foregroundStyle(Palette.textSecondary)
-            // One line, except at an accessibility size, where "Oct 26, 2026 at 9:36 PM" is wider than the card and is
-            // cut short ("Oct 26, 2026 at...") rather than wrapped.
+            // One line, except at an accessibility size, where a stamp such as "Oct 26, 2025 at 9:36 PM" is wider than
+            // the card and is cut short ("Oct 26, 2025 at...") rather than wrapped.
             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
     }
 

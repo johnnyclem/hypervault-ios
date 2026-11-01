@@ -147,7 +147,7 @@ struct TruthDecisionSheet: View {
 
     private func noteField(footnote: String? = nil) -> some View {
         HVLabeledField(title: "Note (optional)", footnote: footnote) {
-            TextField("Note", text: $draft.note, prompt: truthPrompt("Anything worth keeping with the decision"), axis: .vertical)
+            TextField("Note", text: $draft.note, prompt: truthPrompt("A note"), axis: .vertical)
                 .lineLimit(2...6)
         }
     }

@@ -98,7 +98,7 @@ struct MailInboxScreen: View {
     private func failure(_ message: String) -> some View {
         switch model.mailboxProblem {
         case .unavailable:
-            HVEmptyState(symbol: "tray", title: "Mail is not available yet.", message: message)
+            HVEmptyState(symbol: "tray", title: "Mail is not available yet", message: message)
         case .offline:
             HVErrorState(message: message, symbol: "wifi.exclamationmark") { Task { await model.refresh() } }
         case .other:
@@ -252,7 +252,7 @@ struct MailInboxScreen: View {
         if model.filter == .inbox {
             HVEmptyState(
                 symbol: "tray",
-                title: "No mail yet.",
+                title: "No mail yet",
                 message: emptyInboxMessage
             )
         } else {
@@ -288,7 +288,7 @@ struct MailInboxScreen: View {
                 .listRowBackground(Color.clear)
         case .loaded:
             if model.hits.isEmpty {
-                HVEmptyState(symbol: "magnifyingglass", title: "Nothing found.", message: "Try another word from the subject or the note.")
+                HVEmptyState(symbol: "magnifyingglass", title: "Nothing found", message: "Try another word from the subject or the note.")
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
             } else {
@@ -424,7 +424,7 @@ struct MailInboxScreen: View {
             do {
                 let count = try await model.emptyTrash()
                 Haptics.success()
-                app.toasts.success(count == 1 ? "Deleted 1 message." : "Deleted \(count) messages.")
+                app.toasts.success(count == 1 ? "Deleted 1 message" : "Deleted \(count) messages")
             } catch {
                 app.toasts.show(mailError: error)
             }

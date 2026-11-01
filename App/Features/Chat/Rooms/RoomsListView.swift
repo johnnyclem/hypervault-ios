@@ -63,7 +63,7 @@ struct ChatRoomsListView: View {
             if model.rooms.isEmpty {
                 HVEmptyState(
                     symbol: "person.3",
-                    title: "No rooms yet.",
+                    title: "No rooms yet",
                     message: "Put several of your models in one room and run them like a team: you say who does what, they hand work to each other.",
                     actionTitle: "Start a room"
                 ) { showNew = true }

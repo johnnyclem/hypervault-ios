@@ -107,7 +107,7 @@ struct AdminAccountToolsView: View {
 
     private var idField: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            TextField("3f1c1a2e-…", text: $model.idText, prompt: Text.hvPrompt("3f1c1a2e-…"))
+            TextField("Account ID", text: $model.idText, prompt: Text.hvPrompt("Paste the ID"))
                 .font(.hvMono)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -126,7 +126,8 @@ struct AdminAccountToolsView: View {
     @ViewBuilder
     private var idFooter: some View {
         if model.idText.trimmingCharacters(in: .whitespaces).isEmpty {
-            Text("It looks like 3f1c1a2e-0000-4000-8000-000000000001.").hvSectionNote()
+            // Nothing under an empty field: the prompt and the line above say what to paste.
+            EmptyView()
         } else if model.accountID == nil {
             Text("That is not an account ID.").foregroundStyle(Palette.danger)
         } else if model.isSelf {

@@ -167,7 +167,7 @@ struct MemoryTagEditor: View {
                     }
                 }
             }
-            TextField(tags.count >= MemoryTags.maxCount ? "That is the most tags a memory can have" : "Add a tag", text: $entry, prompt: Text.hvPrompt(tags.count >= MemoryTags.maxCount ? "That is the most tags a memory can have" : "Add a tag"))
+            TextField(tags.count >= MemoryTags.maxCount ? "Tag limit reached" : "Add a tag", text: $entry, prompt: Text.hvPrompt(tags.count >= MemoryTags.maxCount ? "Tag limit reached" : "Add a tag"))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.done)

@@ -244,6 +244,18 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   also turns off the swipe and asks "Discard your changes?" first, because the web drops typed values on close without
   a word and the phone should not. Do not add it beside a Cancel, a Done or a Close that already does the job: two ways
   out read as a mistake, and a UI test that taps "Close" would find two buttons.
+- Full stops: a one-sentence result, label, heading, placeholder, toast, caption or empty-state line has no trailing
+  period, and a text of two or more sentences keeps all of its periods, the last one too. "Key revoked", "Copied" and
+  "Unlock to continue" are bare; "That did not unlock. Try again." and "Deleted. Its link is gone for good." keep theirs.
+  Apply the rule to the strings the app writes, in the feature file that draws them. A string being written or edited
+  follows it; a one-sentence footnote or help line nobody is editing keeps its period until its screen is next worked
+  on, so the rule is not a sweep. It is not applied in `ToastCenter` or any other place that passes a message on, because
+  a toast can carry the server's own sentence ("Slow down a little.") and `ToastCenterTests` holds that it is shown and
+  spoken as sent. A string that is the web's, from `lib/copy.ts` (mirrored word for word in the Kit's `Copy.swift`) or
+  from a label or sentence in a web component (handoff decision 13 for the labels, and the owner's answer to question 6
+  of the unslop audit for the rest), is left as the web writes it, full stop and all: grep the web repo for it before
+  changing it, and if it should change, change it there first. A whole literal the web also uses, even for another toast
+  ("Done.", "Saved."), is left alone for the same reason.
 - Everything works at the largest Dynamic Type size, with
   VoiceOver (labels on icon-only buttons; combine row elements), with reduce
   motion, and with 44-point touch targets.

@@ -237,7 +237,7 @@ struct ChatModelsContent: View {
 
     private var emptyModels: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            Text("Bring your own model.")
+            Text("Bring your own model")
                 .font(.hvHeadline)
             Text("Connect OpenAI, Anthropic, xAI, Gemini or Mistral with your key, or point HyperVault at a model you run yourself. Then chat with it here, and put it in a room.")
                 .font(.hvCallout)
@@ -385,7 +385,7 @@ struct ChatBackendRow: View {
 
     /// When it was last used, then the key's hint.
     private var usage: [String] {
-        var parts = [backend.lastUsedAt.map { "Used \(ChatDates.relative($0))" } ?? "Not used yet"]
+        var parts = [backend.lastUsedAt.map { "Used \(ChatDates.relative($0).lowercased())" } ?? "Not used yet"]
         if let hint = backend.keyHint, !hint.isEmpty { parts.append(hint) }
         return parts
     }

@@ -1,0 +1,8 @@
+dark / a task
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  TextField  32,151 326x25
+small target  Button "Status" (circle.lefthalf.filled)  32,235 326x34
+small target  Button "Priority, High"  32,287 326x34
+small target  Slider "Progress"  32,373 326x31
+small target  TextField  72,799 286x22

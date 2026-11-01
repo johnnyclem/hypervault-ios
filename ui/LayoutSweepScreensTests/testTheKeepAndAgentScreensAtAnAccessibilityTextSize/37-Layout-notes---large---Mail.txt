@@ -1,0 +1,10 @@
+large / Mail
+
+small target  Button "More"  238,51 58x36
+small target  Button  238,51 58x36
+small target  Button "New note" (square.and.pencil)  312,51 58x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+off screen    Button "Unread 2"  181,373 220x75
+off screen    Button "Sent"  410,373 124x75
+off screen    Button "Archive"  541,373 186x75
+off screen    Button "Trash"  736,373 142x75

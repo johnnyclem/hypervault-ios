@@ -56,6 +56,11 @@ final class ChatListModel {
         return counts.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }.map(\.key)
     }
 
+    /// The number on a platform's filter pill: how many conversations come from it, whatever is typed in the search.
+    func count(for platform: String) -> Int {
+        conversations.filter { $0.platform.label == platform }.count
+    }
+
     var visible: [ChatConversation] {
         let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
         return conversations.filter { conversation in

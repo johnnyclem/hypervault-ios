@@ -179,8 +179,8 @@ struct FloatingCard: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(Palette.surface, in: Capsule())
-            .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
+            .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
             .shadow(color: .black.opacity(0.12), radius: 14, x: 0, y: 8)
             .offset(x: x + CGFloat(sin(t / 1.6)) * 6, y: y + CGFloat(cos(t / 1.9)) * 7)
         }
@@ -278,8 +278,8 @@ struct WelcomePageSecrets: View {
             Spacer()
         }
         .padding(HV.Space.m)
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
     }
 }
 

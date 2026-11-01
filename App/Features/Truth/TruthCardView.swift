@@ -6,6 +6,11 @@ struct TruthCardView: View {
     let item: TruthDocketItem
     let replies: [TruthAgentReply]
 
+    /// The card keeps its large corner and its padding. A panel inside it takes the card's radius less that gap, so the two
+    /// curves share a centre (`HV.Radius.inner`): 12.
+    private static let cardRadius = HV.Radius.xl
+    private static let panelRadius = HV.Radius.inner(of: cardRadius, inset: HV.Space.m)
+
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
             tags
@@ -29,8 +34,8 @@ struct TruthCardView: View {
         .fixedSize(horizontal: false, vertical: true)
         .padding(HV.Space.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.xl, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: HV.Radius.xl, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: Self.cardRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Self.cardRadius, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
         .shadow(color: .black.opacity(0.06), radius: 14, x: 0, y: 6)
     }
 
@@ -81,7 +86,7 @@ struct TruthCardView: View {
         }
         .padding(HV.Space.s)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.amber.opacity(HV.Tint.fill), in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        .background(Palette.amber.opacity(HV.Tint.fill), in: RoundedRectangle(cornerRadius: Self.panelRadius, style: .continuous))
     }
 
     private func reviewNote(_ review: TruthDocketReview) -> some View {
@@ -111,7 +116,7 @@ struct TruthCardView: View {
         }
         .padding(HV.Space.s)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: Self.panelRadius, style: .continuous))
     }
 
     private func migrationSource(_ migration: TruthDocketMigration) -> String {
@@ -176,7 +181,7 @@ struct TruthCardView: View {
         }
         .padding(HV.Space.s)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: Self.panelRadius, style: .continuous))
     }
 
     private var answers: some View {
@@ -192,6 +197,6 @@ struct TruthCardView: View {
         }
         .padding(HV.Space.s)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.violet.opacity(HV.Tint.fill), in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        .background(Palette.violet.opacity(HV.Tint.fill), in: RoundedRectangle(cornerRadius: Self.panelRadius, style: .continuous))
     }
 }

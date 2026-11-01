@@ -298,7 +298,7 @@ struct ChatKeptNoteView: View {
         }
         .padding(.horizontal, HV.Space.s)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
     }
 
     private var message: some View {
@@ -424,8 +424,8 @@ struct ChatGroundingView: View {
         // The flow layout offers the chip the full width, which a greedy frame would take: only the
         // large-text chip spreads, the rest hug their words and wrap side by side.
         .frame(maxWidth: large ? .infinity : nil, alignment: .leading)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: large ? HV.Radius.m : 100, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: large ? HV.Radius.m : 100, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: large ? HV.Radius.card : 100, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: large ? HV.Radius.card : 100, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
     }
 }
 
@@ -481,8 +481,8 @@ struct ChatToolGroupView: View {
                 .padding(.bottom, HV.Space.xs)
             }
         }
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous).strokeBorder(Palette.border, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -537,7 +537,8 @@ struct ChatToolStepView: View {
                 .lineLimit(14)
                 .padding(HV.Space.xs)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.s, style: .continuous))
+                // Inside the tool group's card, whose last step ends 8 above its edge: the card's radius less that gap.
+                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.inner(of: HV.Radius.card, inset: HV.Space.xs), style: .continuous))
         } else {
             Text("No output.").font(.hvCaption).foregroundStyle(Palette.textTertiary)
         }
@@ -562,7 +563,7 @@ struct ChatToolPickerView: View {
                     .foregroundStyle(Palette.textPrimary)
                     .padding(.horizontal, HV.Space.s)
                     .frame(minHeight: 44)
-                    .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+                    .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .disabled(disabled)

@@ -131,7 +131,7 @@ private struct MemoryDetailContent: View {
         }
         .padding(HV.Space.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
     }
 
     @ViewBuilder

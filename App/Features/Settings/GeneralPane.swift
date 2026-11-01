@@ -205,7 +205,10 @@ struct GeneralPane: View {
             }
             Spacer(minLength: HV.Space.xs)
             if let plan {
-                if plan.isPro { HVTag(text: "Pro", tint: Palette.blue) } else { HVTag(text: "Free") }
+                // A plan is a fact, not a status: it reads as the Email row's value does, in quiet text.
+                Text(plan.isPro ? "Pro" : "Free")
+                    .font(.hvBody)
+                    .foregroundStyle(Palette.textSecondary)
             }
         }
         .accessibilityElement(children: .combine)

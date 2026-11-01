@@ -235,7 +235,12 @@ struct ToolsServerRow: View {
 
     @ViewBuilder
     private var markers: some View {
-        if let tag { HVTag(text: tag.text, tint: tag.tint) }
+        // A status is a tag; how many tools are on is a count, so it is quiet text beside the name and not a second tag.
+        if let tag {
+            HVTag(text: tag.text, tint: tag.tint)
+        } else if let count {
+            HVCount(count)
+        }
         if server.hasAuth {
             // Outline, and the size of the footnote beside it, so it follows the type.
             Image(systemName: server.secretBacked ? "lock.shield" : HVSymbol.key)
@@ -257,13 +262,19 @@ struct ToolsServerRow: View {
         }
     }
 
+    /// What needs a look: a status, so a tag.
     private var tag: (text: String, tint: Color)? {
         if needsSignIn { return ("Sign in again", Palette.amber) }
         switch server.status {
         case .allToolsOff: return ("All off", Palette.amber)
-        case .on: return ("\(server.enabledToolCount) of \(server.tools.count) on", Palette.textSecondary)
         default: return nil
         }
+    }
+
+    /// How many of its tools are on, when it is on and nothing above needs a look.
+    private var count: String? {
+        guard !needsSignIn, server.status == .on else { return nil }
+        return "\(server.enabledToolCount) of \(server.tools.count) on"
     }
 }
 

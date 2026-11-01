@@ -84,7 +84,7 @@ struct RealmsRootView: View {
                 } else {
                     ForEach(model.claims) { claim in
                         NavigationLink(value: RealmsDestination.realm(claim.id)) {
-                            RealmRow(claim: claim, isPro: model.snapshot.isPro)
+                            RealmRow(claim: claim)
                         }
                         .accessibilityIdentifier("realms.row.\(claim.id)")
                     }
@@ -132,7 +132,8 @@ struct RealmsRootView: View {
             HStack {
                 Text("Your plan").font(.hvBody)
                 Spacer()
-                if model.snapshot.isPro { HVTag(text: "Pro", tint: Palette.blue) } else { HVTag(text: "Free") }
+                // The one place the plan is named: quiet text, not a tag, and not repeated on the addresses below.
+                HVCount(model.snapshot.isPro ? "Pro" : "Free")
             }
             .accessibilityElement(children: .combine)
 
@@ -191,7 +192,6 @@ struct RealmsRootView: View {
 
 struct RealmRow: View {
     let claim: RealmClaim
-    let isPro: Bool
 
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -212,10 +212,7 @@ struct RealmRow: View {
                     .lineLimit(1)
                     .minimumScaleFactor(isLarge ? 0.5 : 0.75)
                 Text(subtitle).font(.hvFootnote).foregroundStyle(Palette.textSecondary).lineLimit(isLarge ? nil : 2)
-                if isLarge, isPro { HVTag(text: "Pro", tint: Palette.blue).padding(.top, HV.Space.xxs) }
             }
-        } trailing: {
-            if isPro { HVTag(text: "Pro", tint: Palette.blue) }
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)

@@ -54,12 +54,10 @@ struct WaitlistView: View {
                         .disabled(code.trimmingCharacters(in: .whitespaces).isEmpty || isWorking || isChecking)
                         .accessibilityIdentifier("waitlist.redeem")
 
-                        PasteButton(payloadType: String.self) { strings in
+                        HVPasteButton { strings in
                             guard let text = strings.first else { return }
                             code = InviteCode.extract(from: text) ?? text
                         }
-                        .labelStyle(.titleAndIcon)
-                        .buttonBorderShape(.capsule)
 
                         if let message {
                             Text(message)

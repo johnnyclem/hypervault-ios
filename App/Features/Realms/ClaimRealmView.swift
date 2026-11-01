@@ -172,9 +172,9 @@ struct ClaimRealmView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(HV.Space.m)
-            .background(selected ? Palette.surfaceRaised : Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+            .background(selected ? Palette.surfaceRaised : Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous)
+                RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous)
                     .strokeBorder(selected ? Palette.controlBorder : Palette.border, lineWidth: 1)
             )
             .opacity(domain.available ? 1 : 0.55)

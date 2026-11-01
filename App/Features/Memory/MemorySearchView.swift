@@ -80,10 +80,9 @@ struct MemorySearchView: View {
                 )
             } else {
                 header(Text("\(recall.results.count) \(recall.results.count == 1 ? "match" : "matches") \u{00B7} \(recall.recallMode.label)"))
-                let top = recall.results.map(\.score).max() ?? 0
                 ForEach(recall.results) { hit in
                     NavigationLink(value: Route.memory(id: hit.id)) {
-                        MemoryHitCard(hit: hit, topScore: top)
+                        MemoryHitCard(hit: hit)
                     }
                     .buttonStyle(.plain)
                     .id("hit-\(hit.id)")
@@ -175,7 +174,6 @@ struct MemorySearchField: View {
 /// best ones, what it links to, and who last touched it.
 struct MemoryHitCard: View {
     let hit: MemoryRecallHit
-    let topScore: Double
 
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
@@ -186,7 +184,7 @@ struct MemoryHitCard: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: HV.Space.xs)
-                MemoryRelevance(score: hit.score, topScore: topScore)
+                MemoryRelevance(score: hit.score)
             }
             if let excerpt = hit.excerpt() {
                 Text(excerpt)
@@ -218,33 +216,18 @@ struct MemoryHitCard: View {
     }
 }
 
-/// How well a match fits: a small bar against the best match, and the score itself.
+/// How well a match fits, as the score itself in quiet figures. It is a number to read, so no bar is drawn beside it to
+/// say the same thing twice.
 struct MemoryRelevance: View {
     let score: Double
-    let topScore: Double
 
     var body: some View {
-        HStack(spacing: 6) {
-            Capsule()
-                .fill(Palette.surfaceRaised)
-                .frame(width: 36, height: 5)
-                .overlay(alignment: .leading) {
-                    Capsule()
-                        .fill(Palette.textSecondary)
-                        .frame(width: 36 * fraction, height: 5)
-                }
-            Text(scoreText)
-                .font(.system(.caption, weight: .medium).monospacedDigit())
-                .foregroundStyle(Palette.textTertiary)
-        }
-        .fixedSize()
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Relevance \(scoreText)")
-    }
-
-    private var fraction: CGFloat {
-        guard topScore > 0 else { return 0.1 }
-        return CGFloat(min(max(score / topScore, 0.08), 1))
+        Text(scoreText)
+            .font(.system(.caption, weight: .medium).monospacedDigit())
+            .foregroundStyle(Palette.textTertiary)
+            .fixedSize()
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Relevance \(scoreText)")
     }
 
     private var scoreText: String {

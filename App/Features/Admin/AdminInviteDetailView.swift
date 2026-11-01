@@ -27,7 +27,7 @@ struct AdminInviteDetailView: View {
             Section {
                 VStack(alignment: .leading, spacing: HV.Space.s) {
                     Text(invite.code)
-                        .font(.system(.title, design: .monospaced, weight: .bold))
+                        .font(.system(.title2, design: .monospaced, weight: .medium))
                         .textSelection(.enabled)
                     HStack(spacing: HV.Space.xs) {
                         HVTag(text: statusLabel(invite), tint: statusTint(invite))

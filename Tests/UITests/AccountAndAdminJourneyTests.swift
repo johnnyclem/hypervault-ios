@@ -94,14 +94,17 @@ final class AccountAndAdminJourneyTests: HyperVaultUITestCase {
         openFromAccount("admin", title: "Admin")
 
         step("Admin says what it can and cannot list") {
-            require(shows("About the lists"), "the notice about the lists")
             require(shows("Nothing yet."), "the empty list of codes minted on this phone")
             require(button("Create code"), "the Create code button")
+            // The notice sits under the list of codes now, not above the form, and a List only holds the rows near the
+            // screen: read it last, and bring it into view if the screen is short.
+            reveal(shows("About the lists"), "the notice about the lists")
         }
 
         step("A code is minted with a number of uses and a note") {
             // (The number of uses keeps its default: typing a second field costs the slow simulator the better part of
             // a minute, and the note already shows that what is typed reaches the server.)
+            reveal(textField("admin.uses"), "the number of uses")
             let usesValue = textField("admin.uses").value as? String
             XCTAssertEqual(usesValue, "1", "One use is the default.")
             enter("Launch batch", into: textField("admin.note"), "the note field")

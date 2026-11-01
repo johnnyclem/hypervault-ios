@@ -125,7 +125,7 @@ struct MemorySearchView: View {
 
     private func header(_ text: Text) -> some View {
         text
-            .font(.hvCaption)
+            .font(.hvCaption.monospacedDigit())
             .foregroundStyle(Palette.textTertiary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, HV.Space.xxs)
@@ -234,7 +234,7 @@ struct MemoryRelevance: View {
                         .frame(width: 36 * fraction, height: 5)
                 }
             Text(scoreText)
-                .font(.system(.caption2, weight: .semibold))
+                .font(.system(.caption, weight: .medium).monospacedDigit())
                 .foregroundStyle(Palette.textTertiary)
         }
         .fixedSize()

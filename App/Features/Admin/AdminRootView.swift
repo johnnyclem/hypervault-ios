@@ -40,12 +40,6 @@ struct AdminScreen: View {
 
     var body: some View {
         List {
-            Section {
-                notice
-                    .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.s, trailing: HV.Space.m))
-            }
-            .hvListRow()
-
             Section(header: HVSectionHeader(title: "New invite code")) {
                 mintForm
             }
@@ -74,6 +68,13 @@ struct AdminScreen: View {
                     }
                     .accessibilityIdentifier("admin.invite.\(invite.id)")
                 }
+            }
+            .hvListRow()
+
+            // Under the list it explains, not above the form that is the screen's work.
+            Section {
+                notice
+                    .listRowInsets(EdgeInsets(top: HV.Space.s, leading: HV.Space.m, bottom: HV.Space.s, trailing: HV.Space.m))
             }
             .hvListRow()
 
@@ -202,7 +203,7 @@ struct AdminMintedCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
             Text(invite.code)
-                .font(.system(.title, design: .monospaced, weight: .bold))
+                .font(.system(.title2, design: .monospaced, weight: .medium))
                 .textSelection(.enabled)
                 .accessibilityLabel("Invite code \(invite.code.map(String.init).joined(separator: " "))")
             Text("\(invite.maxUses) \(invite.maxUses == 1 ? "use" : "uses")" + (invite.note.map { $0.isEmpty ? "" : " · \($0)" } ?? ""))

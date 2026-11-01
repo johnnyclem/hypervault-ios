@@ -126,7 +126,7 @@ struct ChatMarkdownBlockView: View {
 
     private static func headingFont(_ level: Int) -> Font {
         switch level {
-        case 1: return .system(.title2, weight: .bold)
+        case 1: return .system(.title2, weight: .semibold)
         case 2: return .system(.title3, weight: .semibold)
         case 3: return .system(.headline, weight: .semibold)
         default: return .system(.subheadline, weight: .semibold)

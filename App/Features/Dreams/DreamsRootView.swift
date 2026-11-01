@@ -342,9 +342,8 @@ private struct DreamConnectionCard: View {
                     // 17: the centre of the 36pt tile (18) less half of the bar (1), so it hangs from the tile's centre.
                     .padding(.leading, 17)
                 Text(connection.edgeType.label)
-                    .font(.system(.caption2, weight: .semibold))
-                    .foregroundStyle(Palette.textTertiary)
-                    .textCase(.uppercase)
+                    .font(.hvMeta)
+                    .foregroundStyle(Palette.textSecondary)
                 Spacer(minLength: 0)
                 MemoryRelevance(score: connection.score, topScore: topScore)
             }

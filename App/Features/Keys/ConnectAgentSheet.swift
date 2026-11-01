@@ -131,7 +131,7 @@ private struct ConnectPickerScreen: View {
                 } header: {
                     HVSectionHeader(title: section.group.title)
                 } footer: {
-                    if model.query.isEmpty { Text(section.group.blurb).font(.hvCaption).hvSectionNote() }
+                    if model.query.isEmpty { Text(section.group.blurb).font(.hvFootnote).hvSectionNote() }
                 }
                 .hvListRow()
             }

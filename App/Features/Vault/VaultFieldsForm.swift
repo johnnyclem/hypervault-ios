@@ -186,7 +186,7 @@ struct VaultFieldsForm: View {
                 .textContentType(.fullStreetAddress)
         }
         Text("Add at least one. The list shows an email, else the last four digits of a phone number, else the name. The rest is never shown.")
-            .font(.hvCaption)
+            .font(.hvFootnote)
             .foregroundStyle(Palette.textSecondary)
     }
 

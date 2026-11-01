@@ -297,7 +297,7 @@ struct ImportScreen: View {
                     .progressViewStyle(.linear)
                     .accessibilityLabel("Import progress")
                     .accessibilityValue("\(Int((progress?.fraction ?? 0) * 100)) percent. \(sendingLine(progress))")
-                Text(sendingLine(progress)).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
+                Text(sendingLine(progress)).font(.hvFootnote.monospacedDigit()).foregroundStyle(Palette.textSecondary)
             }
             .hvCard()
             Text("Keep HyperVault open. Large histories go in a few at a time and can take several minutes. If something interrupts it, you can pick up where it stopped.")
@@ -373,7 +373,7 @@ struct ImportScreen: View {
 
     private func count(_ value: Int, _ label: String) -> some View {
         VStack(spacing: HV.Space.xxs) {
-            Text(value.formatted()).font(.system(.title2, weight: .bold))
+            Text(value.formatted()).font(.system(.title2, weight: .medium).monospacedDigit())
             Text(label).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
         }
         .frame(maxWidth: .infinity)

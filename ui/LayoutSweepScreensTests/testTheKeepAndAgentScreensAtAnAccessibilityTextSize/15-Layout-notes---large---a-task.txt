@@ -1,0 +1,4 @@
+large / a task
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  Slider "Progress"  32,770 326x31

@@ -1,0 +1,11 @@
+dark / Chat
+
+small target  Button "Models" (cpu)  20,51 56x36
+small target  Button "More" (chat.more)  238,51 58x36
+small target  Button  238,51 58x36
+small target  Button "New chat" (square.and.pencil)  312,51 58x36
+small target  Button "Chats"  16,169 179x32
+small target  Button "Group chats"  195,169 179x32
+off screen    Button "Gemini"  355,208 73x44
+off screen    Button "Grok"  436,208 58x44
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

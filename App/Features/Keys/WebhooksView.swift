@@ -127,7 +127,7 @@ struct WebhooksView: View {
                 .frame(maxHeight: .infinity)
             } else {
                 List {
-                    Section(footer: Text("Each post carries a signature header the receiver checks with the secret shown when you add the webhook.").font(.hvCaption).hvSectionNote()) {
+                    Section(footer: Text("Each post carries a signature header the receiver checks with the secret shown when you add the webhook.").font(.hvFootnote).hvSectionNote()) {
                         ForEach(model.hooks) { hook in
                             NavigationLink(value: WebhookDestination.hook(hook.id)) { WebhookRow(hook: hook) }
                         }

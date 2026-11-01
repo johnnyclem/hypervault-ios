@@ -170,7 +170,7 @@ struct LibraryGraphScreen: View {
             parts.append("none of these is linked yet")
         }
         return Text(parts.joined(separator: " \u{00B7} "))
-            .font(.hvCaption)
+            .font(.hvCaption.monospacedDigit())
             .foregroundStyle(Palette.textTertiary)
             .multilineTextAlignment(.center)
             .padding(.horizontal, HV.Space.m)

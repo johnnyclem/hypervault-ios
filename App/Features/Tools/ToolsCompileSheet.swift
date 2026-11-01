@@ -158,7 +158,7 @@ struct ToolsCompileSheet: View {
 
     private func stat(_ value: Int, _ title: String, _ help: String) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.xxs) {
-            Text("\(value)").font(.system(.title, weight: .bold))
+            Text("\(value)").font(.system(.title, weight: .semibold))
             Text(title).font(.hvFootnote).foregroundStyle(Palette.textPrimary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

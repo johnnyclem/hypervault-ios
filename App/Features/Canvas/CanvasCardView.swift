@@ -39,7 +39,7 @@ struct CanvasCardView: View {
                     .foregroundStyle(Palette.textPrimary)
                     .lineLimit(isLarge ? 4 : 2)
                 // Side by side while the words have the room. At an accessibility size each half would get a
-                // sliver of the card and be broken mid-word ("MEM-ORY", "Bud-get"), so the kind sits over the line.
+                // sliver of the card and be broken mid-word ("Mem-ory", "Bud-get"), so the kind sits over the line.
                 if isLarge {
                     VStack(alignment: .leading, spacing: HV.Space.xxs) { kindLabel; subtitleLabel }
                 } else {
@@ -58,10 +58,10 @@ struct CanvasCardView: View {
     }
 
     private var kindLabel: some View {
-        Text(card.kind.singular.uppercased())
-            .font(.system(.caption2, weight: .bold))
-            .foregroundStyle(card.kind.tint)
-            .tracking(0.6)
+        // The kind's own word ("Memory", "Page"), in sentence case; the tile beside the title carries the kind's colour.
+        Text(card.kind.singular)
+            .font(.hvMeta)
+            .foregroundStyle(Palette.textSecondary)
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
     }

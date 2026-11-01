@@ -57,7 +57,7 @@ struct RecentWidgetView: View {
             HStack(spacing: 6) {
                 if family != .accessoryRectangular { BrandMark(size: 18) }
                 Text("Yours.")
-                    .font(.system(.footnote, weight: .bold))
+                    .font(.system(.footnote, weight: .semibold))
                     .foregroundStyle(family == .accessoryRectangular ? Color.primary : Palette.textSecondary)
             }
             ForEach(things.prefix(limit)) { thing in

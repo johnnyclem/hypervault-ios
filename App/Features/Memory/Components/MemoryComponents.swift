@@ -364,7 +364,7 @@ struct MemoryMarkdownView: View {
                     .fill(Palette.border)
                     .frame(width: 3)
                 inline(text)
-                    .font(.hvBody.italic())
+                    .font(.hvBody)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -383,8 +383,8 @@ struct MemoryMarkdownView: View {
 
     private func headingFont(_ level: Int) -> Font {
         switch level {
-        case 1: return .system(.title2, weight: .bold)
-        case 2: return .system(.title3, weight: .semibold)
+        // Three sizes under the memory's own title (title, 28): a first heading at 20, then the headline role at 17.
+        case 1: return .system(.title3, weight: .medium)
         default: return .hvHeadline
         }
     }

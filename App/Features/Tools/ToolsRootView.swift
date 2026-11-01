@@ -184,13 +184,17 @@ struct ToolsStep: View {
     let number: Int
     let title: String
     let text: String
+    /// The disc the numeral sits in follows the type, by a quarter at most (`HV.glyphBox`), so it does not take the step's
+    /// text. The numeral is a footnote and grows faster than that cap, so at the largest sizes it fills the disc.
+    @ScaledMetric(relativeTo: .body) private var disc: CGFloat = 28
 
     var body: some View {
-        HStack(alignment: .top, spacing: HV.Space.s) {
+        let side = HV.glyphBox(scaled: disc, base: 28)
+        return HStack(alignment: .top, spacing: HV.Space.s) {
             Text("\(number)")
-                .font(.system(.footnote, weight: .bold))
+                .font(.system(.footnote, weight: .medium).monospacedDigit())
                 .foregroundStyle(Palette.sky)
-                .frame(width: 26, height: 26)
+                .frame(width: side, height: side)
                 .background(Palette.blue.opacity(HV.Tint.fill), in: Circle())
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {

@@ -516,7 +516,7 @@ struct TruthSidecarScreen: View {
                 if list.isEmpty { Text("No objections pending.").foregroundStyle(Palette.textSecondary).hvListRow() }
                 ForEach(list) { objection in
                     VStack(alignment: .leading, spacing: HV.Space.xxs) {
-                        if let literal = objection.literal { Text("“\(literal)”").font(.system(.callout, design: .serif)).italic() }
+                        if let literal = objection.literal { Text("“\(literal)”").font(.system(.callout, design: .serif)).foregroundStyle(Palette.textSecondary) }
                         if let text = objection.objection { Text(verbatim: text).font(.hvCallout) }
                         if let tb = objection.tbId { Text("Contradicts TB \(TruthID.short(tb))").font(.hvCaption).foregroundStyle(Palette.textSecondary) }
                     }

@@ -14,11 +14,12 @@ private extension View {
     }
 }
 
-/// The one filled action on a screen. Full width, flat `primary`, 8pt corners and no glow, as the web's default button.
+/// The one filled action on a screen. Full width, flat `Palette.action`, 8pt corners and no glow.
 ///
-/// The label is bold on purpose: white on `primary` is 3.68:1, which is under the 4.5:1 body text needs and over the
-/// 3:1 that bold text needs (a recorded exception, held by `DesignContrastTests`). Pressed is a dimmer fill, not a
-/// spring, so there is nothing to turn off for Reduce Motion.
+/// The label is semibold: white on `action` is 5.17:1, which is body-text contrast in both looks (held by
+/// `DesignContrastTests`), so nothing needs a bold to carry it. (White on the dark look's own `primary` is 3.68:1, which
+/// is why the fill is `action` and not `primary`.) Pressed is a dimmer fill, not a spring, so there is nothing to turn
+/// off for Reduce Motion.
 struct HVPrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
@@ -30,7 +31,7 @@ struct HVPrimaryButtonStyle: ButtonStyle {
             .multilineTextAlignment(.center)
             .hvButtonLabelBox()
             // Off is a plain raised box with its label still readable, not the fill faded out.
-            .background(isEnabled ? HVColor.primary : Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
+            .background(isEnabled ? Palette.action : Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(isEnabled ? Color.clear : Palette.controlBorder, lineWidth: 1))
             .opacity(configuration.isPressed ? 0.85 : 1)
     }
@@ -53,13 +54,14 @@ struct HVSecondaryButtonStyle: ButtonStyle {
 }
 
 /// The filled action that cannot be undone: the primary button in `destructive`, with white text as the web has it.
-/// White on `destructive` is 3.76:1, so the label is bold here too.
+/// White on `destructive` is 3.76:1, under the 4.5:1 body text needs and over the 3:1 that bold text needs (a recorded
+/// exception, held by `DesignContrastTests`), so the label stays bold here though `hvButton` is semibold.
 struct HVDestructiveButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.hvButton)
+            .font(.hvButton.bold())
             .foregroundStyle(isEnabled ? Color.white : Palette.textSecondary)
             .multilineTextAlignment(.center)
             .hvButtonLabelBox()
@@ -312,7 +314,8 @@ struct HVSectionHeader: View {
     @ViewBuilder
     private var detailText: some View {
         if let detail {
-            Text(detail).font(.hvCaption).foregroundStyle(Palette.textTertiary).textCase(nil)
+            // Tabular digits: the detail is often a count that changes ("1 of 20"), and it must not jitter as it does.
+            Text(detail).font(.hvCaption.monospacedDigit()).foregroundStyle(Palette.textTertiary).textCase(nil)
         }
     }
 }
@@ -327,7 +330,7 @@ struct HVAvatar: View {
         ZStack {
             Circle().fill(Palette.surfaceRaised)
             Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
-                .font(.system(size: size * 0.42, weight: .bold))
+                .font(.system(size: size * 0.42, weight: .semibold))
                 .foregroundStyle(Palette.textPrimary)
             if let imageURL {
                 AsyncImage(url: imageURL) { phase in

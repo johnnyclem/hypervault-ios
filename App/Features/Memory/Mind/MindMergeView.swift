@@ -121,7 +121,7 @@ struct MindMergeView: View {
                 ProgressView(value: Double(session.resolvedCount), total: Double(max(session.conflicts.count, 1)))
                     .tint(Palette.mint)
                 Text("\(session.resolvedCount) of \(session.conflicts.count) settled")
-                    .font(.hvCaption)
+                    .font(.hvCaption.monospacedDigit())
                     .foregroundStyle(Palette.textTertiary)
             }
 
@@ -154,6 +154,7 @@ struct MindMergeView: View {
                 Task { await model.merge() }
             } label: {
                 Text(session.canMerge ? "Merge with \(session.resolvedCount) \(session.resolvedCount == 1 ? "choice" : "choices")" : "\(session.unresolved.count) left to settle")
+                    .monospacedDigit()
             }
             .buttonStyle(.hvPrimary)
             .disabled(!session.canMerge)
@@ -325,7 +326,7 @@ private struct MindConflictCard: View {
                         .multilineTextAlignment(.leading)
                 } else {
                     Text("Forgotten on \(label)")
-                        .font(.hvSubheadline.italic())
+                        .font(.hvSubheadline)
                         .foregroundStyle(Palette.textSecondary)
                 }
             }

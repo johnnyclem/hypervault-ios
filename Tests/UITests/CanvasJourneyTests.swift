@@ -89,7 +89,7 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
         }
 
         step("Done closes the panel") {
-            tap(button("Done"), "Done")
+            tap(button("Done"), "Done", until: { !self.button("Done").exists })
             requireGone(button("Done"), "the panel")
             require(button("Hide Planning chat with Sam"), "the page as it was left")
         }

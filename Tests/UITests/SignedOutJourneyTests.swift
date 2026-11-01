@@ -46,7 +46,7 @@ final class SignedOutJourneyTests: HyperVaultUITestCase {
         }
 
         step("Back returns to the story") {
-            tap(element("signin.back"), "the Back button")
+            tap(element("signin.back"), "the Back button", until: { !self.element("signin.google").exists })
             require(element("welcome.pages"), "the story again")
             requireGone(element("signin.google"), "the sign-in buttons")
         }
@@ -86,7 +86,7 @@ final class SignedOutJourneyTests: HyperVaultUITestCase {
         }
 
         step("Closing the sheet returns to the way in") {
-            tap(button("Close"), "the sheet's close button")
+            tap(button("Close"), "the sheet's close button", until: { !self.text("Check your email").exists })
             requireGone(text("Check your email"), "the code sheet")
             require(element("signin.email"), "the way in behind the sheet")
         }

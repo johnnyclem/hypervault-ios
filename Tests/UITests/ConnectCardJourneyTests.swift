@@ -19,7 +19,7 @@ final class ConnectCardJourneyTests: HyperVaultUITestCase {
             // (The card sits under the hints, a scroll away on a phone: it is brought clear of the bars first.)
             open(element("canvas.connectCard.connect"), "Connect an agent", until: { self.isShowingTitle("Connect your AI") })
             waitUntil("the Connect your AI title") { isShowingTitle("Connect your AI") }
-            tap(button("Cancel"), "Cancel")
+            tap(button("Cancel"), "Cancel", until: { !self.button("Cancel").exists })
             requireGone(button("Cancel"), "the sheet")
             require(element("canvas.connectCard"), "the card, since no key was made")
             requireNoWrite("PATCH", "/api/onboarding")

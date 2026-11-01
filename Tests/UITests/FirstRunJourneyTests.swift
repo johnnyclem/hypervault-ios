@@ -18,7 +18,7 @@ final class FirstRunJourneyTests: HyperVaultUITestCase {
         step("Connect your AI opens a sheet, and Cancel closes it") {
             tap(element("canvas.connect"), "the Connect your AI button")
             waitUntil("the Connect your AI title") { isShowingTitle("Connect your AI") }
-            tap(button("Cancel"), "Cancel")
+            tap(button("Cancel"), "Cancel", until: { !self.button("Cancel").exists })
             requireGone(button("Cancel"), "the sheet")
         }
 

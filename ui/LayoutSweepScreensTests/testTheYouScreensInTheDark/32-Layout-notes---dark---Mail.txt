@@ -1,0 +1,6 @@
+dark / Mail
+
+small target  Button "More"  238,51 58x36
+small target  Button  238,51 58x36
+small target  Button "New note" (square.and.pencil)  312,51 58x36
+off screen    Button "Trash"  346,269 62x44

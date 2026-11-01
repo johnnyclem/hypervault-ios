@@ -64,7 +64,6 @@ struct AdminInviteDetailView: View {
                     get: { !invite.disabled },
                     set: { on in Task { await model.setDisabled(!on, inviteID: invite.id) } }
                 ))
-                .tint(Palette.mint)
                 .disabled(model.busy.contains(invite.id))
 
                 Button {

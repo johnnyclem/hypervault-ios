@@ -46,6 +46,10 @@ APP_COLORS = {
     "amber-400": "#ffb900",
     # The memory kind. Not a web token: the iOS guide's violet, one value in each look.
     "memory": "#a78bfa",
+    # The flat fill for anything that carries white text or a white glyph at body size: the person's chat bubbles, the
+    # send buttons, the prominent icon button, the count in the Account menu. It is the web's light-look `primary`, in
+    # both looks, because white on the dark look's `primary` (#3b82f6) is 3.68:1 and white on this is 5.17:1.
+    "action": "#2563eb",
 }
 
 # The light look from the iOS guides (color.html, dark_and_light.html). Dark stays the stock value.
@@ -71,6 +75,7 @@ LIGHT = {
     "emerald-400": "#047857",
     "amber-400": "#b45309",
     "memory": "#6d28d9",
+    "action": "#2563eb",
 }
 
 # tokens.json's schema says the right Mastercard disc "is drawn at 90% opacity"; the value is prose there.

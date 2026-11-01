@@ -92,7 +92,7 @@ struct PageDots: View {
         HStack(spacing: HV.Space.hair) {
             ForEach(0..<count, id: \.self) { index in
                 Capsule()
-                    .fill(index == current ? Color.accentColor : Palette.border)
+                    .fill(index == current ? HVColor.primary : Palette.border)
                     .frame(width: index == current ? HV.Space.wide : HV.Space.xs, height: HV.Space.xs)
             }
         }
@@ -213,7 +213,7 @@ struct WelcomePageTalk: View {
                 .padding(.horizontal, HV.Space.m)
                 .padding(.vertical, HV.Space.s)
                 .background(Palette.surface, in: Capsule())
-                .overlay(Capsule().strokeBorder(kept ? Palette.success.opacity(0.5) : Palette.border, lineWidth: 1))
+                .overlay(Capsule().strokeBorder(kept ? Palette.success.opacity(HV.Tint.border) : Palette.border, lineWidth: 1))
                 .scaleEffect(kept ? 1 : 0.96)
                 .frame(maxWidth: .infinity, alignment: .center)
             }
@@ -242,7 +242,7 @@ struct WelcomePageTalk: View {
             .padding(.vertical, HV.Space.s)
             .background(
                 RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous)
-                    .fill(isUser ? AnyShapeStyle(Palette.softGradient) : AnyShapeStyle(Palette.surface))
+                    .fill(isUser ? Palette.action : Palette.surface)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous)
@@ -286,8 +286,9 @@ struct WelcomePageAnyAI: View {
     var body: some View {
         WelcomePage(title: HVCopy.landingVaultHeading, message: HVCopy.landingVaultUseLine) {
             FlowLayout(spacing: HV.Space.s) {
-                ForEach(Array(HVCopy.landingVaultReaders.enumerated()), id: \.offset) { index, name in
-                    HVChip(title: name, isSelected: index % 4 == 0, minTarget: 0)
+                // Nothing here is selected or tappable: the agents that can read a saved value, all drawn the same.
+                ForEach(HVCopy.landingVaultReaders, id: \.self) { name in
+                    HVChip(title: name, minTarget: 0)
                 }
             }
             .padding(.horizontal, HV.Space.xl)

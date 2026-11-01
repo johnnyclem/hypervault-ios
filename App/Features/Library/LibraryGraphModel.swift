@@ -156,17 +156,19 @@ private func attempt<T: Sendable>(_ work: @Sendable () async throws -> T) async 
     }
 }
 
-/// How the graph colours its nodes: the web's per-type colours, in the app's own.
+/// How the graph colours its nodes: four hues that sit well apart, and the rest in grey. A memory is `KeptKind.memory`'s
+/// violet and a page of no named type (html) is `KeptKind.page`'s blue, so the map reads as the rest of the app does;
+/// writing (markdown, notes, text) is mint and a report is amber, the other two of the four `KeptKind` draws a graph
+/// in. Every other type (react, game, pdf, image) is `Palette.textSecondary`. The legend and the type pills name each
+/// type in words, so colour is never the only way to tell them apart.
 enum LibraryGraphStyle {
     static func tint(forType type: String) -> Color {
         switch type {
-        case LibraryGraphType.memory: return Palette.violet
-        case "react", "jsx", "tsx": return Palette.cyan
+        case LibraryGraphType.memory: return KeptKind.memory.tint
         case "markdown", "note", "text": return Palette.mint
-        case "game": return Palette.rose
         case "report": return Palette.amber
-        case "pdf", "image": return Palette.coral
-        default: return Palette.blue
+        case "react", "jsx", "tsx", "game", "pdf", "image": return Palette.textSecondary
+        default: return KeptKind.page.tint
         }
     }
 

@@ -137,7 +137,7 @@ them on glass (handoff 2.3, 4.1, 9):
   the page, or the Yours panel, shows.
 - **Large text.** At the largest accessibility size the You list shows each pane's symbol above its name (no name breaks
   in the middle of a word) and no chevron, General shows the whole email address, wrapped, and the Yours panel opens at
-  full height with its first rows visible. The Account menu's Mail badge is white on the blue gradient.
+  full height with its first rows visible. The Account menu's Mail badge is white on the flat blue `action` fill.
 
 ### The Vault, on a device
 

@@ -352,7 +352,7 @@ struct ForceGraphView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, HV.Space.m)
                     .frame(minHeight: 44)
-                    .background(Palette.softGradient, in: Capsule())
+                    .background(Palette.action, in: Capsule())
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("graph.open")

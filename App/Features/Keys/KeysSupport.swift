@@ -201,8 +201,8 @@ struct KeysNotice: View {
         }
         .padding(HV.Space.s)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(tint.opacity(0.35), lineWidth: 1))
+        .background(tint.opacity(HV.Tint.fill), in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(tint.opacity(HV.Tint.border), lineWidth: 1))
         .accessibilityElement(children: .combine)
     }
 }

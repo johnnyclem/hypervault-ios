@@ -74,7 +74,7 @@ final class DesignTokensTests: XCTestCase {
             ("accent", HVColor.accent), ("accent-foreground", HVColor.accentForeground),
             ("border", HVColor.border), ("ring", HVColor.ring), ("destructive", HVColor.destructive),
             ("emerald-400", HVColor.emerald400), ("amber-400", HVColor.amber400),
-            ("memory", HVColor.memory),
+            ("memory", HVColor.memory), ("action", HVColor.action),
         ]
         XCTAssertEqual(members.count, HVTokens.stockColors.count + HVTokens.appColors.count)
         let traits = UITraitCollection(userInterfaceStyle: .dark)

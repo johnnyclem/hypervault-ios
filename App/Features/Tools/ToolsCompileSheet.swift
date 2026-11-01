@@ -118,7 +118,7 @@ struct ToolsCompileSheet: View {
     private func doneHeader(title: String, subtitle: String) -> some View {
         VStack(spacing: HV.Space.s) {
             ZStack {
-                Circle().fill(Palette.mint.opacity(0.14)).frame(width: 84, height: 84)
+                Circle().fill(Palette.mint.opacity(HV.Tint.fill)).frame(width: 84, height: 84)
                 Image(systemName: "checkmark").font(.system(size: 34, weight: .semibold)).foregroundStyle(Palette.mint)
             }
             .padding(.top, HV.Space.l)

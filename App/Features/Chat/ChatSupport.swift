@@ -138,7 +138,7 @@ struct ChatFlowLayout: Layout {
 // MARK: Who is speaking
 
 /// The colour a model family wears wherever it appears: its row on the Models screen, the pill on an
-/// imported chat, its dot and its bubble in a room. It follows who the model is, never where it sits in
+/// imported chat, its dot and its handle in a room. It follows who the model is, never where it sits in
 /// a list, so Claude is the same orange on every screen. The cases are in the order a clash falls through.
 /// Rose is last and no family owns it: it sits too close to the red of a failed turn.
 enum ChatAgentTone: CaseIterable, Hashable {

@@ -86,8 +86,8 @@ struct AccountMenuSheet: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, HV.Space.xs)
                         .padding(.vertical, 2)
-                        // Small white text: on the gradient it is 5.1:1 or better, and on the flat primary 3.68.
-                        .background(Palette.softGradient, in: Capsule())
+                        // Small white text: on the flat action fill it is 5.17:1 in both looks (on the primary 3.68).
+                        .background(Palette.action, in: Capsule())
                         .accessibilityLabel(badgeLabel(badge))
                 }
             }

@@ -155,19 +155,27 @@ struct ClaimRealmView: View {
                     Text(domain.tagline).font(.hvFootnote).foregroundStyle(Palette.textSecondary).multilineTextAlignment(.leading)
                 }
                 if domain.available {
-                    Text("\(name.isEmpty ? "you" : name).\(domain.domain)")
-                        .font(.system(.footnote, design: .monospaced))
-                        .foregroundStyle(selected ? Color.accentColor : Palette.textTertiary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                    HStack(spacing: HV.Space.xs) {
+                        Text("\(name.isEmpty ? "you" : name).\(domain.domain)")
+                            .font(.system(.footnote, design: .monospaced))
+                            .foregroundStyle(selected ? Palette.textPrimary : Palette.textTertiary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                        // The chosen card is a step up in paper and carries a check: the one mark, never colour alone.
+                        if selected {
+                            Spacer(minLength: HV.Space.xs)
+                            // The size of the preview line beside it, so choosing a card does not make it taller.
+                            HVIcon(HVSymbol.selected).font(.system(.footnote, weight: .bold)).foregroundStyle(Palette.textPrimary)
+                        }
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(HV.Space.m)
-            .background(selected ? Color.accentColor.opacity(0.1) : Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+            .background(selected ? Palette.surfaceRaised : Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous)
-                    .strokeBorder(selected ? Color.accentColor : Palette.border, lineWidth: selected ? 1.5 : 1)
+                    .strokeBorder(selected ? Palette.controlBorder : Palette.border, lineWidth: 1)
             )
             .opacity(domain.available ? 1 : 0.55)
         }
@@ -204,9 +212,10 @@ struct ClaimRealmView: View {
 
     private func celebration(_ result: ClaimResult) -> some View {
         VStack(spacing: HV.Space.l) {
-            Image(systemName: "party.popper.fill")
+            // The seal a kept thing gets (`ChatKeptNoteView`, the Home card): flat mint, no gradient.
+            Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 52))
-                .foregroundStyle(Palette.brandGradient)
+                .foregroundStyle(Palette.mint)
                 .accessibilityHidden(true)
             VStack(spacing: HV.Space.xs) {
                 Text("\(result.domain) is yours")

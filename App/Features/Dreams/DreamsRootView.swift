@@ -195,6 +195,9 @@ private struct DreamsContent: View {
                     .buttonStyle(DreamTintedButtonStyle())
                 Button("Reject all") { rejecting = run }
                     .buttonStyle(.hvGhost)
+                    // Quiet beside Accept all, which is the accent: the ghost style draws its ink from the tint. While the
+                    // row is busy, Accept all goes grey beside it, so the disabled state still shows.
+                    .tint(Palette.textSecondary)
                 Spacer(minLength: 0)
             }
             .disabled(busy)
@@ -334,7 +337,7 @@ private struct DreamConnectionCard: View {
             endpoint(connection.a)
             HStack(spacing: HV.Space.xs) {
                 Capsule()
-                    .fill(isWoven ? AnyShapeStyle(Palette.brandGradient) : AnyShapeStyle(Palette.border))
+                    .fill(isWoven ? Palette.success : Palette.border)
                     .frame(width: 2, height: 16)
                     // 17: the centre of the 36pt tile (18) less half of the bar (1), so it hangs from the tile's centre.
                     .padding(.leading, 17)
@@ -370,6 +373,7 @@ private struct DreamConnectionCard: View {
                         .accessibilityIdentifier("dream.accept.\(connection.id)")
                     Button("Reject", action: onReject)
                         .buttonStyle(.hvGhost)
+                        .tint(Palette.textSecondary)
                         .accessibilityIdentifier("dream.reject.\(connection.id)")
                     Spacer(minLength: 0)
                 }

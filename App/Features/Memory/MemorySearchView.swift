@@ -191,7 +191,7 @@ struct MemoryHitCard: View {
             if let excerpt = hit.excerpt() {
                 Text(excerpt)
                     .font(.hvSubheadline)
-                    .foregroundStyle(Palette.textPrimary.opacity(0.85))
+                    .foregroundStyle(Palette.textPrimary)
                     .lineLimit(4)
                     .multilineTextAlignment(.leading)
                     .padding(HV.Space.s)
@@ -230,7 +230,7 @@ struct MemoryRelevance: View {
                 .frame(width: 36, height: 5)
                 .overlay(alignment: .leading) {
                     Capsule()
-                        .fill(Palette.softGradient)
+                        .fill(Palette.textSecondary)
                         .frame(width: 36 * fraction, height: 5)
                 }
             Text(scoreText)

@@ -11,10 +11,10 @@ struct HVEmptyState: View {
     var body: some View {
         VStack(spacing: HV.Space.m) {
             ZStack {
-                Circle().fill(Palette.blue.opacity(0.12)).frame(width: 84, height: 84)
+                Circle().fill(Palette.surfaceRaised).frame(width: 84, height: 84)
                 Image(systemName: symbol)
                     .font(.system(size: 32, weight: .medium))
-                    .foregroundStyle(Palette.brandGradient)
+                    .foregroundStyle(Palette.textSecondary)
             }
             .accessibilityHidden(true)
             VStack(spacing: HV.Space.xs) {

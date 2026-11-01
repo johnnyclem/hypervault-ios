@@ -99,7 +99,7 @@ struct CanvasComposer: View {
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
-                    .background(Palette.softGradient, in: Circle())
+                    .background(Palette.action, in: Circle())
             }
             .accessibilityLabel("Send")
             .accessibilityIdentifier("canvas.send")
@@ -150,7 +150,7 @@ private struct StagedChip: View {
                 if canAsk {
                     Button(HVCopy.askInsteadLabel, action: ask)
                         .buttonStyle(.hvGhost)
-                        .foregroundStyle(Palette.textSecondary)
+                        .tint(Palette.textSecondary)
                         .accessibilityIdentifier("canvas.askInstead")
                 }
             }

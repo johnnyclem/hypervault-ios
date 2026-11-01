@@ -321,7 +321,7 @@ struct ImportScreen: View {
     private var done: some View {
         VStack(spacing: HV.Space.l) {
             ZStack {
-                Circle().fill(Palette.mint.opacity(0.14)).frame(width: 84, height: 84)
+                Circle().fill(Palette.mint.opacity(HV.Tint.fill)).frame(width: 84, height: 84)
                 Image(systemName: "checkmark").font(.system(size: 34, weight: .semibold)).foregroundStyle(Palette.mint)
             }
             .accessibilityHidden(true)

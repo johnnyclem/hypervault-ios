@@ -92,7 +92,8 @@ struct HVGhostButtonStyle: ButtonStyle {
 }
 
 /// A round icon button, for toolbars and the composer. Pressed is a small spring; with Reduce Motion on it is a dimmer
-/// fill instead, as the other styles have it.
+/// fill instead, as the other styles have it. The prominent one is a flat `Palette.action` disc under a white glyph
+/// (5.17:1), with no ring and no sweep.
 struct HVIconButtonStyle: ButtonStyle {
     var prominent = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -102,10 +103,8 @@ struct HVIconButtonStyle: ButtonStyle {
             .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(prominent ? Color.white : Palette.textPrimary)
             .frame(width: 44, height: 44)
-            .background(
-                Circle().fill(prominent ? AnyShapeStyle(Palette.softGradient) : AnyShapeStyle(Palette.surfaceRaised))
-            )
-            .overlay(Circle().strokeBorder(prominent ? Color.white.opacity(0.18) : Palette.border, lineWidth: 1))
+            .background(Circle().fill(prominent ? Palette.action : Palette.surfaceRaised))
+            .overlay(Circle().strokeBorder(prominent ? Color.clear : Palette.border, lineWidth: 1))
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
             .opacity(configuration.isPressed && reduceMotion ? 0.85 : 1)
             .hvAnimation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
@@ -196,15 +195,14 @@ struct HVIconBadge: View {
     var tint: Color = Palette.blue
     /// 40pt is the kind tile (iconography guide): corners are a quarter of the side.
     var size: CGFloat = 40
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Image(systemName: symbol)
             .font(.system(size: size * 0.46, weight: .semibold))
             .foregroundStyle(tint)
             .frame(width: size, height: size)
-            // 16% of the tint in the dark look, 12% in the light look.
-            .background(tint.opacity(colorScheme == .light ? 0.12 : 0.16), in: RoundedRectangle(cornerRadius: size * 0.25, style: .continuous))
+            // The tint ladder's one fill, in both looks.
+            .background(tint.opacity(HV.Tint.fill), in: RoundedRectangle(cornerRadius: size * 0.25, style: .continuous))
             .accessibilityHidden(true)
     }
 }
@@ -258,8 +256,8 @@ struct HVTag: View {
             .fixedSize(horizontal: !wraps, vertical: true)
             .padding(.horizontal, 8)
             .padding(.vertical, HV.Space.xxs)
-            .background(tint.opacity(0.10), in: Capsule())
-            .overlay(Capsule().strokeBorder(tint.opacity(0.4), lineWidth: 1))
+            .background(tint.opacity(HV.Tint.fill), in: Capsule())
+            .overlay(Capsule().strokeBorder(tint.opacity(HV.Tint.border), lineWidth: 1))
     }
 }
 
@@ -305,7 +303,7 @@ struct HVSectionHeader: View {
     }
 }
 
-/// A person's initial in a coloured circle, or their photo when there is one.
+/// A person's initial on raised paper, or their photo when there is one. Flat: the person is not a colour.
 struct HVAvatar: View {
     let name: String
     var imageURL: URL?
@@ -313,10 +311,10 @@ struct HVAvatar: View {
 
     var body: some View {
         ZStack {
-            Circle().fill(Palette.avatarGradient)
+            Circle().fill(Palette.surfaceRaised)
             Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
                 .font(.system(size: size * 0.42, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.textPrimary)
             if let imageURL {
                 AsyncImage(url: imageURL) { phase in
                     if let image = phase.image {
@@ -327,6 +325,7 @@ struct HVAvatar: View {
             }
         }
         .frame(width: size, height: size)
+        .overlay(Circle().strokeBorder(Palette.border, lineWidth: 1))
         .accessibilityHidden(true)
     }
 }

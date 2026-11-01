@@ -65,7 +65,7 @@ private struct MessageRow: View {
     @ViewBuilder
     private var background: some View {
         if message.role == .user {
-            RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Palette.softGradient)
+            RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Palette.action)
         } else if message.isLocal {
             RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Palette.surfaceRaised)
                 .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
@@ -162,6 +162,6 @@ private struct NoModelRow: View {
         }
         .padding(HV.Space.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.surfaceRaised.opacity(0.7), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }

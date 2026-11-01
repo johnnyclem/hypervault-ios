@@ -204,9 +204,11 @@ struct CanvasCardView: View {
     }
 
     private var hideButton: some View {
+        // The ghost style draws its ink from the tint, so a `foregroundStyle` here would be ignored: Hide, which only
+        // removes the card, is quiet through `.tint`, and Open, Copy link and Share keep the accent.
         Button(HVCopy.cardHideLabel, action: onHide)
             .buttonStyle(.hvGhost)
-            .foregroundStyle(Palette.textSecondary)
+            .tint(Palette.textSecondary)
             .accessibilityLabel("Hide \(card.title)")
     }
 }

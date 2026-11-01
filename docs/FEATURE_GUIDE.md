@@ -184,10 +184,14 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   and `accent`, which also meets the global `AccentColor`).
 - Contrast is checked, not assumed: `DesignContrastTests` holds the pairs the app draws text in to 4.5:1, and records
   the exceptions (white on `primary` is 3.68:1, so a label on the flat primary fill is bold; `primary` and
-  `destructive` as text on raised paper fall under 4.5, so tinted text there uses `accent`; `primary` text on its own 12
-  to 14% tint is 4.08:1 on paper, so small text on a `primary` tint, such as the step numbers, is `accent` too).
+  `destructive` as text on raised paper fall under 4.5, so tinted text there uses `accent`; `primary` text on its own
+  10% tint is 4.31:1 on paper (4.08:1 at the older 14%), so small text on a `primary` tint, such as the step numbers, is
+  `accent` too). White text and white glyphs at body size sit on `action`, a flat #2563EB in both looks (5.17:1, no bold
+  needed): the person's chat bubbles, the send buttons, the prominent icon button and the count in the Account menu.
+  A tag, a notice, a disc or a badge is one fill, `HV.Tint.fill` (10%), with one edge, `HV.Tint.border` (40%).
   The light look records its own lows in the same test (`primary` on muted, `destructive` on the page and on muted,
-  `amber-400` on muted). White on the light primary, destructive, and accent fills stays at or above 4.5:1.
+  `amber-400` on muted, and the tint ladder's emerald, amber and `accent` pairs at that 10% step). White on the light
+  primary, destructive, and accent fills stays at or above 4.5:1.
 - Shapes, type and borders are the web's (handoff 2.4 and 2.5). Corner radii are named for their role in `HV.Radius`
   (`control` 8 for buttons and inputs, `card` 16, `surface` 20, `brandTile` 5, `floating` 24 for glass that floats over
   content), always `.continuous`. Type is the system

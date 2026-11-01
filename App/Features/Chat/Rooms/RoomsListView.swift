@@ -165,8 +165,9 @@ struct ChatRoomRow: View {
     }
 }
 
-/// "@grok" on a tint of the model's colour. The text is inked a shade deeper in light mode so it holds
-/// 4.5:1 on its own tint.
+/// "@grok" in the model's colour on `HV.Tint.fill` of the same colour. In the dark look the text holds 4.5:1 on its own
+/// tint on the page, paper and raised paper. In the light look the lighter pairs fall a little under it (coral is 4.19:1
+/// on the page and 3.88:1 on raised paper): the handle is a word the chip spells out, and the colour only echoes the model.
 struct ChatHandleChip: View {
     let handle: String
     let color: Color
@@ -179,6 +180,6 @@ struct ChatHandleChip: View {
             .foregroundStyle(color)
             .padding(.horizontal, 8)
             .padding(.vertical, verticalPadding)
-            .background(color.opacity(0.14), in: Capsule())
+            .background(color.opacity(HV.Tint.fill), in: Capsule())
     }
 }

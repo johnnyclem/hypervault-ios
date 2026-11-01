@@ -179,7 +179,13 @@ A render and a unit test cannot show these, and each one decides a line of the c
 Turn on VoiceOver and go through sign-in, the canvas and a list: every control is named, results are
 announced (a kept card, an error, a copied key), and nothing is only colour. Set the text size to the largest
 accessibility size: filters become menus, rows wrap, nothing is cut off. Turn on Reduce Motion: the thinking
-dots, launch mark and skeletons stay still.
+dots and skeletons stay still, the toast only fades, and the keeping demo on the second welcome page shows its
+finished line.
+
+Motion, with Reduce Motion off: the second welcome page plays its keeping demo once when you arrive on it, by a swipe or
+by Continue, and again when you leave and come back; the page dots change colour only, and the launch mark holds still. A toast
+settles down a few points from the bar as it fades in; the wash behind Welcome, Sign-in, Launch, Lock and Home reads
+about as strong as before on a dark OLED screen and in light mode; the icon buttons press without overshoot.
 
 Please note anything that looks or behaves wrong; the renders in `snapshots-claude-ios-client` show what
 each screen is meant to look like.

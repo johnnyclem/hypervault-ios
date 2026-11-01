@@ -145,7 +145,7 @@ struct CanvasScreen: View {
             celebrating = true
             Task {
                 try? await Task.sleep(nanoseconds: 2_200_000_000)
-                HV.Motion.animate(.default) { celebrating = false }
+                HV.Motion.animate { celebrating = false }
             }
         }
     }
@@ -186,7 +186,7 @@ struct CanvasScreen: View {
                             CanvasCardView(
                                 card: card,
                                 onOpen: { open(card) },
-                                onHide: { HV.Motion.animate(.snappy) { model.dispatch(.hide(key: card.key)) } },
+                                onHide: { HV.Motion.animate(HV.Motion.sheet) { model.dispatch(.hide(key: card.key)) } },
                                 onShare: { share(card) }
                             )
                                 .transition(.asymmetric(insertion: .scale(scale: 0.96).combined(with: .opacity), removal: .opacity))
@@ -197,14 +197,14 @@ struct CanvasScreen: View {
                     .padding(.horizontal, HV.Space.m)
                     .padding(.top, HV.Space.s)
                     .hvReadableWidth()
-                    .hvAnimation(.snappy, value: model.cards)
+                    .hvAnimation(HV.Motion.sheet, value: model.cards)
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .onChange(of: model.messages.count) { _, _ in
-                    HV.Motion.animate(.easeOut(duration: 0.25)) { proxy.scrollTo("bottom", anchor: .bottom) }
+                    HV.Motion.animate(HV.Motion.sheet) { proxy.scrollTo("bottom", anchor: .bottom) }
                 }
                 .onChange(of: model.cards.count) { _, _ in
-                    HV.Motion.animate(.easeOut(duration: 0.25)) { proxy.scrollTo("bottom", anchor: .bottom) }
+                    HV.Motion.animate(HV.Motion.sheet) { proxy.scrollTo("bottom", anchor: .bottom) }
                 }
             }
         }

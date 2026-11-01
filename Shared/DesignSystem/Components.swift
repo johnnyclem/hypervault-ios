@@ -93,9 +93,9 @@ struct HVGhostButtonStyle: ButtonStyle {
     }
 }
 
-/// A round icon button, for toolbars and the composer. Pressed is a small spring; with Reduce Motion on it is a dimmer
-/// fill instead, as the other styles have it. The prominent one is a flat `Palette.action` disc under a white glyph
-/// (5.17:1), with no ring and no sweep.
+/// A round icon button, for toolbars and the composer. Pressed is a small scale-down on the press curve, with no
+/// overshoot; with Reduce Motion on it is a dimmer fill instead, as the other styles have it. The prominent one is a flat
+/// `Palette.action` disc under a white glyph (5.17:1), with no ring and no sweep.
 struct HVIconButtonStyle: ButtonStyle {
     var prominent = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -107,9 +107,9 @@ struct HVIconButtonStyle: ButtonStyle {
             .frame(width: 44, height: 44)
             .background(Circle().fill(prominent ? Palette.action : Palette.surfaceRaised))
             .overlay(Circle().strokeBorder(prominent ? Color.clear : Palette.border, lineWidth: 1))
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
             .opacity(configuration.isPressed && reduceMotion ? 0.85 : 1)
-            .hvAnimation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            .hvAnimation(HV.Motion.press, value: configuration.isPressed)
     }
 }
 
@@ -249,7 +249,7 @@ struct HVChip: View {
             Capsule().fill(isSelected ? AnyShapeStyle(Palette.textPrimary) : AnyShapeStyle(Palette.surfaceRaised))
         )
         .overlay(Capsule().strokeBorder(isSelected ? Color.clear : Palette.border, lineWidth: 1))
-        .hvAnimation(.easeOut(duration: 0.15), value: isSelected)
+        .hvAnimation(HV.Motion.press, value: isSelected)
         .frame(minWidth: minTarget, minHeight: minTarget)
         .contentShape(Rectangle())
     }

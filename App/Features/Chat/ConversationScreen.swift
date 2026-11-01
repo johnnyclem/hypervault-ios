@@ -173,7 +173,7 @@ struct ChatConversationContent: View {
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
-        HV.Motion.animate(.easeOut(duration: 0.25)) {
+        HV.Motion.animate(HV.Motion.sheet) {
             proxy.scrollTo(Self.bottomID, anchor: .bottom)
         }
     }

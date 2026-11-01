@@ -60,7 +60,7 @@ final class ToolsCatalogModel {
                 if verdict.state == .dead { self.knownDead.insert(key) }
                 if verdict.state == .alive { self.knownDead.remove(key) }
             }
-            HV.Motion.animate(.easeInOut(duration: 0.25)) {
+            HV.Motion.animate(HV.Motion.sheet) {
                 self.results = McpRegistryEntry.applying(answer.results, to: self.results, knownDead: self.knownDead)
             }
         }

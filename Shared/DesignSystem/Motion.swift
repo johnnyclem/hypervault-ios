@@ -5,11 +5,22 @@ extension HV {
     /// Motion (handoff 2.6). The web's entrances are 0.15 to 0.22s ease-out and its copied state lasts 1.5s; Reduce Motion
     /// turns every custom animation off. System sheets and pushes animate themselves and are left alone.
     ///
+    /// One easing family and three lengths, all ease-out: `press` 0.15s for feedback, `entrance` 0.2s for a thing that
+    /// appears or changes in place, `sheet` 0.3s for a thing that travels or reflows. No springs, no overshoot, and no
+    /// loop that is not a live state (the thinking dots and the skeleton say that something is loading).
+    ///
     /// A view animates through `hvAnimation(_:value:)`; a change made in a closure (a button's action, a scroll) goes
     /// through `HV.Motion.animate`. Both are the usual `animation(_:value:)` and `withAnimation` with the gate in front.
     enum Motion {
+        /// Feedback under a finger: a pressed button, a chip taking or losing its fill, a copied mark. Ease-out over 0.15s.
+        static let press = Animation.easeOut(duration: 0.15)
+
         /// How a thing that appears or opens comes in: ease-out over 0.2s.
         static let entrance = Animation.easeOut(duration: 0.2)
+
+        /// A thing that travels or reflows: a toast, a card leaving or arriving, a stage of a flow giving way to the next,
+        /// a dragged card going back, a scroll to the newest item. Ease-out over 0.3s.
+        static let sheet = Animation.easeOut(duration: 0.3)
 
         /// How long a button says "Copied" before it goes back to its name, as the web's copy button does.
         static let copiedHold: TimeInterval = 1.5

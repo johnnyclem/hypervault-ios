@@ -499,7 +499,7 @@ struct ForceGraphView: View {
         guard let index = model.nodes.firstIndex(where: { $0.id == id }), index < model.points.count else { return }
         let node = model.nodes[index]
         let isNew = selection != id
-        HV.Motion.animate(.easeOut(duration: 0.18)) { selection = id }
+        HV.Motion.animate { selection = id }
 
         // The picture stops framing itself from here: the tour decides where it looks.
         camera.userMoved = true
@@ -607,7 +607,7 @@ struct ForceGraphView: View {
             }
         case .pan:
             if moved <= 6, selection != nil {
-                HV.Motion.animate(.easeOut(duration: 0.15)) { selection = nil }
+                HV.Motion.animate { selection = nil }
             }
         case .undecided:
             break
@@ -620,7 +620,7 @@ struct ForceGraphView: View {
         if selection == id {
             onOpen(id)
         } else {
-            HV.Motion.animate(.easeOut(duration: 0.18)) { selection = id }
+            HV.Motion.animate { selection = id }
         }
     }
 

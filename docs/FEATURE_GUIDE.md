@@ -236,12 +236,20 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   address. The breaks are drawn only; VoiceOver is given the real string. Where the text is selectable, or is copied from
   what is drawn, it stays `Text` (selecting a drawn break would copy it), and wraps by the system's rules; the share
   link drops selection at accessibility sizes for the breaks, since Copy link is beside it.
-- Motion (handoff 2.6): never write a bare `withAnimation` or `.animation(_:value:)`. `.hvAnimation(_:value:)` and
-  `HV.Motion.animate { }` are those two with Reduce Motion in front, `.hvBounce(value:)` is a symbol bounce that holds
-  still under it, and `HV.Motion.entrance` is the web's entrance (ease-out, 0.2s). A looping or decorative animation
-  reads `accessibilityReduceMotion` itself (Aurora, the thinking dots, the confetti). The icon button style swaps its
-  spring for a dimmer fill, and the toast fades in place of sliding. A button says "Copied" for `HV.Motion.copiedHold`
-  (1.5s), as the web's copy button does. System sheet and push animations are left to the system.
+- Motion (handoff 2.6): a feature writes no bare `withAnimation` or `.animation(_:value:)`. `.hvAnimation(_:value:)` and
+  `HV.Motion.animate { }` are those two with Reduce Motion in front, and `.hvBounce(value:)` is a symbol bounce that holds
+  still under it. The curves are one ease-out family in three lengths: `HV.Motion.press` (0.15s, feedback under a
+  finger), `HV.Motion.entrance` (0.2s, the web's entrance) and `HV.Motion.sheet` (0.3s, a thing that travels or
+  reflows). A feature uses those and writes no spring, `.snappy` or duration literal of its own, and animates opacity or
+  a transform where it can; a disclosure or a progress fill may animate a height or a width where the content has to
+  take room. Nothing loops unless it says something is loading (the thinking dots, the skeleton). Those two and the
+  toast host keep their own hand-gated animation, since each reads `accessibilityReduceMotion` itself (the dots and the
+  skeleton hold still under it, the toast fades), as the confetti does. The ambient wash (`AuroraBackground`) is static,
+  after the web's `.hv-memory-glow`: two radial gradients at `primary` 8% and `accent` 5% at the app's own positions,
+  with no blur, no drift and no `TimelineView`. The icon button style presses to 0.97 on the press curve (a dimmer fill
+  under Reduce Motion), and the toast settles down a few points as it fades in (it only fades under Reduce Motion). A
+  button says "Copied" for `HV.Motion.copiedHold` (1.5s), as the web's copy button does. System sheet and push
+  animations are left to the system.
 - Glass and bars: `hvGlass` is for floating chrome (a composer, a legend, a bar of icons), never a `.background(.bar)` or
   a material, and the system's navigation bar is not repainted (no `toolbarBackground`): on iOS 26 it carries its own
   scroll-edge effect. A filled button pinned under something that scrolls (Import, Claim an address, Compile tools) is

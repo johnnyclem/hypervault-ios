@@ -62,7 +62,7 @@ final class ToastCenter {
 
     func show(_ message: String, style: Toast.Style = .info) {
         let toast = Toast(message: message, style: style)
-        HV.Motion.animate(.spring(response: 0.35, dampingFraction: 0.82)) { current = toast }
+        HV.Motion.animate(HV.Motion.sheet) { current = toast }
         switch style {
         case .success: Haptics.success()
         case .error: Haptics.failure()
@@ -98,6 +98,15 @@ final class ToastCenter {
     }
 }
 
+/// The few points a toast travels as it enters and leaves.
+private struct ToastShift: ViewModifier {
+    var y: CGFloat
+
+    func body(content: Content) -> some View {
+        content.offset(y: y)
+    }
+}
+
 /// Overlays the current toast. Put it once, at the root.
 ///
 /// It sits below the navigation bar and not over it: the host fills the safe area, whose top edge is where the bar
@@ -120,13 +129,21 @@ struct ToastHost: View {
                     // The room for the bar and a gap under it. It is outside the tap and the accessibility element,
                     // so the strip over the bar's buttons is not part of the toast.
                     .padding(.top, Self.barHeight + HV.Space.xs)
-                    // Under Reduce Motion the toast fades; it does not slide in.
-                    .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
+                    .transition(enterTransition)
             }
             Spacer()
         }
         .allowsHitTesting(center.current != nil)
-        .animation(reduceMotion ? HV.Motion.entrance : Animation.spring(response: 0.35, dampingFraction: 0.82), value: center.current)
+        // Gated by hand and not through hvAnimation: under Reduce Motion the toast still has to fade (hvAnimation would
+        // turn the animation off and the toast would pop in and out).
+        .animation(reduceMotion ? HV.Motion.entrance : HV.Motion.sheet, value: center.current)
+    }
+
+    /// The toast settles down a few points as it fades in, from the bar's lower edge and not across the bar, and lifts
+    /// back toward it as it leaves. Under Reduce Motion it fades and does not move.
+    private var enterTransition: AnyTransition {
+        guard !reduceMotion else { return .opacity }
+        return AnyTransition.modifier(active: ToastShift(y: -8), identity: ToastShift(y: 0)).combined(with: .opacity)
     }
 
     private func card(_ toast: Toast) -> some View {

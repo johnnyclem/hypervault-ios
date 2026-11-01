@@ -39,8 +39,8 @@ struct CanvasComposer: View {
         .padding(.top, HV.Space.xs)
         .padding(.bottom, HV.Space.xs)
         .hvReadableWidth()
-        .hvAnimation(.snappy, value: model.staged != nil)
-        .hvAnimation(.snappy, value: model.notice)
+        .hvAnimation(HV.Motion.sheet, value: model.staged != nil)
+        .hvAnimation(HV.Motion.entrance, value: model.notice)
     }
 
     private var field: some View {
@@ -105,7 +105,7 @@ struct CanvasComposer: View {
             }
             .accessibilityLabel("Send")
             .accessibilityIdentifier("canvas.send")
-            .transition(.scale.combined(with: .opacity))
+            .transition(.opacity)
         } else if model.isBusy {
             ProgressView().frame(width: 44, height: 44)
         } else if let onDictate {

@@ -128,7 +128,7 @@ final class DreamsModel {
         Haptics.success()
         announcer.announce("Woven into your graph")
         if !calm { try? await Task.sleep(nanoseconds: 1_000_000_000) }
-        withAnimation(calm ? nil : .spring(response: 0.4, dampingFraction: 0.85)) {
+        HV.Motion.animate(calm ? nil : HV.Motion.sheet) {
             review.remove(connection: id, verdict: .accept)
             woven.remove(id)
         }
@@ -138,13 +138,13 @@ final class DreamsModel {
     /// Files one connection away for good: it is never proposed again.
     func reject(_ id: String) async throws {
         var removal: DreamReview.Removal?
-        HV.Motion.animate(.easeOut(duration: 0.25)) {
+        HV.Motion.animate(HV.Motion.sheet) {
             removal = review.remove(connection: id, verdict: .reject)
         }
         do {
             _ = try await env.client.send(.dreamDecide(connection: id, .reject))
         } catch {
-            if let removal { HV.Motion.animate(.default) { review.restore(removal, verdict: .reject) } }
+            if let removal { HV.Motion.animate(HV.Motion.sheet) { review.restore(removal, verdict: .reject) } }
             throw error
         }
     }
@@ -168,7 +168,7 @@ final class DreamsModel {
             if !calm { try? await Task.sleep(nanoseconds: 1_000_000_000) }
         }
         var removal: DreamReview.Removal?
-        withAnimation(calm ? nil : .easeOut(duration: 0.3)) {
+        HV.Motion.animate(calm ? nil : HV.Motion.sheet) {
             removal = review.remove(run: id, verdict: verdict)
             for connection in ids { woven.remove(connection) }
         }

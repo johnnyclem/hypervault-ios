@@ -361,7 +361,7 @@ private struct DreamConnectionCard: View {
                         .foregroundStyle(Palette.textPrimary)
                 }
                 .frame(maxWidth: .infinity, minHeight: 44)
-                .transition(.scale(scale: 0.9).combined(with: .opacity))
+                .transition(.opacity)
                 .accessibilityElement(children: .combine)
             } else {
                 HStack(spacing: HV.Space.m) {
@@ -377,7 +377,7 @@ private struct DreamConnectionCard: View {
             }
         }
         .hvCard()
-        .hvAnimation(.spring(response: 0.35, dampingFraction: 0.8), value: isWoven)
+        .hvAnimation(HV.Motion.entrance, value: isWoven)
     }
 
     @ViewBuilder

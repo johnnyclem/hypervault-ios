@@ -68,8 +68,9 @@ final class DesignContrastTests: XCTestCase {
     }
 
     /// The handoff's recorded exception (2.1, 9): white on the web's `primary` is 3.68:1. That is under 4.5:1 for body
-    /// text and over the 3:1 that bold text needs, so a label on the flat primary fill is bold (`HVPrimaryButtonStyle`)
-    /// and nothing at body weight is put on it. The same holds for white on `destructive` (3.76:1).
+    /// text and over the 3:1 that bold text needs, so nothing at body weight is put on it: the filled button is on
+    /// `action` instead (below) and its label is semibold. The same holds for white on `destructive` (3.76:1), where the
+    /// label of `HVDestructiveButtonStyle` stays bold.
     func testWhiteOnThePrimaryAndTheDestructiveFillIsTheDocumentedException() throws {
         let onPrimary = contrast(try hex("primary-foreground"), try hex("primary"))
         XCTAssertEqual(onPrimary, 3.68, accuracy: 0.01)
@@ -220,7 +221,8 @@ final class DesignContrastTests: XCTestCase {
     /// `Palette.action` is the one flat fill under white text and white glyphs at body size (the person's chat bubble, the
     /// send buttons, the prominent icon button, the count in the Account menu). It is #2563EB in both looks, the web's
     /// light-look `primary`, and white on it is 5.17:1 in each: no bold needed, unlike the dark look's own `primary`
-    /// (3.68:1), which is why it is a token of its own and not `primary`.
+    /// (3.68:1), which is why it is a token of its own and not `primary`. This pair is what lets `hvButton` (the label of
+    /// `HVPrimaryButtonStyle`, which fills with `action`) be semibold.
     func testWhiteOnTheActionFillIsBodyTextInBothLooks() throws {
         let light = HVTokens.lightColors
         let darkAction = try hex("action"), lightAction = try XCTUnwrap(light["action"])

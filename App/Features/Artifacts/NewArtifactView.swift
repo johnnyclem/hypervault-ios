@@ -275,7 +275,7 @@ struct NewArtifactView: View {
                 }
                 Spacer()
                 Text("\(Self.size(model.contentBytes)) of \(NewArtifactModel.megabytes(model.byteLimit))")
-                    .font(.hvCaption)
+                    .font(.hvCaption.monospacedDigit())
                     .foregroundStyle(model.isOverLimit ? Palette.danger : Palette.textSecondary)
             }
         }
@@ -315,7 +315,7 @@ struct NewArtifactView: View {
                         TextField("Source prompt", text: Bindable(model).sourcePrompt, prompt: artifactPrompt("Optional"), axis: .vertical)
                             .lineLimit(3...8)
                         Text("\(model.promptCount.formatted()) of \(model.promptLimit.formatted())")
-                            .font(.hvCaption)
+                            .font(.hvCaption.monospacedDigit())
                             .foregroundStyle(model.promptIsOverLimit ? Palette.danger : Palette.textSecondary)
                     }
                 }

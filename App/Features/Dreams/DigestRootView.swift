@@ -218,13 +218,16 @@ private struct DigestRunCard: View {
 private struct DigestSegmentCard: View {
     let segment: DigestSegment
     let total: Int
+    /// The disc the number sits in follows the type, by a quarter at most (`HV.glyphBox`), as the step number in Tools does.
+    @ScaledMetric(relativeTo: .body) private var disc: CGFloat = 28
 
     var body: some View {
-        HStack(alignment: .top, spacing: HV.Space.s) {
+        let side = HV.glyphBox(scaled: disc, base: 28)
+        return HStack(alignment: .top, spacing: HV.Space.s) {
             Text("\(segment.ordinal + 1)")
-                .font(.system(.footnote, weight: .bold))
+                .font(.system(.footnote, weight: .medium).monospacedDigit())
                 .foregroundStyle(Palette.textSecondary)
-                .frame(width: 26, height: 26)
+                .frame(width: side, height: side)
                 .background(Palette.textSecondary.opacity(HV.Tint.fill), in: Circle())
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {

@@ -196,9 +196,9 @@ struct TaskBoardScreen: View {
     private func progressFigures(_ summary: TaskBoardSummary) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
             Text("\(summary.progress)%")
-                .font(.system(.title, weight: .bold))
+                .font(.system(.title, weight: .semibold).monospacedDigit())
             Text("\(summary.done) of \(summary.countable) done")
-                .font(.hvSubheadline)
+                .font(.hvSubheadline.monospacedDigit())
                 .foregroundStyle(Palette.textSecondary)
         }
     }
@@ -208,7 +208,7 @@ struct TaskBoardScreen: View {
     private var updatedLine: some View {
         if let updated = model.board?.updatedAt {
             Text("Updated \(HVCopy.ago(since: updated).lowercased())")
-                .font(.hvCaption)
+                .font(.hvCaption.monospacedDigit())
                 .foregroundStyle(Palette.textSecondary)
         }
     }
@@ -222,7 +222,7 @@ struct TaskBoardScreen: View {
         ].filter { !$0.isEmpty }
         if !parts.isEmpty {
             Text(parts.joined(separator: " · "))
-                .font(.hvCaption)
+                .font(.hvCaption.monospacedDigit())
                 .foregroundStyle(Palette.textSecondary)
         }
     }

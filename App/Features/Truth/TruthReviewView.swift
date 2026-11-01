@@ -110,7 +110,7 @@ struct TruthReviewScreen: View {
         VStack(alignment: .leading, spacing: HV.Space.xxs) {
             // At a large text size the title takes the width, and the tag goes under it.
             let title = Text(model.deck.isFinished ? "Docket clear" : "Card \(model.deck.position) of \(model.deck.total)")
-                .font(.hvTitle3)
+                .font(.hvTitle3.monospacedDigit())
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: HV.Space.xs) {
                     title

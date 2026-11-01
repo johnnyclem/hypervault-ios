@@ -66,7 +66,7 @@ struct ConnectGuideView: View {
             ForEach(Array(guide.steps.enumerated()), id: \.offset) { index, step in
                 HStack(alignment: .firstTextBaseline, spacing: HV.Space.s) {
                     Text("\(index + 1)")
-                        .font(.system(.footnote, weight: .bold))
+                        .font(.system(.footnote, weight: .medium).monospacedDigit())
                         .foregroundStyle(Palette.sky)
                         .frame(minWidth: 28, minHeight: 28)
                         .background(Palette.blue.opacity(HV.Tint.fill), in: Circle())
@@ -205,11 +205,10 @@ struct ConnectGuideView: View {
     }
 
     private func sectionTitle(_ title: String) -> some View {
+        // Sentence case, as the words are written: the label is told apart by its size and its grey, not by capitals.
         Text(title)
-            .font(.system(.footnote, weight: .semibold))
+            .font(.hvMeta)
             .foregroundStyle(Palette.textSecondary)
-            .textCase(.uppercase)
-            .tracking(0.6)
             .accessibilityAddTraits(.isHeader)
     }
 }

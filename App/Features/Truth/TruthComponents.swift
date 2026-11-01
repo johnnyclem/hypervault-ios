@@ -113,7 +113,7 @@ struct TruthSummaryStats: View {
             ForEach(summary.stats) { stat in
                 VStack(alignment: .leading, spacing: 0) {
                     Text("\(stat.count)")
-                        .font(.system(.title3, weight: .semibold))
+                        .font(.system(.title3, weight: .semibold).monospacedDigit())
                         .foregroundStyle(Palette.textPrimary)
                     Text(stat.label)
                         .font(.hvCaption)
@@ -362,9 +362,8 @@ struct TruthTraceRowView: View {
                         .foregroundStyle(Palette.amber)
                 }
                 Text(verbatim: node.missing ? "\(TruthID.short(node.id)) is not in this ledger." : (node.text.isEmpty ? node.id : node.text))
-                    .font(.system(.footnote, design: .serif))
+                    .font(.system(.subheadline, design: .serif))
                     .foregroundStyle(node.missing ? Palette.textSecondary : Palette.textPrimary)
-                    .italic(node.missing)
                 Text(provenance(node))
                     .font(.hvCaption)
                     .foregroundStyle(Palette.textTertiary)
@@ -437,7 +436,7 @@ struct TruthBriefRow: View {
             // The statement is the content, so at an accessibility size (where three lines hold a few words of it) it is
             // not cut, and a row that is measured short cannot squeeze it to one line.
             Text(verbatim: entry.text.isEmpty ? entry.id : entry.text)
-                .font(.system(.footnote, design: .serif))
+                .font(.system(.subheadline, design: .serif))
                 .foregroundStyle(Palette.textPrimary)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                 .fixedSize(horizontal: false, vertical: true)

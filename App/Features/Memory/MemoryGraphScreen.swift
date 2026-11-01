@@ -201,7 +201,7 @@ struct MemoryGraphScreen: View {
         }
         if let note = model.linkNote { parts.append(note) }
         return Text(parts.joined(separator: " \u{00B7} "))
-            .font(.hvCaption)
+            .font(.hvCaption.monospacedDigit())
             .foregroundStyle(Palette.textTertiary)
             .multilineTextAlignment(.center)
             .padding(.horizontal, HV.Space.m)

@@ -302,7 +302,7 @@ private struct VaultNewItemForm: View {
                     .buttonStyle(.hvPrimary)
                     .disabled(!canSave)
                     Text(VaultScreenCopy.afterSaveLine)
-                        .font(.hvCaption)
+                        .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                 }
             }
@@ -350,7 +350,7 @@ private struct VaultNewItemForm: View {
                 .accessibilityIdentifier("vault.add.name")
             }
             Text("Agents ask for it by this name.")
-                .font(.hvCaption)
+                .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
             if let nameError { KeysInlineMessage(text: nameError) }
         }

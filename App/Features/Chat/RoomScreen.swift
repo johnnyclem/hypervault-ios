@@ -152,7 +152,7 @@ struct ChatRoomContent: View {
             }
             if !model.pending.isEmpty {
                 Text("\(model.budget) turn\(model.budget == 1 ? "" : "s") left in this round")
-                    .font(.hvCaption)
+                    .font(.hvCaption.monospacedDigit())
                     .foregroundStyle(Palette.textTertiary)
                     .padding(.vertical, HV.Space.hair)
             }
@@ -175,7 +175,7 @@ struct ChatRoomContent: View {
         HStack(spacing: HV.Space.s) {
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text("\(model.pending.count) turn\(model.pending.count == 1 ? "" : "s") still waiting")
-                    .font(.hvFootnote.weight(.semibold))
+                    .font(.hvFootnote.weight(.semibold).monospacedDigit())
                 Text("Nobody is running this round").font(.hvCaption).foregroundStyle(Palette.textSecondary)
             }
             Spacer(minLength: 0)

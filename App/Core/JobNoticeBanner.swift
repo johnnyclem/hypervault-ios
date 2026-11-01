@@ -41,7 +41,7 @@ struct JobNoticeBanner: View {
         HStack {
             if waiting > 0 {
                 Text("+\(waiting) more waiting")
-                    .font(.hvCaption)
+                    .font(.hvCaption.monospacedDigit())
                     .foregroundStyle(Palette.textSecondary)
             }
             Spacer(minLength: 0)

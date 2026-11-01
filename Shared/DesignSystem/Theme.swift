@@ -150,7 +150,8 @@ enum Palette {
     static let danger = HVColor.destructive
 
     /// The one flat fill for anything that carries white text or a white glyph at body size: the person's chat bubbles,
-    /// the send buttons, the prominent icon button, the count in the Account menu. #2563EB in both looks (the web's
+    /// the send buttons, the prominent icon button, the count in the Account menu, and the filled button
+    /// (`HVPrimaryButtonStyle`, whose semibold label this is what allows). #2563EB in both looks (the web's
     /// light-look `primary`); white on it is 5.17:1. It is the accent of an action, so it is never a tile, a tag or a
     /// decoration, and nothing is laid over it but white.
     static let action = HVColor.action
@@ -159,18 +160,28 @@ enum Palette {
 /// Type. Text styles, so everything scales with Dynamic Type, in the system face (SF Pro), which is what the web's
 /// sans stack resolves to. Monospace marks what is typed or matched exactly (a name, a key prefix, a card number);
 /// it is not a style. Roles are in handoff 2.4: a pane heading is `hvTitle3`, a sheet title `hvHeadline`, a section
-/// heading `HVSectionHeader`, a description `hvSubheadline`, a row name `hvBody`, a hint `hvFootnote`.
+/// heading `HVSectionHeader`, a description `hvSubheadline`, a row name `hvBody`, a hint `hvFootnote`, a small label
+/// that names the kind of what it sits on `hvMeta`. The roles stop at semibold. A figure that changes on screen
+/// adds `.monospacedDigit()` to its role (`.font(.hvCaption.monospacedDigit())`), so it does not jitter as it counts.
 extension Font {
-    static let hvHero = Font.system(.largeTitle, weight: .bold)
+    /// The headline of a first-run page: the largest text style, in the same semibold as every other title. Hierarchy
+    /// comes from its size.
+    static let hvHero = Font.system(.largeTitle, weight: .semibold)
     static let hvTitle = Font.system(.title2, weight: .semibold)
     static let hvTitle3 = Font.system(.title3, weight: .semibold)
     static let hvHeadline = Font.system(.headline, weight: .semibold)
-    /// The label of a filled button: bold, which is what lets white on `primary` (3.68:1) pass.
-    static let hvButton = Font.system(.headline, weight: .bold)
+    /// The label of a filled button: semibold. White on `Palette.action`, the fill of `HVPrimaryButtonStyle`, is 5.17:1
+    /// (`DesignContrastTests`), so the label needs no bold to carry it. `HVDestructiveButtonStyle` is the exception:
+    /// white on `destructive` is 3.76:1, so it sets this font bold.
+    static let hvButton = Font.system(.headline, weight: .semibold)
     static let hvBody = Font.system(.body)
     static let hvCallout = Font.system(.callout)
     static let hvSubheadline = Font.system(.subheadline)
     static let hvFootnote = Font.system(.footnote)
+    /// A small label that names what a thing is (the kind on a card, the title of a guide's section): footnote,
+    /// regular, in sentence case. A font carries no colour, so the caller adds `.foregroundStyle(Palette.textSecondary)`.
+    /// Never `.uppercased()`, never `.tracking`, never bold: the words are the label, and size and colour set it apart.
+    static let hvMeta = Font.system(.footnote, weight: .regular)
     static let hvCaption = Font.system(.caption)
     static let hvMono = Font.system(.footnote, design: .monospaced)
     /// Code in `HVCodePanel` and nowhere else: the web's 11px mono.

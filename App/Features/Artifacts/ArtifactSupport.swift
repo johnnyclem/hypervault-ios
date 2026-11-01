@@ -39,7 +39,7 @@ struct ArtifactGlyph: View {
             RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
                 .fill(LinearGradient(colors: [Color(stops.first), Color(stops.second)], startPoint: .topLeading, endPoint: .bottomTrailing))
             Text(glyph)
-                .font(.system(size: size * (glyph.count >= 2 ? 0.42 : 0.52), weight: .bold))
+                .font(.system(size: size * (glyph.count >= 2 ? 0.42 : 0.52), weight: .semibold))
                 .foregroundStyle(ink)
         }
         .frame(width: size, height: size)

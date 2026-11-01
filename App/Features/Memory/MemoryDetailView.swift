@@ -92,7 +92,9 @@ private struct MemoryDetailContent: View {
     private func header(_ page: MemoryPage) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             Text(page.memory.title)
-                .font(.system(.title2, weight: .bold))
+                // Semibold, the weight of every title role: at an accessibility size the text styles close up (the title is
+                // about a tenth larger than the first heading there), so the weight has to part the two as well as the size.
+                .font(.system(.title, weight: .semibold))
                 .foregroundStyle(Palette.textPrimary)
                 .textSelection(.enabled)
                 .accessibilityAddTraits(.isHeader)

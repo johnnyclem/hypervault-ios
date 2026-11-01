@@ -175,7 +175,7 @@ struct TruthEntryScreen: View {
             case .failed(let message):
                 Text(message).font(.hvFootnote).foregroundStyle(Palette.textSecondary).hvListRow()
             case .loaded(let ripple):
-                Text(ripple.sentence).font(.hvCallout).foregroundStyle(Palette.textSecondary).hvListRow()
+                Text(ripple.sentence).font(.hvSubheadline).foregroundStyle(Palette.textSecondary).hvListRow()
                 let named = claims(in: ripple)
                 ForEach(ripple.entries) { entry in
                     TruthBriefRow(entry: entry, claims: named, listedUnder: row.id).hvListRow()

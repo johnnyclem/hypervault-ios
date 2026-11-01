@@ -183,7 +183,7 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   and their SwiftUI extensions are off in `project.yml` because the sets share the web's names (`primary`, `background`,
   and `accent`, which also meets the global `AccentColor`).
 - Contrast is checked, not assumed: `DesignContrastTests` holds the pairs the app draws text in to 4.5:1, and records
-  the exceptions (white on `primary` is 3.68:1, so a label on the flat primary fill is bold; `primary` and
+  the exceptions (white on `primary` is 3.68:1, so no body-size white text sits on it; `primary` and
   `destructive` as text on raised paper fall under 4.5, so tinted text there uses `accent`; `primary` text on its own
   10% tint is 4.31:1 on paper (4.08:1 at the older 14%), so small text on a `primary` tint, such as the step numbers, is
   `accent` too). White text and white glyphs at body size sit on `action`, a flat #2563EB in both looks (5.17:1, no bold
@@ -199,10 +199,11 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   (`HVCodePanel`). Section headings (`HVSectionHeader`) are sentence case. Borders are the border token at reduced
   strength: `Palette.border` (60%) on surfaces, `Palette.controlBorder` (70%) on controls, `Palette.divider` (50%)
   between rows.
-- Buttons: `.hvPrimary` is flat `primary` with a bold label (white on it is 3.68:1, which only bold text passes),
-  `.hvSecondary` is `muted` with a control border, `.hvDestructive` is `destructive`, none of them with a glow, and none
-  with a spring (pressed is a dimmer fill). `hvFieldChrome` is the web's input: the page's own colour, 8pt, at least
-  44pt high, a half-strength ring when focused and a `destructive` outline when `isInvalid` (with the reason in words).
+- Buttons: `.hvPrimary` is flat `action` with a semibold label (white on it is 5.17:1), `.hvSecondary` is `muted` with a
+  control border, `.hvDestructive` is `destructive` with a bold label (white on it is 3.76:1, which only bold text
+  passes), none of them with a glow, and none with a spring (pressed is a dimmer fill). `hvFieldChrome` is the web's
+  input: the page's own colour, 8pt, at least 44pt high, a half-strength ring when focused and a `destructive` outline
+  when `isInvalid` (with the reason in words).
   `HVTag` is the web's status chip (the colour as text, at 10% as the fill and at 40% as the border); `Palette.success`
   and `Palette.warning` are its emerald and amber.
 - For the Vault and the settings panes: `HVTile` and `HVCardBrandTile` (tiles), `HVFilterPill` with `HVCount`,
@@ -256,6 +257,10 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   of the unslop audit for the rest), is left as the web writes it, full stop and all: grep the web repo for it before
   changing it, and if it should change, change it there first. A whole literal the web also uses, even for another toast
   ("Done.", "Saved."), is left alone for the same reason.
+- Small labels and changing figures: a small label that names the kind of what it sits on ("Page", "Check it worked") is
+  `Font.hvMeta` (footnote, regular) in `Palette.textSecondary`, in sentence case, with no `.uppercased()`, no `.tracking`
+  and no bold; a figure that changes while it is on screen (a count, a score, "1 of 20") takes `.monospacedDigit()`, as
+  `HVCount` and `HVSectionHeader`'s detail do, so it does not jitter as it counts.
 - Everything works at the largest Dynamic Type size, with
   VoiceOver (labels on icon-only buttons; combine row elements), with reduce
   motion, and with 44-point touch targets.

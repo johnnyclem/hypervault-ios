@@ -252,17 +252,11 @@ struct TaskBoardScreen: View {
     }
 
     @ViewBuilder private var filterButtons: some View {
+        // The app's one filter component: it carries the haptic, the 44pt area and the selected trait itself.
         ForEach(TaskBoardFilter.allCases) { filter in
-            Button {
-                Haptics.select()
+            HVFilterPill(title: filter.title, isSelected: model.filter == filter) {
                 model.filter = filter
-            } label: {
-                HVChip(title: filter.title, isSelected: model.filter == filter)
-                    .frame(minHeight: 44)
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .accessibilityAddTraits(model.filter == filter ? .isSelected : [])
         }
     }
 

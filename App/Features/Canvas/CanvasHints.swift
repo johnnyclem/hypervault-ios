@@ -31,13 +31,11 @@ struct CanvasHints: View {
                 // The system's paste control looks switched off when there is nothing on the pasteboard, which
                 // is how a first run finds it; it appears when there is something to paste.
                 if canPaste {
-                    PasteButton(payloadType: String.self) { strings in
+                    HVPasteButton { strings in
                         let text = strings.joined(separator: "\n\n")
                         guard !text.isEmpty else { return }
                         model.stagePaste(text)
                     }
-                    .labelStyle(.titleAndIcon)
-                    .buttonBorderShape(.capsule)
                     .tint(Palette.blue)
                 }
 

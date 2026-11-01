@@ -43,6 +43,14 @@ enum HV {
         static let m: CGFloat = card
         static let l: CGFloat = 20
         static let xl: CGFloat = 28
+
+        /// The radius of a shape drawn inside another with `inset` between their edges: the outer radius less the inset,
+        /// so the two curves share a centre, and never less than 4 (under that a corner reads as a nick in a square).
+        /// A control inside a card with 12 of padding is `inner(of: card, inset: HV.Space.s)`, 4; a tile 8 in from the
+        /// edge of a surface is `inner(of: surface, inset: HV.Space.xs)`, 12.
+        static func inner(of outer: CGFloat, inset: CGFloat) -> CGFloat {
+            max(4, outer - inset)
+        }
     }
 
     /// The width content stops growing at on iPad and landscape.

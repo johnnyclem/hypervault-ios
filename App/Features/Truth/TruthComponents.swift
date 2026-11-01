@@ -317,9 +317,8 @@ struct TruthEvidenceEditor: View {
                 HVIcon("chevron.up.chevron.down").font(.system(.caption2, weight: .semibold)).imageScale(.small)
             }
             .foregroundStyle(Palette.textPrimary)
-            .padding(.horizontal, HV.Space.s)
-            .frame(minHeight: 44)
-            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+            // The same chrome as the reference field beside it: one radius and one outline across the row.
+            .hvFieldChrome()
         }
         .accessibilityLabel("Evidence kind: \(row.wrappedValue.kind.title)")
     }

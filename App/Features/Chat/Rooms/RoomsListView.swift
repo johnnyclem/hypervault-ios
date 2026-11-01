@@ -129,8 +129,8 @@ struct ChatRoomRow: View {
                     ChatHandleChip(handle: member.handle, color: palette.color(for: member))
                 }
                 if !room.pending.isEmpty {
-                    // Grey, not blue: a status is not a member, and blue is Gemini's.
-                    HVTag(text: "\(room.pending.count) queued")
+                    // Quiet text, not a tag: a count is not a member, and not a status either.
+                    HVCount("\(room.pending.count) queued")
                 }
             }
         }

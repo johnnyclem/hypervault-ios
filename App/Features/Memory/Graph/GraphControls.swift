@@ -25,6 +25,7 @@ struct GraphControls: View {
     let hideUnlinked: Bool
     let onToggleType: (String) -> Void
     let onToggleUnlinked: () -> Void
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         VStack(spacing: HV.Space.xxs) {
@@ -56,6 +57,10 @@ struct GraphControls: View {
         .padding(.top, HV.Space.xs)
     }
 
+    /// The side of the clear button's square, which sits over the field's trailing edge rather than in its row so a
+    /// 44pt target does not make the field taller than the one in the Search tab.
+    private static let clearSide: CGFloat = 44
+
     private var searchField: some View {
         HStack(spacing: HV.Space.xs) {
             HVIcon("magnifyingglass").foregroundStyle(Palette.textTertiary)
@@ -64,21 +69,23 @@ struct GraphControls: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.search)
+                .focused($searchFocused)
+        }
+        // The text stops where the clear button begins: the field's own 12 of padding, then the rest of the square.
+        .padding(.trailing, query.isEmpty ? 0 : Self.clearSide - HV.Space.s)
+        .hvFieldChrome(isFocused: searchFocused)
+        .overlay(alignment: .trailing) {
             if !query.isEmpty {
                 Button { query = "" } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(Palette.textTertiary)
-                        .frame(minWidth: 44, minHeight: 44)
+                        .frame(width: Self.clearSide, height: Self.clearSide)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear the search")
             }
         }
-        .padding(.horizontal, HV.Space.m)
-        .frame(minHeight: 44)
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
         .padding(.horizontal, HV.Space.m)
     }
 }

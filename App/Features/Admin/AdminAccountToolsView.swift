@@ -114,11 +114,9 @@ struct AdminAccountToolsView: View {
                 .focused($idFocused)
                 .hvFieldChrome(isFocused: idFocused)
                 .accessibilityLabel("Account ID")
-            PasteButton(payloadType: String.self) { strings in
+            HVPasteButton { strings in
                 if let text = strings.first { model.idText = text }
             }
-            .labelStyle(.titleAndIcon)
-            .buttonBorderShape(.capsule)
         }
         .padding(.vertical, HV.Space.xxs)
     }

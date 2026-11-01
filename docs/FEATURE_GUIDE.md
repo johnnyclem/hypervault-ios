@@ -194,7 +194,8 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   primary, destructive, and accent fills stays at or above 4.5:1.
 - Shapes, type and borders are the web's (handoff 2.4 and 2.5). Corner radii are named for their role in `HV.Radius`
   (`control` 8 for buttons and inputs, `card` 16, `surface` 20, `brandTile` 5, `floating` 24 for glass that floats over
-  content), always `.continuous`. Type is the system
+  content), always `.continuous`. A shape inside another takes `HV.Radius.inner(of: outer, inset: gap)`: the outer radius
+  less the gap between them, never under 4, so the corners run parallel. Type is the system
   face; no `design: .rounded` anywhere, and monospace only for what is typed or matched (`hvMono`) and for code
   (`HVCodePanel`). Section headings (`HVSectionHeader`) are sentence case. Borders are the border token at reduced
   strength: `Palette.border` (60%) on surfaces, `Palette.controlBorder` (70%) on controls, `Palette.divider` (50%)
@@ -206,6 +207,14 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   when `isInvalid` (with the reason in words).
   `HVTag` is the web's status chip (the colour as text, at 10% as the fill and at 40% as the border); `Palette.success`
   and `Palette.warning` are its emerald and amber.
+- Filters are `HVFilterPill`, with its count when the filter has one: `HVFilterPill(title: "Unread", count: 3, isSelected: ...) { ... }`.
+  Leave `count` out and no number is drawn and VoiceOver reads the title alone (`"Open"`); with one it reads
+  `"Unread, 3"`. It carries the selected trait and its 44pt area itself, so do not wrap it in a `Button`. `HVChip` is for
+  a chip that is not a filter (an example to try, a name, a preset). A count or a plan is `HVCount`, quiet text that
+  takes a number or a short fact (`HVCount(3)`, `HVCount("2 of 3 on")`), and not an `HVTag`, which is for a status.
+- The system Paste control is `HVPasteButton { strings in ... }`, never a bare `PasteButton`: it sets the rounded
+  rectangle at `HV.Radius.control` and `.controlSize(.large)` once, so every Paste asks to be as tall as a button (the
+  system draws the control, so check the height on a device). A tint or an identifier goes on it as on any view.
 - For the Vault and the settings panes: `HVTile` and `HVCardBrandTile` (tiles), `HVFilterPill` with `HVCount`,
   `HVCodePanel`, `HVEmptyBox`, and `HVSymbol` for the SF Symbol of each concept. `hvGlass` is `.glassEffect`, and solid
   `card` under Reduce Transparency.

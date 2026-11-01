@@ -234,27 +234,22 @@ struct NewArtifactView: View {
 
     private var contentField: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HStack(spacing: HV.Space.xs) {
-                HVSectionHeader(title: "Paste from chat")
-                Spacer()
-                // Both pills are set at the same size and shape, with the system's own type: the paste
-                // control cannot be restyled, so the file button follows it.
-                PasteButton(payloadType: String.self) { strings in
-                    guard let text = strings.first else { return }
-                    model.typed(text)
+            // The heading and the two buttons share a row while they fit; at a large text size the buttons drop under it,
+            // and at the largest, where the two do not fit side by side either, they stack.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: HV.Space.xs) {
+                    HVSectionHeader(title: "Paste from chat")
+                    Spacer()
+                    pasteAndFile
                 }
-                .labelStyle(.titleAndIcon)
-                .buttonBorderShape(.capsule)
-                .controlSize(.regular)
-                Button {
-                    fileError = nil
-                    importing = true
-                } label: {
-                    Label("File", systemImage: "doc")
+                VStack(alignment: .leading, spacing: HV.Space.xs) {
+                    HVSectionHeader(title: "Paste from chat")
+                    HStack(spacing: HV.Space.xs) { pasteAndFile }
                 }
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.capsule)
-                .controlSize(.regular)
+                VStack(alignment: .leading, spacing: HV.Space.xs) {
+                    HVSectionHeader(title: "Paste from chat")
+                    pasteAndFile
+                }
             }
             ArtifactCodeView(
                 text: Bindable(model).content,
@@ -279,6 +274,25 @@ struct NewArtifactView: View {
                     .foregroundStyle(model.isOverLimit ? Palette.danger : Palette.textSecondary)
             }
         }
+    }
+
+    /// The two ways to bring text in. Both take the same shape and size, the control radius at the large control size:
+    /// `HVPasteButton` sets them on the system's Paste control, so the File button is set to match.
+    @ViewBuilder
+    private var pasteAndFile: some View {
+        HVPasteButton { strings in
+            guard let text = strings.first else { return }
+            model.typed(text)
+        }
+        Button {
+            fileError = nil
+            importing = true
+        } label: {
+            Label("File", systemImage: "doc")
+        }
+        .buttonStyle(.bordered)
+        .buttonBorderShape(.roundedRectangle(radius: HV.Radius.control))
+        .controlSize(.large)
     }
 
     private var titleField: some View {

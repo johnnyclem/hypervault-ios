@@ -119,7 +119,7 @@ struct SignInContent: View {
         }
         .signInWithAppleButtonStyle(.white)
         .frame(height: 52)
-        .clipShape(Capsule())
+        .clipShape(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
         .disabled(controller.isWorking)
         .opacity(controller.work == .apple ? 0.6 : 1)
         .accessibilityIdentifier("signin.apple")

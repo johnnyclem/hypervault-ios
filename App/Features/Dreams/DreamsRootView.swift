@@ -153,7 +153,6 @@ private struct DreamsContent: View {
                     ForEach(run.connections) { connection in
                         DreamConnectionCard(
                             connection: connection,
-                            topScore: model.topScore,
                             isWoven: model.woven.contains(connection.id),
                             onAccept: { accept(connection) },
                             onReject: { reject(connection) },
@@ -326,7 +325,6 @@ struct DreamTintedButtonStyle: ButtonStyle {
 /// One proposed connection: the two things, why, and a verdict.
 private struct DreamConnectionCard: View {
     let connection: DreamConnection
-    let topScore: Double
     let isWoven: Bool
     let onAccept: () -> Void
     let onReject: () -> Void
@@ -345,7 +343,7 @@ private struct DreamConnectionCard: View {
                     .font(.hvMeta)
                     .foregroundStyle(Palette.textSecondary)
                 Spacer(minLength: 0)
-                MemoryRelevance(score: connection.score, topScore: topScore)
+                MemoryRelevance(score: connection.score)
             }
             endpoint(connection.b)
             if !connection.reason.isEmpty {

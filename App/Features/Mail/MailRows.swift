@@ -309,7 +309,7 @@ struct MailMessageCard: View {
     }
 }
 
-/// The chips under the title: Inbox, Unread, Sent, Archive, Trash.
+/// The filters under the title: Inbox, Unread, Sent, Archive, Trash.
 struct MailFilterBar: View {
     let selected: MailFilter
     let unreadCount: Int
@@ -319,26 +319,22 @@ struct MailFilterBar: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: HV.Space.xs) {
                 ForEach(MailFilter.allCases) { filter in
-                    Button {
-                        Haptics.select()
+                    // One filter component with the rest of the app: it carries the haptic, the 44pt area and the
+                    // selected trait itself, and says "Unread, 2" aloud where the sheet used to say "Unread 2".
+                    HVFilterPill(title: filter.title, count: count(for: filter), isSelected: selected == filter) {
                         onSelect(filter)
-                    } label: {
-                        HVChip(title: title(for: filter), isSelected: selected == filter)
-                            .frame(minHeight: 44)
-                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(selected == filter ? .isSelected : [])
                 }
             }
         }
-        // The first chip lines up with the text of the rows below; the rest scroll out to the edge.
+        // The first filter lines up with the text of the rows below; the rest scroll out to the edge.
         .contentMargins(.horizontal, HV.Space.m, for: .scrollContent)
         .scrollClipDisabled()
     }
 
-    private func title(for filter: MailFilter) -> String {
-        filter == .unread && unreadCount > 0 ? "Unread \(unreadCount)" : filter.title
+    /// Only Unread has a number, and only when there is mail to read; the others draw none and are not spoken with one.
+    private func count(for filter: MailFilter) -> Int? {
+        filter == .unread && unreadCount > 0 ? unreadCount : nil
     }
 }
 

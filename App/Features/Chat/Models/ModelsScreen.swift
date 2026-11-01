@@ -203,7 +203,7 @@ struct ChatModelsContent: View {
             ForEach(locals) { local in
                 Button { localForm = .edit(local) } label: {
                     HStack(spacing: HV.Space.s) {
-                        HVIconBadge(symbol: "desktopcomputer", tint: ChatAgentTone(provider: "ollama").color, size: 36)
+                        ChatModelTile(symbol: "desktopcomputer")
                         VStack(alignment: .leading, spacing: HV.Space.xxs) {
                             Text(local.displayName).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(nil)
                             Text("\(local.model) \u{00B7} \(URL(string: ChatLocalModel.normalizedBase(local.baseURL))?.host ?? local.baseURL)")
@@ -225,7 +225,7 @@ struct ChatModelsContent: View {
                 }
             }
             Button { localForm = .add } label: {
-                Label("Add a model on your network", systemImage: "plus.circle").hvRowLabel().frame(minHeight: 44, alignment: .leading)
+                Label("Add a model on your network", systemImage: HVSymbol.add).hvRowLabel().frame(minHeight: 44, alignment: .leading)
             }
         } header: {
             HVSectionHeader(title: "On your network")
@@ -321,7 +321,7 @@ struct ChatOnDeviceRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
-            HVIconBadge(symbol: "iphone", tint: status.isAvailable ? Palette.mint : Palette.textSecondary, size: 36)
+            ChatModelTile(symbol: "iphone")
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 HStack(spacing: HV.Space.xs) {
                     Text(ChatOnDeviceModels.subtitle).font(.hvBody)
@@ -342,7 +342,6 @@ struct ChatBackendRow: View {
     let backend: ChatBackend
     let registry: [Capabilities.ProviderSpec]
     @Environment(\.dynamicTypeSize) private var typeSize
-    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
 
     /// Two lines are enough for a name at normal sizes; at the large ones nothing is cut to an ellipsis.
     private var lineLimit: Int? { typeSize.isAccessibilitySize ? nil : 2 }
@@ -350,13 +349,20 @@ struct ChatBackendRow: View {
     var body: some View {
         HStack(spacing: HV.Space.xs) {
             KeysRowLayout {
-                HVIconBadge(symbol: Self.symbol(for: backend.provider), tint: Self.tint(for: backend.provider), size: min(tile, 56))
+                ChatModelTile(provider: backend.provider, registry: registry)
             } words: {
                 VStack(alignment: .leading, spacing: HV.Space.xxs) {
                     Text(backend.name).font(.hvBody).foregroundStyle(Palette.textPrimary).lineLimit(lineLimit)
-                    facts(detail)
-                        .font(.hvFootnote)
-                        .foregroundStyle(Palette.textSecondary)
+                    // The provider's colour is this dot and no more: the same one its members wear in a room.
+                    HStack(alignment: .firstTextBaseline, spacing: HV.Space.hair) {
+                        Circle()
+                            .fill(Self.tint(for: backend.provider))
+                            .frame(width: 8, height: 8)
+                            .accessibilityHidden(true)
+                        facts(detail)
+                            .font(.hvFootnote)
+                            .foregroundStyle(Palette.textSecondary)
+                    }
                     facts(usage)
                         .font(.hvCaption)
                         .foregroundStyle(Palette.textTertiary)
@@ -404,18 +410,6 @@ struct ChatBackendRow: View {
             ForEach(Array(pieces.enumerated()), id: \.offset) { _, piece in
                 Text(piece).lineLimit(1).minimumScaleFactor(0.5)
             }
-        }
-    }
-
-    static func symbol(for provider: String) -> String {
-        switch provider {
-        case "openai": return "sparkle"
-        case "anthropic", "custom-anthropic": return "asterisk"
-        case "xai": return "bolt"
-        case "gemini": return "diamond"
-        case "mistral": return "wind"
-        case "ollama", "lmstudio": return "desktopcomputer"
-        default: return "link"
         }
     }
 

@@ -92,7 +92,7 @@ struct ToolsServerDetailView: View {
                 if model.needsSignIn.contains(server.id) { HVTag(text: "Sign in again", tint: Palette.amber) }
             }
             if server.secretBacked {
-                Label("The sign-in is kept in your saved-secrets vault.", systemImage: "lock.shield.fill").hvRowLabel()
+                Label("The sign-in is kept in your saved-secrets vault.", systemImage: "lock.shield").hvRowLabel()
                     .font(.hvFootnote)
                     .foregroundStyle(Palette.textSecondary)
             }

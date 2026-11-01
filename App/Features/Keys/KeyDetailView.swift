@@ -56,13 +56,13 @@ struct KeyDetailView: View {
 
             Section {
                 Button { showSteps = true } label: {
-                    HVRow(symbol: "list.bullet.rectangle", tint: Palette.blue, title: "Setup steps", subtitle: "Steps for an agent, with this key's place marked") { KeysChevron() }
+                    HVRow(symbol: "list.bullet.rectangle", title: "Setup steps", subtitle: "Steps for an agent, with this key's place marked") { KeysChevron() }
                 }
                 if let challengeSlug {
                     Button {
                         app.router.open(.route(.artifact(slug: challengeSlug)))
                     } label: {
-                        HVRow(symbol: "doc.text", tint: Palette.violet, title: "Its challenge page", subtitle: "The page the agent has to rewrite") { KeysChevron() }
+                        HVRow(symbol: "doc.text", title: "Its challenge page", subtitle: "The page the agent has to rewrite") { KeysChevron() }
                     }
                 }
             }
@@ -135,13 +135,13 @@ struct KeyDetailView: View {
     }
 
     private func header(_ key: AgentKey) -> some View {
-        // Beside the name while it fits. At accessibility sizes the badge would leave the name a narrow column, so it goes
-        // above it.
+        // Beside the name while it fits. At accessibility sizes the tile would leave the name a narrow column, so it goes
+        // above it. The tile is the neutral one the Vault draws; the key is the same key whatever its name.
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: HV.Space.s))
             : AnyLayout(HStackLayout(alignment: .center, spacing: HV.Space.m))
         return layout {
-            HVIconBadge(symbol: key.isPaired ? "link" : HVSymbol.key, tint: Palette.amber, size: 48)
+            HVTile(symbol: key.isPaired ? "link" : HVSymbol.key, size: 48)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(key.displayName ?? "Untitled key").font(.hvTitle3)
                 if key.isPaired {

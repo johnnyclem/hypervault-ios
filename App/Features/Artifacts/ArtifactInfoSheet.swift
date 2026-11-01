@@ -123,18 +123,12 @@ struct ArtifactInfoSheet: View {
                 Button {
                     choose(option, current: current)
                 } label: {
-                    HStack(spacing: HV.Space.s) {
-                        HVIconBadge(symbol: option.symbol, tint: option.tint, size: 32)
-                        VStack(alignment: .leading, spacing: HV.Space.xxs) {
-                            Text(option.title).font(.hvBody).foregroundStyle(Palette.textPrimary)
-                            Text(option.detail).font(.hvFootnote).foregroundStyle(Palette.textSecondary)
-                        }
-                        Spacer(minLength: HV.Space.xs)
+                    // The same neutral tile as every list; the trailing checkmark is what says which one is on.
+                    HVRow(symbol: option.symbol, title: option.title, subtitle: option.detail) {
                         if option == current {
                             HVIcon("checkmark").foregroundStyle(.tint).fontWeight(.semibold)
                         }
                     }
-                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(option == current ? .isSelected : [])

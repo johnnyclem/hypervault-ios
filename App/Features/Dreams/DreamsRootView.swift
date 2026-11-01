@@ -81,13 +81,13 @@ private struct DreamsContent: View {
 
     private var settings: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            // The sentence has the card's whole width: between the badge and the switch it was left about half of it
-            // and ran to six lines. The title shares the badge's row while it fits; at an accessibility size the title
-            // would get a narrow column ("Dream / every / night"), so the switch goes up beside the badge and the
+            // The sentence has the card's whole width: between the tile and the switch it was left about half of it
+            // and ran to six lines. The title shares the tile's row while it fits; at an accessibility size the title
+            // would get a narrow column ("Dream / every / night"), so the switch goes up beside the tile and the
             // title goes below it.
             if dynamicTypeSize.isAccessibilitySize {
                 HStack(spacing: HV.Space.s) {
-                    HVIconBadge(symbol: "moon.stars", tint: Palette.violet, size: 36)
+                    HVTile(symbol: "moon.stars", size: 36)
                     Spacer(minLength: HV.Space.xs)
                     dreamSwitch
                 }
@@ -97,7 +97,7 @@ private struct DreamsContent: View {
                 }
             } else {
                 HStack(spacing: HV.Space.s) {
-                    HVIconBadge(symbol: "moon.stars", tint: Palette.violet, size: 36)
+                    HVTile(symbol: "moon.stars", size: 36)
                     settingsTitle
                     Spacer(minLength: HV.Space.xs)
                     dreamSwitch
@@ -209,7 +209,7 @@ private struct DreamsContent: View {
         Group {
             if model.review.acceptedThisSitting > 0 {
                 HVEmptyState(
-                    symbol: "sparkles",
+                    symbol: "checkmark.seal",
                     title: "All caught up",
                     message: "\(model.review.acceptedThisSitting) \(model.review.acceptedThisSitting == 1 ? "connection" : "connections") woven into your graph. Your memory is a little more your own."
                 )
@@ -390,11 +390,7 @@ private struct DreamConnectionCard: View {
             onOpen(end)
         } label: {
             HStack(spacing: HV.Space.s) {
-                HVIconBadge(
-                    symbol: end.kind == .memory ? KeptKind.memory.symbol : KeptKind.page.symbol,
-                    tint: end.kind == .memory ? KeptKind.memory.tint : KeptKind.page.tint,
-                    size: 36
-                )
+                HVTile(symbol: end.kind == .memory ? KeptKind.memory.symbol : KeptKind.page.symbol, size: 36)
                 Text(end.label)
                     .font(.hvBody)
                     .foregroundStyle(end.isGone ? Palette.textTertiary : Palette.textPrimary)
@@ -403,7 +399,7 @@ private struct DreamConnectionCard: View {
                 Spacer(minLength: 0)
                 if openable {
                     Image(systemName: HVSymbol.open)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(.footnote, weight: .semibold))
                         .foregroundStyle(Palette.textTertiary)
                         .accessibilityHidden(true)
                 }

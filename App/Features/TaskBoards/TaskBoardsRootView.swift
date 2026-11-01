@@ -110,10 +110,12 @@ struct TaskBoardsScreen: View {
 struct TaskBoardRowView: View {
     let board: TaskBoardListing
     let summary: TaskBoardSummary?
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = HV.rowTile
 
     var body: some View {
         HStack(spacing: HV.Space.s) {
-            HVIconBadge(symbol: "checklist", tint: Palette.mint, size: 36)
+            // The neutral tile, as every list's is; the mint stays on the progress fill alone.
+            HVTile(symbol: "checklist", size: HV.glyphBox(scaled: tile, base: HV.rowTile))
             VStack(alignment: .leading, spacing: 6) {
                 Text(board.displayTitle)
                     .font(.hvBody)

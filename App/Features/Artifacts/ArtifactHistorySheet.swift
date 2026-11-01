@@ -139,8 +139,9 @@ struct ArtifactVersionRow: View {
                 }
             }
             HStack(spacing: HV.Space.xs) {
-                HVIcon(version.authorKind == "agent" ? "cpu" : "person.fill")
-                    .font(.system(size: 11))
+                // Both outline, and the size of the caption beside them (a fixed 11 did not follow the type).
+                HVIcon(version.authorKind == "agent" ? HVSymbol.agent : HVSymbol.contact)
+                    .font(.hvCaption)
                 Text(version.authorLine)
                 if let ago = LibraryCopy.ago(since: version.authoredAt ?? version.createdAt) {
                     Text("\u{00B7} \(ago)")
@@ -181,7 +182,7 @@ struct ArtifactVersionScreen: View {
                 NavigationLink {
                     ArtifactVersionSource(model: model, version: version)
                 } label: {
-                    HVRow(symbol: "doc.plaintext", tint: Palette.blue, title: "See the whole source") {
+                    HVRow(symbol: "doc.plaintext", title: "See the whole source") {
                         HVIcon(HVSymbol.open).font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.textTertiary)
                     }
                 }

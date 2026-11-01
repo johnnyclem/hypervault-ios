@@ -216,7 +216,7 @@ struct ImportScreen: View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
             VStack(alignment: .leading, spacing: HV.Space.s) {
                 HStack(spacing: HV.Space.s) {
-                    HVIconBadge(symbol: model.platform.guide.symbol, tint: model.platform.guide.tint, size: 44)
+                    HVTile(symbol: "doc.text", size: 44)
                     VStack(alignment: .leading, spacing: HV.Space.xxs) {
                         Text(model.isPaste ? "A pasted conversation" : "\(model.platform.title) history")
                             .font(.hvHeadline)
@@ -413,12 +413,10 @@ struct ImportSourceCard: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: HV.Space.s) {
-                HVIconBadge(symbol: platform.guide.symbol, tint: platform.guide.tint, size: 36)
-                VStack(alignment: .leading, spacing: HV.Space.xxs) {
-                    Text(platform.cardTitle).font(.hvHeadline).foregroundStyle(Palette.textPrimary)
-                    Text(platform.cardSubtitle).font(.hvCaption).foregroundStyle(Palette.textSecondary)
-                }
+            // The name and its caption say which service it is; a tile of a glyph and a hue per service said nothing more.
+            VStack(alignment: .leading, spacing: HV.Space.xxs) {
+                Text(platform.cardTitle).font(.hvHeadline).foregroundStyle(Palette.textPrimary)
+                Text(platform.cardSubtitle).font(.hvCaption).foregroundStyle(Palette.textSecondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(HV.Space.m)
@@ -439,6 +437,7 @@ struct ImportSourceCard: View {
 /// "How to get your export", as numbered steps.
 struct ImportGuideCard: View {
     let guide: ImportGuide
+    @ScaledMetric(relativeTo: .footnote) private var badge: CGFloat = 24
 
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
@@ -447,10 +446,12 @@ struct ImportGuideCard: View {
                 ForEach(Array(guide.steps.enumerated()), id: \.offset) { index, step in
                     HStack(alignment: .top, spacing: HV.Space.s) {
                         Text("\(index + 1)")
-                            .font(.system(.footnote, weight: .bold))
-                            .foregroundStyle(guide.tint)
-                            .frame(width: 24, height: 24)
-                            .background(guide.tint.opacity(0.14), in: Circle())
+                            .font(.system(.footnote, weight: .medium).monospacedDigit())
+                            // The disc stops growing a quarter over its size (`HV.glyphBox`), and the digit with it.
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                            .foregroundStyle(Palette.textSecondary)
+                            .frame(width: HV.glyphBox(scaled: badge, base: 24), height: HV.glyphBox(scaled: badge, base: 24))
+                            .background(Palette.surfaceRaised, in: Circle())
                             .accessibilityHidden(true)
                         Text(step).font(.hvCallout).foregroundStyle(Palette.textPrimary)
                             .accessibilityLabel("Step \(index + 1). \(step)")

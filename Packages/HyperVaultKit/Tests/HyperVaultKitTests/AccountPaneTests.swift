@@ -25,10 +25,12 @@ final class AccountPaneTests: XCTestCase {
         XCTAssertEqual(AccountPane.keys.label, "Agent keys")
     }
 
-    func testSymbolsAreThoseOfHandoffSection2_7() {
+    /// The panes' glyphs are those of handoff 2.7 except Models, which is the chip Chat draws for a model (`cpu`) and not
+    /// the web's sparkles.
+    func testSymbolsAreThePanesOwn() {
         XCTAssertEqual(
             AccountPane.allCases.map(\.symbol),
-            ["gearshape", "lock", "key", "sparkles", "globe", "paintpalette", "square.and.arrow.down"]
+            ["gearshape", "lock", "key", "cpu", "globe", "paintpalette", "square.and.arrow.down"]
         )
     }
 

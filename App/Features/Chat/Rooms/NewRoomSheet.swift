@@ -124,7 +124,7 @@ struct ChatNewRoomSheet: View {
             if model.seats.isEmpty {
                 VStack(spacing: HV.Space.m) {
                     HVEmptyState(
-                        symbol: "cpu",
+                        symbol: HVSymbol.model,
                         title: "Connect a model first.",
                         message: "Rooms are made of your connected models. Connect at least one, then come back to start a room."
                     )

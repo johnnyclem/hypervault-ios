@@ -1,14 +1,18 @@
 import SwiftUI
 
-/// The neutral tile that leads a row: 36pt, `radius-xl`, `muted` at 60% inside a `border` edge at 60%, its content in
-/// `muted-foreground`. It is decoration, so it is hidden from VoiceOver; the row's words say what it is (handoff 4.3).
+/// The neutral tile that leads a row: 36pt (`HV.rowTile`), `radius-xl`, `muted` at 60% inside a `border` edge at 60%, its
+/// content in `muted-foreground`. `HVRow` draws it in every list, whatever the row is about, and the Vault draws it for
+/// an entry. It is decoration, so it is hidden from VoiceOver; the row's words say what it is (handoff 4.3). The side is
+/// the caller's: `HVRow` hands it the size at the current text size (`HV.glyphBox`), and the glyph follows the side.
 /// A card with a known brand uses `HVCardBrandTile` in its place.
 struct HVTile<Content: View>: View {
     var size: CGFloat = 36
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous)
+        // `radius-xl` from 36pt up; a small tile (the 22 and 28pt ones of the widget, the first-run cards and the Home
+        // choices) keeps a corner in proportion to its side, as the badge it replaced did, and not a circle.
+        let shape = RoundedRectangle(cornerRadius: min(HV.Radius.card, size * 0.45), style: .continuous)
         content()
             .foregroundStyle(HVColor.mutedForeground)
             .frame(width: size, height: size)

@@ -52,6 +52,14 @@ enum HV {
     /// the text column that a row's separator starts at is this plus the gap (`Space.s`).
     static let rowTile: CGFloat = 36
 
+    /// The side of a box that holds a glyph, at the current text size. `scaled` is `base` run through
+    /// `@ScaledMetric(relativeTo: .body)`. The box grows with the type but by no more than a quarter, and it stops at 44,
+    /// as the Library's marks do, so a row's tile follows its words without taking the line from them. A box that is
+    /// already 44 or more keeps its size.
+    static func glyphBox(scaled: CGFloat, base: CGFloat) -> CGFloat {
+        min(scaled, max(base, min(base * 1.25, 44)))
+    }
+
     /// How much of a colour a fill or an edge made from it shows: one step each, for a tag, a notice, a disc and a
     /// badge alike, in both looks. `fill` is the web's status chip (`bg-emerald-400/10`) and `border` its edge
     /// (`border-emerald-400/40`). The text on a fill is the colour itself, which holds 4.5:1 over its own `fill` on the
@@ -124,21 +132,17 @@ enum Palette {
     static let skeleton = HVColor.border
 
     // The accents. The stock ones are the web's tokens and follow the appearance. Violet is the memory kind (a colour
-    // set, so it follows too). Cyan, coral and rose are decorative and have no token: each is its dark shade (the
-    // 400s) and, in the light look, the 700 the other accents mirror to (emerald, amber and violet are 700 there), so
-    // that they hold 4.5:1 as text and glyph on the light page and on paper, as they do in the dark.
+    // set, so it follows too). The three hues with no token (cyan, coral and rose) are gone from the palette: a model
+    // family's colour is `ChatAgentTone`'s, and nothing else takes a hue for being a destination.
     static let violet = HVColor.memory
     /// The web's `primary`, which is also the accent colour of the app.
     static let blue = HVColor.primary
     /// The web's `accent`: tinted text on raised paper, where `blue` falls under 4.5:1.
     static let sky = HVColor.accent
-    static let cyan = Color(dark: 0x22D3EE, light: 0x0E7490)
     /// Emerald-400, the Agent keys chips' success shade.
     static let mint = HVColor.emerald400
     /// Amber-400, the Agent keys chips' warning shade.
     static let amber = HVColor.amber400
-    static let coral = Color(dark: 0xF97316, light: 0xC2410C)
-    static let rose = Color(dark: 0xFB7185, light: 0xBE123C)
 
     static let success = mint
     static let warning = amber

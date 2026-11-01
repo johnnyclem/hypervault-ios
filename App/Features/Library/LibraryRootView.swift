@@ -176,7 +176,7 @@ struct LibraryScreen: View {
         // Mail is its own place, not a fifth way to filter what is kept.
         ToolbarItem(placement: .primaryAction) {
             NavigationLink(value: Route.mail) {
-                Image(systemName: "tray.full")
+                Image(systemName: "envelope")
             }
             .accessibilityLabel("Mail")
         }
@@ -351,7 +351,7 @@ struct LibraryScreen: View {
     @ViewBuilder
     private func visibilitySwipe(_ row: LibraryModel.FileRow) -> some View {
         if row.summary.visibility == .public {
-            Button { setVisibility(row, .private) } label: { Label("Make private", systemImage: "lock.fill") }
+            Button { setVisibility(row, .private) } label: { Label("Make private", systemImage: ArtifactVisibility.private.symbol) }
                 .tint(Palette.blue)
         } else {
             Button { pendingPublic = row } label: { Label("Make public", systemImage: "globe") }

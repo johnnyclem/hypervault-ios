@@ -76,7 +76,8 @@ struct RecentWidgetView: View {
     private func row(_ thing: WidgetThing) -> some View {
         HStack(spacing: 8) {
             if family != .accessoryRectangular {
-                HVIconBadge(symbol: thing.kind.symbol, tint: thing.kind.tint, size: family == .systemSmall ? 22 : 28)
+                // The neutral tile: the name says what it is, and the glyph is its kind's.
+                HVTile(symbol: thing.kind.symbol, size: family == .systemSmall ? 22 : 28)
             }
             Text(thing.name)
                 .font(.system(family == .accessoryRectangular ? .caption : .subheadline, weight: .medium))
@@ -140,7 +141,7 @@ struct KeepWidgetView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Keep something")
             } else if family == .accessoryInline {
-                Label("Keep something", systemImage: "tray.and.arrow.down")
+                Label("Keep something", systemImage: HVSymbol.keep)
             } else {
                 VStack(spacing: HV.Space.s) {
                     BrandMark(size: 46)

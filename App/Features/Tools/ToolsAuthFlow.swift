@@ -184,6 +184,7 @@ struct ToolsAuthChallengeView: View {
     var onCancel: (() -> Void)?
 
     @FocusState private var tokenFocused: Bool
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = HV.rowTile
 
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
@@ -208,7 +209,8 @@ struct ToolsAuthChallengeView: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: HV.Space.s) {
-            HVIconBadge(symbol: "lock.fill", tint: Palette.amber)
+            // The neutral tile and the outline lock: a request to sign in is not a warning, and the words say what it is.
+            HVTile(symbol: "lock", size: HV.glyphBox(scaled: tile, base: HV.rowTile))
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text("\(flow.target.displayName) wants you to sign in")
                     .font(.hvHeadline)

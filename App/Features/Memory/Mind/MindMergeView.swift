@@ -130,7 +130,7 @@ struct MindMergeView: View {
                     Button("Keep the version on \(model.target)") { model.resolveRemaining(.ours) }
                     Button("Take the version from \(model.source)") { model.resolveRemaining(.theirs) }
                 } label: {
-                    Label("Settle the rest in one go", systemImage: "wand.and.stars")
+                    Label("Settle the rest in one go", systemImage: "checklist")
                         .font(.hvSubheadline.weight(.semibold))
                 }
                 .disabled(session.unresolved.isEmpty)
@@ -192,7 +192,7 @@ struct MindBranchPill: View {
     var body: some View {
         HStack(spacing: 5) {
             HVIcon("arrow.triangle.branch")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(.caption, weight: .semibold))
             Text(name)
                 .font(.system(.subheadline, weight: .semibold))
         }

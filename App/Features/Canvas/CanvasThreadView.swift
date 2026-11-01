@@ -88,7 +88,7 @@ private struct MessageRow: View {
                     .foregroundStyle(Palette.warning)
             }
             Button(action: keep) {
-                Label(HVCopy.keepReplyLabel, systemImage: "tray.and.arrow.down")
+                Label(HVCopy.keepReplyLabel, systemImage: HVSymbol.keep)
                     .font(.system(.footnote, weight: .semibold))
             }
             .buttonStyle(.hvGhost)
@@ -105,7 +105,7 @@ private struct MessageRow: View {
                     choose(item)
                 } label: {
                     HStack(spacing: HV.Space.s) {
-                        HVIconBadge(symbol: item.kind.symbol, tint: item.kind.tint, size: 28)
+                        HVTile(symbol: item.kind.symbol, size: 28)
                         Text(item.name).font(.hvCallout).lineLimit(1)
                         Spacer(minLength: 0)
                     }

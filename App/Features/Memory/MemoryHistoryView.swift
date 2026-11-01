@@ -140,7 +140,7 @@ struct MemoryHistoryView: View {
                 if !diff.tagsAdded.isEmpty || !diff.tagsRemoved.isEmpty {
                     MemoryFlowLayout(spacing: 6) {
                         ForEach(diff.tagsAdded, id: \.self) { HVTag(text: "+ \($0)", tint: Palette.success) }
-                        ForEach(diff.tagsRemoved, id: \.self) { HVTag(text: "\u{2212} \($0)", tint: Palette.rose) }
+                        ForEach(diff.tagsRemoved, id: \.self) { HVTag(text: "\u{2212} \($0)", tint: Palette.danger) }
                     }
                 }
                 MindDiffView(diff: diff.diff)
@@ -158,7 +158,7 @@ struct MemoryHistoryView: View {
         switch op {
         case .create: return Palette.mint
         case .update: return Palette.blue
-        case .delete: return Palette.rose
+        case .delete: return Palette.danger
         }
     }
 

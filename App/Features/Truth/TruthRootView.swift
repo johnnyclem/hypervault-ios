@@ -179,7 +179,6 @@ struct TruthScreen: View {
     /// shared row stops at two lines, and "1 nominated by ag..." loses what it was there to say.
     private func docketRow(_ overview: TruthOverview) -> some View {
         HStack(spacing: HV.Space.s) {
-            HVIconBadge(symbol: "checklist", tint: Palette.blue, size: 36)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(overview.review?.due == true ? "A review is due" : "Review docket")
                     .font(.hvBody)
@@ -257,7 +256,7 @@ struct TruthScreen: View {
                     HStack {
                         HVSectionHeader(title: "History", detail: "\(rows.count)")
                         HVIcon(HVSymbol.fold)
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.system(.caption, weight: .semibold))
                             .rotationEffect(.degrees(historyOpen ? 0 : -90))
                             .foregroundStyle(Palette.textSecondary)
                     }
@@ -288,7 +287,7 @@ struct TruthScreen: View {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 if model.active?.isHosted == true {
-                    Button { showAssert = true } label: { Label("Assert a TB or UV", systemImage: "plus.circle") }
+                    Button { showAssert = true } label: { Label("Assert a TB or UV", systemImage: HVSymbol.add) }
                 }
                 Button { showImport = true } label: { Label("Import", systemImage: HVSymbol.importData) }
                 Button { exportStream() } label: { Label("Export this ledger", systemImage: "square.and.arrow.up") }
@@ -328,7 +327,7 @@ struct TruthScreen: View {
                 Text("Truth").font(.hvHeadline).foregroundStyle(Palette.textPrimary)
                 HStack(spacing: HV.Space.xxs) {
                     Text(model.active?.name ?? "Ledger").lineLimit(1)
-                    HVIcon(HVSymbol.fold).font(.system(size: 8, weight: .bold))
+                    HVIcon(HVSymbol.fold).font(.system(.caption2, weight: .semibold)).imageScale(.small)
                 }
                 .font(.hvCaption)
                 .foregroundStyle(Palette.textSecondary)

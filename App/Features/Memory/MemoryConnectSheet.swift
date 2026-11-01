@@ -71,7 +71,7 @@ struct MemoryConnectSheet: View {
         Button {
             connect(id)
         } label: {
-            HVRow(symbol: kind.symbol, tint: kind.tint, title: title, subtitle: subtitle) {
+            HVRow(symbol: kind.symbol, title: title, subtitle: subtitle) {
                 if connecting == id { ProgressView() } else { HVIcon("plus.circle").foregroundStyle(Color.accentColor) }
             }
             .padding(.vertical, 6)

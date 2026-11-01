@@ -189,20 +189,34 @@ struct HVGlassModifier<S: InsettableShape>: ViewModifier {
 
 // MARK: Pieces
 
-/// A small tinted icon in a rounded square: the leading mark of a row.
+/// A tinted icon in a rounded square, for a header or a note. It is not the leading mark of a row: that is the neutral
+/// `HVTile`, which `HVRow` draws. The tint is a role (`Palette.success`, `.warning`, `.danger`) or the accent, and never
+/// a hue chosen for what the row is about.
+///
+/// The box and its glyph grow with the text size, by a quarter at most and to 44pt (`HV.glyphBox`), so pass the size at the
+/// default text size and not one already scaled.
 struct HVIconBadge: View {
     let symbol: String
-    var tint: Color = Palette.blue
+    var tint: Color
     /// 40pt is the kind tile (iconography guide): corners are a quarter of the side.
-    var size: CGFloat = 40
+    let size: CGFloat
+    @ScaledMetric private var scaledSize: CGFloat
+
+    init(symbol: String, tint: Color = Palette.blue, size: CGFloat = 40) {
+        self.symbol = symbol
+        self.tint = tint
+        self.size = size
+        _scaledSize = ScaledMetric(wrappedValue: size, relativeTo: .body)
+    }
 
     var body: some View {
+        let side = HV.glyphBox(scaled: scaledSize, base: size)
         Image(systemName: symbol)
-            .font(.system(size: size * 0.46, weight: .semibold))
+            .font(.system(size: side * 0.46, weight: .semibold))
             .foregroundStyle(tint)
-            .frame(width: size, height: size)
+            .frame(width: side, height: side)
             // The tint ladder's one fill, in both looks.
-            .background(tint.opacity(HV.Tint.fill), in: RoundedRectangle(cornerRadius: size * 0.25, style: .continuous))
+            .background(tint.opacity(HV.Tint.fill), in: RoundedRectangle(cornerRadius: side * 0.25, style: .continuous))
             .accessibilityHidden(true)
     }
 }
@@ -220,7 +234,7 @@ struct HVChip: View {
     var body: some View {
         HStack(spacing: 6) {
             if let symbol {
-                HVIcon(symbol).font(.system(size: 12, weight: .semibold))
+                HVIcon(symbol).font(.system(.caption, weight: .semibold))
             }
             Text(title).font(.system(.subheadline, weight: .medium))
         }
@@ -330,23 +344,25 @@ struct HVAvatar: View {
     }
 }
 
-/// A row in a list of things: badge, title, subtitle, trailing detail.
+/// A row in a list of things: the neutral tile, title, subtitle, trailing detail. The tile is `HVTile` in every list, as
+/// the Vault draws it, whatever the row is about: the words say what it is, and a colour for a kind lives on the Home
+/// card and in a small dot, not here.
 struct HVRow<Trailing: View>: View {
     let symbol: String
-    var tint: Color = Palette.blue
     let title: String
     var subtitle: String?
     /// The subtitle is a host, a URL or an email, which breaks between its parts and not inside one (`HVAddressText`).
     var subtitleIsAddress = false
-    /// The side of the leading tile. `HV.rowTile` (36) in every list, as the Vault's tile is (`HVTile`); a row that
-    /// needs another size says so here and not by drawing its own badge.
+    /// The side of the leading tile at the default text size. `HV.rowTile` (36) in every list, as the Vault's tile is
+    /// (`HVTile`); a row that needs another size says so here and not by drawing its own badge. The tile grows with the
+    /// type up to 44 (`HV.glyphBox`), and `hvRowWordsInset` sets a view under the row in line with its words.
     var tileSize: CGFloat = HV.rowTile
     @ViewBuilder var trailing: () -> Trailing
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric private var scaledTile: CGFloat
 
     init(
         symbol: String,
-        tint: Color = Palette.blue,
         title: String,
         subtitle: String? = nil,
         subtitleIsAddress: Bool = false,
@@ -354,17 +370,17 @@ struct HVRow<Trailing: View>: View {
         @ViewBuilder trailing: @escaping () -> Trailing
     ) {
         self.symbol = symbol
-        self.tint = tint
         self.title = title
         self.subtitle = subtitle
         self.subtitleIsAddress = subtitleIsAddress
         self.tileSize = tileSize
         self.trailing = trailing
+        _scaledTile = ScaledMetric(wrappedValue: tileSize, relativeTo: .body)
     }
 
     var body: some View {
         HStack(spacing: HV.Space.s) {
-            HVIconBadge(symbol: symbol, tint: tint, size: tileSize)
+            HVTile(symbol: symbol, size: HV.glyphBox(scaled: scaledTile, base: tileSize))
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(title)
                     .font(.hvBody)
@@ -390,8 +406,31 @@ struct HVRow<Trailing: View>: View {
 }
 
 extension HVRow where Trailing == EmptyView {
-    init(symbol: String, tint: Color = Palette.blue, title: String, subtitle: String? = nil, subtitleIsAddress: Bool = false, tileSize: CGFloat = HV.rowTile) {
-        self.init(symbol: symbol, tint: tint, title: title, subtitle: subtitle, subtitleIsAddress: subtitleIsAddress, tileSize: tileSize) { EmptyView() }
+    init(symbol: String, title: String, subtitle: String? = nil, subtitleIsAddress: Bool = false, tileSize: CGFloat = HV.rowTile) {
+        self.init(symbol: symbol, title: title, subtitle: subtitle, subtitleIsAddress: subtitleIsAddress, tileSize: tileSize) { EmptyView() }
+    }
+}
+
+extension View {
+    /// Sets a view that sits under an `HVRow` (a row of tags at an accessibility size, say) in line with the row's words:
+    /// the room of the tile at the current text size, then the gap. `HV.rowTile + HV.Space.s` is right only at the
+    /// default size, because the tile grows with the type.
+    func hvRowWordsInset(tileSize: CGFloat = HV.rowTile) -> some View {
+        modifier(HVRowWordsInset(tileSize: tileSize))
+    }
+}
+
+private struct HVRowWordsInset: ViewModifier {
+    let tileSize: CGFloat
+    @ScaledMetric private var scaledTile: CGFloat
+
+    init(tileSize: CGFloat) {
+        self.tileSize = tileSize
+        _scaledTile = ScaledMetric(wrappedValue: tileSize, relativeTo: .body)
+    }
+
+    func body(content: Content) -> some View {
+        content.padding(.leading, HV.glyphBox(scaled: scaledTile, base: tileSize) + HV.Space.s)
     }
 }
 

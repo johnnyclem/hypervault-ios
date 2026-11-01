@@ -79,10 +79,10 @@ struct AdminScreen: View {
 
             Section(header: HVSectionHeader(title: "People")) {
                 NavigationLink(value: AdminRoute.accounts) {
-                    HVRow(symbol: "person.2.badge.gearshape", tint: Palette.rose, title: "Accounts & waitlist", subtitle: "Approve, set a plan, remove or delete by account ID")
+                    HVRow(symbol: "person.2", title: "Accounts & waitlist", subtitle: "Approve, set a plan, remove or delete by account ID")
                 }
                 Link(destination: dashboard) {
-                    HVRow(symbol: "safari", tint: Palette.blue, title: "Open the web dashboard", subtitle: "Every invite, the waitlist and all accounts") {
+                    HVRow(symbol: "safari", title: "Open the web dashboard", subtitle: "Every invite, the waitlist and all accounts") {
                         HVIcon("arrow.up.right").font(.footnote).foregroundStyle(Palette.textTertiary)
                     }
                 }
@@ -107,15 +107,13 @@ struct AdminScreen: View {
         }
     }
 
+    /// The words are the note: a heading and a sentence, with no tile in front of them.
     private var notice: some View {
-        HStack(alignment: .top, spacing: HV.Space.s) {
-            HVIconBadge(symbol: "info.circle", tint: Palette.blue)
-            VStack(alignment: .leading, spacing: HV.Space.xxs) {
-                Text("About the lists").font(.hvHeadline)
-                Text("HyperVault does not send the app its invite codes, its waitlist or its accounts, so they cannot be listed here yet. You can create codes and act on a code or an account you have the ID of.")
-                    .font(.hvFootnote)
-                    .foregroundStyle(Palette.textSecondary)
-            }
+        VStack(alignment: .leading, spacing: HV.Space.xxs) {
+            Text("About the lists").font(.hvHeadline)
+            Text("HyperVault does not send the app its invite codes, its waitlist or its accounts, so they cannot be listed here yet. You can create codes and act on a code or an account you have the ID of.")
+                .font(.hvFootnote)
+                .foregroundStyle(Palette.textSecondary)
         }
     }
 
@@ -149,10 +147,12 @@ struct AdminScreen: View {
 /// One invite in the list.
 struct AdminInviteRow: View {
     let invite: AdminInvite
+    @ScaledMetric(relativeTo: .body) private var tile: CGFloat = HV.rowTile
 
     var body: some View {
         HStack(spacing: HV.Space.s) {
-            HVIconBadge(symbol: "ticket", tint: tint, size: 36)
+            // The neutral tile: whether the code is active, used up or off is the tag's word (and its hue), not the tile's.
+            HVTile(symbol: "ticket", size: HV.glyphBox(scaled: tile, base: HV.rowTile))
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
                 Text(invite.code)
                     .font(.system(.body, design: .monospaced, weight: .medium))

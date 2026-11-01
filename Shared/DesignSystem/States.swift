@@ -127,14 +127,21 @@ struct HVSkeleton: View {
 /// Rows of skeletons shaped like a list.
 struct HVListSkeleton: View {
     var rows = 6
+    @ScaledMetric private var scaledTile: CGFloat
+
+    init(rows: Int = 6) {
+        self.rows = rows
+        _scaledTile = ScaledMetric(wrappedValue: HV.rowTile, relativeTo: .body)
+    }
 
     var body: some View {
+        let tile = HV.glyphBox(scaled: scaledTile, base: HV.rowTile)
         VStack(spacing: HV.Space.m) {
             ForEach(0..<rows, id: \.self) { _ in
-                // The shape of an `HVRow`: a tile (`HV.rowTile`, 36), 12 to the words, and a title line and a subtitle
-                // line that add up to the tile's height.
+                // The shape of an `HVRow`: a tile (`HV.rowTile`, 36, which grows with the type as the row's does), 12 to
+                // the words, and a title line and a subtitle line that add up to the tile's height.
                 HStack(spacing: HV.Space.s) {
-                    HVSkeleton(height: HV.rowTile, width: HV.rowTile)
+                    HVSkeleton(height: tile, width: tile)
                     VStack(alignment: .leading, spacing: HV.Space.xs) {
                         HVSkeleton(height: 16, width: 176)
                         HVSkeleton(height: 12, width: 112)
@@ -155,7 +162,7 @@ struct HVStaleBanner: View {
 
     var body: some View {
         HStack(spacing: HV.Space.xs) {
-            HVIcon("icloud.slash").font(.system(size: 12, weight: .semibold))
+            HVIcon("icloud.slash").font(.system(.caption, weight: .semibold))
             Text(message).font(.hvCaption)
         }
         .foregroundStyle(Palette.textSecondary)
@@ -164,19 +171,5 @@ struct HVStaleBanner: View {
         .background(Palette.surfaceRaised, in: Capsule())
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
-    }
-}
-
-/// What every feature entry point shows until its screen is built.
-struct HVComingSoon: View {
-    let title: String
-    var symbol = "sparkles"
-
-    var body: some View {
-        HVEmptyState(symbol: symbol, title: title, message: "This part of HyperVault is on its way to the app.")
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .hvScreenBackground()
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -164,7 +164,7 @@ struct TaskBoardScreen: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .refreshable { await model.refreshAndReport() }
-        .hvAnimation(.spring(response: 0.4, dampingFraction: 0.85), value: model.board)
+        .hvAnimation(HV.Motion.entrance, value: model.board)
     }
 
     /// How far along the board is, and when it last moved. The row sits on the page, not on paper: it is

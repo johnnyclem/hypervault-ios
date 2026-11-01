@@ -78,7 +78,7 @@ final class DigestModel {
         busy.insert(run.id)
         defer { busy.remove(run.id) }
         let decision = try await env.client.send(.digestDecide(run: run.id, verdict))
-        HV.Motion.animate(.easeOut(duration: 0.3)) {
+        HV.Motion.animate(HV.Motion.sheet) {
             runs.removeAll { $0.id == run.id }
         }
         if decision.applied {

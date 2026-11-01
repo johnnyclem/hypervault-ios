@@ -101,7 +101,7 @@ struct MailThreadScreen: View {
 
     private func scrollToNewest(_ proxy: ScrollViewProxy) {
         guard let id = model.newest?.id, model.messages.count > 1 else { return }
-        HV.Motion.animate(.easeOut(duration: 0.25)) { proxy.scrollTo(id, anchor: .top) }
+        HV.Motion.animate(HV.Motion.sheet) { proxy.scrollTo(id, anchor: .top) }
     }
 
     private var composer: some View {

@@ -39,7 +39,7 @@ struct MemoryAskView: View {
                 // away from the buttons that were just used.
                 .onChange(of: scrollKey) { _, key in
                     guard let key else { return }
-                    HV.Motion.animate(.easeOut(duration: 0.25)) { proxy.scrollTo(key.id, anchor: .bottom) }
+                    HV.Motion.animate(HV.Motion.sheet) { proxy.scrollTo(key.id, anchor: .bottom) }
                 }
             }
             composer

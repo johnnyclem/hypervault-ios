@@ -365,7 +365,7 @@ struct ChatGroundingView: View {
                             chipView(chip)
                         }
                         if !showAll && chips.count > 5 {
-                            Button("+\(chips.count - 5) more") { HV.Motion.animate(.default) { showAll = true } }
+                            Button("+\(chips.count - 5) more") { HV.Motion.animate { showAll = true } }
                                 .font(.hvCaption.weight(.medium))
                                 .buttonStyle(.plain)
                                 .foregroundStyle(Color.accentColor)
@@ -623,7 +623,7 @@ struct ChatThinkingBubble: View {
                         .font(.hvCallout)
                         .foregroundStyle(Palette.textSecondary)
                         .contentTransition(.opacity)
-                        .hvAnimation(.easeOut(duration: 0.25), value: Self.line(seconds: seconds, usesRecall: usesRecall))
+                        .hvAnimation(HV.Motion.entrance, value: Self.line(seconds: seconds, usesRecall: usesRecall))
                     Spacer(minLength: 0)
                     if seconds >= 3 {
                         Text(Self.clock(seconds))

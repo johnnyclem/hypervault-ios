@@ -31,7 +31,7 @@ struct ChatComposerView: View {
         .padding(.bottom, HV.Space.xs)
         .hvReadableWidth()
         .hvAnimation(HV.Motion.entrance, value: model.notice)
-        .hvAnimation(.spring(response: 0.3, dampingFraction: 0.8), value: model.canSend)
+        .hvAnimation(HV.Motion.entrance, value: model.canSend)
     }
 
     private var field: some View {
@@ -80,7 +80,7 @@ struct ChatComposerView: View {
                     }
                     .buttonStyle(.hvIcon)
                     .accessibilityLabel("Stop")
-                    .transition(.scale.combined(with: .opacity))
+                    .transition(.opacity)
                 } else if model.canSend {
                     Button {
                         Haptics.tap()
@@ -90,7 +90,7 @@ struct ChatComposerView: View {
                     }
                     .buttonStyle(.hvIconProminent)
                     .accessibilityLabel("Send")
-                    .transition(.scale.combined(with: .opacity))
+                    .transition(.opacity)
                 }
             }
             .padding(.leading, HV.Space.s)

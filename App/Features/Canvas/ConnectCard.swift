@@ -147,7 +147,7 @@ struct ConnectCardSlot: View {
             if let model, model.isVisible {
                 ConnectCard(
                     onConnect: { app.router.sheet = .connectAgent },
-                    onDismiss: { HV.Motion.animate(.snappy) { _ = model.dismiss() } }
+                    onDismiss: { HV.Motion.animate(HV.Motion.sheet) { _ = model.dismiss() } }
                 )
                 .padding(.horizontal, HV.Space.xl)
                 .padding(.top, HV.Space.m)

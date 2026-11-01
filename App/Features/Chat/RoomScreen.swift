@@ -132,7 +132,7 @@ struct ChatRoomContent: View {
     }
 
     private func scroll(_ proxy: ScrollViewProxy) {
-        HV.Motion.animate(.easeOut(duration: 0.25)) { proxy.scrollTo(Self.bottomID, anchor: .bottom) }
+        HV.Motion.animate(HV.Motion.sheet) { proxy.scrollTo(Self.bottomID, anchor: .bottom) }
     }
 
     private var roster: some View {
@@ -242,7 +242,7 @@ struct ChatRoomContent: View {
         .padding(.top, HV.Space.xs)
         .padding(.bottom, HV.Space.xs)
         .hvReadableWidth()
-        .hvAnimation(.spring(response: 0.3, dampingFraction: 0.8), value: model.canSend)
+        .hvAnimation(HV.Motion.entrance, value: model.canSend)
         .hvAnimation(HV.Motion.entrance, value: model.notice)
     }
 

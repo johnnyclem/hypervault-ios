@@ -41,7 +41,7 @@ final class CanvasShareJourneyTests: HyperVaultUITestCase {
         }
 
         step("Done goes back to the cards as they were") {
-            tap(button("Done"), "Done")
+            tap(button("Done"), "Done", until: { !self.element("artifact.share.email").exists })
             requireGone(element("artifact.share.email"), "the sheet")
             require(button("Share Bakery landing page"), "the card Share was tapped on")
             require(button("Share Trip to Lisbon"), "the other cards, which stay")
@@ -51,7 +51,7 @@ final class CanvasShareJourneyTests: HyperVaultUITestCase {
             tap(button("Share Portfolio site"), "Share on the Portfolio card", until: { self.element("artifact.share.email").exists })
             require(element("artifact.share.email"), "the field for an email address")
             require(shows("/g/portfolio-site"), "the group's link")
-            tap(button("Done"), "Done")
+            tap(button("Done"), "Done", until: { !self.element("artifact.share.email").exists })
             requireGone(element("artifact.share.email"), "the sheet")
         }
     }

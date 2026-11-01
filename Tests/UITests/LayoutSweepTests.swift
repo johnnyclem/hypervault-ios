@@ -29,7 +29,7 @@ final class LayoutSweepTests: LayoutSweepCase {
         attachScreenshot("\(mode) - Yours, as it opens")
         expandThePanel()
         look(mode, "Yours", key: element("yours.row.a1"), "the Bakery landing page row")
-        tap(button("Done"), "Done")
+        tap(button("Done"), "Done", until: { !self.element("yours.filter").exists })
         requireGone(element("yours.filter"), "the Yours panel")
         openTab("Chat")
         look(mode, "Chat", key: element("chat.row.c1"), "the Lisbon conversation row")
@@ -44,7 +44,7 @@ final class LayoutSweepTests: LayoutSweepCase {
 
         openAccountMenu()
         look(mode, "the Account menu", key: element("account.library"), "the Library row")
-        tap(element("account.close"), "Close")
+        tap(element("account.close"), "Close", until: { !self.element("account.close").exists })
         // A tap on a tab while the menu is still going would land on the menu, which covers the tab bar.
         requireGone(element("account.close"), "the Account menu")
 

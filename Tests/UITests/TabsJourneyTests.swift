@@ -86,7 +86,7 @@ final class TabsJourneyTests: HyperVaultUITestCase {
             tap(element("artifact.source"), "Source")
             require(button("Copy source"), "the source sheet's Copy source button, which shows once the source has loaded")
             attachScreenshot("The source sheet over the page")
-            tap(button("Done"), "Done")
+            tap(button("Done"), "Done", until: { !self.button("Copy source").exists })
             requireGone(button("Copy source"), "the source sheet")
         }
 

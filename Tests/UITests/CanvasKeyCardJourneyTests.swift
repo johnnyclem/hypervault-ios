@@ -51,7 +51,7 @@ final class CanvasKeyCardJourneyTests: HyperVaultUITestCase {
         }
 
         step("Close puts the page away and leaves the card on the canvas") {
-            tap(button("Close"), "Close")
+            tap(button("Close"), "Close", until: { !self.button("Close").exists })
             requireGone(button("Close"), "the page")
             require(button("Open OPENAI_API_KEY"), "the key's card, which stays")
             require(button("Hide OPENAI_API_KEY"), "the card's Hide")

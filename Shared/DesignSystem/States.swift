@@ -156,7 +156,9 @@ struct HVListSkeleton: View {
     }
 }
 
-/// A one-line notice that what is on screen is the saved copy.
+/// A notice that what is on screen is the saved copy. A rounded rectangle at the card radius and not a capsule: it is
+/// one line at the default size, but at a large text size the sentence wraps, and a wrapped sentence in a capsule is a
+/// stadium with the words crowding its ends.
 struct HVStaleBanner: View {
     var message = "Showing the saved copy"
 
@@ -168,7 +170,7 @@ struct HVStaleBanner: View {
         .foregroundStyle(Palette.textSecondary)
         .padding(.horizontal, HV.Space.s)
         .padding(.vertical, 6)
-        .background(Palette.surfaceRaised, in: Capsule())
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
     }

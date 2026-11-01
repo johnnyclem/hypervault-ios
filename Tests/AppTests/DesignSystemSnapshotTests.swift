@@ -107,6 +107,37 @@ final class DesignSystemSnapshotTests: XCTestCase {
         )
     }
 
+    /// The small things that are drawn once and used everywhere: the one filter with and without a count, the quiet text a
+    /// count or a plan is, the status tag (a capsule on one line, a small rounded rectangle where it wraps at a large text
+    /// size), the saved-copy notice (one line, and wrapped, where it is no stadium), and the system Paste control in the
+    /// app's shape.
+    func testTheDetails() throws {
+        try snapshot(
+            page {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: HV.Space.hair) {
+                        HVFilterPill(title: "All", isSelected: true) {}
+                        HVFilterPill(title: "Open") {}
+                        HVFilterPill(title: "Unread", count: 3) {}
+                        HVFilterPill(title: "Done") {}
+                    }
+                }
+                HStack(spacing: HV.Space.s) {
+                    Text("Linear").font(.hvBody).foregroundStyle(Palette.textPrimary)
+                    HVCount("2 of 3 on")
+                    HVCount(12)
+                    HVCount("Pro")
+                }
+                HVTag(text: "Signed in with a login", tint: Palette.success)
+                HVTag(text: "Signed in with a login", tint: Palette.success).environment(\.dynamicTypeSize, .accessibility3)
+                HVStaleBanner()
+                HVStaleBanner().environment(\.dynamicTypeSize, .accessibility3)
+                HVPasteButton { _ in }
+            },
+            named: "design-details", size: CGSize(width: 393, height: 600)
+        )
+    }
+
     func testThePiecesTheVaultIsBuiltFrom() throws {
         try snapshot(
             page {

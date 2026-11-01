@@ -65,13 +65,13 @@ private struct MessageRow: View {
     @ViewBuilder
     private var background: some View {
         if message.role == .user {
-            RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Palette.action)
+            RoundedRectangle(cornerRadius: HV.Radius.surface, style: .continuous).fill(Palette.action)
         } else if message.isLocal {
-            RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Palette.surfaceRaised)
-                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+            RoundedRectangle(cornerRadius: HV.Radius.surface, style: .continuous).fill(Palette.surfaceRaised)
+                .overlay(RoundedRectangle(cornerRadius: HV.Radius.surface, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
         } else {
-            RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Palette.surface)
-                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+            RoundedRectangle(cornerRadius: HV.Radius.surface, style: .continuous).fill(Palette.surface)
+                .overlay(RoundedRectangle(cornerRadius: HV.Radius.surface, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
         }
     }
 
@@ -110,8 +110,8 @@ private struct MessageRow: View {
                         Spacer(minLength: 0)
                     }
                     .padding(HV.Space.s)
-                    .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+                    .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }
@@ -162,6 +162,6 @@ private struct NoModelRow: View {
         }
         .padding(HV.Space.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.surface, style: .continuous))
     }
 }

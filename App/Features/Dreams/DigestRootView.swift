@@ -252,7 +252,9 @@ private struct DigestSegmentCard: View {
             Spacer(minLength: 0)
         }
         .padding(HV.Space.s)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
+        // The run's card is `card` with `HV.Space.m` of padding, so the piece inside it is the card's radius less that gap: the
+        // floor, 4.
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.inner(of: HV.Radius.card, inset: HV.Space.m), style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Piece \(segment.ordinal + 1) of \(total): \(segment.title)")
     }

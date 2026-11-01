@@ -33,10 +33,6 @@ final class DreamsModel {
         self.announcer = announcer
     }
 
-    var topScore: Double {
-        review.runs.flatMap(\.connections).map(\.score).max() ?? 0
-    }
-
     // MARK: Loading
 
     func load() async {

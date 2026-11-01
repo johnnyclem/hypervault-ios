@@ -182,7 +182,7 @@ struct ChatRoomContent: View {
             Button("Continue") { model.resume() }.buttonStyle(.hvGhost).frame(minHeight: 44)
         }
         .padding(.horizontal, HV.Space.s)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
     }
 
     // MARK: Composer
@@ -201,7 +201,7 @@ struct ChatRoomContent: View {
                     .accessibilityLabel("Dismiss")
                 }
                 .padding(.leading, HV.Space.s)
-                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
             }
             VStack(alignment: .leading, spacing: 0) {
                 mentionChips
@@ -310,7 +310,9 @@ struct ChatRoomMessageView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, HV.Space.m)
                 .padding(.vertical, 6)
-                .background(Palette.surfaceRaised, in: Capsule())
+                // A line that wraps is a note, not a pill: a rounded rectangle at the card radius, as HVStaleBanner is.
+                // One line is under 32pt tall, so its corners clamp to the stadium it had.
+                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
                 .frame(maxWidth: .infinity)
         case .human:
             HStack(spacing: 0) {

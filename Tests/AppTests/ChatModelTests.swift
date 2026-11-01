@@ -489,6 +489,33 @@ final class ChatModelTests: XCTestCase {
         XCTAssertEqual(last.count, 1)
     }
 
+    /// The number on a platform's filter pill is how many chats come from it, and neither the search nor the filter
+    /// chosen moves it; the pills together add up to the "All" pill.
+    func testAPlatformPillCountsItsOwnChatsWhateverIsTypedOrChosen() async {
+        let env = AppEnvironment.preview(routes: [
+            .json(.get, "/api/conversations", """
+            {"conversations":[
+              {"id":"c1","title":"Trip to Lisbon","source_platform":"chatgpt","updated_at":"2026-10-24T08:30:00.000Z"},
+              {"id":"c2","title":"Taxes","source_platform":"chatgpt","updated_at":"2026-10-23T08:30:00.000Z"},
+              {"id":"c3","title":"Garden","source_platform":"claude","updated_at":"2026-10-22T08:30:00.000Z"}
+            ]}
+            """),
+        ])
+        let model = ChatListModel(client: env.client, cache: env.cache, namespace: "pill-counts-\(UUID().uuidString)")
+        await model.load()
+        XCTAssertEqual(model.conversations.count, 3)
+        XCTAssertEqual(model.count(for: "ChatGPT"), 2)
+        XCTAssertEqual(model.count(for: "Claude"), 1)
+        XCTAssertEqual(model.count(for: "Gemini"), 0)
+
+        model.query = "Garden"
+        model.platform = "Claude"
+        XCTAssertEqual(model.visible.count, 1)
+        XCTAssertEqual(model.count(for: "ChatGPT"), 2, "a search does not change another platform's number")
+        XCTAssertEqual(model.count(for: "Claude"), 1)
+        XCTAssertEqual(model.platforms.map(model.count(for:)).reduce(0, +), model.conversations.count)
+    }
+
     func testDateBuckets() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current

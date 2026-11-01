@@ -113,6 +113,17 @@ final class DesignTokensTests: XCTestCase {
         XCTAssertEqual(HV.rowTile, 36)
     }
 
+    /// A shape inside another has the outer radius less the gap between them, so the corners run parallel, and never
+    /// less than 4.
+    func testAnInnerRadiusIsTheOuterLessTheGapAndNeverUnderFour() {
+        XCTAssertEqual(HV.Radius.inner(of: HV.Radius.card, inset: HV.Space.xs), 8)
+        XCTAssertEqual(HV.Radius.inner(of: HV.Radius.surface, inset: HV.Space.xs), 12)
+        XCTAssertEqual(HV.Radius.inner(of: HV.Radius.floating, inset: HV.Space.s), 12)
+        XCTAssertEqual(HV.Radius.inner(of: HV.Radius.card, inset: HV.Space.s), 4)
+        XCTAssertEqual(HV.Radius.inner(of: HV.Radius.card, inset: HV.Space.m), 4)
+        XCTAssertEqual(HV.Radius.inner(of: HV.Radius.control, inset: HV.Space.xs), 4)
+    }
+
     func testTheCodePanelAndTheCardBrandsAreFixed() {
         XCTAssertEqual(HVTokens.Fixed.docPanelBackground, 0x14161B)
         XCTAssertEqual(HVTokens.Fixed.docPanelForeground, 0xE6E8EC)

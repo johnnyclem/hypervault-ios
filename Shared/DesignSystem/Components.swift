@@ -223,7 +223,9 @@ struct HVIconBadge: View {
     }
 }
 
-/// A pill for filters and tags.
+/// A pill that is not a filter: an example to try, a name to pick, a preset, a switch. A filter, which is what a row
+/// of pills usually is, is `HVFilterPill` (with its count when it has one). This one is a bordered capsule with the
+/// selected one filled; wrap it in a `Button` where it is tapped, and give it `minTarget` 0 where it is only drawn.
 struct HVChip: View {
     let title: String
     var symbol: String?
@@ -253,9 +255,12 @@ struct HVChip: View {
     }
 }
 
-/// A small status tag ("Public", "Private", "Pro"), drawn as the web's status chips are: the colour as text, the same
-/// colour at 10% as the fill and at 40% as the border. Pass `Palette.success` or `Palette.warning` (emerald-400 and
-/// amber-400) for a state; the words always say what the colour means.
+/// A small status tag ("Public", "Private", "Out of date"), drawn as the web's status chips are: the colour as text, the
+/// same colour at 10% as the fill and at 40% as the border. Pass `Palette.success` or `Palette.warning` (emerald-400
+/// and amber-400) for a state; the words always say what the colour means. A status only: a count ("2 of 3 on") or a
+/// plan ("Pro", shown once, where the plan is) is `HVCount`, quiet text and not a tag. The shape is a capsule, as the
+/// web's badge is; at an accessibility size, where the words wrap, it is a small rounded rectangle, because a capsule
+/// round two lines is a stadium with the words crowding its ends.
 struct HVTag: View {
     let text: String
     var tint: Color = Palette.textSecondary
@@ -265,6 +270,8 @@ struct HVTag: View {
         // One line at its own width, except at an accessibility size, where "Agent connected" is wider than the screen:
         // a tag that will not wrap pushes the row it is in past the edges, and the row is cut off on both sides.
         let wraps = dynamicTypeSize.isAccessibilitySize
+        // One line is under 200pt tall, so a radius of 100 clamps to the capsule it was; two lines take the small radius.
+        let shape = RoundedRectangle(cornerRadius: wraps ? HV.Radius.smallControl : 100, style: .continuous)
         Text(text)
             .font(.system(.caption, weight: .semibold))
             .foregroundStyle(tint)
@@ -272,8 +279,8 @@ struct HVTag: View {
             .fixedSize(horizontal: !wraps, vertical: true)
             .padding(.horizontal, 8)
             .padding(.vertical, HV.Space.xxs)
-            .background(tint.opacity(HV.Tint.fill), in: Capsule())
-            .overlay(Capsule().strokeBorder(tint.opacity(HV.Tint.border), lineWidth: 1))
+            .background(tint.opacity(HV.Tint.fill), in: shape)
+            .overlay(shape.strokeBorder(tint.opacity(HV.Tint.border), lineWidth: 1))
     }
 }
 

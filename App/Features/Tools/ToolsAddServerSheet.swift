@@ -486,6 +486,6 @@ struct ToolsToolInspectorRow: View {
                 }
             }
         }
-        .hvCard(padding: HV.Space.s, radius: HV.Radius.m)
+        .hvCard(padding: HV.Space.s, radius: HV.Radius.card)
     }
 }

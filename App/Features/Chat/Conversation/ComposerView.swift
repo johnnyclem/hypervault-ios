@@ -120,7 +120,7 @@ struct ChatComposerView: View {
             .accessibilityLabel("Dismiss")
         }
         .padding(.leading, HV.Space.s)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.m, style: .continuous))
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
     }
 
     /// Nothing is connected and the phone cannot answer either.

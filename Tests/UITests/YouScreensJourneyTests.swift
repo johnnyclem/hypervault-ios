@@ -129,7 +129,11 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
             require(first, "the nova.vault.cool address")
             XCTAssertTrue(first.label.contains("nova.vault.cool"), "The address row says \"\(first.label)\".")
             require(element("realms.row.c2"), "the nova.cleon.wiki address")
-            require(shows("Pro"), "the plan tag")
+            // The plan is one row, "Your plan" and its value, and no longer a tag on each address; "What Pro includes" is
+            // there for a Free account too, so the word alone proves nothing.
+            let plan = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "Your plan", "Pro")).firstMatch
+            require(plan, "the plan row, reading Pro")
         }
 
         step("An address opens to its look and its home page") {

@@ -101,7 +101,7 @@ struct CanvasCardView: View {
                 .padding(.horizontal, HV.Space.s)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.s, style: .continuous))
+                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
         }
     }
 
@@ -133,7 +133,8 @@ struct CanvasCardView: View {
             } else {
                 FlowLayout(spacing: HV.Space.hair) {
                     ForEach(agents) { agent in
-                        HVTag(text: agent.name, tint: Palette.amber)
+                        // A name states no warning, so the tag is the neutral grey one.
+                        HVTag(text: agent.name)
                     }
                 }
             }

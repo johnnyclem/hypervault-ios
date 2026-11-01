@@ -99,40 +99,55 @@ final class ToastCenter {
 }
 
 /// Overlays the current toast. Put it once, at the root.
+///
+/// It sits below the navigation bar and not over it: the host fills the safe area, whose top edge is where the bar
+/// starts, and the bar's buttons (Back, the toolbar's icons) are in its first 44 points. A toast drawn there hides the
+/// button a person may reach for next, so it begins under them. Only the toast itself answers a touch (the space round
+/// it is not a tap target), so the screen under it stays live while it is up.
 struct ToastHost: View {
     let center: ToastCenter
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    /// The height of the system navigation bar on iPhone, which does not grow with the text size. On iPad the tab bar can
+    /// sit above the navigation bar, and the toast may then land on the lower of the two: not handled here, a device check.
+    static let barHeight: CGFloat = 44
+
     var body: some View {
         VStack {
             if let toast = center.current {
-                HStack(spacing: HV.Space.s) {
-                    HVIcon(toast.symbol).foregroundStyle(toast.tint)
-                    Text(toast.message)
-                        .font(.system(.subheadline, weight: .medium))
-                        .foregroundStyle(Palette.textPrimary)
-                        .multilineTextAlignment(.leading)
-                        .lineLimit(3)
-                }
-                .padding(.horizontal, HV.Space.m)
-                .padding(.vertical, HV.Space.s)
-                .hvGlass(radius: HV.Radius.floating)
-                .shadow(color: .black.opacity(0.18), radius: 18, x: 0, y: 8)
-                .padding(.horizontal, HV.Space.m)
-                .padding(.top, HV.Space.xs)
-                // Under Reduce Motion the toast fades; it does not slide in.
-                .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
-                .onTapGesture { center.dismiss(toast.id) }
-                // One element that says what the eye sees, error and all, and that a double tap dismisses.
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(toast.spoken)
-                .accessibilityAddTraits(.isButton)
-                .accessibilityHint("Dismisses this message")
-                .accessibilityAction { center.dismiss(toast.id) }
+                card(toast)
+                    .padding(.horizontal, HV.Space.m)
+                    // The room for the bar and a gap under it. It is outside the tap and the accessibility element,
+                    // so the strip over the bar's buttons is not part of the toast.
+                    .padding(.top, Self.barHeight + HV.Space.xs)
+                    // Under Reduce Motion the toast fades; it does not slide in.
+                    .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
             }
             Spacer()
         }
         .allowsHitTesting(center.current != nil)
         .animation(reduceMotion ? HV.Motion.entrance : Animation.spring(response: 0.35, dampingFraction: 0.82), value: center.current)
+    }
+
+    private func card(_ toast: Toast) -> some View {
+        HStack(spacing: HV.Space.s) {
+            HVIcon(toast.symbol).foregroundStyle(toast.tint)
+            Text(toast.message)
+                .font(.system(.subheadline, weight: .medium))
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.leading)
+                .lineLimit(3)
+        }
+        .padding(.horizontal, HV.Space.m)
+        .padding(.vertical, HV.Space.s)
+        .hvGlass(radius: HV.Radius.floating)
+        .shadow(color: .black.opacity(0.18), radius: 18, x: 0, y: 8)
+        .onTapGesture { center.dismiss(toast.id) }
+        // One element that says what the eye sees, error and all, and that a double tap dismisses.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(toast.spoken)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Dismisses this message")
+        .accessibilityAction { center.dismiss(toast.id) }
     }
 }

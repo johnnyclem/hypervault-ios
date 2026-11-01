@@ -173,11 +173,9 @@ struct ImportScreen: View {
                 }
             }
             HStack {
-                PasteButton(payloadType: String.self) { strings in
+                HVPasteButton { strings in
                     if let text = strings.first { model.pasted = text }
                 }
-                .labelStyle(.titleAndIcon)
-                .buttonBorderShape(.capsule)
                 Spacer()
                 Button("Pick a text file") { picking = true }.buttonStyle(.hvGhost)
             }

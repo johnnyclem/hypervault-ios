@@ -253,7 +253,8 @@ struct MemoryTagList: View {
                 HVTag(text: tag)
             }
             if let limit, tags.count > limit {
-                HVTag(text: "+\(tags.count - limit)", tint: Palette.textTertiary)
+                // A count of the tags not shown: quiet text, not a tag of its own.
+                HVCount("+\(tags.count - limit)")
             }
         }
     }

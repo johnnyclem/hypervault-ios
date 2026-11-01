@@ -155,12 +155,14 @@ struct MemoryTagEditor: View {
                                     .font(.system(.caption2, weight: .semibold))
                                     .imageScale(.small)
                             }
+                            // A tag drawn as `HVTag` draws it (the tint, its fill and its edge), so the tag here is the one
+                            // the memory shows; the glyph is what makes it a button. The padding keeps the height it had.
                             .font(.system(.footnote, weight: .medium))
-                            .foregroundStyle(Palette.textPrimary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Palette.surfaceRaised, in: Capsule())
-                            .overlay(Capsule().strokeBorder(Palette.border, lineWidth: 1))
+                            .foregroundStyle(Palette.textSecondary)
+                            .padding(.horizontal, HV.Space.s)
+                            .padding(.vertical, HV.Space.hair)
+                            .background(Palette.textSecondary.opacity(HV.Tint.fill), in: Capsule())
+                            .overlay(Capsule().strokeBorder(Palette.textSecondary.opacity(HV.Tint.border), lineWidth: 1))
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Remove tag \(tag)")

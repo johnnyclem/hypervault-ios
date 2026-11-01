@@ -130,24 +130,17 @@ struct ChatConversationListView: View {
 
     private var showsFilter: Bool { model.platforms.count > 1 }
 
+    /// One filter language for the app: `HVFilterPill`, with the number of chats each platform holds. It keeps the 44pt
+    /// area, the selected trait and the haptic itself; VoiceOver reads "ChatGPT, 12".
     @ViewBuilder private var filterButtons: some View {
-        chip("All", selected: model.platform == nil) { model.platform = nil }
+        HVFilterPill(title: "All", count: model.conversations.count, isSelected: model.platform == nil) {
+            model.platform = nil
+        }
         ForEach(model.platforms, id: \.self) { name in
-            chip(name, selected: model.platform == name) { model.platform = name }
+            HVFilterPill(title: name, count: model.count(for: name), isSelected: model.platform == name) {
+                model.platform = name
+            }
         }
-    }
-
-    private func chip(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
-        Button {
-            Haptics.select()
-            action()
-        } label: {
-            HVChip(title: title, isSelected: selected)
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func delete(_ conversation: ChatConversation) {

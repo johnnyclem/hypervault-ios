@@ -127,12 +127,10 @@ struct MemorizeSheet: View {
                     }
                 }
                 HStack {
-                    PasteButton(payloadType: String.self) { strings in
+                    HVPasteButton { strings in
                         guard let text = strings.first, !text.isEmpty else { return }
                         draft.content = draft.content.isEmpty ? text : draft.content + "\n\n" + text
                     }
-                    .labelStyle(.titleAndIcon)
-                    .buttonBorderShape(.capsule)
                     Spacer()
                     Text(sizeLine)
                         .font(.hvCaption)

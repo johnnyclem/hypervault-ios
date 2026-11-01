@@ -1,0 +1,4 @@
+dark / a task board
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  TextField (taskboard.add)  70,345 288x22

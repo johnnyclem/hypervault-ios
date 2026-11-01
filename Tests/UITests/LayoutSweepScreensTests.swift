@@ -55,8 +55,10 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
         visit(mode, .pane("vault", title: "Vault"), "Vault", key: element("vault.row.github.com"), "the github.com entry") {
             open(element("vault.row.github.com"), "the github.com entry", until: { self.isShowingTitle("github.com") })
             look(mode, "a vault entry", key: shows("How an agent reads it"), "the section that says how an agent reads it")
-            // The entry is a sheet over the list: close it, so the next screen starts from the You tab.
-            tap(button("Close"), "the entry's Close button")
+            // The entry is a sheet over the list: close it, so the next screen starts from the You tab. A tap that is lost on a
+            // slow runner, or a scroll that lands as a tap on the row for replacing the value (its sheet then stands over
+            // this one), leaves a sheet open for every later screen; a person closes again until the entry has gone.
+            tap(button("Close"), "the entry's Close button", until: { !self.isShowingTitle("github.com") })
         }
 
         visit(mode, .account("taskBoards"), "Task boards", key: element("taskboards.row.eurorack-choir"), "the Eurorack Choir board") {

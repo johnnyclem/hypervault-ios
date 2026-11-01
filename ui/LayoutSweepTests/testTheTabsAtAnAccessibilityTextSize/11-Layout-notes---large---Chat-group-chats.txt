@@ -1,0 +1,7 @@
+large / Chat, group chats
+
+small target  Button "Models" (cpu)  20,51 56x36
+small target  Button "More" (chat.more)  238,51 58x36
+small target  Button  238,51 58x36
+small target  Button "New room" (plus)  312,51 58x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

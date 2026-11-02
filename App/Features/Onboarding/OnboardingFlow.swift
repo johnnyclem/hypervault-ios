@@ -23,7 +23,7 @@ struct OnboardingFlow: View {
                 story
                     .transition(.opacity)
             } else {
-                SignInScreen(onBack: cameFromStory ? { HV.Motion.animate(.snappy) { showStory = true } } : nil)
+                SignInScreen(onBack: cameFromStory ? { HV.Motion.animate(HV.Motion.sheet) { showStory = true } } : nil)
                     .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
             }
         }
@@ -43,7 +43,7 @@ struct OnboardingFlow: View {
 
             TabView(selection: $page) {
                 WelcomePageKeep().tag(0)
-                WelcomePageTalk().tag(1)
+                WelcomePageTalk(isCurrent: page == 1).tag(1)
                 WelcomePageSecrets().tag(2)
                 WelcomePageAnyAI().tag(3)
             }
@@ -56,7 +56,7 @@ struct OnboardingFlow: View {
                     if page == pageCount - 1 {
                         finishStory()
                     } else {
-                        HV.Motion.animate(.snappy) { page += 1 }
+                        HV.Motion.animate(HV.Motion.sheet) { page += 1 }
                     }
                 }
                 .buttonStyle(.hvPrimary)
@@ -80,7 +80,7 @@ struct OnboardingFlow: View {
     private func finishStory() {
         onboarded = true
         cameFromStory = true
-        HV.Motion.animate(.snappy) { showStory = false }
+        HV.Motion.animate(HV.Motion.sheet) { showStory = false }
     }
 }
 
@@ -91,12 +91,13 @@ struct PageDots: View {
     var body: some View {
         HStack(spacing: HV.Space.hair) {
             ForEach(0..<count, id: \.self) { index in
+                // Every dot is the same size; the page you are on is the one that takes the fill, so only a colour changes.
                 Capsule()
                     .fill(index == current ? HVColor.primary : Palette.border)
-                    .frame(width: index == current ? HV.Space.wide : HV.Space.xs, height: HV.Space.xs)
+                    .frame(width: HV.Space.xs, height: HV.Space.xs)
             }
         }
-        .hvAnimation(.snappy, value: current)
+        .hvAnimation(HV.Motion.entrance, value: current)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Page \(current + 1) of \(count)")
         .accessibilityIdentifier("welcome.pages")
@@ -152,38 +153,33 @@ struct WelcomePageKeep: View {
             message: "Only you can open it."
         ) {
             ZStack {
-                FloatingCard(symbol: "doc.richtext", label: "Pricing page", x: -74, y: -112, phase: 0)
-                FloatingCard(symbol: "note.text", label: "Trip notes", x: 96, y: 90, phase: 1.3)
-                FloatingCard(symbol: HVSymbol.key, label: "Deploy key", x: -84, y: 128, phase: 2.1)
+                FloatingCard(symbol: "doc.richtext", label: "Pricing page", x: -74, y: -112)
+                FloatingCard(symbol: "note.text", label: "Trip notes", x: 96, y: 90)
+                FloatingCard(symbol: HVSymbol.key, label: "Deploy key", x: -84, y: 128)
                 BrandMark(size: 104)
             }
         }
     }
 }
 
-/// A small card drifting around the mark.
+/// A small card set beside the mark. It holds still.
 struct FloatingCard: View {
     let symbol: String
     let label: String
     let x: CGFloat
     let y: CGFloat
-    let phase: Double
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 24.0, paused: reduceMotion)) { context in
-            let t = context.date.timeIntervalSinceReferenceDate + phase
-            HStack(spacing: 8) {
-                HVTile(symbol: symbol, size: 28)
-                Text(label).font(.system(.footnote, weight: .semibold))
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
-            .shadow(color: .black.opacity(0.12), radius: 14, x: 0, y: 8)
-            .offset(x: x + CGFloat(sin(t / 1.6)) * 6, y: y + CGFloat(cos(t / 1.9)) * 7)
+        HStack(spacing: 8) {
+            HVTile(symbol: symbol, size: 28)
+            Text(label).font(.system(.footnote, weight: .semibold))
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+        .shadow(color: .black.opacity(0.12), radius: 14, x: 0, y: 8)
+        .offset(x: x, y: y)
     }
 }
 
@@ -193,8 +189,18 @@ struct WelcomePageTalk: View {
     static let title = "You talk to your AI like usual."
     static let message = "HyperVault keeps the thing worth keeping, and you only see it when you ask for it."
 
+    /// Whether this is the page the person is on. The pager may start a neighbouring page's task while it is only being
+    /// pre-loaded, so the demo is keyed on this and plays when the person arrives. A page shown on its own is current.
+    var isCurrent = true
+
     @State private var kept = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// What the demo depends on: it restarts when either one changes.
+    private struct DemoKey: Equatable {
+        let reduceMotion: Bool
+        let isCurrent: Bool
+    }
 
     var body: some View {
         WelcomePage(title: Self.title, message: Self.message) {
@@ -213,22 +219,21 @@ struct WelcomePageTalk: View {
                 .padding(.vertical, HV.Space.s)
                 .background(Palette.surface, in: Capsule())
                 .overlay(Capsule().strokeBorder(kept ? Palette.success.opacity(HV.Tint.border) : Palette.border, lineWidth: 1))
-                .scaleEffect(kept ? 1 : 0.96)
                 .frame(maxWidth: .infinity, alignment: .center)
             }
             .padding(.horizontal, HV.Space.xl)
-            .task(id: reduceMotion) {
-                // The demo loops for as long as the page shows; with Reduce Motion on it shows its finished state and stays.
+            .task(id: DemoKey(reduceMotion: reduceMotion, isCurrent: isCurrent)) {
+                // The demo plays once each time the person arrives on the page and then rests on the kept line; with
+                // Reduce Motion on it shows that finished state from the start. Off the page it waits at the start.
                 if reduceMotion {
                     kept = true
                     return
                 }
-                while !Task.isCancelled {
-                    kept = false
-                    try? await Task.sleep(nanoseconds: 1_100_000_000)
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { kept = true }
-                    try? await Task.sleep(nanoseconds: 2_600_000_000)
-                }
+                kept = false
+                guard isCurrent else { return }
+                try? await Task.sleep(nanoseconds: 1_100_000_000)
+                guard !Task.isCancelled else { return }
+                HV.Motion.animate { kept = true }
             }
         }
     }

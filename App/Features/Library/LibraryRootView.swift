@@ -183,7 +183,7 @@ struct LibraryScreen: View {
         ToolbarItem(placement: .primaryAction) {
             Button {
                 Haptics.select()
-                HV.Motion.animate(.snappy) {
+                HV.Motion.animate {
                     let wasGraph = graphShown
                     openedByLink = false
                     showGraph = !wasGraph

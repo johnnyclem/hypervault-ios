@@ -20,7 +20,7 @@ struct RootView: View {
         }
         .accessibilityHidden(model.lock.isLocked)
         .disabled(model.lock.isLocked)
-        .hvAnimation(.easeInOut(duration: 0.35), value: model.phase)
+        .hvAnimation(HV.Motion.entrance, value: model.phase)
         .onAppear { model.privacy.start() }
         .onChange(of: scenePhase) { _, phase in
             model.lock.scenePhaseChanged(phase)
@@ -57,17 +57,12 @@ struct RootView: View {
 
 /// The moment between tapping the icon and the app: the mark on quiet colour.
 struct LaunchView: View {
-    @State private var breathe = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     var body: some View {
+        // The mark holds still, like the launch image the system shows just before this.
         ZStack {
             AuroraBackground()
             BrandMark(size: 92)
-                .scaleEffect(reduceMotion ? 1 : (breathe ? 1.04 : 0.98))
-                .animation(reduceMotion ? nil : Animation.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: breathe)
         }
-        .onAppear { breathe = true }
         .accessibilityLabel("HyperVault is opening")
     }
 }

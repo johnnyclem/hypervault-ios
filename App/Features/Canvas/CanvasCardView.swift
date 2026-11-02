@@ -108,7 +108,7 @@ struct CanvasCardView: View {
     private func groupFiles(_ files: [GroupMember]) -> some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             Button(showFiles ? "Show less" : "Show files") {
-                HV.Motion.animate(.snappy) { showFiles.toggle() }
+                HV.Motion.animate(HV.Motion.sheet) { showFiles.toggle() }
             }
             .buttonStyle(.hvGhost)
             if showFiles {

@@ -179,11 +179,11 @@ struct TruthReviewScreen: View {
                 .rotationEffect(.degrees(reduceMotion ? 0 : Double(drag) / 28), anchor: .bottom)
                 .simultaneousGesture(swipe(item))
                 .id(item.id)
-                .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.97)), removal: .opacity))
+                .transition(.opacity)
                 .accessibilityAction(named: "Approve") { open(.approve, item) }
                 .accessibilityAction(named: "Defer for a week") { deferNow(item) }
         }
-        .animation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.85), value: item.id)
+        .hvAnimation(HV.Motion.sheet, value: item.id)
     }
 
     @ViewBuilder
@@ -210,7 +210,7 @@ struct TruthReviewScreen: View {
             .onEnded { value in
                 let width = value.translation.width
                 let horizontal = abs(width) > abs(value.translation.height)
-                HV.Motion.animate(.spring(response: 0.35, dampingFraction: 0.8)) { drag = 0 }
+                HV.Motion.animate(HV.Motion.sheet) { drag = 0 }
                 guard horizontal else { return }
                 if width > 110 {
                     open(.approve, item)

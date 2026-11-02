@@ -236,10 +236,10 @@ struct ChatCodeBlockView: View {
     private func copy() {
         UIPasteboard.general.string = code
         Haptics.tap()
-        HV.Motion.animate(.easeOut(duration: 0.15)) { copied = true }
+        HV.Motion.animate(HV.Motion.press) { copied = true }
         Task {
             try? await Task.sleep(nanoseconds: UInt64(HV.Motion.copiedHold * 1_000_000_000))
-            HV.Motion.animate(.easeOut(duration: 0.15)) { copied = false }
+            HV.Motion.animate(HV.Motion.press) { copied = false }
         }
     }
 }

@@ -256,7 +256,7 @@ private struct MindConflictCard: View {
 
             if conflict.hunksOurs.hasTextChanges || conflict.hunksTheirs.hasTextChanges {
                 Button(showDiffs ? "Hide the changes" : "Show what each side changed") {
-                    HV.Motion.animate(.easeInOut(duration: 0.2)) { showDiffs.toggle() }
+                    HV.Motion.animate { showDiffs.toggle() }
                 }
                 .buttonStyle(.hvGhost)
                 if showDiffs {

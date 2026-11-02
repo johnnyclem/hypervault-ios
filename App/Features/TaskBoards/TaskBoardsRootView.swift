@@ -150,7 +150,6 @@ struct TaskBoardRowView: View {
 struct TaskProgressBar: View {
     let done: Int
     let total: Int
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var fraction: Double { total > 0 ? Double(done) / Double(total) : 0 }
 
@@ -161,7 +160,7 @@ struct TaskProgressBar: View {
                 Capsule()
                     .fill(Palette.mint)
                     .frame(width: max(fraction > 0 ? 8 : 0, proxy.size.width * fraction))
-                    .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.8), value: fraction)
+                    .hvAnimation(HV.Motion.entrance, value: fraction)
             }
         }
         .frame(height: 8)

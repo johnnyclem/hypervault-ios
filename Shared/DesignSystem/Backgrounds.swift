@@ -1,46 +1,36 @@
 import SwiftUI
 
-/// The web's ambient wash: `primary` at 8% and `accent` at 5%, "restrained, not playful" (style guide 7). It drifts
-/// slowly behind the first screens and the canvas, never competes with content, and holds still for people who ask
-/// the system to reduce motion.
+/// The web's ambient wash: `primary` at 8% and `accent` at 5%, "restrained, not playful" (style guide 7). It follows the
+/// web's `.hv-memory-glow` in its two colours and strengths and in being static, two soft radial gradients, but it sits
+/// at the app's own positions and not the web's. Nothing in it moves or blurs, so it holds still for everyone, Reduce
+/// Motion included, and costs one draw. It sits behind the first screens and the canvas and never competes with content.
 struct AuroraBackground: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     var intensity: Double = 1
 
     var body: some View {
         ZStack {
             Palette.background
-            if reduceMotion {
-                blobs(at: 0)
-            } else {
-                TimelineView(.animation(minimumInterval: 1.0 / 24.0)) { context in
-                    blobs(at: context.date.timeIntervalSinceReferenceDate)
+            // The gradients' radii follow the screen's width, as the blurred circles' sizes did.
+            GeometryReader { proxy in
+                let width = proxy.size.width
+                ZStack {
+                    RadialGradient(
+                        colors: [HVColor.primary.opacity(0.08 * intensity), HVColor.primary.opacity(0)],
+                        center: UnitPoint(x: 0.18, y: 0.20),
+                        startRadius: 0,
+                        endRadius: width * 0.95
+                    )
+                    RadialGradient(
+                        colors: [HVColor.accent.opacity(0.05 * intensity), HVColor.accent.opacity(0)],
+                        center: UnitPoint(x: 0.84, y: 0.32),
+                        startRadius: 0,
+                        endRadius: width * 0.85
+                    )
                 }
             }
         }
         .ignoresSafeArea()
         .accessibilityHidden(true)
-    }
-
-    private func blobs(at time: Double) -> some View {
-        GeometryReader { proxy in
-            let width = proxy.size.width
-            let height = proxy.size.height
-            ZStack {
-                Circle()
-                    .fill(HVColor.primary.opacity(0.08 * intensity))
-                    .frame(width: width * 0.95)
-                    .blur(radius: 90)
-                    .offset(x: -width * 0.32 + sin(time / 9) * 36, y: -height * 0.30 + cos(time / 11) * 28)
-                Circle()
-                    .fill(HVColor.accent.opacity(0.05 * intensity))
-                    .frame(width: width * 0.85)
-                    .blur(radius: 90)
-                    .offset(x: width * 0.34 + cos(time / 10) * 32, y: -height * 0.18 + sin(time / 13) * 30)
-            }
-            .frame(width: width, height: height)
-        }
     }
 }
 

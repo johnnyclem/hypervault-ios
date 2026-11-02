@@ -1,0 +1,7 @@
+large / a vault entry
+
+small target  Button "Add to your vault" (plus)  336,51 33x36
+off screen    Image (AdditionalDimmingOverlay)  -120,-151 630x302
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  Button "Sheet Grabber"  159,389 73x24
+small target  Button "Close" (xmark)  29,413 31x34

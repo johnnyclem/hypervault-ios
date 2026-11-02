@@ -1,0 +1,3 @@
+dark / a truth entry
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

@@ -100,7 +100,8 @@ struct RouteDestination: View {
         case .taskBoards: TaskBoardsRootView()
         case .taskBoard(let slug, let project, let title):
             TaskBoardView(listing: TaskBoardListing(slug: slug, project: project, title: title))
-        case .project(let id): ProjectOverviewView(project: id)
+        // The overview keeps its model from the id it was made with: a link to another project starts it over.
+        case .project(let id): ProjectOverviewView(project: id).id(route)
         case .admin: AdminRootView()
         }
     }

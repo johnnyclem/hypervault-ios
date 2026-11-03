@@ -72,8 +72,12 @@ public enum ChatRoomActivity: Sendable, Equatable {
     static let shownSeconds = 5...180
 
     static func elapsed(from start: Date, to now: Date) -> String? {
-        let seconds = Int(now.timeIntervalSince(start))
-        guard shownSeconds.contains(seconds) else { return nil }
+        // The interval is judged as a Double and only then made an Int: the wire accepts a number as a date, so a
+        // start of 1e300 reaches here, and `Int(_:)` of that traps instead of being left out.
+        let interval = now.timeIntervalSince(start)
+        guard interval.isFinite, interval >= Double(shownSeconds.lowerBound), interval < Double(shownSeconds.upperBound + 1)
+        else { return nil }
+        let seconds = Int(interval)
         return seconds < 60 ? "\(seconds)s" : "\(seconds / 60)m \(seconds % 60)s"
     }
 

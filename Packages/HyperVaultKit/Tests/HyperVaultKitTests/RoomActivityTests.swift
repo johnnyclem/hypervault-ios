@@ -58,6 +58,28 @@ final class RoomActivityTests: RoomTestCase {
         XCTAssertEqual(thinking.line(now: started.addingTimeInterval(3_600)), "@claude is thinking...", "longer than a turn can last")
     }
 
+    func testTheEdgesOfWhatCanBeShownAreExact() {
+        let started = Date(timeIntervalSince1970: 1_000_000)
+        let thinking = ChatRoomActivity.thinking(handle: "claude", since: started, then: [])
+        XCTAssertEqual(thinking.line(now: started.addingTimeInterval(4.9)), "@claude is thinking...")
+        XCTAssertEqual(thinking.line(now: started.addingTimeInterval(5)), "@claude is thinking... 5s")
+        XCTAssertEqual(thinking.line(now: started.addingTimeInterval(59.9)), "@claude is thinking... 59s")
+        XCTAssertEqual(thinking.line(now: started.addingTimeInterval(60)), "@claude is thinking... 1m 0s")
+        XCTAssertEqual(thinking.line(now: started.addingTimeInterval(180.9)), "@claude is thinking... 3m 0s")
+        XCTAssertEqual(thinking.line(now: started.addingTimeInterval(181)), "@claude is thinking...")
+    }
+
+    func testAStartTimeNoTurnCouldHaveDoesNotCrashTheLine() throws {
+        // The wire reads a number as a date, so a start like this gets through the lenient decode of `current`.
+        let wild = #"{"room":{"id":"r1","title":"T","pending":[],"budget":1,"running":true,"current":{"handle":"claude","reason":"","started_at":1e300}},"members":[],"messages":[]}"#
+        let room = try HVCoding.decoder().decode(ChatRoomDetail.self, from: Data(wild.utf8)).room
+        XCTAssertEqual(ChatRoomActivity.resolve(header: room, sending: false).line(), "@claude is thinking...")
+        for start in [Date(timeIntervalSince1970: -1e300), .distantPast, .distantFuture, Date(timeIntervalSince1970: .infinity)] {
+            XCTAssertEqual(ChatRoomActivity.thinking(handle: "claude", since: start, then: []).line(), "@claude is thinking...", "\(start)")
+        }
+        XCTAssertNil(ChatRoomActivity.elapsed(from: Date(timeIntervalSince1970: 0), to: Date(timeIntervalSince1970: .nan)))
+    }
+
     func testOnlyAModelAtWorkOrAMessageOnItsWayMovesTheDots() {
         XCTAssertTrue(ChatRoomActivity.sending.isBusy)
         XCTAssertTrue(ChatRoomActivity.thinking(handle: "a", since: nil, then: []).isBusy)

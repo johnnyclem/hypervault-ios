@@ -10,10 +10,13 @@ any can be reversed.
 1. **Dark-native, light-ready.** The dark look is the web's stock tokens. The light look is the mirror in the iOS
    guides (the same roles, the proposed values). Each colour set has a light slot, a dark slot, and an Any slot that
    repeats the dark value (`scripts/gen_tokens.py`; `UIColor(named:)` is nil without Any). The app
-   follows the system: there is no `UIUserInterfaceStyle` override and no appearance picker. A UI-test launch pins dark
-   so the layout sweep still measures a dark page.
-2. **Themes.** Stock only. The Appearance pane is the web dashboard's theme (`profiles.theme`, `PATCH /api/dashboard-theme`),
-   labelled as such, and it never claims the app restyled. The wording is new copy for the owner.
+   follows the system until the person's theme is worn: a worn theme pins the window to its own light or dark
+   (`overrideUserInterfaceStyle` and `preferredColorScheme`, `HVAppStyle`), and there is no appearance picker of the
+   app's own. A UI-test launch pins dark so the layout sweep still measures a dark page.
+2. **Themes.** Stock unless the person picked one. The Appearance pane edits the account's theme (`profiles.theme`,
+   `PATCH /api/dashboard-theme`); the server sends the accessible look for it (`GET /api/dashboard-theme` -> `{ theme, kit }`)
+   and the app wears it (`StyleKitStore`, `StyleRuntime`), unless the phone's "Use this theme in the app" is off. Widgets and
+   the Share sheet are stock (v1.1). The wording is new copy for the owner.
 3. **iOS 26 minimum** (set in the Xcode project by the owner; `project.yml` follows). Liquid Glass is the system's on tab
    bars, sheets and toolbars, with `.glassEffect` for custom chrome and a solid `card` under Reduce Transparency.
 4. **Four tabs:** Home, Chat, Memory, You. Yours is the Home canvas panel (Library under More). The avatar opens an Account

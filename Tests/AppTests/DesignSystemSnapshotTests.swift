@@ -1,3 +1,4 @@
+import HyperVaultKit
 import SwiftUI
 import XCTest
 @testable import HyperVault

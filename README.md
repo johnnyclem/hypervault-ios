@@ -153,9 +153,9 @@ state. They cover:
   pane chosen again), the Library (list and graph), General, Appearance, the first run and the waitlist;
 - every **screen the You panes and the Account menu open**, against canned answers that give it real content: the Vault
   (and one entry), Mail (the inbox, then a thread), Truth (the ledger, an entry's ancestry, the review docket), Tools (and a
-  server), Domain (and one address), Import (a pasted conversation read and sent), Dreams, Digest, Task boards (a board,
-  then a task), Agent keys (Connect your AI through to a key that is shown once and copied, and revoking a key) and,
-  for an admin, Admin (minting an invite code, switching it off, Accounts & waitlist); and a memory in full, Memory's Ask
+  server), Domain (and one address), Import (a pasted conversation read and sent), Dreams, Digest, Task boards (the list,
+  a project's overview with the pages, memories and chats that go with it, a board, then a task), Agent keys (Connect your
+  AI through to a key that is shown once and copied, and revoking a key) and, for an admin, Admin (minting an invite code, switching it off, Accounts & waitlist); and a memory in full, Memory's Ask
   mode, a conversation and a room that take a message and answer it, a page from the Library with its Share, History
   and Details sheets;
 - the **journeys that write** (`Tests/UITests/*WritesJourneyTests.swift`): signing out (the welcome story, and a launch

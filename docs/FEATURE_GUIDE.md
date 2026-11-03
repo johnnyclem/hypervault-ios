@@ -328,7 +328,9 @@ chats, a connected model), `signedInEmpty` (the first run), `signedInNoKeys` (th
 server knows as an admin; for everyone else the admin check gets the 403 the real routes send). The network is a
 `MockTransport` over the routes in `App/Core/UITestWorld.swift` and `UITestWorld+Screens.swift` (the keys, the address,
 a room, Truth, the task boards, the import, sharing, admin: what changes while a journey plays, such as a key being made
-or revoked, lives in a small object that one launch owns), the secure store is in memory, the cache and the shared defaults are scratch, and the
+or revoked, lives in a small object that one launch owns; a launch flag adds to the vault what only some journeys need, as
+`-HV_UITEST_PROJECT_LINKS` does for the Eurorack Choir Module: a page and a memory joined to its board page, a page tagged
+with it, a page the server only guessed at and a chat named for it, which its overview lists with the reason for each), the secure store is in memory, the cache and the shared defaults are scratch, and the
 canned hosts end in `.invalid`; anything that builds its own `URLSession` request is answered or refused by
 `UITestURLProtocol`. Animations are off, so the app settles at once after every tap. CI builds Release only to compile it, which would not show this leaking in, so
 `scripts/check_debug_only.py` (a step of the CI job) fails if any of this is not inside `#if DEBUG`. A run never reaches a real server, the Keychain or anything a person left on the phone.

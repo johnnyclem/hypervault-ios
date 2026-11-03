@@ -14,17 +14,31 @@ final class RoomActivityTests: RoomTestCase {
         // A turn is in flight and the lease is fresh: that member is thinking, and the rest are waiting.
         let thinking = detail([], running: true, pending: ["custom"], current: "claude").room
         XCTAssertEqual(ChatRoomActivity.resolve(header: thinking, sending: false), .thinking(handle: "claude", since: nil, then: ["custom"]))
-        // Between two turns nobody is thinking: the next one is next.
+        // A run holds the room and the server does not say whose turn it is (an older server, or the moment between
+        // two turns of one run): the room is working, with the rest of the queue behind it.
         let between = detail([], running: true, pending: ["custom"]).room
-        XCTAssertEqual(ChatRoomActivity.resolve(header: between, sending: false), .next(handle: "custom", then: []))
-        // A run holds the room and the server does not say whose turn it is (an older server).
-        XCTAssertEqual(ChatRoomActivity.resolve(header: detail([], running: true).room, sending: false), .working)
+        XCTAssertEqual(ChatRoomActivity.resolve(header: between, sending: false), .working(then: ["custom"]))
+        XCTAssertEqual(ChatRoomActivity.resolve(header: detail([], running: true).room, sending: false), .working(then: []))
         // A turn was started and its run died: nobody is thinking, whatever the queue says.
         let cutOff = detail([], running: false, pending: ["custom"], current: "claude").room
         XCTAssertEqual(ChatRoomActivity.resolve(header: cutOff, sending: false), .cutOff(handle: "claude"))
         XCTAssertTrue(cutOff.canBeContinued)
         XCTAssertFalse(thinking.canBeContinued)
         XCTAssertFalse(detail([]).room.canBeContinued)
+    }
+
+    func testARoomThatDoesNotSayWhoseTurnItIsKeepsItsDotsWhileTurnsAreQueued() {
+        // An older server never reports `current` and takes a turn off the queue before it runs it, so for a round of
+        // three the queue is not empty until the last turn. It is working all that time, not waiting for anybody.
+        let midRound = detail([], running: true, pending: ["b", "c"]).room
+        let working = ChatRoomActivity.resolve(header: midRound, sending: false)
+        XCTAssertEqual(working, .working(then: ["b", "c"]))
+        XCTAssertTrue(working.isBusy)
+        XCTAssertEqual(working.line(), "The room is working... then @b, @c")
+        // The same queue with nobody running it is waiting, and does not claim to be at work.
+        let waiting = ChatRoomActivity.resolve(header: detail([], running: false, pending: ["b", "c"]).room, sending: false)
+        XCTAssertEqual(waiting, .next(handle: "b", then: ["c"]))
+        XCTAssertFalse(waiting.isBusy)
     }
 
     func testTurnsLeftWaitingWithNobodyRunningThemCanBeContinued() {
@@ -39,7 +53,8 @@ final class RoomActivityTests: RoomTestCase {
         let started = Date(timeIntervalSince1970: 1_000_000)
         XCTAssertNil(ChatRoomActivity.idle.line())
         XCTAssertEqual(ChatRoomActivity.sending.line(), "Sending...")
-        XCTAssertEqual(ChatRoomActivity.working.line(), "The room is working...")
+        XCTAssertEqual(ChatRoomActivity.working(then: []).line(), "The room is working...")
+        XCTAssertEqual(ChatRoomActivity.working(then: ["a", "b"]).line(), "The room is working... then @a, @b")
         XCTAssertEqual(ChatRoomActivity.cutOff(handle: "claude").line(), "@claude's turn was cut off")
         XCTAssertEqual(ChatRoomActivity.next(handle: "custom", then: []).line(), "@custom is next")
         XCTAssertEqual(ChatRoomActivity.next(handle: "a", then: ["b", "c"]).line(), "@a is next, then @b, @c")
@@ -83,7 +98,8 @@ final class RoomActivityTests: RoomTestCase {
     func testOnlyAModelAtWorkOrAMessageOnItsWayMovesTheDots() {
         XCTAssertTrue(ChatRoomActivity.sending.isBusy)
         XCTAssertTrue(ChatRoomActivity.thinking(handle: "a", since: nil, then: []).isBusy)
-        XCTAssertTrue(ChatRoomActivity.working.isBusy)
+        XCTAssertTrue(ChatRoomActivity.working(then: []).isBusy)
+        XCTAssertTrue(ChatRoomActivity.working(then: ["a"]).isBusy)
         XCTAssertFalse(ChatRoomActivity.next(handle: "a", then: []).isBusy)
         XCTAssertFalse(ChatRoomActivity.cutOff(handle: "a").isBusy)
         XCTAssertFalse(ChatRoomActivity.idle.isBusy)

@@ -4,9 +4,11 @@ import Foundation
 /// line under the thread ("@claude is thinking...") is drawn from this, so it can only say what is true:
 ///
 /// - `thinking` only while the server holds a fresh lease and a turn is in flight (`current`);
-/// - `next` for the head of a queue that nobody is working on yet, or between two turns;
+/// - `next` for the head of a queue that no run holds: nobody is working on it yet;
 /// - `cutOff` for a turn the server started and lost (its run died), which the next run records;
-/// - `working` when a run holds the room and nothing says whose turn it is (a server that does not report `current`).
+/// - `working` when a run holds the room and nothing says whose turn it is: a server that does not report `current`
+///   (the turn being taken has already left the queue there, so for a whole round nothing can name it), or the moment
+///   between two turns of one run. What is still queued waits behind it.
 ///
 /// The old line was the head of the queue with "thinking" whenever this phone was driving. The server takes a turn off
 /// the queue before it runs it, so that line named the wrong member while one thought, named nobody during the last
@@ -17,7 +19,7 @@ public enum ChatRoomActivity: Sendable, Equatable {
     case sending
     case thinking(handle: String, since: Date?, then: [String])
     case next(handle: String, then: [String])
-    case working
+    case working(then: [String])
     case cutOff(handle: String)
 
     /// - Parameters:
@@ -32,8 +34,9 @@ public enum ChatRoomActivity: Sendable, Equatable {
                 ? .thinking(handle: current.handle, since: current.startedAt, then: queued)
                 : .cutOff(handle: current.handle)
         }
+        if header.running { return .working(then: queued) }
         if let first = queued.first { return .next(handle: first, then: Array(queued.dropFirst())) }
-        return header.running ? .working : .idle
+        return .idle
     }
 
     /// A model is at work (or the message is travelling): the line carries the moving dots.
@@ -54,8 +57,8 @@ public enum ChatRoomActivity: Sendable, Equatable {
             return nil
         case .sending:
             return "Sending..."
-        case .working:
-            return "The room is working..."
+        case .working(let then):
+            return "The room is working..." + Self.tail(then, joiner: " ")
         case .cutOff(let handle):
             return "@\(handle)'s turn was cut off"
         case .next(let handle, let then):

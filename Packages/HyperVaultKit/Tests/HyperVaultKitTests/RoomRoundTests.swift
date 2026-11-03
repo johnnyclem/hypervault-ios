@@ -106,7 +106,7 @@ final class RoomRoundTests: RoomTestCase {
         XCTAssertNil(finished.value, "the post is still open")
         XCTAssertEqual(probe.positions, [0, 1], "the person's message and the first answer")
         // The old server does not say whose turn it is, only that the room is at work.
-        await eventually("the room shown as working") { probe.activity == .working }
+        await eventually("the room shown as working") { probe.activity == .working(then: []) }
         let whileOpen = await server.requests
         XCTAssertEqual(whileOpen.filter { $0.hasPrefix("POST") }, ["POST /api/rooms/r1/messages"])
 
@@ -118,6 +118,30 @@ final class RoomRoundTests: RoomTestCase {
         XCTAssertEqual(everything.filter { $0.hasPrefix("POST") }, ["POST /api/rooms/r1/messages"], "the post answered the whole round; nothing to run")
         XCTAssertEqual(probe.positions, [0, 1, 2])
         _ = try await driving.value
+    }
+
+    /// A room of three on the server of today: it never says whose turn it is and takes a turn off the queue before it
+    /// runs it, so while the second member thinks the third is still queued. The room is working, not waiting.
+    func testAnOldServersRoomOfThreeIsWorkingNotWaitingWhileTheSecondMemberThinks() async throws {
+        let server = FakeRoomServer(handles: ["a", "b", "c"], style: .legacy, turnSeconds: 0.01)
+        await server.holdTurn(2)
+        let api = client(server)
+        let probe = RoomScreenProbe()
+        let following = probe.follow(api, pace: quick)
+        probe.setMoving(true)
+        let driver = ChatRoomDriver(client: api, roomID: "r1", pace: quick)
+        let driving = Task { try await driver.send("introduce yourselves") { probe.apply($0) } }
+
+        await eventually("the room shown as working with c queued") { probe.activity == .working(then: ["c"]) }
+        XCTAssertTrue(probe.activity.isBusy, "the dots move while b thinks")
+        XCTAssertEqual(probe.snapshot.lines.last, "The room is working... then @c")
+
+        await server.releaseTurn()
+        let outcome = try await driving.value
+        XCTAssertEqual(outcome, .finished)
+        await eventually("the screen to hold the whole round") { probe.positions == [0, 1, 2, 3] && probe.activity == .idle }
+        following.cancel()
+        XCTAssertFalse(probe.snapshot.lines.contains { $0.contains("is next") }, "never told the person someone was next: \(probe.snapshot.lines)")
     }
 
     /// The post ran its turns and the phone never heard back. The server has the round; the screen must too.

@@ -162,10 +162,10 @@ struct ArtifactRepairSheet: View {
             .hvCard()
         } else if model.needsModel {
             VStack(alignment: .leading, spacing: HV.Space.xs) {
-                Text("No model is connected yet. Connect one in Chat, then come back and try again.")
+                Text("No model is connected yet. On Home, open More and then Models to connect one, then come back and try again.")
                     .font(.hvCallout)
                     .foregroundStyle(Palette.textSecondary)
-                Button("Open Chat") {
+                Button("Open Home") {
                     dismiss()
                     app.router.open(.tab(.home))
                 }
@@ -201,7 +201,7 @@ struct ArtifactRepairSheet: View {
             VStack(alignment: .leading, spacing: HV.Space.xs) {
                 ArtifactErrorLine(message: message)
                 if needsBackend {
-                    Button("Open Chat") {
+                    Button("Open Home") {
                         dismiss()
                         app.router.open(.tab(.home))
                     }

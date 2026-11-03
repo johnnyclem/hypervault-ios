@@ -111,11 +111,13 @@ final class AppModel {
     func start() async {
         guard !started else { return }
         started = true
+        // The last session's look, before anything waits on the network: the launch view is drawn in it (from its second frame;
+        // the first is drawn before this runs). Who that was is known without asking the server, and a session that ended took
+        // its cache with it. This is one small read and it goes first: behind the walk of every cached file below, the cache's
+        // actor would make it, and then the first request, wait for it.
+        if let namespace = sessionUserID { await style.preload(cache: cache, userID: namespace) }
         // What an older build cached carries the system's default protection; this gives it the rule new files get.
         Task { [cache] in await cache.protectExistingFiles() }
-        // The last session's look, before anything waits on the network: launch is drawn in it. Who that was is known without
-        // asking the server, and a session that ended took its cache with it.
-        if let namespace = sessionUserID { await style.preload(cache: cache, userID: namespace) }
         await bootstrap()
     }
 

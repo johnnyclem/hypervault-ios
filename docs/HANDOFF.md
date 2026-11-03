@@ -16,7 +16,9 @@ any can be reversed.
 2. **Themes.** Stock unless the person picked one. The Appearance pane edits the account's theme (`profiles.theme`,
    `PATCH /api/dashboard-theme`); the server sends the accessible look for it (`GET /api/dashboard-theme` -> `{ theme, kit }`)
    and the app wears it (`StyleKitStore`, `StyleRuntime`), unless the phone's "Use this theme in the app" is off. Widgets and
-   the Share sheet are stock (v1.1). The wording is new copy for the owner.
+   the Share sheet are stock (v1.1), and so is the system's launch frame and the first frame of the app's own launch view (the
+   kept theme is read once the app runs: a light theme on a dark phone flashes the stock page at launch; worth a line in the
+   release notes). The wording is new copy for the owner.
 3. **iOS 26 minimum** (set in the Xcode project by the owner; `project.yml` follows). Liquid Glass is the system's on tab
    bars, sheets and toolbars, with `.glassEffect` for custom chrome and a solid `card` under Reduce Transparency.
 4. **Four tabs:** Home, Chat, Memory, You. Yours is the Home canvas panel (Library under More). The avatar opens an Account

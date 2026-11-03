@@ -83,7 +83,8 @@ final class StyleKitStore {
 
     // MARK: Reading the look
 
-    /// The look on disk for this person, if there is one: no network, so the first frame after launch can wear it.
+    /// The look on disk for this person, if there is one: no network, so the launch view can wear it (from its second frame: this
+    /// runs once the app is up, and the first is drawn stock).
     func preload(cache: DiskCache, userID: String) async {
         let epoch = self.epoch
         guard let cached = await StyleKitLoader.cached(in: cache, userID: userID) else { return }

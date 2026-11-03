@@ -238,7 +238,10 @@ server change if you want the app to do more:
   re-checks the floors, wears the kit, and keeps it on disk for the next launch. A worn theme pins the app light or dark,
   whatever the phone is set to. "Use this theme in the app" (on by default, a preference of this phone) takes the app back
   to its own look and leaves the website's theme alone. `retro` has no accessible look, so the app says it cannot show it.
-  Widgets and the Share sheet keep the stock look in this version. Details: `docs/FEATURE_GUIDE.md` ("The look is a runtime").
+  Widgets and the Share sheet keep the stock look in this version. So does the system's launch frame (`LaunchBackground`,
+  drawn by iOS before any of the app runs, in the phone's light or dark), and the app's own first frame: the theme kept on disk
+  is read once the app is running, so a person with a light theme on a dark phone sees the stock page for a moment at launch.
+  Details: `docs/FEATURE_GUIDE.md` ("The look is a runtime").
 - **Without a theme, the app follows the system:** the dark look is the web's stock tokens, and the light look is the
   same roles. The web's per-address looks (Domain) are for the site and are not worn by the app.
 - **Models on your own network** (Ollama, LM Studio) are called by the phone directly,

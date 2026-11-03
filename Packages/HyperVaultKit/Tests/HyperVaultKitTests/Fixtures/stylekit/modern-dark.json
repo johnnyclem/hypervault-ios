@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "id": "modern-dark",
+  "name": "Modern Dark",
+  "appearance": "dark",
+  "colors": {
+    "background": "#0b0f14",
+    "foreground": "#e8eef5",
+    "card": "#121820",
+    "muted": "#1a222d",
+    "muted_foreground": "#8b97a8",
+    "primary": "#3b82f6",
+    "accent": "#38bdf8",
+    "destructive": "#ef4444",
+    "success": "#00d492",
+    "warning": "#ffb900",
+    "action": "#3b82f6",
+    "action_foreground": "#000000",
+    "border": "#243041",
+    "ring": "#3b82f6"
+  },
+  "radius": {
+    "base": 12
+  },
+  "font": {
+    "design": "system"
+  },
+  "backdrop": {
+    "kind": "glow"
+  },
+  "adjusted": [
+    "action_foreground"
+  ]
+}

@@ -16,8 +16,12 @@ any can be reversed.
    labelled as such, and it never claims the app restyled. The wording is new copy for the owner.
 3. **iOS 26 minimum** (set in the Xcode project by the owner; `project.yml` follows). Liquid Glass is the system's on tab
    bars, sheets and toolbars, with `.glassEffect` for custom chrome and a solid `card` under Reduce Transparency.
-4. **Four tabs:** Home, Projects, Memory, Mail (the tab overhaul; it replaced Home, Chat, Memory, You). Yours is the Home
-   canvas panel (Library under More). Projects is the task boards; Mail carries its unread number. The avatar, on the first
+4. **Four tabs:** Home, Projects, Memory, Mail (the tab overhaul; it replaced Home, Chat, Memory, You). Home is the chats
+   (under a Chats / Group chats switch); with none at all, and only once the server has said so, it is a starter page (Start a
+   chat, Keep something, a prompt to copy, the first-run card that asks for an agent's key). The canvas is no tab: it is a
+   screen pushed on Home (`Route.keep`) from the Keep button in Home's bar, and its page lives in `AppEnvironment.canvas`, so a
+   paste that is waiting survives Back. Yours is the canvas's panel (also under Home's More; the Library is under the panel's
+   More). Models left Home's bar: it is under More, which opens Settings > Models. Projects is the task boards; Mail carries its unread number. The avatar, on the first
    screen of every tab, opens an Account sheet with what the tab bar does not carry (Settings, Library, Group chats, Tools,
    Dreams, Truth, Admin for admins, Sign out). The pinned Menu list with drag-reorder (the web drawer's) is **not built**.
 5. **Settings is a frame inside the Account sheet**, the first row of its menu, with seven panes in the web's order: General,
@@ -61,9 +65,12 @@ any can be reversed.
   while the draft is dirty so the swipe cannot drop it either. Close is disabled while a save is in flight.
 - The Import pane's file row no longer says "PDFs (up to 10 MB)": the server holds 50 MB on Pro and 1 MB on Free (the web's own
   line still says 10 MB; the owner may want to reconcile it).
-- A link that names a tab but no screen (the Keep widget, `hypervault://rooms`, `tab/yours`) starts that tab from its first
-  screen and closes any sheet over the tabs; installed widgets' `hypervault://tab/yours` and `tab/canvas` links keep working
-  (`AppTab.home` keeps the raw value `canvas`). A link to Settings (`vault/account?tab=keys`, `settings`, `tab/you`) or to
+- A link that names a tab but no screen (`hypervault://rooms`, `tab/home`) starts that tab from its first screen and closes any
+  sheet over the tabs. The links that ask for the canvas (the Keep widget's `hypervault://keep`, `canvas`, `keep?text=`, and
+  `yours`, `tab/yours`) start Home from its first screen and push the canvas on it in the same step, with the text or the
+  Yours panel waiting for it. Installed widgets' `hypervault://tab/yours` and `tab/canvas` links keep working (`AppTab.home`
+  keeps the raw value `canvas`); `tab/canvas`, which used to be the canvas, is now Home's chats, and `keep` is the link for the
+  field. A link to Settings (`vault/account?tab=keys`, `settings`, `tab/you`) or to
   pairing presents the Account sheet over whatever shows and names no tab; the Agent keys pane presents the pairing page. The
   links of the tabs that went keep opening something: `tab/chat` and `/chat` open Home, `tab/taskboards`, `taskboards` and
   `projects` open Projects, `mail` opens Mail.

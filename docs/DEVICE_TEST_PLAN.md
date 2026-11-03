@@ -47,10 +47,13 @@ that finds problems fastest. Each line says what should happen.
 
 ## 2. Keep, and the canvas
 
+The canvas is a screen pushed on Home: tap Keep in Home's bar (the tray icon), and Back comes home. Leave it with a paste
+waiting and come back: the paste is still staged (the canvas keeps its page while the app is open).
+
 - Paste a long block of text: it stages as a chip with Keep it / Ask instead. Keep it: a card with the link, a
   light haptic, and (the first time only) confetti.
 - Type "show my memories": cards appear. "Hide that": they go.
-- Dictate (microphone button): words appear as you speak; leaving the tab stops listening.
+- Dictate (microphone button): words appear as you speak; going Back to Home, or opening a card's page, stops listening.
 - Scan a page (the plus menu): the recognised text lands in the field.
 - Turn Airplane Mode on and keep something: it says it will wait. Turn it off: it is kept.
 
@@ -59,7 +62,8 @@ that finds problems fastest. Each line says what should happen.
 - **Share sheet:** share text and a link from Safari and Notes; it keeps and shows the link. Offline, it saves
   and the app keeps it on next open (Settings shows "Waiting to keep" until then).
 - **Widgets:** add the Home Screen and Lock Screen widgets; they show recent things, never keys. Keep
-  something and the widget updates.
+  something and the widget updates. The Yours widget's tap opens the Yours panel on the canvas (Back is Home); the Keep widget
+  opens the canvas with the field ready; a widget's "nothing to show" message (`tab/canvas`) opens Home.
 - **Siri / Shortcuts:** "Keep this in HyperVault" with text.
 - **Spotlight:** search a page's name from the Home Screen; tapping opens it in the app. Keys never appear.
 - **Pairing link:** put `hypervault://pair?code=BCDF-2346` in a note and tap it. Agent keys opens with the website's
@@ -85,7 +89,7 @@ that finds problems fastest. Each line says what should happen.
 
 ## 5. Features that need a live account
 
-Work through the Account menu (the avatar on any tab's first screen), Yours (the panel in Home's corner), the Projects and Mail tabs
+Work through the Account menu (the avatar on any tab's first screen), Yours (the panel in the canvas's corner), the Projects and Mail tabs
 and Settings (the menu's first row) with a real approved
 account and a few kept things: Library (from the Account menu or Yours, More; list and graph, open a
 page, share it, edit its source), Memory (search, ask, graph, a branch and a merge), Chat (a conversation with
@@ -122,9 +126,11 @@ them on glass (handoff 2.3, 4.1, 9):
   there when the sheet closes); so does `hypervault://tab/you`, on the Vault. With the sheet already open on another pane,
   the link moves it to the pane and the sheet does not close and open again. With Connect an agent open (a sheet), the link
   closes it and then opens the Account sheet. `hypervault://pair?code=ABCD-EFGH` opens Settings on Agent keys and then the
-  website's pairing page over it. `hypervault://tab/yours` opens Home with the Yours panel up, `hypervault://tab/canvas` and
-  `tab/chat` open Home, `hypervault://mail` and `tab/mail` the Mail tab, `hypervault://taskboards` and `tab/projects` the
-  Projects tab. Open a vault key from the Yours panel: the panel closes, and then the Account sheet opens on the Vault.
+  website's pairing page over it. `hypervault://tab/yours` opens the canvas with the Yours panel up (Back is Home),
+  `hypervault://keep` the canvas with its field ready, `hypervault://keep?text=hello` the canvas with "hello" staged,
+  `hypervault://tab/canvas` and `tab/chat` open Home, `hypervault://mail` and `tab/mail` the Mail tab, `hypervault://taskboards`
+  and `tab/projects` the Projects tab. Open a vault key from the Yours panel: the panel closes, and then the Account sheet opens
+  on the Vault.
 - **The Account menu.** The avatar opens it as a sheet with a Close button: Settings, Library, Group chats, Tools, Beta
   (Dreams with its waiting count, Truth), Admin for an admin, and Sign out. Mail and the task boards are tabs and are not
   in it. A row other than Settings closes it and goes there, on the tab that has it (Library, Tools on Home; Dreams, Truth on
@@ -135,10 +141,17 @@ them on glass (handoff 2.3, 4.1, 9):
   sheet), and Settings is the same stack as on a phone: there is no list beside the pane any more. Open Agent keys > Connect
   an agent (a key is on screen), then drag the Split View divider and bring Slide Over in and out: the sheet, the key and
   anything typed stay. None of this was run on an iPad by the person who built it.
-- **A link starts its tab from the first screen.** Open a page from a Home card, then use the Keep widget
-  (`hypervault://keep`) with a page open on Home: it lands on the tab's first screen (the canvas field), not on what was open
-  there. With the Account menu open, follow a link from Notes (a page, or `hypervault://tab/yours` from the Yours widget):
-  the menu goes away and the page, or the Yours panel, shows.
+- **A link starts its tab from the first screen.** Open a page from a card on the canvas, then use the Keep widget
+  (`hypervault://keep`) with the page open: it lands on the canvas (its field), with Back going home, not on the page that was
+  open. With the Account menu open, follow a link from Notes (a page, or `hypervault://tab/yours` from the Yours widget):
+  the menu goes away and the page, or the Yours panel, shows. Open a card's page from the canvas and go Back: you land on the
+  canvas, with its cards where they were.
+- **Home.** With chats, Home lists them under the Chats / Group chats switch, with Keep, New chat (New room on the other half) and
+  More in its bar; More holds Yours, Models (it opens Settings > Models), Tools and Import. With no chats at all, on a fresh
+  account, Home is the starter page: Start a chat, Keep something, Copy a starter prompt, and the card that asks for an agent's
+  key (only here, not above a list of chats). Check that the starter page does not flash while the list loads on a phone with
+  chats, and that it does not appear in Airplane Mode on a phone whose chats were not cached. Turn the text size up to the
+  largest accessibility size: the three buttons keep their labels and the page scrolls.
 - **Large text.** At the largest accessibility size the Settings list shows each pane's symbol above its name (no name breaks
   in the middle of a word) and no chevron, General shows the whole email address, wrapped, and the Yours panel opens at
   full height with its first rows visible. The Dreams badge in the Account menu is white on the flat blue `action` fill.

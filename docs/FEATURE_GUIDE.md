@@ -126,7 +126,7 @@ struct WidgetsView: View {
   sentence is shown verbatim. Success is a light haptic (`Haptics.success()`)
   and, when the result is not obvious, a toast.
 - A result that arrives after the screen that asked for it has gone (a page repair, the web's `JobNotifications`) is told by
-  `env.jobNotices`: while the Home canvas or the Library is showing (`.jobNotices()` on the screen) and the app is in
+  `env.jobNotices`: while Home, the canvas pushed on it or the Library is showing (`.jobNotices()` on the screen) and the app is in
   front, it asks `GET /api/jobs` on appearing and every 20 seconds and keeps the newest in a banner until it is
   dismissed, which is what acknowledges it. A job that changed something makes the Library read again; a lost answer
   says nothing. A screen that follows its own job (the repair sheet) acknowledges it itself, and stops when it is closed.
@@ -324,8 +324,8 @@ nothing can reach. They live in `Tests/UITests` (the `HyperVaultUITests` target,
 **The UI-test mode.** A debug build launched with `-HV_UITEST -HV_UITEST_SCENARIO <name>` builds its `AppModel` on a
 canned server instead of the real one (`App/Core/UITestHarness.swift`, one call in `HyperVaultApp`, compiled out of
 release builds). The scenarios are `signedOut` (the welcome story and the way in), `signedIn` (a few things kept, memories,
-chats, a connected model), `signedInEmpty` (the first run), `signedInNoKeys` (the first run of someone who also has no agent key, so Home shows the connect card), `waitlisted` and `signedInAdmin` (`signedIn`, for a person the
-server knows as an admin; for everyone else the admin check gets the 403 the real routes send). The network is a
+chats, a connected model), `signedInEmpty` (the first run: no chats either, so Home shows its starter page), `signedInNoKeys` (the first run of someone who also has no agent key, so the starter page shows the connect card), `waitlisted` and `signedInAdmin` (`signedIn`, for a person the
+server knows as an admin; for everyone else the admin check gets the 403 the real routes send). A launch flag adds one more state to any of them: `-HV_UITEST_NO_CHATS` (`HyperVaultUITestCase.withoutChats`) empties the list of chats and leaves the rest of the vault, so Home shows the starter page of someone who has pages, memories and a model. The network is a
 `MockTransport` over the routes in `App/Core/UITestWorld.swift` and `UITestWorld+Screens.swift` (the keys, the address,
 a room, Truth, the task boards, the import, sharing, admin: what changes while a journey plays, such as a key being made
 or revoked, lives in a small object that one launch owns), the secure store is in memory, the cache and the shared defaults are scratch, and the
@@ -340,7 +340,7 @@ opens a pane of Settings by its id (`general`, `vault`, `keys`, `backends`, `dom
 the Account menu and its Settings row, or goes back to the list of panes if the sheet is up on a pane, which is the case that a
 pane chosen again from the list has to open), `openFromAccount("library", title: "Library")` opens a row of the Account menu
 (`account.<row>`: `library`, `groupChats`, `tools`, `dreams`, `truth`, `admin`; Mail and the task boards are tabs),
-`openFromMemoryMenu("Digest", title: "Digest")` opens an item of Memory's More menu, and `openYours()` opens the Yours panel.
+`openFromMemoryMenu("Digest", title: "Digest")` opens an item of Memory's More menu, `openCanvas()` pushes the canvas with Home's Keep button (`home.keep`, in Home's bar whether Home shows the chats or the starter page; Back from it is Home), and `openYours()` opens the Yours panel over the canvas.
 
 **Adding a journey.**
 

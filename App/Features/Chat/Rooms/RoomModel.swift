@@ -287,15 +287,22 @@ final class ChatRoomModel {
         // The message arrived and the room is at work on it (only the answer to this request was lost): the thread
         // shows what happens as it does, and an error would be wrong.
         if delivered, header?.running == true { return nil }
-        let offline: String
+        let text: String
         if delivered {
-            offline = "Network hiccup. Check the room for what it has said."
+            let checkTheRoom = "Check the room for what it has said."
+            if echo != nil, !error.isOffline {
+                // The words are in the room, whatever the server said about the request ("try again" among it): they
+                // must not be sent twice.
+                text = "\(Self.sentenceEnded(error.userMessage)) \(checkTheRoom)"
+            } else {
+                text = error.sentence(offline: "Network hiccup. \(checkTheRoom)")
+            }
         } else if read {
-            offline = "Network hiccup. Your message was not sent. Try again."
+            text = error.sentence(offline: "Network hiccup. Your message was not sent. Try again.")
         } else {
-            offline = "Network hiccup. Your message may not have been sent. Check the room, then try again."
+            text = error.sentence(offline: "Network hiccup. Your message may not have been sent. Check the room, then try again.")
         }
-        tell(error.sentence(offline: offline))
+        tell(text)
         return nil
     }
 
@@ -330,6 +337,13 @@ final class ChatRoomModel {
         } onCancel: {
             read.cancel()
         }
+    }
+
+    /// `text` as a sentence of its own, so that another can follow it.
+    private static func sentenceEnded(_ text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let last = trimmed.last else { return trimmed }
+        return ".!?".contains(last) ? trimmed : trimmed + "."
     }
 
     /// A line under the thread, said as well as shown: it appears where VoiceOver is not looking.

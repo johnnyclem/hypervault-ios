@@ -501,6 +501,23 @@ final class RoomModelTests: XCTestCase {
         XCTAssertEqual(model.notice, "Network hiccup. Your message may not have been sent. Check the room, then try again.")
     }
 
+    /// The message is in the room and the server refused the run that should answer it: whatever it says about the request
+    /// (here, to try again), the person is sent to the room, not invited to say the same words twice.
+    func testAMessageThatArrivedIsNotAskedForAgainWhenTheServerRefusesTheRun() async {
+        let server = FakeRoomServer(style: .queued, turnSeconds: 0.01)
+        let network = RoomTestNetwork(server)
+        network.fail("POST /api/rooms/r1/run", status: 504, message: "The server had a problem. Try again in a moment.")
+        let (model, _) = make(network)
+        await model.load()
+        model.draft = "introduce yourselves"
+        model.send()
+        await eventually("the request to have ended") { !model.isDriving }
+        XCTAssertEqual(model.draft, "", "the message is in the room")
+        XCTAssertEqual(model.messages.map(\.senderKind), [.human])
+        XCTAssertEqual(model.notice, "The server had a problem. Try again in a moment. Check the room for what it has said.")
+        XCTAssertTrue(model.canContinue)
+    }
+
     /// The text field stays open while a round is driven. A person who has begun the next message when the first one fails
     /// does not lose the first: it goes back ahead of what they have typed.
     func testWordsThatDidNotGetThroughGoBackAheadOfWhatThePersonHasStartedTyping() async {
@@ -642,6 +659,7 @@ private final class RoomTestNetwork: HTTPTransport, @unchecked Sendable {
     private var offline = false
     private var dropped: Set<String> = []
     private var held: Set<String> = []
+    private var refused: [String: (status: Int, message: String)] = [:]
 
     init(_ server: FakeRoomServer) {
         inner = FakeRoomTransport(server: server)
@@ -653,6 +671,8 @@ private final class RoomTestNetwork: HTTPTransport, @unchecked Sendable {
     func hold(_ request: String) { change { held.insert(request) } }
     func release() { change { held.removeAll() } }
     func goOffline() { change { offline = true } }
+    /// Requests like this are answered, without reaching the server, with an error of the server's own.
+    func fail(_ request: String, status: Int, message: String) { change { refused[request] = (status, message) } }
 
     private func change(_ edit: () -> Void) {
         lock.lock()
@@ -660,10 +680,10 @@ private final class RoomTestNetwork: HTTPTransport, @unchecked Sendable {
         lock.unlock()
     }
 
-    private func plan(for key: String) -> (offline: Bool, dropped: Bool, held: Bool) {
+    private func plan(for key: String) -> (offline: Bool, dropped: Bool, held: Bool, refused: (status: Int, message: String)?) {
         lock.lock()
         defer { lock.unlock() }
-        return (offline, dropped.contains(key), held.contains(key))
+        return (offline, dropped.contains(key), held.contains(key), refused[key])
     }
 
     func send(_ request: URLRequest) async throws -> HTTPResponse {
@@ -674,6 +694,7 @@ private final class RoomTestNetwork: HTTPTransport, @unchecked Sendable {
             try await Task.sleep(nanoseconds: 2_000_000)
             now = plan(for: key)
         }
+        if let refusal = now.refused { return RoomJSON.answer(status: refusal.status, #"{"error":"\#(refusal.message)"}"#) }
         let response = try await inner.send(request)
         try Task.checkCancellation()
         return response

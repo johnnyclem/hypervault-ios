@@ -1,34 +1,29 @@
 import HyperVaultKit
 import SwiftUI
 
-/// The Rooms half of the chat tab: group chats with several of your models.
+/// The Rooms half of Home: group chats with several of your models. (Its New room button is Home's, in `ChatRootView`'s bar,
+/// which is why the sheet it opens is asked for by a binding.)
 struct ChatRoomsListView: View {
     @Environment(AppModel.self) private var app
     private let client: HVClient
     private let cache: DiskCache
     private let namespace: String
     @State private var model: ChatRoomsListModel
-    @State private var showNew = false
+    /// The New room sheet is up. Home's bar and this list's empty state both ask for it.
+    @Binding private var showNew: Bool
     @State private var pendingDelete: ChatRoomSummary?
     @State private var reloadToken = 0
 
-    init(client: HVClient, cache: DiskCache, namespace: String) {
+    init(client: HVClient, cache: DiskCache, namespace: String, showNew: Binding<Bool>) {
         self.client = client
         self.cache = cache
         self.namespace = namespace
+        _showNew = showNew
         _model = State(initialValue: ChatRoomsListModel(client: client, cache: cache, namespace: namespace))
     }
 
     var body: some View {
         content
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showNew = true } label: {
-                        Image(systemName: HVSymbol.add).frame(width: 44, height: 44)
-                    }
-                    .accessibilityLabel("New room")
-                }
-            }
             .sheet(isPresented: $showNew) {
                 ChatNewRoomSheet(client: client, cache: cache, namespace: namespace) { created in
                     model.added(created)

@@ -1,6 +1,6 @@
 import XCTest
 
-/// Every screen the You panes and the Account menu open, against canned answers that give it real things to show (not an error and not an empty
+/// Every screen the Settings panes, the Account menu and the Projects and Mail tabs open, against canned answers that give it real things to show (not an error and not an empty
 /// state): each journey opens the screen, checks one or two pieces of what it was given, goes one level further where
 /// the screen has one, and keeps a screenshot of how it looked.
 @MainActor
@@ -43,7 +43,8 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testMailListsTheInboxAndOpensAThread() {
         launch(.signedIn)
-        openFromAccount("mail", title: "Mail")
+        openTab("Mail")
+        waitUntil("the Mail screen") { isShowingTitle("Mail") }
 
         let thread = "mail.thread.11111111-1111-4111-8111-111111111111"
         step("The inbox lists the mail from agents") {
@@ -195,7 +196,8 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testTaskBoardsListBoardsAndOpenOneWithItsTasks() {
         launch(.signedIn)
-        openFromAccount("taskBoards", title: "Task boards")
+        openTab("Projects")
+        waitUntil("the Projects screen") { isShowingTitle("Projects") }
 
         step("The boards are listed with how far along they are") {
             let choir = element("taskboards.row.eurorack-choir")

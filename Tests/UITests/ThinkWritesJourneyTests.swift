@@ -83,9 +83,10 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
             XCTAssertFalse(element("memory.row.m3").exists, "The memory that was split should be replaced.")
         }
     }
-    func testANewChatIsBegunFromItsFirstMessageAndThenDeleted() {
+    func testANewChatIsBegunFromItsFirstMessageAndThenDeleted() throws {
+        try skipUntilHomeShowsTheChats()
         launch(.signedIn)
-        openTab("Chat")
+        openTab("Home")
 
         step("New chat opens an empty conversation") {
             tap(button("New chat"), "New chat")
@@ -199,9 +200,10 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
             require(shows("Nothing is out of date"), "the empty worklist")
         }
     }
-    func testARoomIsMadeItsAgentsChangedItIsRenamedAndDeleted() {
+    func testARoomIsMadeItsAgentsChangedItIsRenamedAndDeleted() throws {
+        try skipUntilHomeShowsTheChats()
         launch(.signedIn)
-        openTab("Chat")
+        openTab("Home")
         tap(segment("Group chats"), "the Group chats half", until: { self.button("New room").exists })
 
         step("New room offers the connected models and takes a name") {

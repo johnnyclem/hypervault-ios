@@ -31,22 +31,22 @@ final class LayoutSweepTests: LayoutSweepCase {
         look(mode, "Yours", key: element("yours.row.a1"), "the Bakery landing page row")
         tap(button("Done"), "Done", until: { !self.element("yours.filter").exists })
         requireGone(element("yours.filter"), "the Yours panel")
-        openTab("Chat")
-        look(mode, "Chat", key: element("chat.row.c1"), "the Lisbon conversation row")
-        choose("Group chats", from: "chat.section")
-        look(mode, "Chat, group chats", key: element("chat.room.r1"), "the Features X and Y room row")
+        openTab("Projects")
+        look(mode, "Projects", key: element("taskboards.row.eurorack-choir"), "the Eurorack Choir board row")
         openTab("Memory")
         look(mode, "Memory", key: element("memory.row.m1"), "the Lisbon memory row")
-        openTab("You")
-        look(mode, "You, the vault", key: element("vault.row.github.com"), "the github.com entry")
-        showPaneList()
-        look(mode, "You, the panes", key: element("you.pane.import"), "the Import pane")
+        openTab("Mail")
+        look(mode, "Mail", key: element("mail.thread.11111111-1111-4111-8111-111111111111"), "the Weekly plan thread")
 
+        // Settings is in the Account sheet: the menu, then the list of panes, then a pane.
         openAccountMenu()
         look(mode, "the Account menu", key: element("account.library"), "the Library row")
-        tap(element("account.close"), "Close", until: { !self.element("account.close").exists })
-        // A tap on a tab while the menu is still going would land on the menu, which covers the tab bar.
-        requireGone(element("account.close"), "the Account menu")
+        showPaneList()
+        look(mode, "Settings, the panes", key: element("settings.pane.import"), "the Import pane")
+        openPane("vault")
+        look(mode, "Settings, the vault", key: element("vault.row.github.com"), "the github.com entry")
+        // A tap on a tab while the sheet is still going would land on the sheet, which covers the tab bar.
+        closeTheAccountSheet()
 
         // Last, because typing brings the keyboard up over the tab bar.
         openTab("Home")
@@ -58,7 +58,7 @@ final class LayoutSweepTests: LayoutSweepCase {
         look(mode, "Home with cards", key: element("canvas.field"), "the canvas field")
     }
 
-    // MARK: Memory, chat and a page
+    // MARK: Memory and a page
 
     func testWhatTheTabsOpenInTheDark() { sweepOpened(Self.dark) }
 
@@ -74,14 +74,7 @@ final class LayoutSweepTests: LayoutSweepCase {
         look(mode, "a memory", key: shows("Lisbon, first weekend"), "the heading inside the memory's text")
         goBack(until: { isShowingTitle("Memory") })
 
-        openTab("Chat")
-        open(element("chat.row.c1"), "the Lisbon conversation")
-        look(mode, "a conversation", key: textField("Message"), "the message field")
-        // (A back tap that is lost leaves the conversation up, and the choice of half is looked for on it.)
-        goBack(until: { element("chat.section").exists })
-        choose("Group chats", from: "chat.section")
-        open(element("chat.room.r1"), "the Features X and Y room")
-        look(mode, "a room", key: textField("room.field"), "the message field")
+        // (The conversation and the room are looked at again once the chats are on Home.)
 
         openFromAccount("library", title: "Library")
         open(element("library.row.a1"), "the Bakery landing page row")

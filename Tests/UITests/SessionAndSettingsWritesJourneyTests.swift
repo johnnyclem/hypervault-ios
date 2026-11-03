@@ -39,7 +39,7 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
             app.terminate()
             launch(.signedIn, resuming: true, reaching: welcome)
             XCTAssertFalse(element("canvas.field").exists, "A launch after signing out should not open the canvas.")
-            XCTAssertFalse(tab("You").exists, "A launch after signing out should not show the tab bar.")
+            XCTAssertFalse(tab("Mail").exists, "A launch after signing out should not show the tab bar.")
         }
     }
 
@@ -62,7 +62,7 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
         }
 
         step("Leaving General and coming back shows the same choices") {
-            goBack(until: { self.isShowingTitle("You") })
+            goBack(until: { self.isShowingTitle("Settings") })
             openPane("general", title: "General")
             choicesAreKept("after leaving General")
         }

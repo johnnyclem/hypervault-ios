@@ -501,6 +501,24 @@ final class RoomModelTests: XCTestCase {
         XCTAssertEqual(model.notice, "Network hiccup. Your message may not have been sent. Check the room, then try again.")
     }
 
+    /// The text field stays open while a round is driven. A person who has begun the next message when the first one fails
+    /// does not lose the first: it goes back ahead of what they have typed.
+    func testWordsThatDidNotGetThroughGoBackAheadOfWhatThePersonHasStartedTyping() async {
+        let transport = MockTransport(routes: [
+            .json(.get, "/api/rooms/r1", RoomJSON.json()),
+            .failure(.post, "/api/rooms/r1/messages", status: 503, message: "The database is missing agent-room support."),
+        ])
+        let (model, _) = make(transport)
+        await model.load()
+        model.draft = "first words"
+        model.send()
+        model.draft = "the next thing I was typing"
+        await eventually("the request to have ended") { !model.isDriving }
+        XCTAssertEqual(model.draft, "first words\n\nthe next thing I was typing")
+        XCTAssertTrue(model.outgoing.isEmpty)
+        XCTAssertEqual(model.notice, "The database is missing agent-room support.")
+    }
+
     // MARK: What the person did here, and a read that is older than it
 
     func testAReadThatRepeatsTheOldNameDoesNotUndoARename() async throws {

@@ -307,10 +307,11 @@ final class ChatRoomModel {
         giveBack(echo)
     }
 
-    /// The room does not have these words, so they go back into the box (when the person has not begun on something else).
+    /// The room does not have these words, so they go back into the box: ahead of anything the person has begun to type
+    /// since, which would otherwise be all that is left of what they said.
     private func giveBack(_ echo: Outgoing) {
         outgoing.removeAll { $0.id == echo.id }
-        if draft.isEmpty { replaceDraft(echo.text) }
+        replaceDraft(draft.isEmpty ? echo.text : echo.text + "\n\n" + draft)
     }
 
     /// One read of the room that someone is waiting on, and whether the room could be reached. It runs as a task of its

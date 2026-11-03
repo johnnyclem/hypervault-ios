@@ -109,7 +109,7 @@ struct ChatUserBubble: View {
         } else if row.imageCount > 0 {
             Label(row.imageCount == 1 ? "1 photo" : "\(row.imageCount) photos", systemImage: "photo")
                 .font(.hvFootnote.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.onAction)
                 .accessibilityHidden(true)
         }
     }

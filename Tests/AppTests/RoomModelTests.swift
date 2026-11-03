@@ -279,6 +279,23 @@ final class RoomModelTests: XCTestCase {
         following.cancel()
     }
 
+    /// The screen reads the room again each time it comes back to the front; a read that fails then does not turn a room the
+    /// person is looking at into an error.
+    func testAReloadThatFailsLeavesAnOpenRoomOpen() async {
+        let counter = ReadCounter()
+        let transport = MockTransport(routes: [
+            MockRoute(.get, "/api/rooms/r1") { _ in
+                counter.bump() == 1 ? RoomJSON.answer(RoomJSON.json()) : RoomJSON.answer(status: 503, #"{"error":"down"}"#)
+            },
+        ])
+        let (model, _) = make(transport)
+        await model.load()
+        XCTAssertEqual(model.phase, .ready)
+        XCTAssertTrue(model.messages.isEmpty, "an empty room: nothing said yet")
+        await model.load()
+        XCTAssertEqual(model.phase, .ready)
+    }
+
     /// A room deleted on another device answers 404 for good; the screen says so. A server in the middle of a deploy
     /// answers one too, and the room is open again when it answers properly, with what was said before still there.
     func testARoomThatIsGoneIsSaidSoAndOpensAgainWhenItAnswers() async {

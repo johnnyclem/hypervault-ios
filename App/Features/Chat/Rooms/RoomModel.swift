@@ -104,14 +104,16 @@ final class ChatRoomModel {
 
     // MARK: Loading and following
 
-    /// Opens the room: its roster and the newest of its transcript.
+    /// Opens the room: its roster and the newest of its transcript. A screen that is open stays open when this read fails
+    /// (it is made again each time the screen comes back to the front of a stack); only a room that was never opened, or was
+    /// said to be gone, is shown as one that could not be.
     func load() async {
         do {
             applyRead(try await client.send(.room(id: roomID)))
         } catch let error as HVError {
-            if transcript.messages.isEmpty { phase = .failed(error.userMessage) }
+            if phase != .ready { phase = .failed(error.userMessage) }
         } catch {
-            if transcript.messages.isEmpty { phase = .failed(error.localizedDescription) }
+            if phase != .ready { phase = .failed(error.localizedDescription) }
         }
     }
 

@@ -167,7 +167,7 @@ state. They cover:
   accepted and rejected, a split of a memory applied in Digest (Memory then has its parts), a belief asserted into the
   hosted Truth ledger, the memories and pages that are out of date decided one by one (still fine, move to the new
   one, stop tracking), a chat begun from its first message and deleted, and a room made, given another agent and one
-  fewer, renamed and deleted.
+  fewer, renamed and deleted, and the first message of a room just made, kept and answered one turn at a time.
   The canned server keeps what they write (`App/Core/UITestWorld+Writes.swift`, a fresh store for every launch) and
   answers in the shape of the real routes. Each journey checks what the screen shows and also what the app sent: every
   request that is not a read is noted (method, path, the names and values of the body's fields, never a secret's value)

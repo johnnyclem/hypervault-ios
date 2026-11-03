@@ -195,6 +195,34 @@ final class ChatTests: XCTestCase {
         XCTAssertEqual(request?.timeoutInterval, chatTurnTimeout)
     }
 
+    func testChatSendsImagesAsBase64AndOmitsThemWhenThereAreNone() async throws {
+        let transport = MockTransport(routes: [.json(.post, "/api/chat", Self.turnJSON)])
+        let image = ChatImageUpload(mimeType: "image/jpeg", data: Data("ABC".utf8), name: "Photo.jpg")
+        _ = try await client(transport).send(.chat(backendID: "b1", message: "what is this?", images: [image]))
+        _ = try await client(transport).send(.chat(backendID: "b1", message: "plain"))
+        let requests = await transport.requests(matching: "/api/chat")
+        XCTAssertEqual(
+            requestJSON(requests.first)?["images"],
+            [["mime_type": "image/jpeg", "data": "QUJD", "name": "Photo.jpg"]]
+        )
+        XCTAssertNil(requestJSON(requests.last)?["images"])
+    }
+
+    func testAMessageCountsItsPicturesWhicheverWayTheKeysAreSpelled() throws {
+        let json = """
+        {"id":"m1","role":"user","content":"look","attachments":[
+          {"name":"a.jpg","mime_type":"image/jpeg","size":10},
+          {"name":"b.png","mimeType":"image/png"},
+          {"name":"notes.txt","mime_type":"text/plain"}]}
+        """
+        let message = try JSONDecoder().decode(ChatMessage.self, from: Data(json.utf8))
+        XCTAssertEqual(message.imageCount, 2)
+        let row = ChatThreadRow.hydrate([message]).first
+        XCTAssertEqual(row?.imageCount, 2)
+        let bare = try JSONDecoder().decode(ChatMessage.self, from: Data(#"{"id":"m2","role":"user","content":"hi"}"#.utf8))
+        XCTAssertEqual(bare.imageCount, 0)
+    }
+
     func testNewConversationOmitsTheIDAndRecallOffDropsTheBranch() async throws {
         let transport = MockTransport(routes: [.json(.post, "/api/chat", Self.turnJSON)])
         let options = ChatSendOptions(useRecall: false, recallBranch: "work")

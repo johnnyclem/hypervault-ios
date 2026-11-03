@@ -19,7 +19,14 @@ public struct StyleKitHues: Sendable, Equatable {
 
     /// `HV.Tint.fill`: the share of its own colour a tag's fill shows. An app test holds the two equal.
     public static let tintFill = 0.10
-    /// The least a hue may contrast with its own tag fill.
+    /// The least a hue may contrast with its own tag fill. A chosen low, not the stock look's bar: the stock look holds
+    /// tag text at 4.5:1 over its own fill (`DesignContrastTests`), and the four hues here are held to 3.5 because they
+    /// cannot always reach more on a kit's surfaces without leaving their colour (the stock light look's own lowest tag
+    /// pair is 3.88:1, coral on raised paper). The kit's own colours (`muted_foreground`, `accent`, `success`,
+    /// `warning`) are not checked as tag text at all: the shared contract (docs/stylekit.md 5.5) holds them as ink on
+    /// the surfaces, not on their own tint. Over the 38 served kits 62 of the 456 such pairs are under 4.5:1 and the
+    /// lowest is 3.88:1 (swiss-minimalist's accent on raised paper); `testTheKitsOwnTagTextIsRecordedNotHeldAtFourAndAHalf`
+    /// pins that, so a worn kit can sit below the stock look's bar and nothing here claims otherwise.
     static let tagFloor = 3.5
 
     /// The app's own values: `HVTokens.appColors["memory"]` and the dark slot of `ChatAgentTone` for the dark look,

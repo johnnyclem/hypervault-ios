@@ -480,6 +480,40 @@ final class StyleKitTests: XCTestCase {
         }
     }
 
+    /// The recorded lows of the tag contract, as `DesignContrastTests` records the stock look's (StyleKitHues.tagFloor).
+    func testTheKitsOwnTagTextIsRecordedNotHeldAtFourAndAHalf() throws {
+        var lowest = Double.infinity, lowestPair = "", under = 0, total = 0
+        for kit in try allKits() {
+            for role in [StyleColorRole.mutedForeground, .accent, .success, .warning] {
+                let ink = kit.colors[role]
+                for surface in kit.colors.surfaces {
+                    let ratio = ink.contrast(with: ink.composited(over: surface, alpha: StyleKitHues.tintFill))
+                    total += 1
+                    if ratio < 4.5 { under += 1 }
+                    if ratio < lowest { (lowest, lowestPair) = (ratio, "\(kit.id) \(role.rawValue)") }
+                }
+            }
+        }
+        XCTAssertEqual(total, 38 * 4 * 3)
+        XCTAssertEqual(lowest, 3.88, accuracy: 0.01, lowestPair)
+        XCTAssertEqual(lowestPair, "swiss-minimalist accent")
+        XCTAssertGreaterThanOrEqual(lowest, StyleKitHues.tagFloor, "the floor the four hues are held to is not below what the kits themselves reach")
+        XCTAssertEqual(under, 62, "pairs under the stock look's 4.5:1")
+    }
+
+    /// The system-label pairs are the app's own (StyleKitContract): they must not be the reason a served kit is refused.
+    func testTheSystemLabelFloorsLeaveEveryServedKitRoom() throws {
+        var tightest = Double.infinity, tightestKit = ""
+        for kit in try allKits() {
+            for pair in StyleKitContract.pairs(for: kit) where pair.label.hasPrefix("system label") {
+                if pair.ratio / pair.floor < tightest { (tightest, tightestKit) = (pair.ratio / pair.floor, kit.id) }
+            }
+        }
+        XCTAssertEqual(tightestKit, "industrial")
+        XCTAssertEqual(tightest, 3.18, accuracy: 0.01)
+        XCTAssertGreaterThan(tightest, 3, "three times the floor on every served kit")
+    }
+
     func testHuesThatCannotBeRescuedFallBackToTheKitsOwnText() throws {
         var kit = try StyleKitFixtures.kit("modern-dark")
         // A white page, black paper and grey raised paper: no colour reads on all three.

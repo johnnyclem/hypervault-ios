@@ -48,6 +48,14 @@ public enum StyleKitContract {
         // keyboard take the system's label for it: black on a light page, white on a dark one. Those must read too, so a
         // kit whose `appearance` does not fit its own page is refused. (Paper and raised paper only need to be
         // legible for large, bold or secondary text, as in the stock look.)
+        //
+        // These three pairs are the app's own and are not in the shared contract (docs/stylekit.md 5.5 and 9), where the
+        // server derives `appearance` from `L(background) > L(foreground)` and never looks at the system's label. They
+        // guard what only the client knows it draws: a future preset with a mid-tone page that the server accepts would
+        // be refused here as illegible, which is the safe side of the disagreement. Every kit served today passes with
+        // room (the tightest is industrial's page, 14.3:1 against the 4.5:1 floor, 3.2 times it);
+        // `testTheSystemLabelFloorsLeaveEveryServedKitRoom` records it. If the server adopts the rule, this comment goes;
+        // if a preset ever trips it, the server's doc is what changes.
         let label: RGB = kit.appearance == .light ? .black : .white
         pairs.append(Pair(label: "system label on background", foreground: label, background: colors.background, floor: 4.5))
         pairs.append(Pair(label: "system label on card", foreground: label, background: colors.card, floor: 3.0))

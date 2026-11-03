@@ -205,4 +205,38 @@ final class CanvasFieldTests: CanvasTestCase {
         model.dismissNotice()
         XCTAssertNil(model.notice)
     }
+
+    // MARK: The field is replaced, not only emptied
+
+    func testSendingEmptiesTheFieldAndGivesItANewIdentity() async {
+        let (model, _) = make([.json(.get, "/api/backends", oneModel), .json(.post, "/api/chat", reply)])
+        await model.loadBackends()
+        let start = model.composerEpoch
+        model.draft = "Plan my week"
+        await model.send()
+        XCTAssertEqual(model.draft, "")
+        XCTAssertEqual(model.composerEpoch, start &+ 1)
+    }
+
+    func testAQuestionThatFailsComesBackInAFreshField() async {
+        let (model, _) = make([
+            .json(.get, "/api/backends", oneModel),
+            .failure(.post, "/api/chat", status: 502, message: "The model did not answer."),
+        ])
+        await model.loadBackends()
+        let start = model.composerEpoch
+        model.draft = "Plan my week"
+        await model.send()
+        XCTAssertEqual(model.draft, "Plan my week")
+        XCTAssertEqual(model.composerEpoch, start &+ 2)
+    }
+
+    func testDictationAndTypingNeverReplaceTheField() {
+        let (model, _) = make([])
+        let start = model.composerEpoch
+        model.setDraft("hello")
+        model.fieldWrote("hello w", epoch: start)
+        XCTAssertEqual(model.draft, "hello w")
+        XCTAssertEqual(model.composerEpoch, start)
+    }
 }

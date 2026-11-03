@@ -91,7 +91,9 @@ public struct DashboardThemeState: Sendable, Equatable, Codable {
         /// The stored id is not in the server's catalog any more. The web shows its stock look; so does the app.
         case unknown
         /// The server has no accessible kit for this theme (`retro`), or does not send kits at all. The app keeps its
-        /// default look and says the theme cannot be shown. An unrecognised reason word reads as this too.
+        /// default look and says the theme cannot be shown. A reason word this build does not know is no reason
+        /// (docs/stylekit.md section 7, client rule 2), and a theme with no kit and no reason is read as this one, so
+        /// the person is told the theme cannot be shown rather than left to wonder why nothing changed.
         case unsupported
         /// The server sent a kit this build cannot read (a newer `schema_version`, a missing colour, a colour that is not
         /// opaque `#rrggbb`) or that fails the accessibility floors. Never sent by a server: made here.
@@ -145,7 +147,7 @@ public struct DashboardThemeState: Sendable, Equatable, Codable {
             }
         }
         let word = try? c.decodeIfPresent(String.self, forKey: .reason)
-        let reason = unreadable ? Reason.invalid : word.map { Reason(rawValue: $0) ?? .unsupported }
+        let reason = unreadable ? Reason.invalid : word.flatMap(Reason.init(rawValue:))
         self.init(theme: theme, kit: kit, reason: reason)
     }
 

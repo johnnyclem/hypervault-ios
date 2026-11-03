@@ -57,11 +57,18 @@ final class DashboardThemeKitTests: XCTestCase {
         XCTAssertFalse(state.isWithheld, "the web shows its stock look for it as well")
     }
 
-    func testAReasonThisBuildDoesNotKnowIsTreatedAsUnsupported() throws {
-        let state = try decodeState(#"{"theme":"x","kit":null,"reason":"licensing"}"#)
-        XCTAssertEqual(state.reason, .unsupported)
+    /// docs/stylekit.md section 7, client rule 2: "an unknown `reason` is no reason". A theme with no kit and no reason is
+    /// one the server did not explain, which the app tells the person it cannot show, so the two read the same.
+    func testAReasonThisBuildDoesNotKnowIsNoReasonAndSoTheThemeIsUnsupported() throws {
+        let unknownWord = try decodeState(#"{"theme":"x","kit":null,"reason":"licensing"}"#)
         let notAWord = try decodeState(#"{"theme":"x","kit":null,"reason":7}"#)
-        XCTAssertEqual(notAWord.reason, .unsupported)
+        let noReason = try decodeState(#"{"theme":"x","kit":null}"#)
+        XCTAssertEqual(unknownWord, noReason)
+        XCTAssertEqual(notAWord, noReason)
+        XCTAssertEqual(noReason.reason, .unsupported)
+        XCTAssertTrue(unknownWord.isWithheld)
+        // A word it does know is still read.
+        XCTAssertEqual(try decodeState(#"{"theme":"x","kit":null,"reason":"unknown"}"#).reason, .unknown)
     }
 
     func testAThemeWithNoKitAndNoReasonIsOneTheServerDidNotExplain() throws {

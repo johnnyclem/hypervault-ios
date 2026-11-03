@@ -220,6 +220,7 @@ final class StyleKitTests: XCTestCase {
         XCTAssertEqual(junk.adjusted, [])
     }
 
+    /// docs/stylekit.md 4.1 ("Needed: no", each with its default) and section 7, client rule 2.
     func testTheDecorativeKeysAreOptional() throws {
         var json = try StyleKitFixtures.json("newsprint")
         for key in ["name", "radius", "font", "backdrop", "adjusted"] { json = StyleKitFixtures.setting(json, [key], to: nil) }

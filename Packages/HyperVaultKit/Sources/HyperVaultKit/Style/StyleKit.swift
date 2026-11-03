@@ -170,7 +170,7 @@ public enum StyleKitRejection: Error, Sendable, Equatable {
 public struct StyleKit: Sendable, Equatable {
     /// The only major this build reads. A higher one is refused rather than half understood.
     public static let supportedSchemaVersion = 1
-    /// `radius.base` when the kit does not say (the stock `--radius`, 0.75rem).
+    /// `radius.base` when the kit does not say (the stock `--radius`, 0.75rem; the server's default for it too).
     public static let defaultRadius = 12.0
     /// The largest `radius.base` the app believes; a larger number is a mistake, not a design.
     public static let maxRadius = 48.0
@@ -245,7 +245,10 @@ extension StyleKit: Codable {
             }
             let colors = try c.decode(StyleKitColors.self, forKey: .colors)
 
-            // Everything below is optional and decorative: a value this build cannot read is the neutral one.
+            // Everything below is optional and decorative: a value this build cannot read is the neutral one. That is the
+            // server's contract (docs/stylekit.md 4.1, "Needed: no", and section 7, client rule 2): a missing or unreadable
+            // `name`, `radius.base`, `font.design`, `backdrop.kind` or `adjusted` takes its default and does not reject
+            // the kit. Rule 3 lists what does, and every item on it is refused above.
             let name = (try? c.decodeIfPresent(String.self, forKey: .name)).flatMap { $0.isEmpty ? nil : $0 }
             var radius = Self.defaultRadius
             if let nested = try? c.nestedContainer(keyedBy: RadiusKeys.self, forKey: .radius),

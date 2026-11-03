@@ -116,6 +116,22 @@ final class ProjectsTests: XCTestCase {
         XCTAssertTrue(ProjectBoardDigest(board: TaskBoard(id: "p", title: "P")).focus.isEmpty)
     }
 
+    func testAClaimWhoseTimeHasRunOutIsNotWorkInHand() {
+        let lapsed = BoardLock(by: "gemini:run-4", expiresAt: now.addingTimeInterval(-3_600))
+        let live = BoardLock(by: "Claude Code", expiresAt: now.addingTimeInterval(3_600))
+        let board = TaskBoard(id: "p", title: "P", tasks: [
+            task("1", .inProgress, assignee: BoardAssignee(kind: .agent, name: "Gemini"), lock: lapsed),
+            task("2", .inProgress, lock: lapsed),                                   // a crashed agent's claim, assigned to no one
+            task("3", .inProgress, lock: live),
+            task("4", .inProgress, assignee: BoardAssignee(kind: .human, name: "sam"), lock: lapsed),
+        ])
+        let agents = ProjectBoardDigest(board: board, now: now).agents
+        XCTAssertEqual(
+            agents, [ProjectAgent(name: "Claude Code", tasks: 1), ProjectAgent(name: "Gemini", tasks: 1)],
+            "a lapsed claim names no one; the agent a task is assigned to still holds it, under the name on the assignment"
+        )
+    }
+
     // MARK: Names
 
     func testANameMatchesWholeWordsOfTheTitleOrTheId() {
@@ -251,6 +267,29 @@ final class ProjectsTests: XCTestCase {
         XCTAssertEqual(related.memories.map(\.relation), [.linked, .tagged, .mentions])
         XCTAssertEqual(related.memories.first?.detail, "You")
         XCTAssertEqual(related.possibly.map(\.key), ["m3"], "a bridge the server guessed at waits behind \"Show possibly related\"")
+    }
+
+    func testAMemoryTheServerAlsoGuessedAtIsStillKeptForItsOwnReason() {
+        // The server joins every memory it stores to the pages it shares a tag or two title words with, so a memory titled for
+        // the project is usually bridged to the board page as well. The name (or the tag) is evidence; the bridge is not.
+        let related = build(input(
+            memories: [
+                memory("named", "Choir module wiring", created: 2),
+                memory("tagged", "Bench notes", tags: ["eurorack-choir"], created: 3),
+                memory("both", "Eurorack Choir Module power budget", tags: ["eurorack-choir"], created: 4),
+                memory("guess", "Trip to Lisbon", created: 1),
+            ],
+            bridges: ["named", "tagged", "both", "guess"].map { MemoryBridgeRow(id: "b-\($0)", memoryId: $0, artifactId: board, kind: .auto) }
+        ))
+        XCTAssertEqual(related.memories.map(\.key), ["tagged", "both", "named"], "tagged before mentions, then the newest first")
+        XCTAssertEqual(related.memories.map(\.relation), [.tagged, .tagged, .mentions])
+        XCTAssertEqual(related.possibly.map(\.key), ["guess"], "only a memory with nothing but the guess waits behind \"Show possibly related\"")
+        XCTAssertEqual(related.confirmedTotal, 3)
+    }
+
+    func testAGuessRanksBelowEveryReasonOfItsOwn() {
+        XCTAssertEqual(ProjectRelation.allCases, [.linked, .tagged, .mentions, .related])
+        XCTAssertTrue(ProjectRelation.mentions.rank < ProjectRelation.related.rank)
     }
 
     func testChatsAreFoundByNameAndOnlyByName() {

@@ -124,7 +124,7 @@ public struct ProjectBoardDigest: Sendable, Equatable {
     /// The open tasks a person would look at first: leaves (an epic is its subtasks), in progress first, then blocked, in
     /// review and to do, the most recently touched first within each.
     public let focus: [BoardTask]
-    /// Who is holding open work: agents by the name on their claim or assignment, the busiest first.
+    /// Who is holding open work: agents by the name on their live claim or on the assignment, the busiest first.
     public let agents: [ProjectAgent]
 
     public static let focusLimit = 5
@@ -142,7 +142,7 @@ public struct ProjectBoardDigest: Sendable, Equatable {
         return parts.joined(separator: " \u{00B7} ")
     }
 
-    public init(board: TaskBoard) {
+    public init(board: TaskBoard, now: Date = Date()) {
         summary = TaskBoardSummary.compute(board)
         let order = Dictionary(uniqueKeysWithValues: BoardTaskStatus.boardOrder.enumerated().map { ($1, $0) })
         let open = board.tasks.filter { $0.status.isOpen }
@@ -159,8 +159,12 @@ public struct ProjectBoardDigest: Sendable, Equatable {
                 .prefix(Self.focusLimit)
         )
         var counts: [String: Int] = [:]
-        for task in open where task.isClaimedByAgent || task.lock != nil {
-            if let holder = task.holder { counts[holder, default: 0] += 1 }
+        for task in open {
+            // A claim whose time has run out is anyone's to take (`BoardLock.isLive`): its name is not work in hand. An agent
+            // the task is assigned to still holds it, as the board's own rows say.
+            let claimed = task.lock.flatMap { $0.isLive(now: now) && !$0.by.isEmpty ? $0.by : nil }
+            guard let holder = claimed ?? (task.isClaimedByAgent ? task.assignee.label : nil) else { continue }
+            counts[holder, default: 0] += 1
         }
         agents = counts
             .sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
@@ -227,16 +231,19 @@ public struct ProjectNameMatcher: Sendable, Equatable {
 
 // MARK: What else belongs
 
-/// Why a row is under a project, strongest first. The overview says it on the row.
+/// Why a row is under a project, strongest first. The overview says it on the row. The order is the order of the cases:
+/// the server's guess is last, because it is a guess; a row that has any reason of its own (a tag, a name that matches) is
+/// kept under that reason, not under the guess the server also made. (The server joins each memory it stores to the pages it
+/// shares a tag or title words with, so a memory titled for a project is often joined to its board page as well.)
 public enum ProjectRelation: String, Sendable, Codable, Hashable, CaseIterable {
     /// Joined to the project's board page by hand (a manual connection).
     case linked
     /// Carries the project's id as a tag.
     case tagged
-    /// Joined to the board page by the server's guess from shared tags and title words.
-    case related
     /// Its name or its text is about the project.
     case mentions
+    /// Joined to the board page by the server's guess from shared tags and title words, and by nothing else.
+    case related
 
     public var rank: Int { Self.allCases.firstIndex(of: self) ?? Self.allCases.count }
 
@@ -422,8 +429,8 @@ public enum ProjectRelatedBuilder {
             }
             return (Array(sorted.prefix(sectionLimit)), sorted.count)
         }
-        // The server's guesses are held back from the sections they would otherwise crowd (they sort below Linked and Tagged,
-        // but above Mentions), and kept on their own.
+        // What is left with only the server's guess (`keep` gives a guess up to any reason of its own) is held back from the
+        // sections, and kept on its own.
         func confirmed(_ found: [String: ProjectRelatedItem]) -> [ProjectRelatedItem] { found.values.filter { $0.relation != .related } }
         let guesses = (Array(pages.values) + Array(memories.values)).filter { $0.relation == .related }
         let p = cut(confirmed(pages)), m = cut(confirmed(memories)), c = cut(Array(chats.values)), g = cut(guesses)

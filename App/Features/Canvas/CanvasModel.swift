@@ -69,6 +69,11 @@ final class CanvasModel: CanvasCommandHost {
     private(set) var cards: [CanvasCard] = []
     private(set) var messages: [ThreadMessage] = []
     var draft = ""
+    /// Counts the times code replaced the field's words as a whole (a send, a keep, a command, a restored question, a
+    /// paste taken out of the field, a Return with nothing to send). The text field takes a new identity with each one
+    /// (`hvFieldReset`), so it starts again from what `draft` says. Dictation writes (`setDraft`) never change it: they
+    /// arrive many times a second.
+    private(set) var composerEpoch = 0
     private(set) var staged: String?
     private(set) var isBusy = false
     private(set) var isKeeping = false
@@ -154,7 +159,7 @@ final class CanvasModel: CanvasCommandHost {
 
         if CanvasCommandRunner.run(text, host: self) {
             endAsking()
-            draft = ""
+            clearDraft()
             return
         }
         if isAsking {
@@ -199,7 +204,7 @@ final class CanvasModel: CanvasCommandHost {
         let userKey = localKey()
         isBusy = true
         messages.append(ThreadMessage(id: userKey, role: .user, content: text))
-        draft = ""
+        clearDraft()
         do {
             let turn = try await client.send(.canvasChat(
                 backendId: backend.id,
@@ -228,7 +233,7 @@ final class CanvasModel: CanvasCommandHost {
     private func fail(_ error: Error, text: String, userKey: String) {
         if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             messages.removeAll { $0.id == userKey }
-            setDraft(text)
+            restoreDraft(text)
         }
         report(chatError: Self.chatLine(for: error))
         if chatError != nil { Haptics.failure() }
@@ -434,6 +439,25 @@ final class CanvasModel: CanvasCommandHost {
         draft = text
     }
 
+    /// What the text field writes when the person types. A field that `clearDraft` or `restoreDraft` has since replaced
+    /// could still write the words it held as it goes; those are not typing, and are dropped.
+    func fieldWrote(_ text: String, epoch: Int) {
+        guard epoch == composerEpoch else { return }
+        draft = text
+    }
+
+    /// The words were sent, kept or run as a command: the field is emptied and replaced.
+    private func clearDraft() {
+        draft = ""
+        composerEpoch &+= 1
+    }
+
+    /// The turn did not get through: the words go back, in a new field.
+    private func restoreDraft(_ text: String) {
+        setDraft(text)
+        composerEpoch &+= 1
+    }
+
     /// The field changed, and this reads what the person did from the change itself, since the field
     /// gives no paste event and no Return. A block of text arriving in one step is a paste: it is held
     /// above the field instead, to be kept or asked about. A lone line break is Return: a field that
@@ -447,10 +471,15 @@ final class CanvasModel: CanvasCommandHost {
         guard let inserted = PasteDiff.insertion(old: old, new: new) else { return .edited }
         if inserted == "\n" {
             draft = old
+            // With words in the field, Return sends them next, and sending replaces the field (`clearDraft`). With none,
+            // nothing follows that would, so the field is replaced here or it keeps the line break it took.
+            if old.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { composerEpoch &+= 1 }
             return .returned
         }
         guard PasteStaging.shouldStage(inserted) else { return .edited }
         draft = old
+        // The block waits above the field now; the field is replaced so that it does not keep showing it as well.
+        composerEpoch &+= 1
         stagePaste(inserted)
         return .pasted
     }
@@ -510,11 +539,11 @@ final class CanvasModel: CanvasCommandHost {
     private func keepAsked(_ text: String) {
         let asked = question
         isAsking = false
-        draft = ""
+        clearDraft()
         run(text, sourcePrompt: nil) { [weak self] failed in
             guard let self else { return }
             if question == asked { isAsking = true }
-            if draft.trimmingCharacters(in: .whitespaces).isEmpty { setDraft(failed) }
+            if draft.trimmingCharacters(in: .whitespaces).isEmpty { restoreDraft(failed) }
         }
     }
 

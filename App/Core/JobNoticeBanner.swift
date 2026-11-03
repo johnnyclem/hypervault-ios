@@ -72,9 +72,10 @@ private struct JobNoticeBar: View {
 // MARK: Screens
 
 extension View {
-    /// Puts the notices of finished background jobs over this screen while it is showing. It goes on the Home canvas and
-    /// the Library, the two places they belong (the web mounts them on the Library alone), and not on a page: the repair
-    /// sheet over a page tells its own job.
+    /// Puts the notices of finished background jobs over this screen while it is showing. It goes on Home, on the canvas
+    /// pushed on it, and on the Library, the places they belong (the web mounts them on the Library alone), and not on a
+    /// page: the repair sheet over a page tells its own job. The screens share the one question and the one banner, and only
+    /// the one in front watches and draws.
     func jobNotices() -> some View {
         modifier(JobNoticesModifier())
     }
@@ -90,9 +91,9 @@ private struct JobNoticesModifier: ViewModifier {
     @State private var isShowing = false
 
     func body(content: Content) -> some View {
-        // Showing, in front of the person, out from behind the lock, and on the Home tab, where both screens are.
+        // Showing, in front of the person, out from behind the lock, and on the Home tab, where the chats and the canvas are.
         let inFront = scenePhase == .active && app?.lock.isLocked == false
-        let watching = isShowing && inFront && app?.router.tab == .canvas
+        let watching = isShowing && inFront && app?.router.tab == .home
         content
             .safeAreaInset(edge: .top, spacing: 0) { JobNoticeBar() }
             .onAppear { isShowing = true }

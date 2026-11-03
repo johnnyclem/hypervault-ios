@@ -5,12 +5,11 @@ import XCTest
 final class AccountMenuTests: XCTestCase {
     func testTheWordsAreTheWebs() {
         XCTAssertEqual(AccountMenu.title, "Account")
+        XCTAssertEqual(AccountMenu.settings, "Settings")
         XCTAssertEqual(AccountMenu.library, "Library")
         XCTAssertEqual(AccountMenu.mail, "Mail")
-        XCTAssertEqual(AccountMenu.accountAndKeys, "Account & keys")
         XCTAssertEqual(AccountMenu.groupChats, "Group chats")
         XCTAssertEqual(AccountMenu.tools, "Tools")
-        XCTAssertEqual(AccountMenu.importAnything, "Import")
         XCTAssertEqual(AccountMenu.beta, "Beta")
         XCTAssertEqual(AccountMenu.dreams, "Dreams")
         XCTAssertEqual(AccountMenu.truth, "Truth")

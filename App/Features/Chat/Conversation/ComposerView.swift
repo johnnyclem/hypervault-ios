@@ -1,12 +1,16 @@
 import HyperVaultKit
+import PhotosUI
 import SwiftUI
+import UIKit
 
 /// The message field in glass chrome. The send button exists only while there
 /// is something to send; while a turn is in flight it is a stop button.
 struct ChatComposerView: View {
-    @Bindable var model: ChatConversationModel
+    let model: ChatConversationModel
     var focus: FocusState<Bool>.Binding
     var onOptions: () -> Void
+
+    @State private var pickedPhotos: [PhotosPickerItem] = []
 
     var body: some View {
         VStack(spacing: HV.Space.xs) {
@@ -31,19 +35,33 @@ struct ChatComposerView: View {
         .padding(.bottom, HV.Space.xs)
         .hvReadableWidth()
         .hvAnimation(HV.Motion.entrance, value: model.notice)
-        .hvAnimation(HV.Motion.entrance, value: model.canSend)
+    }
+
+    /// The text field's binding. A write from a field that has since been replaced is dropped (`fieldWrote`).
+    private var draftBinding: Binding<String> {
+        let epoch = model.composerEpoch
+        return Binding(get: { model.draft }, set: { model.fieldWrote($0, epoch: epoch) })
     }
 
     private var field: some View {
         VStack(alignment: .leading, spacing: 0) {
-            TextField("Message", text: $model.draft, prompt: Text("Message").foregroundStyle(Palette.textSecondary), axis: .vertical)
+            if !model.pendingImages.isEmpty {
+                pendingStrip
+            }
+            TextField(
+                "Message", text: draftBinding,
+                prompt: Text(model.pendingImages.isEmpty ? "Message" : "Ask about the photo").foregroundStyle(Palette.textSecondary),
+                axis: .vertical
+            )
                 .font(.hvBody)
                 .lineLimit(1...8)
                 .focused(focus)
+                .hvFieldReset(epoch: model.composerEpoch, focus: focus, field: true)
                 .padding(.horizontal, HV.Space.m)
                 .padding(.top, HV.Space.s)
                 .padding(.bottom, HV.Space.xs)
                 .accessibilityLabel("Message")
+                .accessibilityIdentifier("chat.field")
                 .accessibilityHint("Sends to \(model.modelName)")
 
             HStack(spacing: HV.Space.xs) {
@@ -65,6 +83,15 @@ struct ChatComposerView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Model and options")
                 .accessibilityValue(model.modelName)
+
+                if model.canAttach {
+                    PhotosPicker(selection: $pickedPhotos, maxSelectionCount: model.attachSlots, matching: .images) {
+                        Image(systemName: "photo.on.rectangle")
+                    }
+                    .buttonStyle(.hvIcon)
+                    .accessibilityLabel("Add photos")
+                    .accessibilityHint("Up to \(ChatImageUpload.maxPerMessage) per message")
+                }
 
                 Spacer(minLength: 0)
 
@@ -96,8 +123,55 @@ struct ChatComposerView: View {
             .padding(.leading, HV.Space.s)
             .padding(.trailing, HV.Space.xs)
             .padding(.bottom, HV.Space.xxs)
+            // Only the buttons move with `canSend`. The text field is not in this subtree, so an animated change of
+            // Send never shares a transaction with the field's text.
+            .hvAnimation(HV.Motion.entrance, value: model.canSend)
         }
         .hvGlass(radius: HV.Radius.floating)
+        .onChange(of: pickedPhotos) { _, items in
+            guard !items.isEmpty else { return }
+            pickedPhotos = []
+            Task {
+                for item in items {
+                    await model.attach(try? await item.loadTransferable(type: Data.self))
+                }
+            }
+        }
+    }
+
+    /// The photos chosen for this message, each with a way to take it off.
+    private var pendingStrip: some View {
+        HStack(spacing: HV.Space.xs) {
+            ForEach(model.pendingImages) { pending in
+                ZStack(alignment: .topTrailing) {
+                    if let image = UIImage(data: pending.thumbnail) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 64, height: 64)
+                            .clipShape(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
+                            .accessibilityLabel("Photo to send")
+                    }
+                    Button {
+                        model.removeImage(pending.id)
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.white, .black.opacity(0.65))
+                            .font(.hvBody)
+                            .frame(width: 44, height: 44, alignment: .topTrailing)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .offset(x: 14, y: -14)
+                    .accessibilityLabel("Remove photo")
+                }
+                .frame(width: 64, height: 64)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, HV.Space.m)
+        .padding(.top, HV.Space.s)
     }
 
     private var showsCounter: Bool {

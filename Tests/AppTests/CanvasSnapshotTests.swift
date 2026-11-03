@@ -9,7 +9,7 @@ final class CanvasSnapshotTests: XCTestCase {
 
     private func screen(_ model: CanvasModel) -> some View {
         PreviewHost(routes: [.json(.get, "/api/backends", Fixtures.backends), .json(.get, "/api/yours", Fixtures.yours)], embedInNavigation: true) {
-            CanvasScreen(model: model, origin: origin, userName: "Sam", avatarName: "Sam Rivers", avatarURL: nil)
+            CanvasScreen(model: model, origin: origin)
         }
     }
 

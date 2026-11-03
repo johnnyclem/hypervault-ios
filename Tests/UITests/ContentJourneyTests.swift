@@ -1,7 +1,7 @@
 import XCTest
 
 /// The things people open from the tabs and talk to: a memory in full, Memory's Ask mode, a conversation, a room, and a
-/// page from the Library with what can be done to it.
+/// page from the Library with what can be done to it. (The conversation and the room are on Home.)
 @MainActor
 final class ContentJourneyTests: HyperVaultUITestCase {
     func testAMemoryOpensInFullAndAskModeAnswersFromMemory() {
@@ -26,8 +26,10 @@ final class ContentJourneyTests: HyperVaultUITestCase {
         }
 
         step("The answer is written from the memories it drew on") {
-            enter("What did I plan for the ferry?", into: textField("ask.field"), "the question field")
+            let question = "What did I plan for the ferry?"
+            enter(question, into: textField("ask.field"), "the question field")
             tap(button("Ask"), "Ask")
+            waitUntil("the question to leave the question box once it is asked") { self.fieldNoLongerHolds(self.textField("ask.field"), question) }
             require(text("What did I plan for the ferry?"), "the question, kept above its answer")
             require(shows("Your Lisbon notes say to book the Friday ferry"), "the answer", timeout: 40)
             require(shows("Drew from"), "the list of sources")
@@ -51,7 +53,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
 
     func testAConversationOpensAndTakesAMessage() {
         launch(.signedIn)
-        openTab("Chat")
+        openTab("Home")
 
         step("A conversation opens to what was said in it") {
             tap(element("chat.row.c1"), "the Lisbon conversation")
@@ -69,7 +71,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
 
     func testARoomOpensAndTakesAMessage() {
         launch(.signedIn)
-        openTab("Chat")
+        openTab("Home")
         tap(segment("Group chats"), "the Group chats half", until: { self.element("chat.room.r1").exists })
 
         step("A room opens to what its members said") {
@@ -80,9 +82,11 @@ final class ContentJourneyTests: HyperVaultUITestCase {
         }
 
         step("What is said to the room is answered by a member") {
-            enter("claude, summarise the plan", into: textField("room.field"), "the message field")
+            let message = "claude, summarise the plan"
+            enter(message, into: textField("room.field"), "the message field")
             require(shows("Goes to @claude"), "the line that says who the message goes to")
             tap(button("Send"), "Send")
+            waitUntil("the message to leave the message box once it is sent") { self.fieldNoLongerHolds(self.textField("room.field"), message) }
             require(shows("Noted: claude, summarise the plan"), "claude's answer", timeout: 40)
         }
     }

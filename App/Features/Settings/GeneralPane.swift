@@ -1,7 +1,7 @@
 import HyperVaultKit
 import SwiftUI
 
-/// General, the first pane of the You tab: the account you are signed in with (its email, its plan, signing out), and
+/// General, the first pane of Settings: the account you are signed in with (its email, its plan, signing out), and
 /// under "On this phone" the things that belong to this phone rather than to the account: feel, search, the lock, what
 /// is waiting to be kept, the server and the version.
 struct GeneralPane: View {

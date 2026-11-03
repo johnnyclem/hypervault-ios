@@ -1,7 +1,7 @@
 import HyperVaultKit
 import SwiftUI
 
-/// Appearance, a pane of the You tab. On the web it is one look for the dashboard and chat, and a look for each address.
+/// Appearance, a pane of Settings. On the web it is one look for the dashboard and chat, and a look for each address.
 /// Here it is the account's theme, which the website and this app wear (the phone can keep the app out of it); each
 /// address's look is under Domain.
 struct AppearancePane: View {

@@ -2,7 +2,7 @@
 import Foundation
 import HyperVaultKit
 
-/// What the screens behind the You tab (and what they open) are shown, in the shapes the real routes send: the keys, the
+/// What the screens behind Settings (and what they open) are shown, in the shapes the real routes send: the keys, the
 /// address, the ledger, the task boards, a room, the admin's codes. `UITestWorld.routes(for:)` puts these before the
 /// canned answers the previews use, so a route a journey needs is answered here first.
 ///
@@ -23,6 +23,63 @@ extension UITestWorld {
         routes += importRoutes
         routes += artifactSharingRoutes
         return routes
+    }
+
+    // MARK: A project with things that go with it
+
+    /// What the launch flag `projectLinksFlag` adds, to go before `routes`: the pages the Library graph reads (the two the
+    /// canned vault has, the Eurorack Choir Module's board page, and a page tagged with the project), the links among
+    /// them, and one more chat. Anything else a route here is asked for is answered by the route it covers.
+    ///
+    /// On the project's overview that comes to: Bakery landing page and Panel drawings under Pages and files (Linked, Tagged),
+    /// Auth decision: passkeys first under Memories (Linked), the extra chat under Chats (Mentions it), and Trip to Lisbon
+    /// behind "Show possibly related", where the server's guess is.
+    static func projectLinksRoutes(over covered: [MockRoute]) -> [MockRoute] {
+        func answer(_ path: String) -> (@Sendable (URLRequest) -> HTTPResponse)? {
+            covered.first { $0.path == path && ($0.method == nil || $0.method == .get) }?.handler
+        }
+        let pagesBelow = answer("/rest/v1/artifacts")
+        let chatsBelow = answer("/api/conversations")
+        func page(_ id: String, _ slug: String, _ title: String, tags: [String] = []) -> JSONValue {
+            .object([
+                "id": .string(id), "slug": .string(slug), "title": .string(title), "type": .string("html"),
+                "tags": .array(tags.map(JSONValue.string)), "is_jsx": .bool(false),
+            ])
+        }
+        let pages = JSONValue.array([
+            page("art-bakery", "bakery-landing-page-x1", "Bakery landing page"),
+            page("art-lisbon", "trip-to-lisbon-q7", "Trip to Lisbon"),
+            page("art-board-choir", "taskboard-eurorack-choir", "Eurorack Choir Module \u{2014} Task Board", tags: ["taskboard", "eurorack-choir"]),
+            page("art-panels", "panel-drawings-x1", "Panel drawings", tags: ["eurorack-choir"]),
+        ]).jsonString()
+        let connections = JSONValue.object([
+            "connections": .array([
+                .object(["id": .string("e1"), "a_id": .string("art-bakery"), "b_id": .string("art-board-choir"), "kind": .string("manual")]),
+                .object(["id": .string("e2"), "a_id": .string("art-board-choir"), "b_id": .string("art-lisbon"), "kind": .string("auto")]),
+            ]),
+            "memory_links": .array([]),
+            "memory_artifact_links": .array([
+                .object(["id": .string("b9"), "memory_id": .string("m2"), "artifact_id": .string("art-board-choir"), "kind": .string("manual")]),
+            ]),
+        ]).jsonString()
+        let chat = JSONValue.object([
+            "id": .string("c-choir-quotes"), "title": .string("Eurorack choir front panel quotes"), "source_platform": .string("hypervault"),
+            "model": .null, "created_at": .string(date(7_200)), "updated_at": .string(date(3_600)),
+            "visibility": .string("private"), "share_slug": .null,
+        ])
+        return [
+            MockRoute(.get, "/rest/v1/artifacts") { request in
+                // The graph's read names `is_jsx`; every other read of the table is the covered route's to answer.
+                if request.url?.query?.contains("is_jsx") == true { return reply(raw: pages) }
+                return pagesBelow?(request) ?? reply(raw: "[]")
+            },
+            .json(.get, "/api/connections", connections),
+            MockRoute(.get, "/api/conversations") { request in
+                var list = chatsBelow.flatMap { parse(String(decoding: $0(request).data, as: UTF8.self))["conversations"]?.array } ?? []
+                list.insert(chat, at: 0)
+                return reply(.object(["conversations": .array(list)]))
+            },
+        ]
     }
 
     // MARK: Account & keys
@@ -242,7 +299,7 @@ extension UITestWorld {
 
     // MARK: Admin
 
-    /// The admin check the You tab makes (an empty `PATCH` to an invite that does not exist) and the codes an admin mints.
+    /// The admin check the Account menu makes (an empty `PATCH` to an invite that does not exist) and the codes an admin mints.
     /// Every admin route refuses a person who is not an admin with a 403, which is what the check reads; an admin gets past
     /// the guard and is refused for the empty body (a 400).
     static func adminRoutes(isAdmin: Bool) -> [MockRoute] {

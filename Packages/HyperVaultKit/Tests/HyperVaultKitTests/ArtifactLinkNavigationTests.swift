@@ -1,7 +1,7 @@
 import XCTest
 @testable import HyperVaultKit
 
-/// The app's navigation links (the tabs, the You panes, the Yours panel, the settings) are for people and for the
+/// The app's navigation links (the tabs, the Settings panes, the Yours panel, the settings) are for people and for the
 /// widgets and Spotlight results the app itself made. A page is untrusted, so none of them may be a page's to open:
 /// `ArtifactLinkRouter` lets a page reach a page, a group and `hypervault://artifact/<slug>`, and nothing else.
 final class ArtifactLinkNavigationTests: XCTestCase {
@@ -19,6 +19,7 @@ final class ArtifactLinkNavigationTests: XCTestCase {
     func testAPageCannotDriveTheAppToATabAPaneOrThePanelByItsOwnScheme() {
         let links = [
             "hypervault://tab/you", "hypervault://tab/yours", "hypervault://tab/canvas", "hypervault://tab/home",
+            "hypervault://tab/projects", "hypervault://tab/mail", "hypervault://projects", "hypervault://mail",
             "hypervault://yours", "hypervault://library", "hypervault://settings", "hypervault://account",
             "hypervault://vault", "hypervault://vault/account", "hypervault://vault/account?tab=keys", "hypervault://vault/account#keys",
             "hypervault://vault/library", "hypervault://vault/import", "hypervault://rooms", "hypervault://chat?c=abc",

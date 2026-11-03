@@ -116,7 +116,7 @@ struct WidgetsView: View {
 - The init of a model is cheap and has no side effects (the parent may build
   throwaway copies); loading happens in `.task` or `.refreshable`.
 - Entry points get `env` from `@Environment(AppEnvironment.self)` and pass
-  `env.client` (and `env.cache`) down. See `AccountPaneView` in `App/Features/Root/YouTabView.swift`.
+  `env.client` (and `env.cache`) down. See `AccountPaneView` in `App/Features/Settings/AccountPaneView.swift`.
 - Lists use `env.load(key) { try await client.send(...) }` for cached-then-fresh
   loading, and show `HVStaleBanner` when the first answer was the saved copy.
 - Every screen that fetches has all four states: loading (`HVListSkeleton` or
@@ -126,7 +126,7 @@ struct WidgetsView: View {
   sentence is shown verbatim. Success is a light haptic (`Haptics.success()`)
   and, when the result is not obvious, a toast.
 - A result that arrives after the screen that asked for it has gone (a page repair, the web's `JobNotifications`) is told by
-  `env.jobNotices`: while the Home canvas or the Library is showing (`.jobNotices()` on the screen) and the app is in
+  `env.jobNotices`: while Home, the canvas pushed on it or the Library is showing (`.jobNotices()` on the screen) and the app is in
   front, it asks `GET /api/jobs` on appearing and every 20 seconds and keeps the newest in a banner until it is
   dismissed, which is what acknowledges it. A job that changed something makes the Library read again; a lost answer
   says nothing. A screen that follows its own job (the repair sheet) acknowledges it itself, and stops when it is closed.
@@ -213,6 +213,12 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   `"Unread, 3"`. It carries the selected trait and its 44pt area itself, so do not wrap it in a `Button`. `HVChip` is for
   a chip that is not a filter (an example to try, a name, a preset). A count or a plan is `HVCount`, quiet text that
   takes a number or a short fact (`HVCount(3)`, `HVCount("2 of 3 on")`), and not an `HVTag`, which is for a status.
+- A field that code empties or refills after Send (a composer) takes `.hvFieldReset(epoch:focus:field:)` directly after
+  `.focused(...)`, and the code bumps the epoch where it replaces the text, never while the person types. A focused
+  `TextField` has been seen to keep showing words its string no longer holds (that this happens here is not confirmed
+  on a device); a field with a new identity starts from the string it is given. The chat, room and canvas models do it
+  through `composerEpoch` and `fieldWrote(_:epoch:)`, which drops a write from a field that was replaced; a field whose
+  words live in the view takes `$text.hvDroppingStaleWrites(epoch:current:)` for the same.
 - The system Paste control is `HVPasteButton { strings in ... }`, never a bare `PasteButton`: it sets the rounded
   rectangle at `HV.Radius.control` and `.controlSize(.large)` once, so every Paste asks to be as tall as a button (the
   system draws the control, so check the height on a device). A tint or an identifier goes on it as on any view.
@@ -359,21 +365,25 @@ nothing can reach. They live in `Tests/UITests` (the `HyperVaultUITests` target,
 **The UI-test mode.** A debug build launched with `-HV_UITEST -HV_UITEST_SCENARIO <name>` builds its `AppModel` on a
 canned server instead of the real one (`App/Core/UITestHarness.swift`, one call in `HyperVaultApp`, compiled out of
 release builds). The scenarios are `signedOut` (the welcome story and the way in), `signedIn` (a few things kept, memories,
-chats, a connected model), `signedInEmpty` (the first run), `signedInNoKeys` (the first run of someone who also has no agent key, so Home shows the connect card), `waitlisted` and `signedInAdmin` (`signedIn`, for a person the
-server knows as an admin; for everyone else the admin check gets the 403 the real routes send). The network is a
+chats, a connected model), `signedInEmpty` (the first run: no chats either, so Home shows its starter page), `signedInNoKeys` (the first run of someone who also has no agent key, so the starter page shows the connect card), `waitlisted` and `signedInAdmin` (`signedIn`, for a person the
+server knows as an admin; for everyone else the admin check gets the 403 the real routes send). A launch flag adds one more state to any of them: `-HV_UITEST_NO_CHATS` (`HyperVaultUITestCase.withoutChats`) empties the list of chats and leaves the rest of the vault, so Home shows the starter page of someone who has pages, memories and a model. The network is a
 `MockTransport` over the routes in `App/Core/UITestWorld.swift` and `UITestWorld+Screens.swift` (the keys, the address,
 a room, Truth, the task boards, the import, sharing, admin: what changes while a journey plays, such as a key being made
-or revoked, lives in a small object that one launch owns), the secure store is in memory, the cache and the shared defaults are scratch, and the
+or revoked, lives in a small object that one launch owns; a launch flag adds to the vault what only some journeys need, as
+`-HV_UITEST_PROJECT_LINKS` does for the Eurorack Choir Module: a page and a memory joined to its board page, a page tagged
+with it, a page the server only guessed at and a chat named for it, which its overview lists with the reason for each), the secure store is in memory, the cache and the shared defaults are scratch, and the
 canned hosts end in `.invalid`; anything that builds its own `URLSession` request is answered or refused by
 `UITestURLProtocol`. Animations are off, so the app settles at once after every tap. CI builds Release only to compile it, which would not show this leaking in, so
 `scripts/check_debug_only.py` (a step of the CI job) fails if any of this is not inside `#if DEBUG`. A run never reaches a real server, the Keychain or anything a person left on the phone.
 
-**Getting to a screen.** The app has four tabs, Home, Chat, Memory and You, and the helpers of `HyperVaultUITestCase` follow
-them: `openPane("keys")` opens a pane of the You tab by its id (`general`, `vault`, `keys`, `backends`, `domain`,
-`appearance`, `import`; on a phone the tab opens on the vault, so the helper goes back to the list first, which is the case
-that a pane chosen again from the list has to open), `openFromAccount("library", title: "Library")` opens a row of the
-Account menu behind the avatar on Home (`account.<row>`), `openFromMemoryMenu("Digest", title: "Digest")` opens an item of
-Memory's More menu, and `openYours()` opens the Yours panel.
+**Getting to a screen.** The app has four tabs, Home, Projects, Memory and Mail, and Settings in the Account sheet behind the
+avatar (`account.avatar`, on the first screen of every tab). The helpers of `HyperVaultUITestCase` follow them: `openTab("Mail")`
+opens a tab (and closes the Account sheet first if the helpers left it up, since it covers the tab bar), `openPane("keys")`
+opens a pane of Settings by its id (`general`, `vault`, `keys`, `backends`, `domain`, `appearance`, `import`; the helper opens
+the Account menu and its Settings row, or goes back to the list of panes if the sheet is up on a pane, which is the case that a
+pane chosen again from the list has to open), `openFromAccount("library", title: "Library")` opens a row of the Account menu
+(`account.<row>`: `library`, `groupChats`, `tools`, `dreams`, `truth`, `admin`; Mail and the task boards are tabs),
+`openFromMemoryMenu("Digest", title: "Digest")` opens an item of Memory's More menu, `openCanvas()` pushes the canvas with Home's Keep button (`home.keep`, in Home's bar whether Home shows the chats or the starter page; Back from it is Home), and `openYours()` opens the Yours panel over the canvas.
 
 **Adding a journey.**
 
@@ -411,8 +421,8 @@ get its session back. When a flow is broken in the app (a screen that does not f
 update after a write), fix the app, not the journey. A write journey that fails is a finding.
 
 **The layout sweep.** `LayoutSweepTests` and `LayoutSweepScreensTests` launch the app dark and at the
-largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the You panes
-and the Account menu open (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
+largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the Settings panes,
+the Account menu and the Projects and Mail tabs open (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
 anything drawn off the screen) beside it. A UI-test launch pins the dark look, so the
 dark sweep takes no launch argument. So that a sweep of the dark never looks at light screens, each dark screenshot is
 first checked: the brightness of a strip down the left edge of the picture, which is the page's own background on every
@@ -425,14 +435,14 @@ in the sweep when it has a layout of its own.
 **Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
 any iPhone simulator; `make test-unit` runs the rest. CI runs thirteen UI jobs beside the unit tests, each building and
 running on its own: `journeys` (everything not named below, so a new test class runs there until it is given a job),
-`tabs-you` (`YouJourneyTests` and `TabsJourneyTests`), `screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
+`tabs-you` (`YouJourneyTests` and `TabsJourneyTests`: the class names keep the old tab's name, since CI selects them by it), `screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
 `writes-keep` (`MemoryAndVaultWritesJourneyTests` and `PagesWritesJourneyTests`), `writes-vault` (`VaultWritesJourneyTests`),
 `writes-more`
 (`BoardsAndMailWritesJourneyTests` and `SessionAndSettingsWritesJourneyTests`), `writes-think`
 (`ThinkWritesJourneyTests`),
 `sweep-dark` (the tabs, what they open, the welcome and the waitlist in the dark), `sweep-dark-screens` (the screens of the
-You panes and the Account menu in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
-large text size) and `sweep-large-keep` and `sweep-large-think` (the screens of the You panes and the Account menu at the large
+Settings panes, the Account menu and the Projects and Mail tabs in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
+large text size) and `sweep-large-keep` and `sweep-large-think` (the screens of the Settings panes, the Account menu and the Projects and Mail tabs at the large
 text size, in two halves). They have taken between 5 and 22 minutes each, depending on the machine GitHub gives the
 job (the same job has taken twice as long on a slow one); the build and the simulator's start are about eight of those
 minutes, and the rest is the tests, of which the large text sizes, which scroll, are the slowest. A job that goes over 30

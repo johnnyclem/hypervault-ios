@@ -16,7 +16,7 @@ enum UITestScenario: String, CaseIterable {
     case signedInNoKeys
     /// Signed in but not let in, until the invite code `UITestWorld.inviteCode` is redeemed.
     case waitlisted
-    /// The same vault as `signedIn`, for a person the server knows as an admin (the You tab shows Admin).
+    /// The same vault as `signedIn`, for a person the server knows as an admin (the Account menu shows Admin).
     case signedInAdmin
 
     var hasSession: Bool { self != .signedOut }

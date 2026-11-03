@@ -81,6 +81,9 @@ targets:
           - CFBundleURLName: $(HV_BUNDLE_PREFIX).app
             CFBundleURLSchemes:
               - hypervault
+        # Read-aloud keeps playing when the app is backgrounded or the screen locks.
+        UIBackgroundModes:
+          - audio
         HVAppGroup: $(HV_APP_GROUP)
         HVKeychainGroup: $(AppIdentifierPrefix)$(HV_KEYCHAIN_GROUP)
         HVDefaultServer: $(HV_DEFAULT_SERVER)

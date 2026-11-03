@@ -1,11 +1,11 @@
 import Foundation
 
-// The panes of the You page, ported from components/settings/account-tabs.ts. The web page is `/vault/account`;
+// The panes of Settings (the web's You page), ported from components/settings/account-tabs.ts. The web page is `/vault/account`;
 // `?tab=<id>` picks the pane on the server and the URL hash picks it in the browser, and links already in the
 // wild use both (`/vault/account#keys`, `/vault/account#secrets`). The ids are load-bearing for that reason, and
 // four old section ids stay as aliases for the pane that holds what they pointed at.
 
-/// One pane of the You page. The raw value is the id a link uses.
+/// One pane of Settings. The raw value is the id a link uses.
 public enum AccountPane: String, CaseIterable, Identifiable, Sendable {
     case general, vault, keys, backends, domain, appearance
     case `import`

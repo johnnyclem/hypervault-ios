@@ -1,7 +1,7 @@
 import HyperVaultKit
 import SwiftUI
 
-/// Open on a key card of the Home canvas: the entry's own page from the Vault, over the canvas, so that who may use a key can
+/// Open on a key card of the canvas: the entry's own page from the Vault, over the canvas, so that who may use a key can
 /// be changed, and the key renamed, from the card's own place. A key card lists the agents that may use the entry and
 /// holds nothing else (never a value), and the page it opens is the same one the Vault pane opens, which keeps a value
 /// behind its lock.

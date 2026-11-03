@@ -180,7 +180,7 @@ public enum AdminProbe {
     public static let retryAfter: TimeInterval = 10 * 60
 }
 
-/// The last answer to the probe, kept so the You tab does not ask on every visit.
+/// The last answer to the probe, kept so Settings does not ask on every visit.
 public struct AdminProbeRecord: Sendable, Codable, Equatable {
     public enum Answer: String, Sendable, Codable { case admin, notAdmin, unknown }
 

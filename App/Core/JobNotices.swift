@@ -2,9 +2,9 @@ import HyperVaultKit
 import SwiftUI
 
 /// Tells the person about a background job (a page repair, say) that finished while nobody was watching: the web's
-/// `JobNotifications`. While the Home canvas or the Library is showing and the app is in front, it asks the server for the
-/// finished jobs nobody has acknowledged, on appearing and then every 20 seconds, and keeps the newest in a banner until
-/// the person dismisses it. Dismissing is what tells the server, so a job interrupts once; a job that changed something
+/// `JobNotifications`. While Home (its chats, or the canvas pushed on it) or the Library is showing and the app is in
+/// front, it asks the server for the finished jobs nobody has acknowledged, on appearing and then every 20 seconds, and
+/// keeps the newest in a banner until the person dismisses it. Dismissing is what tells the server, so a job interrupts once; a job that changed something
 /// also makes the Library read again (`changes`).
 ///
 /// There is one of these to a signed-in environment, so two screens showing at once share the one question, the one

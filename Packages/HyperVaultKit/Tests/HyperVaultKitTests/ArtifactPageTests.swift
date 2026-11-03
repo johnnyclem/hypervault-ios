@@ -274,7 +274,7 @@ final class ArtifactLinkRouterTests: XCTestCase {
         let actions = [
             "hypervault://pair?code=BCDF-2346", "hypervault://pair", "hypervault://keep?text=hello", "hypervault://canvas?text=hi",
             "hypervault://invite?code=abc", "hypervault://login?invite=abc", "hypervault://tab/you", "hypervault://settings",
-            "hypervault://memory/m-1", "hypervault:///pair?code=BCDF-2346", "HYPERVAULT://PAIR?code=BCDF-2346", "hypervault://pair/a/x",
+            "hypervault://tab/projects", "hypervault://tab/mail", "hypervault://memory/m-1", "hypervault:///pair?code=BCDF-2346", "HYPERVAULT://PAIR?code=BCDF-2346", "hypervault://pair/a/x",
             "https://hypervault.store/pair?code=BCDF-2346", "https://hypervault.store/pair", "https://hypervault.store/keep?text=hello",
             "https://nova.vault.cool/keep?text=x", "https://vault.cool/canvas", "https://hypervault.store/invite?code=abc",
             "https://hypervault.store/login?invite=abc", "https://hypervault.store/%70air?code=BCDF-2346", "HTTPS://HYPERVAULT.STORE/PAIR?code=BCDF-2346",

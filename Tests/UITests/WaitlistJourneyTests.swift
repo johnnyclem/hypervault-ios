@@ -31,13 +31,13 @@ final class WaitlistJourneyTests: HyperVaultUITestCase {
             require(element("waitlist.title"), "the waitlist, which a refused code should leave them on")
         }
 
-        step("The right code opens the door to the canvas") {
+        step("The right code opens the door to Home") {
             let code = textField("waitlist.code")
             tap(code, "the invite code field")
             clear(code)
             code.typeText("HV-OPEN-DOOR")
             tap(element("waitlist.redeem"), "Use this code")
-            require(element("canvas.field"), "the canvas, once the code is accepted")
+            require(element(Scenario.signedIn.firstScreen.identifier), "Home, once the code is accepted")
             requireGone(element("waitlist.code"), "the waitlist")
         }
     }

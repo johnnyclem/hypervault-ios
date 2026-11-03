@@ -1,6 +1,6 @@
 import XCTest
 
-/// Task boards and Mail, written to: a board made, a task added, ticked along and marked done; a note composed and sent,
+/// The Projects and Mail tabs, written to: a board made, a task added, ticked along and marked done; a note composed and sent,
 /// and a reply written in its thread. Each journey checks what the screen shows afterwards and what the app sent.
 ///
 /// (A task or a board cannot be deleted from the app: neither the app nor the server's task-list routes have a delete, so
@@ -9,7 +9,8 @@ import XCTest
 final class BoardsAndMailWritesJourneyTests: HyperVaultUITestCase {
     func testABoardIsMadeATaskAddedTickedAlongAndMarkedDone() {
         launch(.signedIn)
-        openFromAccount("taskBoards", title: "Task boards")
+        openTab("Projects")
+        waitUntil("the Projects screen") { isShowingTitle("Projects") }
 
         step("The list has the boards the vault starts with") {
             require(element("taskboards.row.eurorack-choir"), "the Eurorack Choir board")
@@ -75,7 +76,8 @@ final class BoardsAndMailWritesJourneyTests: HyperVaultUITestCase {
 
     func testANoteIsSentAndAReplyAppearsInItsThread() {
         launch(.signedIn)
-        openFromAccount("mail", title: "Mail")
+        openTab("Mail")
+        waitUntil("the Mail screen") { isShowingTitle("Mail") }
         let thread = "mail.thread.5e000001-0000-4000-8000-000000000001"
 
         step("The inbox has the agents' mail") {

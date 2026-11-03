@@ -6,6 +6,33 @@ import Foundation
 /// How long `POST /api/chat` may take: the server stops at 120 seconds.
 public let chatTurnTimeout: TimeInterval = 130
 
+/// A picture sent with a chat turn. The server takes JPEG, PNG, WebP and GIF, at most three a message, about
+/// 1 MB each and 2.7 MB in all (Vercel's request cap is near 4.5 MB and base64 adds a third), so the app shrinks
+/// a photo before it makes one of these.
+public struct ChatImageUpload: Sendable, Equatable {
+    public static let maxPerMessage = 3
+    /// What one image may weigh before base64, kept under the server's per-image and total limits.
+    public static let maxBytes = 800_000
+
+    public var mimeType: String
+    public var data: Data
+    public var name: String
+
+    public init(mimeType: String, data: Data, name: String) {
+        self.mimeType = mimeType
+        self.data = data
+        self.name = name
+    }
+
+    var json: JSONValue {
+        .object([
+            "mime_type": .string(mimeType),
+            "data": .string(data.base64EncodedString()),
+            "name": .string(name),
+        ])
+    }
+}
+
 extension Endpoint where Response == ChatTurnResponse {
     /// One turn with a connected model (`POST /api/chat`). Not streaming; waits
     /// for the whole answer. `conversationID` nil starts a conversation.
@@ -13,10 +40,12 @@ extension Endpoint where Response == ChatTurnResponse {
         backendID: String,
         message: String,
         conversationID: String? = nil,
-        options: ChatSendOptions = ChatSendOptions()
+        options: ChatSendOptions = ChatSendOptions(),
+        images: [ChatImageUpload] = []
     ) -> Endpoint<ChatTurnResponse> {
         var object: [String: JSONValue] = ["backend_id": .string(backendID), "message": .string(message)]
         if let conversationID, !conversationID.isEmpty { object["conversation_id"] = .string(conversationID) }
+        if !images.isEmpty { object["images"] = .array(images.prefix(ChatImageUpload.maxPerMessage).map(\.json)) }
         options.fill(&object, includeTools: true)
         return Endpoint(
             .post, "/api/chat", body: .jsonValue(.object(object)), keys: .verbatim, timeout: chatTurnTimeout

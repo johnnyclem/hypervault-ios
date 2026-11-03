@@ -25,6 +25,21 @@ final class UITestWorldTests: XCTestCase {
         XCTAssertNil(signedOut.user)
     }
 
+    func testTheNoChatsFlagEmptiesTheListOfChatsAndLeavesTheRestOfTheVault() async throws {
+        let transport = MockTransport(routes: UITestWorld.routes(for: .signedIn, withoutChats: true))
+        let flagged = HVClient(baseURL: UITestWorld.appURL, transport: transport, tokens: StaticTokenProvider(), retry: .none)
+        let none = try await flagged.send(.conversations)
+        XCTAssertTrue(none.isEmpty, "Home shows its starter page")
+        let yours = try await flagged.send(.yours(filter: .all, limit: 50))
+        XCTAssertEqual(yours.results.count, 7, "and the pages, memories and keys are all there")
+        let rooms = try await flagged.send(.rooms)
+        XCTAssertFalse(rooms.isEmpty, "and so are the rooms")
+
+        // Without the flag, which is how a launch goes, the person has their chats.
+        let chats = try await client(.signedIn).send(.conversations)
+        XCTAssertFalse(chats.isEmpty)
+    }
+
     func testTheAuthServerOffersGoogleAndEmailButNotApple() async throws {
         let transport = MockTransport(routes: UITestWorld.routes(for: .signedOut))
         let auth = AuthService(config: supabase, transport: transport, store: InMemorySecureStore())

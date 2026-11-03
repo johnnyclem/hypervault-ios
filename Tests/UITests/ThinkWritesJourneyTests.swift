@@ -85,7 +85,7 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
     }
     func testANewChatIsBegunFromItsFirstMessageAndThenDeleted() {
         launch(.signedIn)
-        openTab("Chat")
+        openTab("Home")
 
         step("New chat opens an empty conversation") {
             tap(button("New chat"), "New chat")
@@ -93,8 +93,12 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
         }
 
         step("The first message begins the chat and gets its answer") {
-            enter("Plan the balcony garden", into: textField("Message"), "the message field")
+            let message = "Plan the balcony garden"
+            enter(message, into: textField("Message"), "the message field")
             tap(button("Send"), "Send")
+            waitUntil("the message to leave the message box once it is sent") { self.fieldNoLongerHolds(self.textField("Message"), message) }
+            // The keyboard stays up after Send, ready for the next message.
+            waitUntil("the message box to keep the keyboard for the next message") { self.hasKeyboardFocus(self.textField("Message")) }
             require(shows("Noted: Plan the balcony garden"), "the model's reply", timeout: 40)
             requireWrite("POST", "/api/chat", contains: ["message": "Plan the balcony garden"])
         }
@@ -201,7 +205,7 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
     }
     func testARoomIsMadeItsAgentsChangedItIsRenamedAndDeleted() {
         launch(.signedIn)
-        openTab("Chat")
+        openTab("Home")
         tap(segment("Group chats"), "the Group chats half", until: { self.button("New room").exists })
 
         step("New room offers the connected models and takes a name") {

@@ -70,6 +70,11 @@ final class ChatConversationModel {
     private(set) var recallBranch = MindBranchName.defaultName
     var useTools = true
     var draft = ""
+    /// Counts the times code, not the person's typing, replaced `draft` (a message was sent, or words were put back).
+    /// The text field takes a new identity with each one (`hvFieldReset`), so it starts again from what `draft` says.
+    private(set) var composerEpoch = 0
+    /// Pictures chosen for the next message, shrunk and ready.
+    private(set) var pendingImages: [ChatPendingImage] = []
     private(set) var isWorking = false
     private(set) var workStarted: Date?
     /// A calm line under the thread: what stopped, or what to know.
@@ -81,6 +86,8 @@ final class ChatConversationModel {
     @ObservationIgnored private var turnTask: Task<Void, Never>?
     @ObservationIgnored private var knownServerMessages = 0
     @ObservationIgnored private var didSend = false
+    /// The pictures of each message in flight or failed, by its row, so Try again and Edit still have them.
+    @ObservationIgnored private var sentImages: [String: [ChatPendingImage]] = [:]
 
     init(
         conversationID: String?,
@@ -132,6 +139,36 @@ final class ChatConversationModel {
     var showsTruth: Bool { features.truthLedger }
 
     var draftTooLong: Bool { draft.count > limits.chatMessageChars }
+
+    /// Pictures go to a connected model. A model on this phone or on the home network is sent words only.
+    var canAttach: Bool {
+        selectedBackend != nil && !isWorking && pendingImages.count < ChatImageUpload.maxPerMessage
+    }
+
+    /// How many more pictures this message can take.
+    var attachSlots: Int { max(0, ChatImageUpload.maxPerMessage - pendingImages.count) }
+
+    /// Shrinks one chosen photo and adds it. `nil` is a photo the system could not hand over.
+    func attach(_ data: Data?) async {
+        guard let data else {
+            notice = "That photo couldn\u{2019}t be read."
+            return
+        }
+        guard pendingImages.count < ChatImageUpload.maxPerMessage else { return }
+        let name = "Photo \(pendingImages.count + 1).jpg"
+        let prepared = await Task.detached(priority: .userInitiated) { ChatImagePrep.prepare(data, name: name) }.value
+        guard let prepared else {
+            notice = "That photo couldn\u{2019}t be used. Try another."
+            return
+        }
+        // Another photo may have landed while this one was being shrunk.
+        guard pendingImages.count < ChatImageUpload.maxPerMessage else { return }
+        pendingImages.append(prepared)
+    }
+
+    func removeImage(_ id: UUID) {
+        pendingImages.removeAll { $0.id == id }
+    }
 
     var canSend: Bool {
         !isWorking && canChat && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !draftTooLong
@@ -464,8 +501,29 @@ final class ChatConversationModel {
             notice = HVCopy.noModelLine
             return
         }
-        draft = ""
-        start(text, toolChoice: nil, replacing: nil)
+        let images = pendingImages
+        guard images.isEmpty || selectedBackend != nil else {
+            notice = "Photos go to a connected model. Choose one, or take the photos off."
+            return
+        }
+        replaceDraft("")
+        pendingImages = []
+        start(text, toolChoice: nil, replacing: nil, images: images)
+    }
+
+    // MARK: The message box
+
+    /// What the text field writes when the person types. A field that `replaceDraft` has since replaced could still write
+    /// the words it held as it goes; those are not typing, and are dropped.
+    func fieldWrote(_ text: String, epoch: Int) {
+        guard epoch == composerEpoch else { return }
+        draft = text
+    }
+
+    /// Every write to `draft` that is not the person typing goes through here.
+    private func replaceDraft(_ text: String) {
+        draft = text
+        composerEpoch &+= 1
     }
 
     /// Runs the tool the person picked from the model's question.
@@ -481,26 +539,34 @@ final class ChatConversationModel {
     /// Sends a message that failed again.
     func retry(_ row: ChatThreadRow) {
         guard !isWorking, row.kind == .user, case .failed = row.state else { return }
-        start(row.text, toolChoice: nil, replacing: row.id)
+        start(row.text, toolChoice: nil, replacing: row.id, images: sentImages[row.id] ?? [])
     }
 
     /// Takes a failed message back into the composer to change it.
     func edit(_ row: ChatThreadRow) {
         guard row.kind == .user, case .failed = row.state else { return }
         rows.removeAll { $0.id == row.id }
-        if draft.isEmpty { draft = row.text }
+        if draft.isEmpty { replaceDraft(row.text) }
+        if pendingImages.isEmpty { pendingImages = sentImages[row.id] ?? [] }
+        sentImages[row.id] = nil
     }
 
     func stop() {
         turnTask?.cancel()
     }
 
-    private func start(_ text: String, toolChoice: ChatToolChoice?, replacing failedID: String?) {
+    private func start(
+        _ text: String, toolChoice: ChatToolChoice?, replacing failedID: String?, images: [ChatPendingImage] = []
+    ) {
         guard let choice else { return }
         notice = nil
         toolNotice = nil
-        if let failedID { rows.removeAll { $0.id == failedID } }
-        let user = ChatThreadRow(kind: .user, text: text, state: .sending)
+        if let failedID {
+            rows.removeAll { $0.id == failedID }
+            sentImages[failedID] = nil
+        }
+        let user = ChatThreadRow(kind: .user, text: text, state: .sending, thumbnails: images.map(\.thumbnail))
+        if !images.isEmpty { sentImages[user.id] = images }
         rows.append(user)
         isWorking = true
         workStarted = Date()
@@ -531,9 +597,13 @@ final class ChatConversationModel {
         let startedAt = Date()
         var options = sendOptions()
         options.toolChoice = toolChoice
+        let images = (sentImages[userRowID] ?? []).map(\.upload)
         do {
             let turn = try await client.send(
-                .chat(backendID: backendID, message: text, conversationID: conversationID, options: options)
+                .chat(
+                    backendID: backendID, message: text, conversationID: conversationID, options: options,
+                    images: images
+                )
             )
             adopt(turn, text: text, userRowID: userRowID)
         } catch let error as HVError {
@@ -544,6 +614,7 @@ final class ChatConversationModel {
     }
 
     private func adopt(_ turn: ChatTurnResponse, text: String, userRowID: String) {
+        sentImages[userRowID] = nil
         setState(.saved, for: userRowID)
         rows.append(contentsOf: ChatThreadRow.rows(for: turn))
         if conversation == nil {
@@ -562,7 +633,9 @@ final class ChatConversationModel {
             // The person stopped it. Their words go back in the box; the server
             // may still finish the turn, and the reply will be there next time.
             rows.removeAll { $0.id == userRowID }
-            if draft.isEmpty { draft = text }
+            if draft.isEmpty { replaceDraft(text) }
+            if pendingImages.isEmpty { pendingImages = sentImages[userRowID] ?? [] }
+            sentImages[userRowID] = nil
             notice = "Stopped. If the model still answers, the reply will be here when you open this chat again."
             return
         }
@@ -573,6 +646,7 @@ final class ChatConversationModel {
                 client: client, message: text, conversationID: conversationID,
                 knownMessageCount: knownServerMessages, startedAt: startedAt
             ) {
+                sentImages[userRowID] = nil
                 apply(detail)
                 return
             }
@@ -651,7 +725,7 @@ final class ChatConversationModel {
     private func dropAfterStop(assistantID: String?, userRowID: String, text: String) {
         if let assistantID { rows.removeAll { $0.id == assistantID } }
         rows.removeAll { $0.id == userRowID }
-        if draft.isEmpty { draft = text }
+        if draft.isEmpty { replaceDraft(text) }
     }
 
     private func update(_ id: String, text: String) {

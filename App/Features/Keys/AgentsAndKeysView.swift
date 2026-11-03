@@ -19,6 +19,9 @@ struct AgentsAndKeysView: View {
     @State private var model: AgentsAndKeysModel?
     @State private var showConnect = false
     @State private var keyToRevoke: AgentKey?
+    /// The website's pairing page, asked for by a `hypervault://pair` link. The router holds the request until this pane is up
+    /// (`AppRouter.pairing`); the pane presents the page, so it is never a second sheet the router has to fit over the first.
+    @State private var pairing: PairingRequest?
 
     var body: some View {
         Group {
@@ -42,6 +45,15 @@ struct AgentsAndKeysView: View {
         }
         .sheet(isPresented: $showConnect, onDismiss: { Task { await model?.load() } }) {
             ConnectAgentSheet()
+        }
+        // The page's own sheet reloads the list as it goes (`PairingPageSheet` posts `hvKeysChanged`, heard below).
+        .sheet(item: $pairing) { request in
+            PairingPageSheet(code: request.code)
+        }
+        .onChange(of: app.router.pairing, initial: true) { _, request in
+            guard let request else { return }
+            app.router.pairing = nil
+            pairing = request
         }
         .onReceive(NotificationCenter.default.publisher(for: .hvKeysChanged)) { _ in
             Task { await model?.load() }

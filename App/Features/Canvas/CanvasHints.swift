@@ -39,7 +39,7 @@ struct CanvasHints: View {
                     .tint(Palette.blue)
                 }
 
-                starterButton
+                StarterPromptButton(copied: starterCopied, identifier: "canvas.starter", action: onCopyStarter)
             }
 
             VStack(spacing: HV.Space.s) {
@@ -83,24 +83,5 @@ struct CanvasHints: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             canPaste = UIPasteboard.general.hasStrings
         }
-    }
-
-    private var starterButton: some View {
-        VStack(spacing: 4) {
-            Button(action: onCopyStarter) {
-                Label(starterCopied ? "Copied" : HVCopy.copyPromptLabel, systemImage: starterCopied ? HVSymbol.copied : HVSymbol.copy)
-                    .font(.system(.subheadline, weight: .semibold))
-            }
-            .buttonStyle(.hvGhost)
-            .tint(Palette.textSecondary)
-            .accessibilityIdentifier("canvas.starter")
-            if starterCopied {
-                Text(HVCopy.copyPromptNextLine)
-                    .font(.hvFootnote)
-                    .foregroundStyle(Palette.textSecondary)
-                    .transition(.opacity)
-            }
-        }
-        .hvAnimation(HV.Motion.entrance, value: starterCopied)
     }
 }

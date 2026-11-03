@@ -35,7 +35,7 @@ final class OnboardingSnapshotTests: XCTestCase {
         try snapshot(PreviewHost { GeneralPane() }, named: "settings")
     }
 
-    func testYouTab() throws {
-        try snapshot(PreviewHost(embedInNavigation: false) { YouTabView() }, named: "you")
+    func testSettingsList() throws {
+        try snapshot(PreviewHost { SettingsListView() }, named: "settings-panes")
     }
 }

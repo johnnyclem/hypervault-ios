@@ -10,6 +10,8 @@ struct MemoryAskView: View {
     @State private var model: MemoryAskModel
     @State private var speech = ChatSpeechController()
     @State private var draft = ""
+    /// Bumped when `send()` empties the field, so the field is replaced and starts again from the empty string.
+    @State private var fieldEpoch = 0
     @FocusState private var focused: Bool
 
     init(list: MemoryListModel) {
@@ -70,11 +72,11 @@ struct MemoryAskView: View {
             )
             if model.backendsLoaded, model.backends.isEmpty {
                 VStack(spacing: HV.Space.xs) {
-                    Text("No model is connected yet, so you will get the memories themselves. Connect one in Chat to have them written up as an answer.")
+                    Text("No model is connected yet, so you will get the memories themselves. On Home, open More and then Models to connect one and have them written up as an answer.")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                         .multilineTextAlignment(.center)
-                    Button("Open Chat") { app.router.open(.tab(.chat)) }
+                    Button("Open Home") { app.router.open(.tab(.home)) }
                         .buttonStyle(.hvGhost)
                 }
                 .padding(.horizontal, HV.Space.l)
@@ -114,10 +116,11 @@ struct MemoryAskView: View {
                 }
             }
             HStack(alignment: .bottom, spacing: HV.Space.xs) {
-                TextField("Ask a question", text: $draft, prompt: Text.hvPrompt("Ask a question"), axis: .vertical)
+                TextField("Ask a question", text: $draft.hvDroppingStaleWrites(epoch: fieldEpoch, current: { fieldEpoch }), prompt: Text.hvPrompt("Ask a question"), axis: .vertical)
                     .accessibilityIdentifier("ask.field")
                     .lineLimit(1...4)
                     .focused($focused)
+                    .hvFieldReset(epoch: fieldEpoch, focus: $focused, field: true)
                     .submitLabel(.send)
                     .onSubmit(send)
                     .padding(.horizontal, HV.Space.m)
@@ -143,6 +146,7 @@ struct MemoryAskView: View {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !model.isBusy else { return }
         draft = ""
+        fieldEpoch &+= 1
         Haptics.tap()
         let branch = list.branch
         Task { await model.ask(text, branch: branch) }
@@ -239,7 +243,7 @@ private struct MemoryAskTurnView: View {
             }
             .hvCard()
         } else if !hasModel {
-            Text(turn.hits.isEmpty ? noMatch : "Here is what your memory holds on that. Connect a model in Chat to have it written up as an answer.")
+            Text(turn.hits.isEmpty ? noMatch : "Here is what your memory holds on that. Connect a model (Home, then More, then Models) to have it written up as an answer.")
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
                 .padding(.horizontal, HV.Space.xxs)

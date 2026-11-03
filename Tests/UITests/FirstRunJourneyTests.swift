@@ -1,13 +1,53 @@
 import XCTest
 
-/// Someone signed in who has kept nothing and connected no model: the canvas teaches, the connect sheet opens, an
-/// example chip finds nothing, Yours says it is empty.
+/// Someone signed in who has kept nothing, has no chats and connected no model: Home's starter page offers the first things to
+/// do, Start a chat opens an empty conversation that says nothing is connected and offers to connect (there is no message
+/// field to type in without a model; the journey with a model is HomeJourneyTests'), and Keep something opens the canvas,
+/// which teaches; the connect sheet opens, an example chip finds nothing, Yours says it is empty.
 @MainActor
 final class FirstRunJourneyTests: HyperVaultUITestCase {
-    func testTheCanvasTeachesConnectOpensItsSheetAndYoursIsEmpty() {
+    func testHomeOffersTheFirstStepsAndStartAChatOpensAConversationThatAsksToConnectAnAI() {
         launch(.signedInEmpty)
 
+        step("Home is the starter page, with no chats and nothing to search") {
+            require(element("home.landing"), "the one line the starter page says")
+            require(element("home.startChat"), "the Start a chat button")
+            require(element("home.keepSomething"), "the Keep something button")
+            require(element("home.starter"), "the Copy a starter prompt button")
+            require(element("chat.section"), "the switch between chats and group chats, which stays above the starter page")
+            let rows = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "chat.row.")).count
+            XCTAssertEqual(rows, 0, "There are no chats to list.")
+            XCTAssertEqual(app.searchFields.count, 0, "There is no search field: the starter page has nothing to search.")
+            require(button("Keep"), "the Keep button in Home's bar")
+            require(button("New chat"), "the New chat button in Home's bar")
+        }
+
+        step("Start a chat opens a conversation that says nothing is connected") {
+            // (The message field is there for the first frame, before the conversation has read the models, and is replaced
+            // by the connect card once it has: with no model, the card is the settled state to wait for.)
+            tap(element("home.startChat"), "Start a chat", until: { self.shows("Nothing is connected yet").exists })
+            require(shows("Nothing is connected yet"), "the line that says nothing can answer yet")
+            requireGone(textField("Message"), "the message field, which a conversation with no model does not offer")
+        }
+
+        step("Back is the starter page again") {
+            goBack(until: { self.element("home.landing").exists })
+            require(element("home.startChat"), "the Start a chat button")
+        }
+    }
+
+    func testKeepSomethingOpensTheCanvasWhichTeachesConnectOpensItsSheetAndYoursIsEmpty() {
+        launch(.signedInEmpty)
+
+        step("Keep something opens the canvas, and Back comes home") {
+            tap(element("home.keepSomething"), "Keep something", until: { self.element("canvas.field").exists })
+            require(element("canvas.field"), "the canvas's field")
+            goBack(until: { self.element("home.landing").exists })
+            require(element("home.keepSomething"), "the starter page, which Back returns to")
+        }
+
         step("The canvas shows the first-run hints") {
+            openCanvas()
             require(element("canvas.hint"), "the line that says to paste anything")
             require(button("Show my memories"), "the Show my memories chip")
             require(button("Show my files"), "the Show my files chip")

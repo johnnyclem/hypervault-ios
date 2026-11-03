@@ -187,9 +187,14 @@ struct ChatRoomContent: View {
 
     // MARK: Composer
 
+    /// The text field's binding. A write from a field that has since been replaced is dropped (`fieldWrote`).
+    private var draftBinding: Binding<String> {
+        let epoch = model.composerEpoch
+        return Binding(get: { model.draft }, set: { model.fieldWrote($0, epoch: epoch) })
+    }
+
     private var composer: some View {
-        @Bindable var model = model
-        return VStack(spacing: HV.Space.xs) {
+        VStack(spacing: HV.Space.xs) {
             if let notice = model.notice {
                 HStack(alignment: .top) {
                     Text(notice).font(.hvFootnote).foregroundStyle(Palette.textSecondary).frame(maxWidth: .infinity, alignment: .leading)
@@ -205,11 +210,12 @@ struct ChatRoomContent: View {
             }
             VStack(alignment: .leading, spacing: 0) {
                 mentionChips
-                TextField("Message", text: $model.draft, prompt: Text(model.composerPrompt).foregroundStyle(Palette.textSecondary), axis: .vertical)
+                TextField("Message", text: draftBinding, prompt: Text(model.composerPrompt).foregroundStyle(Palette.textSecondary), axis: .vertical)
                     .accessibilityIdentifier("room.field")
                     .font(.hvBody)
                     .lineLimit(1...6)
                     .focused($focused)
+                    .hvFieldReset(epoch: model.composerEpoch, focus: $focused, field: true)
                     .padding(.horizontal, HV.Space.m)
                     .padding(.top, HV.Space.xs)
                     .padding(.bottom, HV.Space.xs)
@@ -235,6 +241,8 @@ struct ChatRoomContent: View {
                 .padding(.leading, HV.Space.m)
                 .padding(.trailing, HV.Space.xs)
                 .padding(.bottom, HV.Space.xs)
+                // Only the Send and Stop buttons move with `canSend`; the text field is outside this subtree.
+                .hvAnimation(HV.Motion.entrance, value: model.canSend)
             }
             .hvGlass(radius: HV.Radius.floating)
         }
@@ -242,7 +250,6 @@ struct ChatRoomContent: View {
         .padding(.top, HV.Space.xs)
         .padding(.bottom, HV.Space.xs)
         .hvReadableWidth()
-        .hvAnimation(HV.Motion.entrance, value: model.canSend)
         .hvAnimation(HV.Motion.entrance, value: model.notice)
     }
 

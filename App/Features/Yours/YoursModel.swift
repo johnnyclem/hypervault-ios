@@ -1,7 +1,7 @@
 import HyperVaultKit
 import SwiftUI
 
-/// What Yours lists, in the panel on Home: the four quiet filters, a
+/// What Yours lists, in the canvas's panel: the four quiet filters, a
 /// search by name, and the head of the list in the order things were last used.
 @MainActor
 @Observable

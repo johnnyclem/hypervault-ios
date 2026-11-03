@@ -2,7 +2,7 @@ import HyperVaultKit
 import XCTest
 @testable import HyperVault
 
-/// What the screens behind the You tab are given by the canned server of the UI-test mode (App/Core/UITestWorld+Screens.swift),
+/// What the screens behind Settings are given by the canned server of the UI-test mode (App/Core/UITestWorld+Screens.swift),
 /// read through the Kit's own endpoints, the way the app reads them. A route that drifts from the shape its screen decodes
 /// fails here in seconds, instead of as a screen that shows its error state in a journey.
 final class UITestScreensTests: XCTestCase {
@@ -286,7 +286,7 @@ final class UITestScreensTests: XCTestCase {
     // MARK: Admin
 
     func testOnlyAnAdminPassesTheAdminCheckAndMintsCodes() async throws {
-        // The check the You tab makes: a 403 says no, a 400 (the empty body refused) says yes.
+        // The check the Account menu makes: a 403 says no, a 400 (the empty body refused) says yes.
         for (scenario, expected) in [(UITestScenario.signedIn, AdminProbe.Verdict.notAdmin), (.signedInEmpty, .notAdmin), (.signedInAdmin, .admin)] {
             let api = client(transport(scenario))
             var verdict = AdminProbe.Verdict.unknown

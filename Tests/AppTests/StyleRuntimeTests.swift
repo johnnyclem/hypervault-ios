@@ -204,6 +204,10 @@ final class StyleRuntimeTests: StyleRuntimeTestCase {
         XCTAssertEqual(ink.tint, kit.colors.primary)
         XCTAssertEqual(ink.quiet, kit.colors.mutedForeground)
         XCTAssertEqual(ink.selected, kit.colors.primary, "a light look selects with primary, as the stock tab bar does")
+        XCTAssertEqual(ink.badge, kit.colors.action, "the Mail tab's number is the flat action fill, as the Dreams badge in the Account menu is")
+        XCTAssertEqual(ink.onBadge, kit.colors.actionForeground)
+        XCTAssertEqual(ink.badgeHigh, kit.highContrast.action)
+        XCTAssertEqual(ink.onBadgeHigh, kit.highContrast.actionForeground)
 
         StyleRuntime.shared.apply(StyleKitFixtures.glassmorphism)
         look = StyleRuntime.shared.snapshot

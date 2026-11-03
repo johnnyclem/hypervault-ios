@@ -4,7 +4,8 @@ import UIKit
 
 /// The tab bar's colours, from the iOS guides: the selected item is the page's own text in the dark look and
 /// `primary` in the light look, and the others are `muted-foreground`. It is set on the bar itself, not with `.tint`
-/// on the `TabView`, which would retint every control inside it.
+/// on the `TabView`, which would retint every control inside it. The number on the Mail tab is the system's red badge in the
+/// stock look; a worn theme draws it as the flat `action` fill with its label, like the Dreams badge in the Account menu.
 ///
 /// The appearance is the system's default one with only the item colours changed. It sets no background colour and no
 /// background effect: on iOS 26 either one replaces the Liquid Glass bar with a flat one.
@@ -24,18 +25,23 @@ enum HVTabBarStyle {
     static func makeAppearance() -> UITabBarAppearance {
         let appearance = UITabBarAppearance()
         appearance.configureWithDefaultBackground()
-        let ink = itemColors()
+        let worn = StyleRuntime.shared.snapshot.window
+        let ink = itemColors(worn)
         for layout in [appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance, appearance.compactInlineLayoutAppearance] {
             style(layout.normal, color: ink.quiet)
             style(layout.selected, color: ink.selected)
+            if let worn {
+                styleBadge(layout.normal, ink: worn)
+                styleBadge(layout.selected, ink: worn)
+            }
         }
         return appearance
     }
 
     /// The colours of the bar's items. A worn theme's are its muted text and, as in the stock look, the page's own text in a
     /// dark look and `primary` in a light one; both have an Increase Contrast twin.
-    private static func itemColors() -> (quiet: UIColor, selected: UIColor) {
-        if let ink = StyleRuntime.shared.snapshot.window {
+    private static func itemColors(_ worn: StyleRuntime.WindowInk?) -> (quiet: UIColor, selected: UIColor) {
+        if let ink = worn {
             return (
                 UIColor.hvDynamic(normal: ink.quiet, high: ink.quietHigh),
                 UIColor.hvDynamic(normal: ink.selected, high: ink.selectedHigh)
@@ -69,6 +75,13 @@ enum HVTabBarStyle {
     private static func style(_ item: UITabBarItemStateAppearance, color: UIColor) {
         item.iconColor = color
         item.titleTextAttributes = [.foregroundColor: color]
+    }
+
+    /// The Mail tab's number, in a worn theme: the flat `action` fill under its label, which the Kit holds to 4.5:1 in every
+    /// theme (`StyleKitContract`, "action_foreground on action"), with an Increase Contrast twin for each.
+    private static func styleBadge(_ item: UITabBarItemStateAppearance, ink: StyleRuntime.WindowInk) {
+        item.badgeBackgroundColor = UIColor.hvDynamic(normal: ink.badge, high: ink.badgeHigh)
+        item.badgeTextAttributes = [.foregroundColor: UIColor.hvDynamic(normal: ink.onBadge, high: ink.onBadgeHigh)]
     }
 }
 

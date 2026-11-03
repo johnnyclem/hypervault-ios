@@ -182,7 +182,9 @@ final class StyleRuntime: Observable, @unchecked Sendable {
 
     /// What the UIKit chrome needs, in the Kit's own values so the snapshot stays `Sendable`: the window's tint, and the tab
     /// bar's quiet and selected item colours, each with its Increase Contrast twin. The tab bar reads like the stock one
-    /// (`HVTabBarStyle`): the selected item is the page's own text in a dark look and `primary` in a light one.
+    /// (`HVTabBarStyle`): the selected item is the page's own text in a dark look and `primary` in a light one. The number
+    /// on the Mail tab is the flat `action` fill with its label, as the Account menu's Dreams badge is (the stock look
+    /// leaves the system's own badge alone).
     struct WindowInk: Sendable, Equatable {
         var tint: RGB
         var tintHigh: RGB
@@ -190,6 +192,10 @@ final class StyleRuntime: Observable, @unchecked Sendable {
         var quietHigh: RGB
         var selected: RGB
         var selectedHigh: RGB
+        var badge: RGB
+        var badgeHigh: RGB
+        var onBadge: RGB
+        var onBadgeHigh: RGB
     }
 
     struct Snapshot: Sendable {
@@ -241,7 +247,9 @@ final class StyleRuntime: Observable, @unchecked Sendable {
             next.window = WindowInk(
                 tint: normal.primary, tintHigh: high.primary,
                 quiet: normal.mutedForeground, quietHigh: high.mutedForeground,
-                selected: normal[selected], selectedHigh: high[selected]
+                selected: normal[selected], selectedHigh: high[selected],
+                badge: normal.action, badgeHigh: high.action,
+                onBadge: normal.actionForeground, onBadgeHigh: high.actionForeground
             )
         }
         registrar.withMutation(of: self, keyPath: \.snapshot) {

@@ -318,7 +318,13 @@ app's `StyleKitStore` decides whether to wear it (the phone's "Use this theme in
 - **The kit pins the appearance.** A worn theme is one palette, light or dark, so `HVAppStyle` pins the window and the
   hierarchy to it (plain `Text`, a `Form`, the keyboard take the system's black or white). The Kit holds the system label
   to the floors on the theme's surfaces for that reason. Plain `Text` is not given the theme's `foreground` (a root
-  `foregroundStyle` would also override the tint of every `Button`).
+  `foregroundStyle` would also override the tint of every `Button`). The Account sheet (which holds Settings, this pane
+  included) and the pairing page over it are presented inside the root's hierarchy, so they take the window's style and the root's tint;
+  nothing sets a scheme or a tint of its own, and a new sheet should not.
+- **UIKit chrome follows through `StyleRuntime.WindowInk`**, which `HVAppStyle` hands to the window and to the bars in it:
+  the window's tint, the tab bar's quiet and selected items (`HVTabBarStyle`), and the number on the Mail tab, which is the
+  flat `action` fill with its label in a worn theme (the stock look leaves the system's own badge alone). A control that
+  draws its colour in UIKit reads `WindowInk` or `StyleRuntime.uiMutedForeground`, not an asset name.
 - **Increase Contrast** is derived in the Kit (`StyleKitIncreasedContrast`: ink to 7:1 along its own hue, edges to 3:1) and
   chosen by the trait (`UIColor.hvDynamic`). Reduce Transparency already swaps glass for solid `card` and `border`, which
   are the theme's. Dynamic Type is untouched: the font design is laid over the text style (`fontDesign`), never a size.

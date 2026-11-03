@@ -237,6 +237,51 @@ final class CanvasFieldTests: CanvasTestCase {
         model.setDraft("hello")
         model.fieldWrote("hello w", epoch: start)
         XCTAssertEqual(model.draft, "hello w")
+        XCTAssertEqual(model.draftChanged(from: "hello", to: "hello w"), .edited)
         XCTAssertEqual(model.composerEpoch, start)
+    }
+
+    func testAPasteHeldAboveTheFieldGivesItANewIdentity() {
+        let (model, _) = make([])
+        let start = model.composerEpoch
+        model.draft = "Summarise this" + aPaste
+        XCTAssertEqual(model.draftChanged(from: "Summarise this", to: model.draft), .pasted)
+        XCTAssertEqual(model.draft, "Summarise this")
+        XCTAssertEqual(model.composerEpoch, start &+ 1, "the field held the block it no longer has")
+    }
+
+    func testAReturnInAnEmptyFieldGivesItANewIdentity() {
+        let (model, _) = make([])
+        let start = model.composerEpoch
+        model.draft = "\n"
+        XCTAssertEqual(model.draftChanged(from: "", to: "\n"), .returned)
+        XCTAssertEqual(model.draft, "")
+        XCTAssertEqual(model.composerEpoch, start &+ 1, "nothing is sent, so nothing else will replace the field")
+    }
+
+    func testAReturnAfterWordsLeavesTheNewIdentityToTheSendThatFollows() async {
+        let (model, _) = make([.json(.get, "/api/backends", oneModel), .json(.post, "/api/chat", reply)])
+        await model.loadBackends()
+        let start = model.composerEpoch
+        model.draft = "Plan my week\n"
+        XCTAssertEqual(model.draftChanged(from: "Plan my week", to: "Plan my week\n"), .returned)
+        XCTAssertEqual(model.composerEpoch, start, "sending is what replaces the field")
+        await model.submit()
+        XCTAssertEqual(model.composerEpoch, start &+ 1)
+    }
+
+    func testAReturnThatKeepsAWaitingPasteGivesTheFieldANewIdentity() async {
+        let (model, transport) = make([.json(.get, "/api/backends", oneModel), .json(.post, "/api/keep", kept)])
+        await model.loadBackends()
+        model.stagePaste(aPaste)
+        let start = model.composerEpoch
+        model.draft = "\n"
+        XCTAssertEqual(model.draftChanged(from: "", to: "\n"), .returned)
+        await model.submit()
+        let sent = await eventually { await transport.requests(matching: "/api/keep").count == 1 }
+        XCTAssertTrue(sent)
+        XCTAssertNil(model.staged)
+        XCTAssertEqual(model.draft, "")
+        XCTAssertEqual(model.composerEpoch, start &+ 1, "the line break the field took is gone with it")
     }
 }

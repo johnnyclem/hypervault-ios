@@ -69,9 +69,10 @@ final class CanvasModel: CanvasCommandHost {
     private(set) var cards: [CanvasCard] = []
     private(set) var messages: [ThreadMessage] = []
     var draft = ""
-    /// Counts the times code replaced the field's words as a whole (a send, a keep, a command, a restored question).
-    /// The text field takes a new identity with each one (`hvFieldReset`), so what it shows is what `draft` says.
-    /// Dictation writes (`setDraft`) never change it: they arrive many times a second.
+    /// Counts the times code replaced the field's words as a whole (a send, a keep, a command, a restored question, a
+    /// paste taken out of the field, a Return with nothing to send). The text field takes a new identity with each one
+    /// (`hvFieldReset`), so what it shows is what `draft` says. Dictation writes (`setDraft`) never change it: they arrive
+    /// many times a second.
     private(set) var composerEpoch = 0
     private(set) var staged: String?
     private(set) var isBusy = false
@@ -470,10 +471,15 @@ final class CanvasModel: CanvasCommandHost {
         guard let inserted = PasteDiff.insertion(old: old, new: new) else { return .edited }
         if inserted == "\n" {
             draft = old
+            // With words in the field, Return sends them next, and sending replaces the field (`clearDraft`). With none,
+            // nothing follows that would, so the field is replaced here or it keeps the line break it took.
+            if old.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { composerEpoch &+= 1 }
             return .returned
         }
         guard PasteStaging.shouldStage(inserted) else { return .edited }
         draft = old
+        // The block waits above the field now; the field is replaced so that it does not keep showing it as well.
+        composerEpoch &+= 1
         stagePaste(inserted)
         return .pasted
     }

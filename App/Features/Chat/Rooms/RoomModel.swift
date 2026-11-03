@@ -18,6 +18,9 @@ final class ChatRoomModel {
     private(set) var members: [ChatRoomMember] = []
     private(set) var messages: [ChatRoomMessage] = []
     var draft = ""
+    /// Counts the times code, not the person's typing, replaced `draft` (a message was sent, or words were put back).
+    /// The text field takes a new identity with each one (`hvFieldReset`), so what it shows is what `draft` says.
+    private(set) var composerEpoch = 0
     /// This phone is driving a round right now.
     private(set) var isDriving = false
     private(set) var notice: String?
@@ -97,7 +100,7 @@ final class ChatRoomModel {
     func send() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isDriving else { return }
-        draft = ""
+        replaceDraft("")
         notice = nil
         isDriving = true
         let driver = ChatRoomDriver(client: client, roomID: roomID)
@@ -154,10 +157,10 @@ final class ChatRoomModel {
     private func failed(_ error: HVError, restoring text: String?) {
         if case .cancelled = error {
             tell("Stopped. Turns still waiting will stay queued.")
-            if let text, draft.isEmpty { draft = text }
+            if let text, draft.isEmpty { replaceDraft(text) }
             return
         }
-        if let text, draft.isEmpty { draft = text }
+        if let text, draft.isEmpty { replaceDraft(text) }
         tell(error.sentence(offline: "Network hiccup. Your message may not have been sent. Check the room, then try again."))
     }
 
@@ -216,6 +219,19 @@ final class ChatRoomModel {
         if !answered.isEmpty { sentences.append("\(names(answered)) replied.") }
         if !failed.isEmpty { sentences.append("\(names(failed)) could not answer.") }
         return sentences.isEmpty ? nil : sentences.joined(separator: " ")
+    }
+
+    /// What the text field writes when the person types. A field that `replaceDraft` has since replaced is still wired to
+    /// the words it held and may hand them back as it goes; those are not typing, and are dropped.
+    func fieldWrote(_ text: String, epoch: Int) {
+        guard epoch == composerEpoch else { return }
+        draft = text
+    }
+
+    /// Every write to `draft` that is not the person typing (or adding a mention) goes through here.
+    private func replaceDraft(_ text: String) {
+        draft = text
+        composerEpoch &+= 1
     }
 
     /// Adds a mention of `handle` at the end of the draft.

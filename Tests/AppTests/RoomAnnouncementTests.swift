@@ -94,6 +94,33 @@ final class RoomAnnouncementTests: XCTestCase {
         XCTAssertEqual(speech.spoken, ["The database is missing agent-room support."])
     }
 
+    func testSendingEmptiesTheMessageBoxAndGivesItANewField() async {
+        let (model, _) = make([.json(.post, "/api/rooms/r1/messages", run([message("n1", 5, "human", nil)]))], room: calmRoom)
+        await model.load()
+        let start = model.composerEpoch
+        model.draft = "go"
+        model.send()
+        XCTAssertEqual(model.draft, "")
+        XCTAssertEqual(model.composerEpoch, start &+ 1)
+        model.fieldWrote("go", epoch: start)
+        XCTAssertEqual(model.draft, "", "the replaced field cannot hand the words back")
+        await finishDriving(model)
+    }
+
+    func testAMessageThatNeverReachedTheRoomComesBackInAFreshField() async {
+        let (model, _) = make(
+            [.failure(.post, "/api/rooms/r1/messages", status: 503, message: "The database is missing agent-room support.")],
+            room: calmRoom
+        )
+        await model.load()
+        let start = model.composerEpoch
+        model.draft = "go"
+        model.send()
+        await finishDriving(model)
+        XCTAssertEqual(model.draft, "go")
+        XCTAssertEqual(model.composerEpoch, start &+ 2)
+    }
+
     func testARoundLeftHalfDoneIsSaidWhenTheRoomOpensAndNotEveryTimeItIsLookedAt() async {
         let (model, speech) = make()
         await model.load()

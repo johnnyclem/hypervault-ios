@@ -155,9 +155,11 @@ state. They cover:
   (and one entry), Mail (the inbox, then a thread), Truth (the ledger, an entry's ancestry, the review docket), Tools (and a
   server), Domain (and one address), Import (a pasted conversation read and sent), Dreams, Digest, Task boards (the list,
   a project's overview with the pages, memories and chats that go with it, a board, then a task), Agent keys (Connect your
-  AI through to a key that is shown once and copied, and revoking a key) and, for an admin, Admin (minting an invite code, switching it off, Accounts & waitlist); and a memory in full, Memory's Ask
-  mode, a conversation and a room that take a message and answer it, a page from the Library with its Share, History
-  and Details sheets;
+  AI through to a key that is shown once and copied, and revoking a key) and, for an admin, Admin (minting an invite code,
+  switching it off, Accounts & waitlist); and a memory in full, Memory's Ask mode, a conversation and a room that take a
+  message and answer it, a page from the Library with its Share, History and Details sheets. The project's overview is
+  launched with `-HV_UITEST_PROJECT_LINKS`, which gives the Eurorack Choir Module the things that go with it (a launch
+  without it has none, so the Library graph journey's counts stay as they were);
 - the **journeys that write** (`Tests/UITests/*WritesJourneyTests.swift`): signing out (the welcome story, and a launch
   afterwards that does not bring the session back), General (haptics stay after leaving the
   pane and after closing the app), a memory's title and text edited and a memory forgotten, a login added, renamed and a

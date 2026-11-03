@@ -100,7 +100,8 @@ struct ChatRoomContent: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.m) {
                     roster
-                    if model.messages.isEmpty { emptyRoom }
+                    // (Not once the first words are on their way: "nobody has spoken" would sit above them.)
+                    if model.messages.isEmpty, model.outgoing.isEmpty { emptyRoom }
                     if model.messages.count > windowSize {
                         Button("Show \(min(model.messages.count - windowSize, 60)) earlier") { windowSize += 60 }
                             .buttonStyle(.hvGhost)

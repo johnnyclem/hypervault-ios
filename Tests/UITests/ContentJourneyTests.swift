@@ -28,6 +28,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
         step("The answer is written from the memories it drew on") {
             enter("What did I plan for the ferry?", into: textField("ask.field"), "the question field")
             tap(button("Ask"), "Ask")
+            waitUntil("the question box to be empty once the question is asked") { self.fieldIsEmpty(self.textField("ask.field")) }
             require(text("What did I plan for the ferry?"), "the question, kept above its answer")
             require(shows("Your Lisbon notes say to book the Friday ferry"), "the answer", timeout: 40)
             require(shows("Drew from"), "the list of sources")
@@ -83,6 +84,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
             enter("claude, summarise the plan", into: textField("room.field"), "the message field")
             require(shows("Goes to @claude"), "the line that says who the message goes to")
             tap(button("Send"), "Send")
+            waitUntil("the message box to be empty once the message is sent") { self.fieldIsEmpty(self.textField("room.field")) }
             require(shows("Noted: claude, summarise the plan"), "claude's answer", timeout: 40)
         }
     }

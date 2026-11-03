@@ -271,8 +271,14 @@ class HyperVaultUITestCase: XCTestCase {
         }
     }
 
-    private func hasKeyboardFocus(_ element: XCUIElement) -> Bool {
+    func hasKeyboardFocus(_ element: XCUIElement) -> Bool {
         (element.value(forKey: "hasKeyboardFocus") as? Bool) ?? false
+    }
+
+    /// Whether nothing the person typed is in the field. (An empty field reports its placeholder, or its label, as its value.)
+    func fieldIsEmpty(_ field: XCUIElement) -> Bool {
+        let value = (field.value as? String) ?? ""
+        return value.isEmpty || value == field.placeholderValue || value == field.label
     }
 
     /// Taps the system's Paste control. It draws itself outside the app's own view tree, so it is tapped as soon as it

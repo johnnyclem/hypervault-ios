@@ -95,6 +95,9 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
         step("The first message begins the chat and gets its answer") {
             enter("Plan the balcony garden", into: textField("Message"), "the message field")
             tap(button("Send"), "Send")
+            waitUntil("the message box to be empty once the message is sent") { self.fieldIsEmpty(self.textField("Message")) }
+            // The keyboard stays up after Send, ready for the next message.
+            waitUntil("the message box to keep the keyboard for the next message") { self.hasKeyboardFocus(self.textField("Message")) }
             require(shows("Noted: Plan the balcony garden"), "the model's reply", timeout: 40)
             requireWrite("POST", "/api/chat", contains: ["message": "Plan the balcony garden"])
         }

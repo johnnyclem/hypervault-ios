@@ -536,6 +536,43 @@ final class RoomModelTests: XCTestCase {
         XCTAssertEqual(model.notice, "The database is missing agent-room support.")
     }
 
+    // MARK: Leaving the screen
+
+    /// Leaving the screen ends the round this phone is driving, as Stop does, and says nothing about it: the turn in flight
+    /// is the server's to finish, the rest stays queued, and nothing more is asked for a room nobody is looking at.
+    func testLeavingTheScreenStopsTheRoundAndSaysNothingAboutIt() async {
+        let server = FakeRoomServer(handles: ["a", "b", "c"], style: .queued, turnSeconds: 0.01)
+        await server.holdTurn(2)
+        let network = RoomTestNetwork(server)
+        let (model, speech) = make(network)
+        await model.load()
+        model.draft = "go"
+        model.send()
+        await eventually("the first answer") { model.messages.contains { $0.senderHandle == "a" } }
+        await waitForATurn(on: server)
+        model.leave()
+        await server.releaseTurn()
+        await eventually("the round to end") { !model.isDriving }
+        XCTAssertFalse(speech.spoken.contains { $0.hasPrefix("Stopped") }, "\(speech.spoken)")
+        XCTAssertEqual(model.notice, "Stopped. Turns still waiting will stay queued.", "shown for whoever comes back, not said")
+        // The turn in flight finished on the server; the third was never asked for.
+        await eventually("the answer in flight to be found") { model.messages.contains { $0.senderHandle == "b" } }
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertFalse(model.messages.contains { $0.senderHandle == "c" })
+        XCTAssertEqual(model.pending.map(\.handle), ["c"])
+        XCTAssertTrue(model.canContinue, "on return the Continue card is there")
+    }
+
+    func testLeavingAScreenThatIsNotDrivingDoesNothing() async {
+        let (model, speech) = make(FakeRoomServer(style: .queued))
+        await model.load()
+        model.leave()
+        XCTAssertNil(model.notice)
+        XCTAssertTrue(speech.spoken.isEmpty)
+        model.draft = "hello"
+        XCTAssertTrue(model.canSend)
+    }
+
     // MARK: What the person did here, and a read that is older than it
 
     func testAReadThatRepeatsTheOldNameDoesNotUndoARename() async throws {

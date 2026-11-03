@@ -74,12 +74,13 @@ struct ChatRoomContent: View {
             .task { await model.load() }
             // The room is followed for as long as the screen is up and the app is in front: SwiftUI cancels this task
             // when the screen goes, and starts it again, with a read at once, when the app comes back to the front (the
-            // phone slept; the server did not). Turns this phone is driving go on in the background, for a while, on
-            // their own (`ChatBackgroundGrace`).
+            // phone slept; the server did not). Turns this phone is driving go on when the app goes to the background, for
+            // a while, on their own (`ChatBackgroundGrace`); when the screen goes they stop, and the rest wait in the queue.
             .task(id: scenePhase == .active) {
                 guard scenePhase == .active else { return }
                 await model.follow()
             }
+            .onDisappear { model.leave() }
     }
 
     // MARK: Thread

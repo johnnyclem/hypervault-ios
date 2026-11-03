@@ -59,6 +59,8 @@ final class ChatRoomModel {
     @ObservationIgnored private var serverMembers: [ChatRoomMember]?
     /// Reads in a row that found the room gone. A server in the middle of a deploy answers one too, so it takes a few.
     @ObservationIgnored private var notFoundReads = 0
+    /// The screen has gone and the round this phone was driving is being stopped: there is nobody to tell.
+    @ObservationIgnored private var leaving = false
 
     init(
         roomID: String, client: HVClient, announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared, pace: ChatRoomPace = .live,
@@ -247,12 +249,22 @@ final class ChatRoomModel {
         driveTask?.cancel()
     }
 
+    /// The screen has gone. A round this phone is driving stops where it is, as Stop would stop it: the turn in flight is
+    /// finished by the server, the rest stays queued, and the Continue card is there on return. Nothing is spent on a
+    /// room nobody is looking at, and nobody is told that it stopped.
+    func leave() {
+        guard isDriving else { return }
+        leaving = true
+        driveTask?.cancel()
+    }
+
     /// The drive is over, and the person has their screen back at once. `unsettled` is the message whose fate is still
     /// to be found out (the request that carried it ended before the room said); that is looked into from here, in the
     /// open, and does not hold the screen.
     private func finishDriving(unsettled: Outgoing?) {
         isDriving = false
         driveTask = nil
+        leaving = false
         grace.end()
         // Whatever stopped the round has just told the person so, and what to do about it.
         continueAnnounced = canContinue
@@ -273,7 +285,7 @@ final class ChatRoomModel {
         }
         if stopped {
             let said = "Stopped. Turns still waiting will stay queued."
-            tell(said)
+            if leaving { notice = said } else { tell(said) }
             return echo
         }
         // Gone from `outgoing` means a read or an answer reported it. Still there after a read of the room: not sent.

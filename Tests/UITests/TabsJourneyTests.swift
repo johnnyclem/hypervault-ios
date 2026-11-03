@@ -1,7 +1,7 @@
 import XCTest
 
-/// The tab bar, the Yours panel over Home, and the Memory tab, of someone signed in: what they list, how they narrow, where a
-/// tap goes, and what their More menus hold. (The chats come back as Home in the next step of the tab overhaul.)
+/// The tab bar, the Yours panel over the canvas (pushed on Home), Home's chats and the Memory tab, of someone signed in: what
+/// they list, how they narrow, where a tap goes, and what their More menus hold.
 @MainActor
 final class TabsJourneyTests: HyperVaultUITestCase {
     func testTheTabBarIsHomeProjectsMemoryMailAndNothingElse() {
@@ -18,7 +18,7 @@ final class TabsJourneyTests: HyperVaultUITestCase {
             }
             XCTAssertFalse(tab("Chat").exists, "Chat is not a tab.")
             XCTAssertFalse(tab("You").exists, "Settings is behind the avatar, not a tab.")
-            XCTAssertFalse(tab("Yours").exists, "Yours is the panel on Home, not a tab.")
+            XCTAssertFalse(tab("Yours").exists, "Yours is the panel on the canvas, not a tab.")
             XCTAssertFalse(tab("Canvas").exists, "The first tab is called Home.")
             XCTAssertFalse(tab("Library").exists, "The Library is behind the avatar, not a tab.")
             XCTAssertFalse(tab("Task boards").exists, "The boards are the Projects tab.")
@@ -101,9 +101,10 @@ final class TabsJourneyTests: HyperVaultUITestCase {
             requireGone(button("Copy source"), "the source sheet")
         }
 
-        step("Back returns to Home") {
-            goBack(until: { element("account.avatar").exists })
+        step("Back returns to the canvas the page was opened from") {
+            goBack(until: { element("canvas.yours").exists })
             require(element("canvas.yours"), "the panel button again")
+            require(button("Hide Bakery landing page"), "the card of the page, which is still on the page")
         }
     }
 
@@ -120,8 +121,8 @@ final class TabsJourneyTests: HyperVaultUITestCase {
             require(element("library.row.a1"), "the Bakery landing page row")
         }
 
-        step("Back is Home") {
-            goBack(until: { element("account.avatar").exists })
+        step("Back is the canvas the Library was opened from") {
+            goBack(until: { element("canvas.yours").exists })
         }
 
         step("Open on a row opens the page where it lives") {
@@ -163,12 +164,11 @@ final class TabsJourneyTests: HyperVaultUITestCase {
         }
     }
 
-    func testChatListsConversationsAndSwitchesToGroupChats() throws {
-        try skipUntilHomeShowsTheChats()
+    func testHomeListsConversationsAndSwitchesToGroupChats() {
         launch(.signedIn)
         openTab("Home")
 
-        step("Chat lists conversations") {
+        step("Home lists conversations") {
             require(element("chat.row.c1"), "the Lisbon conversation")
             XCTAssertTrue(element("chat.row.c1").label.contains("Three days in Lisbon"))
             require(element("chat.row.c2"), "the next conversation")

@@ -1,8 +1,8 @@
 import XCTest
 
-/// Open on a key card of the Home canvas: the entry's own page from the Vault comes up over the canvas (its title, the lock
-/// that keeps the value away, and the switches for the agent keys that may read it), and closing it leaves the card where it
-/// was. An entry that is deleted while the card is still on the page is not there to open, and Open goes to the Vault's list
+/// Open on a key card of the canvas (pushed on Home): the entry's own page from the Vault comes up over the canvas (its title,
+/// the lock that keeps the value away, and the switches for the agent keys that may read it), and closing it leaves the card
+/// where it was. An entry that is deleted while the card is still on the page is not there to open, and Open goes to the Vault's list
 /// as it did before the card had a page of its own.
 @MainActor
 final class CanvasKeyCardJourneyTests: HyperVaultUITestCase {
@@ -30,6 +30,7 @@ final class CanvasKeyCardJourneyTests: HyperVaultUITestCase {
 
     func testOpenOnAKeyCardShowsTheEntrysPageOverThePageAndADeletedEntryFallsBackToTheVault() {
         launch(.signedIn, arguments: withTheKeysEntry)
+        openCanvas()
 
         step("Showing my keys puts the key on the page, with the agent that may use it") {
             say("show my keys")

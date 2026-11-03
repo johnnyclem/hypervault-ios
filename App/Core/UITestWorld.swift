@@ -31,6 +31,13 @@ enum UITestWorld {
 
     static var keyCardEntryRequested: Bool { CommandLine.arguments.contains(keyCardEntryFlag) }
 
+    /// A launch flag for a person who has no chats, in a vault that has everything else (pages, memories, a connected model,
+    /// keys). Home shows its starter page then. It is a flag and not part of the vault because the journeys that read the
+    /// chats list need them; the other empty first run is the `signedInEmpty` scenario, which has nothing else either.
+    static let noChatsFlag = "-HV_UITEST_NO_CHATS"
+
+    static var noChatsRequested: Bool { CommandLine.arguments.contains(noChatsFlag) }
+
     /// What the `signedIn` scenario leaves on the pasteboard, for the canvas's Paste button: long enough, and in
     /// enough lines, to wait above the field as a chip instead of going into it.
     static let pasteText = [
@@ -52,8 +59,14 @@ enum UITestWorld {
 
     // MARK: Routes
 
-    /// The routes for a scenario, most specific first.
-    static func routes(for scenario: UITestScenario) -> [MockRoute] {
+    /// The routes for a scenario, most specific first. `withoutChats` is the launch flag `noChatsFlag`: the list of chats is
+    /// empty (the first route that answers it wins), whatever else the scenario holds.
+    static func routes(for scenario: UITestScenario, withoutChats: Bool = UITestWorld.noChatsRequested) -> [MockRoute] {
+        let noChats: [MockRoute] = withoutChats ? [.json(.get, "/api/conversations", #"{"conversations":[]}"#)] : []
+        return noChats + scenarioRoutes(for: scenario)
+    }
+
+    private static func scenarioRoutes(for scenario: UITestScenario) -> [MockRoute] {
         switch scenario {
         case .signedOut:
             let own: [MockRoute] = [capabilitiesRoute(letIn: { false })]

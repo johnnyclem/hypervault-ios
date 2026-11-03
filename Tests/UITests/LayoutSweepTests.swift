@@ -20,8 +20,14 @@ final class LayoutSweepTests: LayoutSweepCase {
         launch(.signedIn, arguments: setting.arguments)
         continueAfterFailure = true
 
-        look(mode, "Home with its hints", key: element("canvas.field"), "the canvas field", dumpTree: true)
+        look(mode, "Home with its chats", key: element("chat.row.c1"), "the Lisbon conversation row", dumpTree: true)
+        choose("Group chats", from: "chat.section")
+        look(mode, "Home, group chats", key: element("chat.room.r1"), "the Features X and Y room row")
+        choose("Chats", from: "chat.section")
 
+        // The canvas is a screen pushed on Home, with Home's Keep button.
+        openCanvas()
+        look(mode, "the canvas with its hints", key: element("canvas.field"), "the canvas field", dumpTree: true)
         openYours()
         // The panel opens at half the height of the screen, and at a large text size its first row is below the fold: it is
         // looked at as it opens, and then at its whole height, where the rows are (scrolling a half-height panel from the
@@ -49,16 +55,22 @@ final class LayoutSweepTests: LayoutSweepCase {
         closeTheAccountSheet()
 
         // Last, because typing brings the keyboard up over the tab bar.
-        openTab("Home")
+        openCanvas()
         step("\(mode): the canvas puts memories on the page") {
             enter("show my memories", into: textField("canvas.field"), "the canvas field")
             tap(element("canvas.send"), "Send")
             require(button("Hide Trip to Lisbon: ferry and passports"), "the Lisbon memory's card")
         }
-        look(mode, "Home with cards", key: element("canvas.field"), "the canvas field")
+        look(mode, "the canvas with cards", key: element("canvas.field"), "the canvas field")
+
+        // Home for someone with no chats and no agent key: the starter page, and the card that asks for the key.
+        launch(.signedInNoKeys, arguments: setting.arguments)
+        continueAfterFailure = true
+        look(mode, "Home, the starter page", key: element("home.startChat"), "the Start a chat button", dumpTree: true)
+        look(mode, "Home, the first-run card", key: element("canvas.connectCard.connect"), "the Connect an agent button")
     }
 
-    // MARK: Memory and a page
+    // MARK: Chat, memory and a page
 
     func testWhatTheTabsOpenInTheDark() { sweepOpened(Self.dark) }
 
@@ -74,7 +86,14 @@ final class LayoutSweepTests: LayoutSweepCase {
         look(mode, "a memory", key: shows("Lisbon, first weekend"), "the heading inside the memory's text")
         goBack(until: { isShowingTitle("Memory") })
 
-        // (The conversation and the room are looked at again once the chats are on Home.)
+        openTab("Home")
+        open(element("chat.row.c1"), "the Lisbon conversation")
+        look(mode, "a conversation", key: textField("Message"), "the message field")
+        // (A back tap that is lost leaves the conversation up, and the choice of half is looked for on it.)
+        goBack(until: { element("chat.section").exists })
+        choose("Group chats", from: "chat.section")
+        open(element("chat.room.r1"), "the Features X and Y room")
+        look(mode, "a room", key: textField("room.field"), "the message field")
 
         openFromAccount("library", title: "Library")
         open(element("library.row.a1"), "the Bakery landing page row")

@@ -1,7 +1,8 @@
 import XCTest
 
 /// The canvas of someone signed in, with a connected model: keeping a pasted note, asking and keeping the reply, hiding a
-/// card, saying "show my memories", and the Yours panel over the page.
+/// card, saying "show my memories", and the Yours panel over the page. The canvas is a screen pushed on Home, which these
+/// journeys reach with Home's Keep button (it is in Home's bar whether Home shows chats or the starter page).
 @MainActor
 final class CanvasJourneyTests: HyperVaultUITestCase {
     private let keptLine = "Kept. Here's the link."
@@ -9,10 +10,12 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
     func testKeepAPasteAskAndKeepTheReplyThenHideACard() {
         launch(.signedIn)
 
-        step("The canvas opens with its one line of help") {
+        step("The Keep button on Home opens the canvas, with its one line of help") {
+            require(button("Keep"), "Home's Keep button, labelled \"Keep\" for VoiceOver")
+            openCanvas()
             require(element("canvas.hint"), "the line that says to paste anything")
             XCTAssertEqual(element("canvas.hint").label, "Paste anything here to keep it.")
-            require(button("Account"), "the avatar, labelled \"Account\" for VoiceOver")
+            XCTAssertTrue(hasBackButton, "the way back to Home, which the avatar no longer is")
             require(button("Open panel"), "the corner icon, labelled \"Open panel\" for VoiceOver, as the web labels it")
         }
 
@@ -66,6 +69,7 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
 
     func testShowMyMemoriesPutsThemOnThePageAndYoursOpensOverIt() {
         launch(.signedIn)
+        openCanvas()
 
         step("Saying \"show my memories\" puts them on the page") {
             enter("show my memories", into: textField("canvas.field"), "the canvas field")

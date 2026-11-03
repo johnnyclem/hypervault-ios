@@ -1,7 +1,7 @@
 import XCTest
 
 /// The things people open from the tabs and talk to: a memory in full, Memory's Ask mode, a conversation, a room, and a
-/// page from the Library with what can be done to it. (The conversation and the room are on Home, once the chats are.)
+/// page from the Library with what can be done to it. (The conversation and the room are on Home.)
 @MainActor
 final class ContentJourneyTests: HyperVaultUITestCase {
     func testAMemoryOpensInFullAndAskModeAnswersFromMemory() {
@@ -49,8 +49,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
         }
     }
 
-    func testAConversationOpensAndTakesAMessage() throws {
-        try skipUntilHomeShowsTheChats()
+    func testAConversationOpensAndTakesAMessage() {
         launch(.signedIn)
         openTab("Home")
 
@@ -68,8 +67,7 @@ final class ContentJourneyTests: HyperVaultUITestCase {
         }
     }
 
-    func testARoomOpensAndTakesAMessage() throws {
-        try skipUntilHomeShowsTheChats()
+    func testARoomOpensAndTakesAMessage() {
         launch(.signedIn)
         openTab("Home")
         tap(segment("Group chats"), "the Group chats half", until: { self.element("chat.room.r1").exists })

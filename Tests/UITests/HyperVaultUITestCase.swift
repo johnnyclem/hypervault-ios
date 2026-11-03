@@ -6,9 +6,9 @@ enum Scenario: String, CaseIterable {
     case signedOut
     /// The app, with a few things kept, memories, chats and a connected model.
     case signedIn
-    /// The app with nothing kept and no model: the first run.
+    /// The app with nothing kept, no chats and no model: the first run.
     case signedInEmpty
-    /// The first run of someone with no agent key either, so the Home page asks them to connect one.
+    /// The first run of someone with no agent key either, so Home's starter page asks them to connect one.
     case signedInNoKeys
     /// Signed in but not let in until the invite code is redeemed.
     case waitlisted
@@ -19,7 +19,8 @@ enum Scenario: String, CaseIterable {
     var firstScreen: (identifier: String, description: String) {
         switch self {
         case .signedOut: return ("welcome.pages", "the welcome story")
-        case .signedIn, .signedInEmpty, .signedInNoKeys, .signedInAdmin: return ("canvas.field", "the canvas")
+        // The avatar is on Home in every state it has (the skeleton, the error, the starter page and the list of chats).
+        case .signedIn, .signedInEmpty, .signedInNoKeys, .signedInAdmin: return ("account.avatar", "Home")
         case .waitlisted: return ("waitlist.code", "the waitlist")
         }
     }
@@ -43,6 +44,10 @@ class HyperVaultUITestCase: XCTestCase {
 
     /// How long to wait for something to appear on a slow simulator.
     let patience: TimeInterval = 30
+
+    /// The launch argument of a person who has no chats (`UITestWorld.noChatsFlag`): Home shows its starter page, in a vault that
+    /// has everything else (pages, memories, a connected model).
+    let withoutChats = ["-HV_UITEST_NO_CHATS"]
 
     // MARK: Launching
 
@@ -390,12 +395,6 @@ class HyperVaultUITestCase: XCTestCase {
         waitUntil("\(what) to change", file: file, line: line) { (control.value as? String) != value }
     }
 
-    /// For a journey that needs the list of chats (or of rooms): in this step of the tab overhaul nothing in the app opens it,
-    /// because Home is still the canvas and Chat has no tab. The next step puts the chats on Home, and this goes with it.
-    func skipUntilHomeShowsTheChats() throws {
-        throw XCTSkip("The chats have no tab until Home shows them (the next step of the tab overhaul).")
-    }
-
     /// Opens a tab. What it shows is for the journey to wait for.
     func openTab(_ title: String, file: StaticString = #filePath, line: UInt = #line) {
         // A tap on the tab bar that lands while the app is still settling (right after the launch, or as a sheet goes) is
@@ -508,8 +507,8 @@ class HyperVaultUITestCase: XCTestCase {
         accountSheetIsUp = false
     }
 
-    /// Opens an item of the More menu of Memory (`Dreams`, `Truth`, `Digest`) or of the chats (`Tools`, `Import your AI history`;
-    /// not on a tab for now), from the first screen of that tab, and waits for the screen it goes to to name itself.
+    /// Opens an item of the More menu of Memory (`Dreams`, `Truth`, `Digest`) or of Home (`Yours`, `Models`, `Tools`,
+    /// `Import your AI history`), from the first screen of that tab, and waits for the screen it goes to to name itself.
     func openFromMoreMenu(of tabTitle: String, _ item: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
         let more = element(tabTitle == "Memory" ? "memory.more" : "chat.more")
         openTab(tabTitle, file: file, line: line)
@@ -524,7 +523,7 @@ class HyperVaultUITestCase: XCTestCase {
         // again, as a person would, until then.
         let items = tabTitle == "Memory"
             ? ["History", "Compare", "Time travel", "Branches", "Dreams", "Truth", "Digest"]
-            : ["Tools", "Import your AI history"]
+            : ["Yours", "Models", "Tools", "Import your AI history"]
         tap(more, "the More menu of \(tabTitle)", until: { items.contains { button($0).exists } }, file: file, line: line)
         // At the largest text sizes every item of the menu is over a hundred points tall, and the card the menu is drawn in
         // ends about two thirds of the way down the screen: the items below its fold are not drawn until the menu is scrolled,
@@ -552,9 +551,21 @@ class HyperVaultUITestCase: XCTestCase {
         openFromMoreMenu(of: "Memory", item, title: title, file: file, line: line)
     }
 
-    /// Opens the Yours panel over Home with the button in the corner.
-    func openYours(file: StaticString = #filePath, line: UInt = #line) {
+    /// Opens the canvas: Home on its first screen, then the Keep button in its bar, which pushes the canvas, and its field. (The
+    /// button is in the bar whether Home shows the chats or the starter page.)
+    func openCanvas(file: StaticString = #filePath, line: UInt = #line) {
         showHome(file: file, line: line)
+        // A tap that lands while the page is still settling (after the launch, or as the tab changes) is lost, and a person
+        // would tap again.
+        RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+        let field = element("canvas.field")
+        tap(element("home.keep"), "the Keep button", until: { field.exists }, file: file, line: line)
+        require(field, "the canvas", file: file, line: line)
+    }
+
+    /// Opens the Yours panel over the canvas with the button in the corner (the canvas first, from Home's Keep button).
+    func openYours(file: StaticString = #filePath, line: UInt = #line) {
+        openCanvas(file: file, line: line)
         RunLoop.current.run(until: Date().addingTimeInterval(0.6))
         tap(element("canvas.yours"), "the panel button", until: { element("yours.filter").exists }, file: file, line: line)
         require(element("yours.filter"), "the Yours panel", file: file, line: line)
@@ -562,7 +573,7 @@ class HyperVaultUITestCase: XCTestCase {
 
     /// Takes the Yours panel from half the height of the screen to the whole of it, the way a person does: a finger on its
     /// navigation bar, drawn up. (A drag on the rows would scroll them, and a drag back down that starts above a panel of half
-    /// the height lands on Home and puts the panel away.)
+    /// the height lands on the canvas and puts the panel away.)
     func expandThePanel(file: StaticString = #filePath, line: UInt = #line) {
         let more = element("yours.more")
         require(more, "the panel's More menu", file: file, line: line)

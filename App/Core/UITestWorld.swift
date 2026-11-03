@@ -31,6 +31,14 @@ enum UITestWorld {
 
     static var keyCardEntryRequested: Bool { CommandLine.arguments.contains(keyCardEntryFlag) }
 
+    /// A launch flag that gives the Eurorack Choir Module project things that go with it: a page and a memory joined to the board
+    /// page by hand, a page tagged with the project, a page the server only guessed at, and a chat named for it
+    /// (`projectLinksRoutes`). It is a flag because the canned graph read feeds the Library's graph journey too, which
+    /// counts its nodes and the links among them, and the canned connections are empty for everyone else.
+    static let projectLinksFlag = "-HV_UITEST_PROJECT_LINKS"
+
+    static var projectLinksRequested: Bool { CommandLine.arguments.contains(projectLinksFlag) }
+
     /// What the `signedIn` scenario leaves on the pasteboard, for the canvas's Paste button: long enough, and in
     /// enough lines, to wait above the field as a chip instead of going into it.
     static let pasteText = [
@@ -52,8 +60,13 @@ enum UITestWorld {
 
     // MARK: Routes
 
-    /// The routes for a scenario, most specific first.
-    static func routes(for scenario: UITestScenario) -> [MockRoute] {
+    /// The routes for a scenario, most specific first. `projectLinks` is the launch flag `projectLinksFlag`.
+    static func routes(for scenario: UITestScenario, projectLinks: Bool = UITestWorld.projectLinksRequested) -> [MockRoute] {
+        let table = scenarioRoutes(for: scenario)
+        return projectLinks ? projectLinksRoutes(over: table) + table : table
+    }
+
+    private static func scenarioRoutes(for scenario: UITestScenario) -> [MockRoute] {
         switch scenario {
         case .signedOut:
             let own: [MockRoute] = [capabilitiesRoute(letIn: { false })]

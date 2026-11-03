@@ -159,7 +159,14 @@ final class AppRouter {
         }
     }
 
+    /// Pushes a screen where the person is looking: with the Account sheet up, on its stack (a screen the sheet shows, like
+    /// the page Import kept, pushes there and not on the tab behind the sheet, where it would be out of sight), otherwise on
+    /// the stack of the tab that shows. A call that names a tab pushes on that tab's stack.
     func push(_ route: Route, on tab: AppTab? = nil) {
+        if tab == nil, sheet == .account {
+            pushInAccount(route)
+            return
+        }
         let target = tab ?? self.tab
         var path = paths[target] ?? NavigationPath()
         path.append(route)

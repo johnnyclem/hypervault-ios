@@ -445,6 +445,25 @@ final class DeepLinkTests: XCTestCase {
     }
 
     @MainActor
+    func testAScreenShownInTheAccountSheetPushesOnTheSheetsStack() {
+        let router = AppRouter()
+        router.showSettings(.domain)
+        // (What Import opens in the sheet pushes its own links, like the connections of a page and the digest of a memory.)
+        router.push(.memory(id: "m1"))
+        XCTAssertEqual(router.accountPath.count, 3, "with the sheet up, a push lands on the sheet's stack")
+        XCTAssertEqual(router.path(for: router.tab).wrappedValue.count, 0, "and not on the tab behind it, out of sight")
+
+        router.push(.dreams, on: .memory)
+        XCTAssertEqual(router.path(for: .memory).wrappedValue.count, 1, "a push that names a tab still goes to that tab")
+        XCTAssertEqual(router.accountPath.count, 3)
+
+        router.sheet = nil
+        router.push(.truth)
+        XCTAssertEqual(router.path(for: router.tab).wrappedValue.count, 1, "with no sheet up, a push is the tab's")
+        XCTAssertEqual(router.accountPath.count, 3)
+    }
+
+    @MainActor
     func testTheYoursLinkOpensThePanelOnHome() {
         let router = AppRouter()
         router.tab = .memory

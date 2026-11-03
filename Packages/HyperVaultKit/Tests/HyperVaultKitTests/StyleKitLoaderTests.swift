@@ -70,6 +70,19 @@ final class StyleKitLoaderTests: XCTestCase {
         XCTAssertNil(wiped)
     }
 
+    /// Launch wears the look on disk before it has a client, so the read needs only the cache and the person.
+    func testTheLookOnDiskCanBeReadWithoutAClient() async throws {
+        let cache = tempCache()
+        let api = MockTransport(routes: [.json(.get, "/api/dashboard-theme", try envelope())])
+        let before = await StyleKitLoader.cached(in: cache, userID: "user-1")
+        XCTAssertNil(before)
+        let fresh = try await makeLoader(api, cache: cache, user: "user-1").refresh()
+        let mine = await StyleKitLoader.cached(in: cache, userID: "user-1")
+        XCTAssertEqual(mine, fresh)
+        let other = await StyleKitLoader.cached(in: cache, userID: "user-2")
+        XCTAssertNil(other, "the cache is per person")
+    }
+
     func testForgetDropsOnlyTheLook() async throws {
         let cache = tempCache()
         let api = MockTransport(routes: [.json(.get, "/api/dashboard-theme", try envelope())])

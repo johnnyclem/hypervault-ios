@@ -32,7 +32,13 @@ public struct StyleKitLoader: Sendable {
 
     /// What is on disk for this person, nil when nothing is. No network: the first frame after sign-in can wear it.
     public func cached() async -> DashboardThemeState? {
-        await cache.entry(DashboardThemeState.self, key: Self.cacheKey, namespace: userID)?.value
+        await Self.cached(in: cache, userID: userID)
+    }
+
+    /// The same read, for a caller that has the person and the cache but not yet a client: the app wears what is on disk
+    /// while launch is still asking the server who this is.
+    public static func cached(in cache: DiskCache, userID: String) async -> DashboardThemeState? {
+        await cache.entry(DashboardThemeState.self, key: cacheKey, namespace: userID)?.value
     }
 
     /// Asks the server, keeps the answer, and returns it. A failure throws and leaves the cache as it was, so the look

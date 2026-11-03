@@ -8,9 +8,8 @@ import Foundation
 // The app wears it too, from a server that sends kits (`Capabilities.Features.stylekit`): `GET /api/dashboard-theme`
 // answers `{ theme, kit }`, where `kit` is the accessible StyleKit the server derived for the theme (Style/StyleKit.swift).
 // A server that predates the kit has no GET, so the id is read from `profiles` under row-level security as before and the
-// app keeps its own default look. The words in `DashboardThemeCopy` are from before the app wore anything and say it
-// does not; they change when the pane switches over. The stock choice is not called "Gsap", which the web's select does
-// although choosing it renders the stock look.
+// app keeps its own default look, and says it cannot show the theme. The stock choice is not called "Gsap", which the web's
+// select does although choosing it renders the stock look.
 
 // MARK: Choices
 
@@ -57,19 +56,44 @@ public enum DashboardThemes {
 }
 
 /// The words around the picker. New copy: the web's ("Your dashboard & chat", "Theme for your dashboard and chat",
-/// "Saved") would say that the app's own look changed.
+/// "Saved") would say something the app does not do. The app wears the theme (`StyleKitStore`), on the phone's say-so,
+/// and these words say which of the website and the app has it.
 public enum DashboardThemeCopy {
-    public static let line = "How your dashboard and chat look on the website."
-    public static let sectionTitle = "On the website"
-    public static let pickerLabel = "Theme for the website"
-    public static let footer = "This app keeps the HyperVault default look, whatever you pick here. The look of each address you claim is under Domain."
+    public static let line = "How your dashboard and chat look on the website, and, if you like, in this app."
+    public static let sectionTitle = "Theme"
+    public static let pickerLabel = "Theme"
+    public static let footer = "Your website and this app wear it. The look of each address you claim is under Domain."
     public static let saving = "Saving"
 
-    /// What the server agreed to, once it has: said about the website, and about the name the catalog gives the theme.
-    public static func confirmation(for id: String?, in catalog: [Capabilities.ThemeInfo]) -> String {
-        guard let id else { return "Your website is back on the HyperVault default look." }
+    /// The phone's own switch (`PrefKey.styleKitInApp`), in a section of its own: the website keeps the theme either way.
+    public static let inAppTitle = "In this app"
+    public static let inAppToggle = "Use this theme in the app"
+    public static let inAppFooter = "Your website keeps the theme either way. A dark theme keeps the app dark and a light theme keeps it light, whatever your phone is set to."
+
+    /// The row that clears the choice (`{ "theme": null }`), and the button that puts the last one back.
+    public static let resetRow = "Back to the HyperVault default"
+    public static let undo = "Undo"
+
+    /// What the app is wearing, said under the switch.
+    public static let wearingDefault = "The app is wearing the HyperVault default look."
+    public static func wearing(_ name: String) -> String { "The app is wearing \(name)." }
+    /// A kit whose ink the server had to move (a colour the person can see as the theme's: `StyleKit.hasNoticeableAdjustments`).
+    public static let adjusted = "Some colours are adjusted so text stays easy to read."
+    /// The switch is off: the theme is chosen and the app is not wearing it.
+    public static let off = "The app keeps the HyperVault default look."
+    /// A theme the server has no accessible kit for (`retro`), a kit this build cannot read, or a server that sends no kits.
+    public static func cannotShow(_ name: String) -> String {
+        "\(name) can't be shown in the app, so it keeps the HyperVault default look. Your website still wears it."
+    }
+    /// The phone cannot reach the server, so what it shows is what it kept.
+    public static let offline = "You're offline. The app keeps the look it has; changing the theme needs a connection."
+
+    /// What the server agreed to, once it has: said about the website, and about the app only when it is wearing the look.
+    /// `inApp` is whether the app now wears the theme (a kit came with it and the phone's switch is on).
+    public static func confirmation(for id: String?, in catalog: [Capabilities.ThemeInfo], inApp: Bool) -> String {
+        guard let id else { return "Your website and this app are back on the HyperVault default look." }
         let name = DashboardThemes.name(of: id, in: catalog) ?? id
-        return "Your website now wears \(name)."
+        return inApp ? "Your website and this app now wear \(name)." : "Your website now wears \(name)."
     }
 }
 

@@ -415,6 +415,29 @@ final class UITestWritesTests: XCTestCase {
         }
     }
 
+    /// A member taken out of a room made on the phone has no turn to take: the turns waiting for them go with them, as the
+    /// real server skips a member who has left, and the room does not go on answering in their name.
+    func testAMemberTakenOutOfARoomMadeOnThePhoneNoLongerAnswers() async throws {
+        let api = client()
+        let drafts = [ChatRoomMemberDraft(backendID: "b1", handle: "claude"), ChatRoomMemberDraft(backendID: "b2", handle: "gpt")]
+        _ = try await api.send(.createRoom(title: "Garden club", members: drafts))
+        let post = try await api.send(.postRoomMessage(roomID: "rn1", content: "pick a name", run: false))
+        XCTAssertEqual(post.pending.map(\.handle), ["claude", "gpt"])
+
+        let seated = try await api.send(.room(id: "rn1")).members
+        let gpt = try XCTUnwrap(seated.first { $0.handle == "gpt" })
+        _ = try await api.send(.removeRoomMember(roomID: "rn1", memberID: gpt.id))
+        let waiting = try await api.send(.room(id: "rn1"))
+        XCTAssertEqual(waiting.members.map(\.handle), ["claude"])
+        XCTAssertEqual(waiting.room.pending.map(\.handle), ["claude"], "nothing is waiting for the one who left")
+
+        let first = try await api.send(.runRoom(id: "rn1", turns: 1))
+        XCTAssertEqual(first.messages.compactMap(\.senderHandle), ["claude"])
+        XCTAssertTrue(first.pending.isEmpty)
+        let nothing = try await api.send(.runRoom(id: "rn1", turns: 1))
+        XCTAssertTrue(nothing.messages.isEmpty, "the one who left does not answer")
+    }
+
     // MARK: Truth
 
     func testAUVIsAssertedIntoTheLedgerAndTheOutOfDateItemsAreResolved() async throws {

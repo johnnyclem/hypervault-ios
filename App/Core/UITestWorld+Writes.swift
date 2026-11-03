@@ -1649,7 +1649,10 @@ final class UITestRooms: @unchecked Sendable {
         defer { lock.unlock() }
         guard let at = made.firstIndex(where: { $0.id == id }) else { return false }
         let before = made[at].members.count
+        let leaving = made[at].members.filter { $0["id"]?.string == memberID }.compactMap { $0["handle"]?.string }
         made[at].members.removeAll { $0["id"]?.string == memberID }
+        // A member who has left has no turn to take: the turns waiting for them go too.
+        made[at].queue.removeAll { leaving.contains($0) }
         return made[at].members.count < before
     }
 }

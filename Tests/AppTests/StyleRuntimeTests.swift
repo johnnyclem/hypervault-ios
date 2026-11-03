@@ -219,6 +219,69 @@ final class StyleRuntimeTests: StyleRuntimeTestCase {
         XCTAssertEqual(StyleRuntime.shared.snapshot.font.swiftUIDesign, .monospaced)
     }
 
+    // MARK: What the tab bar draws
+
+    /// What the Mail tab's number is set to in one place of the bar's appearance (`nil` is the system's own).
+    private struct BadgeInk {
+        let place: String
+        let background: UIColor?
+        let text: UIColor?
+    }
+
+    /// The number's colours on the normal and the selected item of every layout the bar can use: 3 layouts, 2 states.
+    private func badgeInk(_ appearance: UITabBarAppearance) -> [BadgeInk] {
+        let layouts: [(String, UITabBarItemAppearance)] = [
+            ("stacked", appearance.stackedLayoutAppearance),
+            ("inline", appearance.inlineLayoutAppearance),
+            ("compact inline", appearance.compactInlineLayoutAppearance),
+        ]
+        var found: [BadgeInk] = []
+        for (name, layout) in layouts {
+            for (state, item) in [("normal", layout.normal), ("selected", layout.selected)] {
+                let background: UIColor? = item.badgeBackgroundColor
+                let attributes: [NSAttributedString.Key: Any]? = item.badgeTextAttributes
+                found.append(BadgeInk(place: "\(name) \(state)", background: background, text: attributes?[.foregroundColor] as? UIColor))
+            }
+        }
+        return found
+    }
+
+    /// The stock look sets nothing for the number: every place is what a fresh default appearance has, so the system draws its
+    /// own badge as it always did.
+    private func assertTheSystemsOwnBadge(_ label: String, file: StaticString = #filePath, line: UInt = #line) {
+        let system = UITabBarAppearance()
+        system.configureWithDefaultBackground()
+        let reference = badgeInk(system)
+        let ours = badgeInk(HVTabBarStyle.makeAppearance())
+        XCTAssertEqual(ours.count, 6, "\(label): the number is checked in 3 layouts and 2 states", file: file, line: line)
+        for (got, expected) in zip(ours, reference) {
+            XCTAssertEqual(got.background, expected.background, "\(label) \(got.place): the number's fill is the system's", file: file, line: line)
+            XCTAssertEqual(got.text, expected.text, "\(label) \(got.place): the number's label is the system's", file: file, line: line)
+        }
+    }
+
+    func testTheMailTabsNumberIsTheSystemsInTheStockLookAndTheActionFillInAWornTheme() {
+        assertTheSystemsOwnBadge("with no kit")
+        for kit in [StyleKitFixtures.newsprint, StyleKitFixtures.glassmorphism, StyleKitFixtures.industrial] {
+            StyleRuntime.shared.apply(kit)
+            let ink = badgeInk(HVTabBarStyle.makeAppearance())
+            XCTAssertEqual(ink.count, 6, "\(kit.id): the number is checked in 3 layouts and 2 states")
+            for place in ink {
+                guard let background = place.background, let text = place.text else {
+                    XCTFail("\(kit.id) \(place.place): a worn theme sets both the number's fill and its label")
+                    continue
+                }
+                let looks: [(UIAccessibilityContrast, StyleKitColors)] = [(.normal, kit.colors), (.high, kit.highContrast)]
+                for (contrast, colors) in looks {
+                    DesignTokensTests.assertSame(resolveColor(Color(background), contrast: contrast).hex, colors.action.hex, "\(kit.id) \(place.place) fill, contrast \(contrast.rawValue): the kit's action")
+                    DesignTokensTests.assertSame(resolveColor(Color(text), contrast: contrast).hex, colors.actionForeground.hex, "\(kit.id) \(place.place) label, contrast \(contrast.rawValue): the kit's action_foreground")
+                }
+            }
+        }
+        StyleRuntime.shared.apply(nil)
+        assertTheSystemsOwnBadge("after a kit was taken off")
+    }
+
     func testTheCardSurfaceAndSheetRadiiFollowTheKitsBaseAndTheControlsDoNot() {
         // Memory Vault's `--radius` is 24: rounded-xl, 2xl and 3xl are that plus 4, 8 and 16.
         StyleRuntime.shared.apply(StyleKitFixtures.memoryVault)

@@ -158,4 +158,69 @@ final class ChatListStarterTests: XCTestCase {
         XCTAssertFalse(model.isStale, "the server was asked, not the cache")
         XCTAssertTrue(model.showsStarter, "and it said there are none")
     }
+
+    func testWhileTheLastChatOfAListFromTheCacheGoesHomeWaitsAndDrawsNeitherTheStarterNorAnEmptyList() async throws {
+        let cache = freshCache()
+        await cache.store([ChatConversation(id: "c1", title: "Lisbon")], key: cacheKey, namespace: namespace)
+        let flaky = Flaky(inner: MockTransport(routes: [
+            .json(.get, "/api/conversations", none),
+            MockRoute(.delete, "/api/conversations/c1") { _ in HTTPResponse(status: 204) },
+        ]))
+        await flaky.setOnline(false)
+        let hold = RequestHold()
+        let model = list(HoldsDeletes(inner: flaky, hold: hold), cache: cache)
+        await model.load()
+        XCTAssertTrue(model.isStale, "offline: the list is the cached one")
+        XCTAssertEqual(model.phase, .loaded)
+
+        await flaky.setOnline(true)
+        await hold.arm()
+        let last = try XCTUnwrap(model.conversations.first)
+        let deleting = Task { try await model.delete(last) }
+        await eventually("the delete to be on its way") { await hold.waiting == 1 }
+        XCTAssertTrue(model.conversations.isEmpty, "the row is gone at once")
+        XCTAssertEqual(model.phase, .loading, "nothing is known about what is left, so the skeleton stands in, not an empty list with a stale banner")
+        XCTAssertFalse(model.showsStarter, "and the server has not said there are none")
+
+        await hold.release()
+        try await deleting.value
+        XCTAssertEqual(model.phase, .loaded)
+        XCTAssertTrue(model.showsStarter, "the server said there are none")
+    }
+
+    func testADeleteTheServerRefusesPutsTheLastChatOfAListFromTheCacheBack() async throws {
+        let cache = freshCache()
+        await cache.store([ChatConversation(id: "c1", title: "Lisbon")], key: cacheKey, namespace: namespace)
+        let flaky = Flaky(inner: MockTransport(routes: [
+            .json(.get, "/api/conversations", none),
+            MockRoute(.delete, "/api/conversations/c1") { _ in HTTPResponse(status: 500) },
+        ]))
+        await flaky.setOnline(false)
+        let model = list(flaky, cache: cache)
+        await model.load()
+        XCTAssertTrue(model.isStale)
+
+        await flaky.setOnline(true)
+        let last = try XCTUnwrap(model.conversations.first)
+        do {
+            try await model.delete(last)
+            XCTFail("the server refused the delete")
+        } catch {
+            XCTAssertTrue(error is ChatActionError, "\(error)")
+        }
+        XCTAssertEqual(model.conversations.map(\.id), ["c1"], "the chat is back")
+        XCTAssertEqual(model.phase, .loaded, "and the list with it, not the skeleton")
+        XCTAssertFalse(model.showsStarter)
+    }
+}
+
+/// A network that holds back a delete once armed, until released, and answers everything else from `inner`.
+private struct HoldsDeletes: HTTPTransport {
+    let inner: Flaky
+    let hold: RequestHold
+
+    func send(_ request: URLRequest) async throws -> HTTPResponse {
+        if request.httpMethod == "DELETE" { await hold.pass() }
+        return try await inner.send(request)
+    }
 }

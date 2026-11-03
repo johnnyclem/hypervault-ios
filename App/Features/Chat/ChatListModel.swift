@@ -96,15 +96,19 @@ final class ChatListModel {
     func delete(_ conversation: ChatConversation) async throws {
         guard let index = conversations.firstIndex(where: { $0.id == conversation.id }) else { return }
         let removed = conversations.remove(at: index)
+        // The last chat of a list that came from the cache: the cache cannot say there are no more, so Home neither says there
+        // are none nor draws an empty list. It goes back to waiting (the skeleton) until the server has been asked what is
+        // left. (A list the server sent is empty for good: the starter shows at once.)
+        let asksTheServer = conversations.isEmpty && isStale
+        if asksTheServer { phase = .loading }
         do {
             _ = try await client.send(.deleteConversation(id: conversation.id))
             await cache.store(conversations, key: Self.cacheKey, namespace: namespace)
             await cache.remove(key: "chat.conversation.\(conversation.id)", namespace: namespace)
-            // The last chat of a list that came from the cache: the cache cannot say there are no more, so the server is asked
-            // before Home says there are none. (A list the server sent is empty for good: the starter shows at once.)
-            if conversations.isEmpty, isStale { await load() }
+            if asksTheServer { await load() }
         } catch let error as HVError {
             conversations.insert(removed, at: min(index, conversations.count))
+            if asksTheServer { phase = .loaded }
             throw ChatActionError(message: error.sentence(offline: "Network hiccup. The chat was not deleted."))
         }
     }

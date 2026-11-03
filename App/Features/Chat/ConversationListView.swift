@@ -70,7 +70,7 @@ struct ChatConversationListView: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
             }
-            if model.visible.isEmpty {
+            if model.visible.isEmpty, model.isFiltering {
                 Text("Nothing matches.")
                     .font(.hvCallout)
                     .foregroundStyle(Palette.textSecondary)

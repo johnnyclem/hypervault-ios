@@ -176,8 +176,10 @@ A render and a unit test cannot show these, and each one decides a line of the c
   capacitive ring?" The reply is an answer, in plain words, with a pick. It never says it found no memory related to
   the question, never talks about "excerpts", and never starts with "Memory:", "Summary:" or "You:". Then ask something
   your memories do cover: the reply uses them, and "From your memory" under it lists only those. Ask the first question
-  again in a chat that already holds a poor reply: the old reply does not set the tone. The first words of a reply
-  appear about a second after you send, not at once, because they are read before they are shown.
+  again in a chat that already holds a poor reply: the old reply does not set the tone. Then ask what you wrote about
+  something the vault does not hold ("What did the kitchen contractor quote me?"): the reply says it does not have that
+  saved, and does not invent a figure. The first words of a reply appear about a second after you send, not at once,
+  because they are read before they are shown.
 - **A model on your network** (Ollama or LM Studio): allow the local network prompt; the phone calls it directly.
 - **iPad:** the tab bar stays a tab bar (no sidebar of the tabs), and the You tab shows its list of panes beside the pane; rotate and use Split View and Slide Over with a sheet open, and it stays open (the iPad bullet in section 5).
 

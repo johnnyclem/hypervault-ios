@@ -116,7 +116,7 @@ struct WidgetsView: View {
 - The init of a model is cheap and has no side effects (the parent may build
   throwaway copies); loading happens in `.task` or `.refreshable`.
 - Entry points get `env` from `@Environment(AppEnvironment.self)` and pass
-  `env.client` (and `env.cache`) down. See `AccountPaneView` in `App/Features/Root/YouTabView.swift`.
+  `env.client` (and `env.cache`) down. See `AccountPaneView` in `App/Features/Settings/AccountPaneView.swift`.
 - Lists use `env.load(key) { try await client.send(...) }` for cached-then-fresh
   loading, and show `HVStaleBanner` when the first answer was the saved copy.
 - Every screen that fetches has all four states: loading (`HVListSkeleton` or
@@ -333,12 +333,14 @@ canned hosts end in `.invalid`; anything that builds its own `URLSession` reques
 `UITestURLProtocol`. Animations are off, so the app settles at once after every tap. CI builds Release only to compile it, which would not show this leaking in, so
 `scripts/check_debug_only.py` (a step of the CI job) fails if any of this is not inside `#if DEBUG`. A run never reaches a real server, the Keychain or anything a person left on the phone.
 
-**Getting to a screen.** The app has four tabs, Home, Chat, Memory and You, and the helpers of `HyperVaultUITestCase` follow
-them: `openPane("keys")` opens a pane of the You tab by its id (`general`, `vault`, `keys`, `backends`, `domain`,
-`appearance`, `import`; on a phone the tab opens on the vault, so the helper goes back to the list first, which is the case
-that a pane chosen again from the list has to open), `openFromAccount("library", title: "Library")` opens a row of the
-Account menu behind the avatar on Home (`account.<row>`), `openFromMemoryMenu("Digest", title: "Digest")` opens an item of
-Memory's More menu, and `openYours()` opens the Yours panel.
+**Getting to a screen.** The app has four tabs, Home, Projects, Memory and Mail, and Settings in the Account sheet behind the
+avatar (`account.avatar`, on the first screen of every tab). The helpers of `HyperVaultUITestCase` follow them: `openTab("Mail")`
+opens a tab (and closes the Account sheet first if the helpers left it up, since it covers the tab bar), `openPane("keys")`
+opens a pane of Settings by its id (`general`, `vault`, `keys`, `backends`, `domain`, `appearance`, `import`; the helper opens
+the Account menu and its Settings row, or goes back to the list of panes if the sheet is up on a pane, which is the case that a
+pane chosen again from the list has to open), `openFromAccount("library", title: "Library")` opens a row of the Account menu
+(`account.<row>`: `library`, `groupChats`, `tools`, `dreams`, `truth`, `admin`; Mail and the task boards are tabs),
+`openFromMemoryMenu("Digest", title: "Digest")` opens an item of Memory's More menu, and `openYours()` opens the Yours panel.
 
 **Adding a journey.**
 
@@ -376,8 +378,8 @@ get its session back. When a flow is broken in the app (a screen that does not f
 update after a write), fix the app, not the journey. A write journey that fails is a finding.
 
 **The layout sweep.** `LayoutSweepTests` and `LayoutSweepScreensTests` launch the app dark and at the
-largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the You panes
-and the Account menu open (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
+largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the Settings panes,
+the Account menu and the Projects and Mail tabs open (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
 anything drawn off the screen) beside it. A UI-test launch pins the dark look, so the
 dark sweep takes no launch argument. So that a sweep of the dark never looks at light screens, each dark screenshot is
 first checked: the brightness of a strip down the left edge of the picture, which is the page's own background on every
@@ -390,14 +392,14 @@ in the sweep when it has a layout of its own.
 **Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
 any iPhone simulator; `make test-unit` runs the rest. CI runs thirteen UI jobs beside the unit tests, each building and
 running on its own: `journeys` (everything not named below, so a new test class runs there until it is given a job),
-`tabs-you` (`YouJourneyTests` and `TabsJourneyTests`), `screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
+`tabs-you` (`YouJourneyTests` and `TabsJourneyTests`: the class names keep the old tab's name, since CI selects them by it), `screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
 `writes-keep` (`MemoryAndVaultWritesJourneyTests` and `PagesWritesJourneyTests`), `writes-vault` (`VaultWritesJourneyTests`),
 `writes-more`
 (`BoardsAndMailWritesJourneyTests` and `SessionAndSettingsWritesJourneyTests`), `writes-think`
 (`ThinkWritesJourneyTests`),
 `sweep-dark` (the tabs, what they open, the welcome and the waitlist in the dark), `sweep-dark-screens` (the screens of the
-You panes and the Account menu in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
-large text size) and `sweep-large-keep` and `sweep-large-think` (the screens of the You panes and the Account menu at the large
+Settings panes, the Account menu and the Projects and Mail tabs in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
+large text size) and `sweep-large-keep` and `sweep-large-think` (the screens of the Settings panes, the Account menu and the Projects and Mail tabs at the large
 text size, in two halves). They have taken between 5 and 22 minutes each, depending on the machine GitHub gives the
 job (the same job has taken twice as long on a slow one); the build and the simulator's start are about eight of those
 minutes, and the rest is the tests, of which the large text sizes, which scroll, are the slowest. A job that goes over 30

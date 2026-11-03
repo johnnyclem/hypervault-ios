@@ -85,59 +85,63 @@ that finds problems fastest. Each line says what should happen.
 
 ## 5. Features that need a live account
 
-Work through the Account menu (the avatar on Home), Yours (the panel in Home's corner) and the You tab with a real approved
+Work through the Account menu (the avatar on any tab's first screen), Yours (the panel in Home's corner), the Projects and Mail tabs
+and Settings (the menu's first row) with a real approved
 account and a few kept things: Library (from the Account menu or Yours, More; list and graph, open a
 page, share it, edit its source), Memory (search, ask, graph, a branch and a merge), Chat (a conversation with
 a connected model, a room), Agent keys (Connect an agent, make a key and copy it: the paste is gone after a
 minute and never reaches another device; revoke a key: Revoke, then Really revoke?), Logins, cards & keys
-(add one; its value is never shown again), Mail, Truth, Task boards, Tools (add an MCP server), Import (a
+(add one; its value is never shown again), Mail (its tab), Truth, Projects (its tab: the task boards), Tools (add an MCP server), Import (a
 ChatGPT export zip), Domain, and Appearance (the website's theme: choose one and see it on the website; the app does not change). Anything that shows the server's own refusal on a session-only route means the deployment predates #180.
 
-### The tabs and the You tab, on a device
+### The tabs and Settings, on a device
 
 A simulator and a unit test cannot show how these look or behave at the edges, and a person who built the tabs has not seen
 them on glass (handoff 2.3, 4.1, 9):
 
-- **The tab bar.** Four tabs, Home, Chat, Memory and You, in that order, with house, bubble, the connected-points
-  memory symbol, and a person in a circle. The one that is showing is the page's own text in the dark look and primary
+- **The tab bar.** Four tabs, Home, Projects, Memory and Mail, in that order, with house, a stack of boards, the
+  connected-points memory symbol, and an envelope. The one that is showing is the page's own text in the dark look and primary
   blue in the light look; the others are quiet. The bar floats over the content with the system's glass, and a list
   scrolled under it is readable through it. Check both looks, with Reduce Transparency on, and with the text size at
   the largest accessibility size (the labels must not be cut off).
-- **The You tab on a phone is one stack.** It opens on the Vault with the list of seven panes one step back (the back
-  button reads "You"). Open every pane from the list in turn, going back each time: General (Email, Plan, Sign out, and
-  "On this phone"), Vault, Agent keys, Models, Domain, Appearance, Import. Each must load its content (the plan line
-  fills in, the keys and models lists fill in) rather than stay on a spinner. This is the one a NavigationSplitView in its
-  compact width got wrong in CI, so the app uses a navigation stack on a phone: if a pane shows a spinner for more than a
-  few seconds after you have been through two or three others, that is a bug.
+- **The Mail tab's number.** With unread mail the Mail tab carries a number (99+ above ninety-nine) that is there when the app
+  opens, before Mail has been visited, and moves as mail is read, filed or arrives while the app is in front. VoiceOver reads
+  the tab with its number. (If a UI test cannot find the tab by its title, this is where to look.)
+- **The avatar is on every tab.** Home, Projects, Memory and Mail each show it at the top left of their first screen, and a
+  screen pushed on a tab has a Back button in its place. On Memory it sits beside the branch menu: check the two together
+  at the largest text size.
+- **Settings is a stack inside the Account sheet.** Avatar > Settings opens the list of seven panes (back button "Account"),
+  and a pane is one step further in (back button "Settings"). Open every pane from the list in turn, going back each time:
+  General (Email, Plan, Sign out, and "On this phone"), Vault, Agent keys, Models, Domain, Appearance, Import. Each must load
+  its content (the plan line fills in, the keys and models lists fill in) rather than stay on a spinner. The Import pane's
+  "Your AI history" and a file it imports open their screens inside the sheet, with Back, and not on a tab behind it.
 - **Choose the open pane again.** Go back to the list and choose the pane that was open: it opens again from its first
   screen, not where you left it.
-- **Account & keys, and links.** The Account menu's "Account & keys" row, `hypervault://vault/account?tab=keys` and
-  `hypervault://vault/account#appearance` (opened from Notes or Safari, not from a page) each land on the right pane of
-  the You tab. `hypervault://tab/yours` opens Home
-  with the Yours panel up, and `hypervault://tab/canvas` opens Home.
-- **The Account menu.** The avatar on Home opens it as a sheet with a Close button; a row closes it and goes there, on the
-  tab that has it (Library on Home, Mail, Truth, Tools, Dreams on the tab that owns them). Admin is there only for an
-  admin. Sign out with something waiting in the outbox asks first. At the largest text size the list scrolls to Sign out.
+- **Links.** `hypervault://vault/account?tab=keys` and `hypervault://vault/account#appearance` (opened from Notes or Safari,
+  not from a page) each present the Account sheet already on the right pane, over the tab that was showing (which is still
+  there when the sheet closes); so does `hypervault://tab/you`, on the Vault. With the sheet already open on another pane,
+  the link moves it to the pane and the sheet does not close and open again. With Connect an agent open (a sheet), the link
+  closes it and then opens the Account sheet. `hypervault://pair?code=ABCD-EFGH` opens Settings on Agent keys and then the
+  website's pairing page over it. `hypervault://tab/yours` opens Home with the Yours panel up, `hypervault://tab/canvas` and
+  `tab/chat` open Home, `hypervault://mail` and `tab/mail` the Mail tab, `hypervault://taskboards` and `tab/projects` the
+  Projects tab. Open a vault key from the Yours panel: the panel closes, and then the Account sheet opens on the Vault.
+- **The Account menu.** The avatar opens it as a sheet with a Close button: Settings, Library, Group chats, Tools, Beta
+  (Dreams with its waiting count, Truth), Admin for an admin, and Sign out. Mail and the task boards are tabs and are not
+  in it. A row other than Settings closes it and goes there, on the tab that has it (Library, Tools on Home; Dreams, Truth on
+  Memory). Sign out with something waiting in the outbox asks first. At the largest text size the list scrolls to Sign out.
 - **Appearance says it is the website's.** Choosing a theme changes your dashboard on the website and nothing in the app:
   open the website to see it, and check the app's own look did not change.
-- **iPad.** The You tab shows its list of panes beside the open pane (the open one in a heavier weight, with a check mark
-  and a lighter fill), and the tabs stay a tab bar with no sidebar of their own. The layout is the device's, not the
-  window's: an iPad always uses the split view and a phone always the stack, so resizing a window never rebuilds the
-  tab. Open Agent keys > Connect an agent (a key is on screen), then drag the Split View divider and bring Slide Over in
-  and out: the sheet, the key and anything typed stay. When the window is narrow enough for one column the split view
-  shows the open pane, with a Back to the list; choosing a pane in the list, or a link to one, brings it forward. This is
-  where the app relies on the system's own collapse of a split view, which showed panes stuck on a spinner on the iPhone
-  simulator when it was tried there (hence the stack on a phone), so look for that on hardware. None of this was run on an
-  iPad by the person who built it.
-- **A link starts its tab from the first screen.** Open a page from a Home card, go to Home's avatar > Account > Group
-  chats with a conversation open in Chat, then use the Keep widget (`hypervault://keep`) with a page open on Home: each
-  lands on the tab's first screen (the canvas field, the Group chats list), not on what was open there. Import's "All in"
-  page, opened from Chat's More menu, has an Open Chat button that goes back to the conversation list. With the Account
-  menu open, follow a link from Notes (a page, or `hypervault://tab/yours` from the Yours widget): the menu goes away and
-  the page, or the Yours panel, shows.
-- **Large text.** At the largest accessibility size the You list shows each pane's symbol above its name (no name breaks
+- **iPad.** The tabs stay a tab bar with no sidebar of their own. The Account sheet is page-sized (not the small form
+  sheet), and Settings is the same stack as on a phone: there is no list beside the pane any more. Open Agent keys > Connect
+  an agent (a key is on screen), then drag the Split View divider and bring Slide Over in and out: the sheet, the key and
+  anything typed stay. None of this was run on an iPad by the person who built it.
+- **A link starts its tab from the first screen.** Open a page from a Home card, then use the Keep widget
+  (`hypervault://keep`) with a page open on Home: it lands on the tab's first screen (the canvas field), not on what was open
+  there. With the Account menu open, follow a link from Notes (a page, or `hypervault://tab/yours` from the Yours widget):
+  the menu goes away and the page, or the Yours panel, shows.
+- **Large text.** At the largest accessibility size the Settings list shows each pane's symbol above its name (no name breaks
   in the middle of a word) and no chevron, General shows the whole email address, wrapped, and the Yours panel opens at
-  full height with its first rows visible. The Account menu's Mail badge is white on the flat blue `action` fill.
+  full height with its first rows visible. The Dreams badge in the Account menu is white on the flat blue `action` fill.
 
 ### The Vault, on a device
 
@@ -172,7 +176,7 @@ A render and a unit test cannot show these, and each one decides a line of the c
 - **On-device chat** needs an Apple Intelligence device with the model downloaded: Chat > Models should say it is
   available, and a conversation should stream with no network.
 - **A model on your network** (Ollama or LM Studio): allow the local network prompt; the phone calls it directly.
-- **iPad:** the tab bar stays a tab bar (no sidebar of the tabs), and the You tab shows its list of panes beside the pane; rotate and use Split View and Slide Over with a sheet open, and it stays open (the iPad bullet in section 5).
+- **iPad:** the tab bar stays a tab bar (no sidebar of the tabs), and Settings is the stack in a page-sized Account sheet; rotate and use Split View and Slide Over with a sheet open, and it stays open (the iPad bullet in section 5).
 
 ## 7. Accessibility pass
 

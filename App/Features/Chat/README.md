@@ -1,7 +1,7 @@
 # Chat
 
-The fourth tab: chats, rooms (group chats with several of your models), your own
-models, on-device chat and reading replies aloud.
+Chats, rooms (group chats with several of your models), your own
+models, on-device chat and reading replies aloud. (They have no tab in this step of the tab overhaul; Home shows them next.)
 
 - `ChatRootView`: "Chats | Rooms" list screen (the switch sits under the title); Models is the
   toolbar button. Both lists are inset cards on paper (`hvListRow`), grouped by when they last moved.

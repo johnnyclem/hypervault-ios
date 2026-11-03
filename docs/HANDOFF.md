@@ -16,13 +16,15 @@ any can be reversed.
    labelled as such, and it never claims the app restyled. The wording is new copy for the owner.
 3. **iOS 26 minimum** (set in the Xcode project by the owner; `project.yml` follows). Liquid Glass is the system's on tab
    bars, sheets and toolbars, with `.glassEffect` for custom chrome and a solid `card` under Reduce Transparency.
-4. **Four tabs:** Home, Chat, Memory, You. Yours is the Home canvas panel (Library under More). The avatar opens an Account
-   sheet with what the dock does not carry (Library, Mail, Task boards, Account & keys, Group chats, Tools, Import, Dreams,
-   Truth, Admin for admins, Sign out). The pinned Menu list with drag-reorder (the web drawer's) is **not built**.
-5. **You is a settings frame** with seven panes in the web's order: General, Vault (the default), Agent keys, Models,
-   Domain, Appearance, Import. On an iPhone it is a stack (the list, then the pane); on an iPad it is a
-   `NavigationSplitView` with the list beside the pane. The layout is chosen once by device idiom, not by window width, so
-   resizing an iPad window never rebuilds the tab. General also holds the phone-only settings under "On this phone".
+4. **Four tabs:** Home, Projects, Memory, Mail (the tab overhaul; it replaced Home, Chat, Memory, You). Yours is the Home
+   canvas panel (Library under More). Projects is the task boards; Mail carries its unread number. The avatar, on the first
+   screen of every tab, opens an Account sheet with what the tab bar does not carry (Settings, Library, Group chats, Tools,
+   Dreams, Truth, Admin for admins, Sign out). The pinned Menu list with drag-reorder (the web drawer's) is **not built**.
+5. **Settings is a frame inside the Account sheet**, the first row of its menu, with seven panes in the web's order: General,
+   Vault (the default for a link that names none), Agent keys, Models, Domain, Appearance, Import. It is one navigation stack
+   (`AppRouter.accountPath`: the menu, the list of panes, a pane, what the pane pushes) on a phone and on an iPad, where the
+   sheet is page-sized; the earlier iPad split view and its `youIsStack` are gone, so resizing an iPad window has no layout
+   to swap and nothing to tear down. General also holds the phone-only settings under "On this phone".
 6. **No "Agent connected"** (or "N agents connected", "Verified", "Connected") for an agent key: no route reports the
    server's check, and the app's own re-derivation of it was removed (handoff 5.10, 10). The Agent keys pane says only
    "One key per agent. A key is shown once, and comes with a setup challenge the agent completes to prove the link works."
@@ -60,7 +62,11 @@ any can be reversed.
 - The Import pane's file row no longer says "PDFs (up to 10 MB)": the server holds 50 MB on Pro and 1 MB on Free (the web's own
   line still says 10 MB; the owner may want to reconcile it).
 - A link that names a tab but no screen (the Keep widget, `hypervault://rooms`, `tab/yours`) starts that tab from its first
-  screen and closes any sheet over the tabs; installed widgets' `hypervault://tab/yours` and `tab/canvas` links keep working.
+  screen and closes any sheet over the tabs; installed widgets' `hypervault://tab/yours` and `tab/canvas` links keep working
+  (`AppTab.home` keeps the raw value `canvas`). A link to Settings (`vault/account?tab=keys`, `settings`, `tab/you`) or to
+  pairing presents the Account sheet over whatever shows and names no tab; the Agent keys pane presents the pairing page. The
+  links of the tabs that went keep opening something: `tab/chat` and `/chat` open Home, `tab/taskboards`, `taskboards` and
+  `projects` open Projects, `mail` opens Mail.
 - Type names in the Kit and app still say `VaultItem...` (handoff 4.4 asks for "entry"): the ids and routes that carried the
   words are gone, so the names no longer leak, and a rename of the Kit's public API was not worth its risk without a compiler.
 - The app icon is the supplied keyhole-hexagon artwork; the old dark and tinted variants were removed so iOS derives them.
@@ -106,5 +112,6 @@ tracked project to be reproducible, move those into `project.yml` first.
 
 The switch thumb, SecureField paste-then-edit, the Passwords bar and Save Password, VoiceOver announcement priority and focus
 after a 409, Liquid Glass and the tab bar's unselected colour, the app-switcher cover's timing, Keychain migration, file
-protection and the URL cache on a device, `NavigationSplitView` in compact width and on iPad, the Face ID prompt. They are in
+protection and the URL cache on a device, the Account sheet's page sizing on iPad, a non-empty `NavigationPath` applied to a
+sheet's stack as it first presents, the Face ID prompt. They are in
 `docs/DEVICE_TEST_PLAN.md`.

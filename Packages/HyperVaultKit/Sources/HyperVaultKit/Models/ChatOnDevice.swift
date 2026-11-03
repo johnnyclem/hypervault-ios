@@ -12,6 +12,13 @@ import Foundation
 //   2. the provider generates, streaming, on the device.
 //   3. `POST /api/chat/turns`    writes: the person's message and the reply.
 //
+// The server's system prompt is written for large models, so before the device
+// model sees it `OnDeviceBrief` rewrites it: a short directive that makes the
+// question the job, then only the notes that bear on it, as optional
+// background. If the model opens by answering about the notes instead of the
+// question, or by repeating one, `OnDeviceReplyScreen` catches it and the
+// question is asked once more with no notes.
+//
 // If the network is gone at step 3 the turn waits in `ChatTurnOutbox` and is
 // saved when it is back. If it is gone at step 1 the model answers without
 // the person's memory and says so. Tools are server-side, so this path has
@@ -92,7 +99,9 @@ public enum ChatContextFitter {
     }
 
     /// Roles and words a tool-free model can use: no tool rows, no tool
-    /// requests at the end of a reply, no reasoning traces, nothing empty.
+    /// requests at the end of a reply, no reasoning traces, nothing empty, and
+    /// no earlier reply that was only a non-answer (a model reads its own
+    /// history as how it answers, so one bad turn would make the next).
     public static func sanitize(_ messages: [ChatWireMessage]) -> [ChatWireMessage] {
         messages.compactMap { message -> ChatWireMessage? in
             if message.role == .tool { return nil }
@@ -102,6 +111,7 @@ public enum ChatContextFitter {
                 if let call = ChatToolProtocol.parseIntentCall(text) { text = call.visibleText }
             }
             text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if message.role == .assistant, OnDeviceReplyScreen.isUnusable(text) { return nil }
             return text.isEmpty ? nil : ChatWireMessage(role: message.role, content: text)
         }
     }
@@ -129,8 +139,19 @@ public enum ChatContextFitter {
 /// How a thread is put to a model that takes one instruction string and one
 /// prompt string (Foundation Models does).
 public enum OnDevicePrompt {
-    public static let defaultInstructions =
-        "You are the person's assistant inside HyperVault. Answer plainly and briefly, in the language they write in."
+    /// What a small model is told first. It is the part of the prompt that is
+    /// always there, so it says what the job is (answer the question) before
+    /// anything the person's vault adds, and it says plainly what not to do:
+    /// a model this size follows "NEVER" better than "try to avoid".
+    public static let defaultInstructions = """
+        You are the assistant inside HyperVault, the person's private vault. Answer the person's latest message directly and helpfully, in the language they wrote it in.
+
+        - For questions about products, parts, tools, code, writing, plans or ideas, answer from your own knowledge. Be specific: name real options, give numbers where you can, and say which you would pick and why.
+        - Notes from the person's vault may follow. They are optional background, not the question. Use a note only when it clearly helps with this message; otherwise ignore it.
+        - NEVER list, describe or repeat the notes. NEVER start a reply with "Memory:", "Summary:", "You:" or "Assistant:". NEVER say that you found nothing in the notes: if they do not help, answer from your own knowledge.
+        - If you are unsure, say what you are unsure about, then still give your best answer.
+        - Keep it brief: a few sentences, or a short list when the answer has several parts.
+        """
 
     /// The system prompt used when the person's memory could not be reached.
     public static let offlineSystem =
@@ -217,33 +238,62 @@ public struct OnDeviceChat: Sendable {
     public func run(_ turn: OnDeviceTurn, onPartial: @escaping @MainActor @Sendable (String) -> Void) async throws -> OnDeviceOutcome {
         let message = turn.message.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        var system = ""
         var wire = turn.history + [ChatWireMessage(role: .user, content: message)]
-        var grounding = ChatGrounding.none
+        var brief = OnDeviceBrief.offline
         var conversationID = turn.conversationID
         var usedMemory = true
         do {
             let context = try await client.send(.chatContext(message: message, conversationID: turn.conversationID, options: turn.options))
-            system = context.system
             if !context.messages.isEmpty {
                 // A conversation the server has not seen yet (its earlier turns are
                 // still waiting in the outbox) comes back with only the new message.
                 wire = turn.conversationID == nil ? turn.history + context.messages : context.messages
             }
-            grounding = context.grounding
+            brief = OnDeviceBrief.make(server: context.system, question: message, grounding: context.grounding, budget: provider.contextBudget)
             conversationID = context.conversationID ?? turn.conversationID
         } catch let error as HVError where error.isOffline {
             usedMemory = false
-            system = OnDevicePrompt.offlineSystem
         }
         try Task.checkCancellation()
 
+        var grounding = brief.grounding
+        var written = try await writeReply(system: brief.system, wire: wire, screening: brief.hasNotes, onPartial: onPartial)
+        if written.unusable {
+            // The model answered about the notes, or handed one back. Ask again with none: the question is
+            // what the person wanted answered, and the notes were only ever background.
+            written = try await writeReply(system: brief.plainSystem, wire: wire, screening: false, onPartial: onPartial)
+            grounding = .none
+        }
+        try Task.checkCancellation()
+
+        let final = Thinking.strip(written.reply).shown
+        guard !final.isEmpty else { throw OnDeviceChatError.emptyReply }
+
+        let saved = await save(turn: turn, message: message, reply: final, conversationID: conversationID)
+        return OnDeviceOutcome(reply: final, grounding: grounding, usedMemory: usedMemory, saved: saved, model: provider.modelName)
+    }
+
+    /// One go at a reply. When `screening`, nothing is shown until the
+    /// opening words have been read (`OnDeviceReplyScreen`); a reply that opens
+    /// as a non-answer is dropped on the spot, and the model is stopped.
+    private func writeReply(
+        system: String, wire: [ChatWireMessage], screening: Bool, onPartial: @escaping @MainActor @Sendable (String) -> Void
+    ) async throws -> (reply: String, unusable: Bool) {
         let fitted = ChatContextFitter.prepare(system: system, messages: wire, budget: provider.contextBudget)
         var reply = ""
+        var released = !screening
         do {
             for try await snapshot in provider.generate(system: fitted.system, messages: fitted.messages) {
                 reply = snapshot
-                await onPartial(Thinking.strip(snapshot).shown)
+                let shown = Thinking.strip(snapshot).shown
+                if !released {
+                    switch OnDeviceReplyScreen.check(shown, isFinal: false) {
+                    case .unusable: return (reply, true)
+                    case .undecided: continue
+                    case .fine: released = true
+                    }
+                }
+                await onPartial(shown)
             }
         } catch is CancellationError {
             throw CancellationError()
@@ -253,13 +303,13 @@ public struct OnDeviceChat: Sendable {
             if Task.isCancelled { throw CancellationError() }
             throw OnDeviceChatError.generation(error.localizedDescription)
         }
-        try Task.checkCancellation()
-
-        let final = Thinking.strip(reply).shown
-        guard !final.isEmpty else { throw OnDeviceChatError.emptyReply }
-
-        let saved = await save(turn: turn, message: message, reply: final, conversationID: conversationID)
-        return OnDeviceOutcome(reply: final, grounding: grounding, usedMemory: usedMemory, saved: saved, model: provider.modelName)
+        if !released {
+            // A short reply ended while it was still held back: it is known now.
+            let shown = Thinking.strip(reply).shown
+            if OnDeviceReplyScreen.check(shown, isFinal: true) == .unusable { return (reply, true) }
+            if !shown.isEmpty { await onPartial(shown) }
+        }
+        return (reply, false)
     }
 
     private func save(turn: OnDeviceTurn, message: String, reply: String, conversationID: String?) async -> OnDeviceOutcome.Saved {

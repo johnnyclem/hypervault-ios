@@ -121,8 +121,12 @@ final class ChatOnDeviceTests: XCTestCase {
         XCTAssertTrue(outcome.usedMemory)
         XCTAssertEqual(outcome.grounding.memories, ["Flights"])
         XCTAssertEqual(outcome.grounding.pages.map(\.slug), ["trip-1"])
-        XCTAssertEqual(partials.value, ["Hel", "Hello", "Hello there."])
-        XCTAssertEqual(model.seen.first?.system, "## Truth\nThe flight is on the 3rd.")
+        // The context has notes in it, so the opening words are read before anything is shown: a reply
+        // shorter than the screen's window appears once, whole, when it is known to be fine.
+        XCTAssertEqual(partials.value, ["Hello there."])
+        // A prompt this file does not know is passed on under the directive, not dropped.
+        XCTAssertEqual(model.seen.first?.system.hasPrefix(OnDevicePrompt.defaultInstructions), true)
+        XCTAssertEqual(model.seen.first?.system.contains("The flight is on the 3rd."), true)
         XCTAssertEqual(model.seen.first?.messages.last?.content, "when do we fly?")
         let saved = requestJSON(await transport.requests(matching: "/api/chat/turns").first)
         XCTAssertEqual(saved?["user_message"], "when do we fly?")

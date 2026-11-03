@@ -20,6 +20,13 @@ models, on-device chat and reading replies aloud.
   person's own network. The turn itself (context, generate, save, the offline
   outbox) is `OnDeviceChat` in the Kit; a model on this iPhone and a model on
   the home network are two `ChatModelProvider`s behind it.
+- What a small model is told is not what the server sent. The server's system prompt is written for
+  large models ("answer from the excerpts, and if they fall short, say what is covered"), and Apple's
+  on-device model followed that to the letter: it answered about the excerpts, or handed one back. So
+  `OnDeviceBrief` (Kit) rewrites it: a short directive that makes the question the job, then only the
+  notes that bear on it, as optional background, inside the model's window. `OnDeviceReplyScreen`
+  reads the first words of the reply; if it is a non-answer or a copy of a note, the question is asked
+  once more with no notes. The grounding chips under a reply list only what the model was shown.
 
 ## Left out on purpose
 

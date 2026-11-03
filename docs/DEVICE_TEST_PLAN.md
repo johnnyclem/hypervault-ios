@@ -140,12 +140,13 @@ them on glass (handoff 2.3, 4.1, 9):
   Memory). Sign out with something waiting in the outbox asks first. At the largest text size the list scrolls to Sign out.
 - **Appearance changes the website and the app.** Choosing a theme changes your dashboard on the website and, at once, the
   app: the colours, the light or dark of the whole app (keyboard, alerts and sheets included, whatever the phone is set
-  to), the corner radius and the font design of the theme. Check on a device: a light theme on a phone set to dark, then
-  a dark one on a phone set to light; the tab bar and the Mail tab's number, the Account sheet that holds Settings (this pane included), the pairing page
-  opened from Agent keys, an alert, the keyboard and the lock screen all agree with the page. "Use this theme in the app" off takes the app back to its own look and leaves the website's theme. "Back to the
-  HyperVault default" and Undo work. In Airplane Mode the pane shows the theme the phone kept and says it is offline.
-  Turn on Increase Contrast: text and edges get stronger. Retro cannot be shown, and the pane says so. Sign out: the
-  next launch is the app's own look.
+  to), the corner radius and the font design of the theme. Check on a device: a light theme on a phone set to dark, then a
+  dark one on a phone set to light; the tab bar and the Mail tab's number, the Account sheet that holds Settings (this
+  pane included), the pairing page opened from Agent keys, an alert, the keyboard and the lock screen all agree with the
+  page. "Use this theme in the app" off takes the app back to its own look and leaves the website's theme. "Back to the
+  HyperVault default" and Undo work. In Airplane Mode the pane shows the theme the phone kept and says it is offline. Turn
+  on Increase Contrast: text and edges get stronger. Retro cannot be shown, and the pane says so. Sign out: the next
+  launch is the app's own look.
 - **iPad.** The tabs stay a tab bar with no sidebar of their own. The Account sheet is page-sized (not the small form
   sheet), and Settings is the same stack as on a phone: there is no list beside the pane any more. Open Agent keys > Connect
   an agent (a key is on screen), then drag the Split View divider and bring Slide Over in and out: the sheet, the key and

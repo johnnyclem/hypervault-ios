@@ -10,7 +10,7 @@ struct MemoryAskView: View {
     @State private var model: MemoryAskModel
     @State private var speech = ChatSpeechController()
     @State private var draft = ""
-    /// Bumped when `send()` empties the field, so the field is replaced and cannot keep the sent words on screen.
+    /// Bumped when `send()` empties the field, so the field is replaced and starts again from the empty string.
     @State private var fieldEpoch = 0
     @FocusState private var focused: Bool
 

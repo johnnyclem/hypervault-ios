@@ -3,11 +3,13 @@ import SwiftUI
 extension View {
     /// Lets code empty or replace the text of a field that has the keyboard, and have the field show it.
     ///
-    /// A focused `TextField` can ignore a programmatic write to its string: the model says "" while the field keeps the
-    /// old words on screen, and the next keystroke writes them back (Apple has acknowledged a case of it:
-    /// developer.apple.com/forums/thread/776161). A view with a new identity starts from the string it is given, so each
-    /// reset gives the field one. Bump `epoch` whenever code replaces the text (a message was sent, a stopped one was put
-    /// back) and never while the person types: a new identity ends the editing session.
+    /// A focused `TextField` has been seen to ignore a programmatic write to its string: the model says "" while the field
+    /// keeps the old words on screen, and the next keystroke writes them back (Apple has acknowledged a case of it:
+    /// developer.apple.com/forums/thread/776161). Whether and when that happens in this app has not been confirmed on a
+    /// device; this is a precaution against it. A view with a new identity starts from the string it is given, whatever
+    /// the cause, so each reset gives the field one. Bump `epoch` whenever code replaces the text (a message was sent, a
+    /// stopped one was put back, a paste was taken out) and never while the person types: a new identity ends the editing
+    /// session.
     ///
     /// The old field takes the keyboard with it. If it had the keyboard, the new one is asked for it, unless SwiftUI
     /// has already handed it over. Apply this directly after `.focused(...)`, and keep anything that must survive a reset

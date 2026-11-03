@@ -19,7 +19,7 @@ final class ChatRoomModel {
     private(set) var messages: [ChatRoomMessage] = []
     var draft = ""
     /// Counts the times code, not the person's typing, replaced `draft` (a message was sent, or words were put back).
-    /// The text field takes a new identity with each one (`hvFieldReset`), so what it shows is what `draft` says.
+    /// The text field takes a new identity with each one (`hvFieldReset`), so it starts again from what `draft` says.
     private(set) var composerEpoch = 0
     /// This phone is driving a round right now.
     private(set) var isDriving = false
@@ -221,8 +221,8 @@ final class ChatRoomModel {
         return sentences.isEmpty ? nil : sentences.joined(separator: " ")
     }
 
-    /// What the text field writes when the person types. A field that `replaceDraft` has since replaced is still wired to
-    /// the words it held and may hand them back as it goes; those are not typing, and are dropped.
+    /// What the text field writes when the person types. A field that `replaceDraft` has since replaced could still write
+    /// the words it held as it goes; those are not typing, and are dropped.
     func fieldWrote(_ text: String, epoch: Int) {
         guard epoch == composerEpoch else { return }
         draft = text

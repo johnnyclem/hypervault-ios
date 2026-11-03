@@ -11,7 +11,7 @@ struct TaskDetailView: View {
     @State private var title = ""
     @State private var newSubtask = ""
     @State private var newNote = ""
-    /// Bumped when a note is added, so the field is replaced and cannot keep the sent words on screen.
+    /// Bumped when a note is added, so the field is replaced and starts again from the empty string.
     @State private var noteEpoch = 0
     @State private var progress = 0.0
     @State private var isSliding = false

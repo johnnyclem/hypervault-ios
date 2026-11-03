@@ -122,7 +122,7 @@ final class ChatModelTests: XCTestCase {
         model.draft = "  plan it  "
         model.sendDraft()
         XCTAssertEqual(model.draft, "")
-        XCTAssertEqual(model.composerEpoch, start &+ 1, "the field the words were typed in is replaced, so it cannot keep them on screen")
+        XCTAssertEqual(model.composerEpoch, start &+ 1, "the field the words were typed in is replaced, and the new one starts from the empty draft")
         await settle(model)
         XCTAssertEqual(model.draft, "", "the reply does not put the words back")
         XCTAssertEqual(model.composerEpoch, start &+ 1, "one send, one new field")

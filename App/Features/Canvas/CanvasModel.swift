@@ -71,8 +71,8 @@ final class CanvasModel: CanvasCommandHost {
     var draft = ""
     /// Counts the times code replaced the field's words as a whole (a send, a keep, a command, a restored question, a
     /// paste taken out of the field, a Return with nothing to send). The text field takes a new identity with each one
-    /// (`hvFieldReset`), so what it shows is what `draft` says. Dictation writes (`setDraft`) never change it: they arrive
-    /// many times a second.
+    /// (`hvFieldReset`), so it starts again from what `draft` says. Dictation writes (`setDraft`) never change it: they
+    /// arrive many times a second.
     private(set) var composerEpoch = 0
     private(set) var staged: String?
     private(set) var isBusy = false
@@ -440,7 +440,7 @@ final class CanvasModel: CanvasCommandHost {
     }
 
     /// What the text field writes when the person types. A field that `clearDraft` or `restoreDraft` has since replaced
-    /// is still wired to the words it held and may hand them back as it goes; those are not typing, and are dropped.
+    /// could still write the words it held as it goes; those are not typing, and are dropped.
     func fieldWrote(_ text: String, epoch: Int) {
         guard epoch == composerEpoch else { return }
         draft = text

@@ -129,8 +129,10 @@ them on glass (handoff 2.3, 4.1, 9):
   closes it and then opens the Account sheet. `hypervault://pair?code=ABCD-EFGH` opens Settings on Agent keys and then the
   website's pairing page over it. `hypervault://tab/yours` opens the canvas with the Yours panel up (Back is Home),
   `hypervault://keep` the canvas with its field ready, `hypervault://keep?text=hello` the canvas with "hello" staged,
-  `hypervault://tab/canvas` and `tab/chat` open Home, `hypervault://mail` and `tab/mail` the Mail tab, `hypervault://taskboards`
-  and `tab/projects` the Projects tab. Open a vault key from the Yours panel: the panel closes, and then the Account sheet opens
+  `hypervault://tab/canvas` and `tab/chat` open Home, `hypervault://mail` and `tab/mail` the Mail tab, `hypervault://taskboards`,
+  `hypervault://projects` and `tab/projects` the Projects tab, and `hypervault://projects/<id>` (also `project/<id>`, and the
+  board's `tasks-<id>` slug) that project's overview, pushed on the Projects tab (Back is the list, whatever was pushed on the
+  tab before; an id that is not a plain id opens the tab). Open a vault key from the Yours panel: the panel closes, and then the Account sheet opens
   on the Vault.
 - **The Account menu.** The avatar opens it as a sheet with a Close button: Settings, Library, Group chats, Tools, Beta
   (Dreams with its waiting count, Truth), Admin for an admin, and Sign out. Mail and the task boards are tabs and are not
@@ -187,8 +189,8 @@ A render and a unit test cannot show these, and each one decides a line of the c
 
 ## 6. Needs special hardware or settings
 
-- **On-device chat** needs an Apple Intelligence device with the model downloaded: Chat > Models should say it is
-  available, and a conversation should stream with no network.
+- **On-device chat** needs an Apple Intelligence device with the model downloaded: Home > More > Models (Settings > Models)
+  should say it is available, and a conversation should stream with no network.
 - **On-device chat answers the question.** Choose On this iPhone, then ask something the vault does not cover but the
   model can answer, such as "Which part could replace a DJ jog wheel under five dollars: a magnetic encoder or a
   capacitive ring?" The reply is an answer, in plain words, with a pick. It never says it found no memory related to

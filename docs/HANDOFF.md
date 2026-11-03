@@ -23,7 +23,7 @@ any can be reversed.
    starter page, not above a list of chats (open for the owner: someone who chats first does not see the ask again on Home). The canvas is no tab: it is a
    screen pushed on Home (`Route.keep`) from the Keep button in Home's bar, and its page lives in `AppEnvironment.canvas`, so a
    paste that is waiting survives Back. Yours is the canvas's panel (also under Home's More; the Library is under the panel's
-   More). Models left Home's bar: it is under More, which opens Settings > Models. Projects is the task boards; Mail carries its unread number. The avatar, on the first
+   More). Models left Home's bar: it is under More, which opens Settings > Models. Projects is the task boards, and a row opens the project's overview (the board in brief, who is working on it, the pages, memories and chats that go with it), which opens the full board; Mail carries its unread number. The avatar, on the first
    screen of every tab, opens an Account sheet with what the tab bar does not carry (Settings, Library, Group chats, Tools,
    Dreams, Truth, Admin for admins, Sign out). The pinned Menu list with drag-reorder (the web drawer's) is **not built**.
    Copy that sends a person somewhere says Home, More or Models, since there is no Chat tab; "Chat" stays where it names a
@@ -77,7 +77,8 @@ any can be reversed.
   field. A link to Settings (`vault/account?tab=keys`, `settings`, `tab/you`) or to
   pairing presents the Account sheet over whatever shows and names no tab; the Agent keys pane presents the pairing page. The
   links of the tabs that went keep opening something: `tab/chat` and `/chat` open Home, `tab/taskboards`, `taskboards` and
-  `projects` open Projects, `mail` opens Mail.
+  `projects` open Projects, `mail` opens Mail. `projects/<id>` (and `project/<id>`, or the board's `tasks-<id>` slug) opens
+  that project's overview, pushed on Projects (`Route.project`); with no plain id it is the tab.
 - Type names in the Kit and app still say `VaultItem...` (handoff 4.4 asks for "entry"): the ids and routes that carried the
   words are gone, so the names no longer leak, and a rename of the Kit's public API was not worth its risk without a compiler.
 - The app icon is the supplied keyhole-hexagon artwork; the old dark and tinted variants were removed so iOS derives them.

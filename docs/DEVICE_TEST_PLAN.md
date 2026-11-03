@@ -96,7 +96,7 @@ account and a few kept things: Library (from the Account menu or Yours, More; li
 page, share it, edit its source), Memory (search, ask, graph, a branch and a merge), Chat (a conversation with
 a connected model, a room), Agent keys (Connect an agent, make a key and copy it: the paste is gone after a
 minute and never reaches another device; revoke a key: Revoke, then Really revoke?), Logins, cards & keys
-(add one; its value is never shown again), Mail (its tab), Truth, Projects (its tab: the task boards), Tools (add an MCP server), Import (a
+(add one; its value is never shown again), Mail (its tab), Truth, Projects (its tab: a row opens the project's overview, with what is Linked, Tagged or Mentions it, and Open the full board), Tools (add an MCP server), Import (a
 ChatGPT export zip), Domain, and Appearance (the website's theme: choose one and see it on the website; the app does not change). Anything that shows the server's own refusal on a session-only route means the deployment predates #180.
 
 ### The tabs and Settings, on a device
@@ -155,6 +155,14 @@ them on glass (handoff 2.3, 4.1, 9):
   key (only here, not above a list of chats). Check that the starter page does not flash while the list loads on a phone with
   chats, and that it does not appear in Airplane Mode on a phone whose chats were not cached. Turn the text size up to the
   largest accessibility size: the three buttons keep their labels and the page scrolls.
+- **A project's overview.** On the Projects tab, open a project that has real links (a page or memory filed under it by you
+  or an agent, a chat that names it). Under Board come the progress, the open tasks and Open the full board (Back from the
+  board lands on the overview, Back from the overview on the list); Working on it, Pages and files, Memories and Chats follow,
+  each row saying why it is there (Linked, Tagged or Mentions it, then what it is). Show possibly related opens what the
+  server only guessed at, under Possibly related, and Hide possibly related closes it. The reasons depend on what the server
+  really holds for the project, so check them against a project you know; a section the server could not read says so
+  ("Couldn't read this.") rather than looking empty. Look at all of it at the largest accessibility size: the Open the full
+  board row and the Show possibly related toggle keep their words and the page scrolls to the last section.
 - **Large text.** At the largest accessibility size the Settings list shows each pane's symbol above its name (no name breaks
   in the middle of a word) and no chevron, General shows the whole email address, wrapped, and the Yours panel opens at
   full height with its first rows visible. The Dreams badge in the Account menu is white on the flat blue `action` fill.

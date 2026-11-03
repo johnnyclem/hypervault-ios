@@ -346,7 +346,8 @@ struct ImportScreen: View {
                     .multilineTextAlignment(.center)
             }
             VStack(spacing: HV.Space.xs) {
-                // A link to a tab starts the tab from its first screen, so this closes Import where it was pushed on Chat too.
+                // A link to a tab starts the tab from its first screen and closes a sheet over it, so this closes Import
+                // wherever it was opened: pushed on a tab, or in the Account sheet's stack (Settings > Import).
                 Button("Open Chat") { app.router.open(.tab(.home)) }.buttonStyle(.hvPrimary)
                 Button("Import another") { model.startOver() }.buttonStyle(.hvGhost)
             }

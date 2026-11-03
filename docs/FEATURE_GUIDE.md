@@ -212,6 +212,12 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   `"Unread, 3"`. It carries the selected trait and its 44pt area itself, so do not wrap it in a `Button`. `HVChip` is for
   a chip that is not a filter (an example to try, a name, a preset). A count or a plan is `HVCount`, quiet text that
   takes a number or a short fact (`HVCount(3)`, `HVCount("2 of 3 on")`), and not an `HVTag`, which is for a status.
+- A field that code empties or refills after Send (a composer) takes `.hvFieldReset(epoch:focus:field:)` directly after
+  `.focused(...)`, and the code bumps the epoch where it replaces the text, never while the person types. A focused
+  `TextField` has been seen to keep showing words its string no longer holds (that this happens here is not confirmed
+  on a device); a field with a new identity starts from the string it is given. The chat, room and canvas models do it
+  through `composerEpoch` and `fieldWrote(_:epoch:)`, which drops a write from a field that was replaced; a field whose
+  words live in the view takes `$text.hvDroppingStaleWrites(epoch:current:)` for the same.
 - The system Paste control is `HVPasteButton { strings in ... }`, never a bare `PasteButton`: it sets the rounded
   rectangle at `HV.Radius.control` and `.controlSize(.large)` once, so every Paste asks to be as tall as a button (the
   system draws the control, so check the height on a device). A tint or an identifier goes on it as on any view.
@@ -328,7 +334,9 @@ chats, a connected model), `signedInEmpty` (the first run: no chats either, so H
 server knows as an admin; for everyone else the admin check gets the 403 the real routes send). A launch flag adds one more state to any of them: `-HV_UITEST_NO_CHATS` (`HyperVaultUITestCase.withoutChats`) empties the list of chats and leaves the rest of the vault, so Home shows the starter page of someone who has pages, memories and a model. The network is a
 `MockTransport` over the routes in `App/Core/UITestWorld.swift` and `UITestWorld+Screens.swift` (the keys, the address,
 a room, Truth, the task boards, the import, sharing, admin: what changes while a journey plays, such as a key being made
-or revoked, lives in a small object that one launch owns), the secure store is in memory, the cache and the shared defaults are scratch, and the
+or revoked, lives in a small object that one launch owns; a launch flag adds to the vault what only some journeys need, as
+`-HV_UITEST_PROJECT_LINKS` does for the Eurorack Choir Module: a page and a memory joined to its board page, a page tagged
+with it, a page the server only guessed at and a chat named for it, which its overview lists with the reason for each), the secure store is in memory, the cache and the shared defaults are scratch, and the
 canned hosts end in `.invalid`; anything that builds its own `URLSession` request is answered or refused by
 `UITestURLProtocol`. Animations are off, so the app settles at once after every tap. CI builds Release only to compile it, which would not show this leaking in, so
 `scripts/check_debug_only.py` (a step of the CI job) fails if any of this is not inside `#if DEBUG`. A run never reaches a real server, the Keychain or anything a person left on the phone.

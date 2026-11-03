@@ -219,6 +219,7 @@ final class LibraryGraphTests: XCTestCase {
         XCTAssertEqual(pages.map(\.type), ["html", "react", "pdf"], "a component is a react page whatever type it was stored as")
         XCTAssertEqual(pages.map(\.slug), ["bakery-x1", "timer-x2", "scan-x5"])
         XCTAssertEqual(pages[2].title, "Untitled")
+        XCTAssertEqual(pages.map(\.tags), [["shop"], [], []], "a page keeps the tags it was saved with; a row with none has none")
         let sent = await transport.requests
         let items = URLComponents(url: try XCTUnwrap(sent.first?.url), resolvingAgainstBaseURL: false)?.queryItems ?? []
         XCTAssertEqual(items.first { $0.name == "user_id" }?.value, "eq.u1")

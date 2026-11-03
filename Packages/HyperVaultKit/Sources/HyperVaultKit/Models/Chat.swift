@@ -178,10 +178,12 @@ public struct ChatMessage: Sendable, Codable, Identifiable, Equatable, Hashable 
     public let position: Int
     public let createdAt: Date?
     public var feedback: ChatFeedback?
+    /// How many pictures were sent with it. The server keeps their name, type and size, not the picture.
+    public let imageCount: Int
 
     public init(
         id: String, role: ChatRole, content: String, model: String? = nil, position: Int = 0,
-        createdAt: Date? = nil, feedback: ChatFeedback? = nil
+        createdAt: Date? = nil, feedback: ChatFeedback? = nil, imageCount: Int = 0
     ) {
         self.id = id
         self.role = role
@@ -190,11 +192,17 @@ public struct ChatMessage: Sendable, Codable, Identifiable, Equatable, Hashable 
         self.position = position
         self.createdAt = createdAt
         self.feedback = feedback
+        self.imageCount = imageCount
     }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Keys.self)
         id = try c.decode(String.self, forKey: .id)
+        // Either spelling: the conversation decoder may have turned `mime_type` into `mimeType`.
+        let attachments = (try? c.decode([JSONValue].self, forKey: .attachments)) ?? []
+        let sent = attachments.filter { ($0["mime_type"]?.string ?? $0["mimeType"]?.string)?.hasPrefix("image/") == true }.count
+        // The disk cache stores the count itself, not the attachments.
+        imageCount = sent > 0 ? sent : ((try? c.decode(Int.self, forKey: .imageCount)) ?? 0)
         role = try c.decodeIfPresent(ChatRole.self, forKey: .role) ?? .assistant
         content = try c.decodeIfPresent(String.self, forKey: .content) ?? ""
         model = try c.decodeIfPresent(String.self, forKey: .model)
@@ -203,7 +211,7 @@ public struct ChatMessage: Sendable, Codable, Identifiable, Equatable, Hashable 
         feedback = try? c.decodeIfPresent(ChatFeedback.self, forKey: .feedback)
     }
 
-    enum Keys: String, CodingKey { case id, role, content, model, position, createdAt, feedback }
+    enum Keys: String, CodingKey { case id, role, content, model, position, createdAt, feedback, attachments, imageCount }
 }
 
 /// `GET /api/conversations/[id]`: the conversation and its whole history.
@@ -805,12 +813,17 @@ public struct ChatThreadRow: Sendable, Identifiable, Equatable {
     public var state: State
     /// Written by a model on this device.
     public var onDevice: Bool
+    /// Pictures sent with this message (a person's message only).
+    public var imageCount: Int
+    /// Small JPEGs of those pictures, kept only on this phone while the thread is open: the server does not
+    /// keep the pictures, so a reopened chat shows `imageCount` and no thumbnails.
+    public var thumbnails: [Data]
 
     public init(
         id: String = UUID().uuidString, serverID: String? = nil, kind: Kind, text: String = "", model: String? = nil,
         feedback: ChatFeedback? = nil, toolTurn: ChatToolTurn? = nil, grounding: ChatGrounding = .none,
         toolSelection: ChatToolSelection? = nil, truncated: Bool = false, createdAt: Date? = nil,
-        state: State = .saved, onDevice: Bool = false
+        state: State = .saved, onDevice: Bool = false, imageCount: Int = 0, thumbnails: [Data] = []
     ) {
         self.id = id
         self.serverID = serverID
@@ -825,6 +838,8 @@ public struct ChatThreadRow: Sendable, Identifiable, Equatable {
         self.createdAt = createdAt
         self.state = state
         self.onDevice = onDevice
+        self.imageCount = max(imageCount, thumbnails.count)
+        self.thumbnails = thumbnails
     }
 
     /// Saved history as rows, the way the web renders it: reasoning traces are
@@ -836,7 +851,8 @@ public struct ChatThreadRow: Sendable, Identifiable, Equatable {
             switch message.role {
             case .user:
                 return ChatThreadRow(
-                    id: message.id, serverID: message.id, kind: .user, text: message.content, createdAt: message.createdAt
+                    id: message.id, serverID: message.id, kind: .user, text: message.content, createdAt: message.createdAt,
+                    imageCount: message.imageCount
                 )
             case .assistant:
                 var text = Thinking.strip(message.content).shown

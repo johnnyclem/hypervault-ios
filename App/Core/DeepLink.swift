@@ -58,6 +58,9 @@ enum Route: Hashable {
     /// the list's own, so it goes on the tab's path with every other screen: a destination the list presented itself
     /// (`navigationDestination(item:)`) was pushed again over the task opened from it.
     case taskBoard(slug: String, project: String, title: String)
+    /// One project's overview: its board in brief, who is working on it, and what else goes with it. The list of boards
+    /// opens it, and it opens the full board (`taskBoard`). The id is the board's project id (`tasks-<id>`).
+    case project(id: String)
     case admin
 }
 
@@ -103,7 +106,8 @@ enum DeepLink: Hashable {
             // Home is the catch-all stack: the canvas, Library, pages, chats, Tools and Admin are pushed there.
             case .keep, .artifact, .library, .libraryFiltered, .admin, .conversation, .room, .tools, .importHistory: return (.home, route)
             case .mailThread: return (.mail, route)
-            case .taskBoard: return (.projects, route)
+            // The Projects tab is the list of boards: a board and a project's overview are pushed on it.
+            case .taskBoard, .project: return (.projects, route)
             case .memory, .truth, .truthReview, .truthReviewLedger, .dreams, .digest: return (.memory, route)
             }
         }
@@ -188,6 +192,10 @@ enum DeepLink: Hashable {
             self = .yours
         case "library":
             self = libraryLink()
+        case "projects", "project":
+            // hypervault://projects/<id> is one project's overview. The id is the board's project id, as the server names it
+            // (`DeepLink.projectID`); text that is not one names nothing, and the link is the Projects tab, the list of boards.
+            if let id = second.flatMap(DeepLink.projectID) { self = .route(.project(id: id)) } else { self = .tab(.projects) }
         case "pair":
             self = .pair(code: value("code") ?? value("user_code"))
         case "invite":
@@ -212,7 +220,7 @@ enum DeepLink: Hashable {
             if let id = second { self = .route(.mailThread(id: id)) } else { self = .tab(.mail) }
         case "truth":
             self = second?.lowercased() == "review" ? reviewLink() : .route(.truth)
-        case "projects", "taskboards", "task-boards", "tasks":
+        case "taskboards", "task-boards", "tasks":
             self = .tab(.projects)
         case "tools":
             self = .route(.tools)
@@ -251,5 +259,17 @@ enum DeepLink: Hashable {
     /// cannot steer the request for a memory to another path.
     static func isPlainID(_ id: String) -> Bool {
         (1...128).contains(id.count) && id.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") }
+    }
+
+    /// The project a link names, as the screen needs it: the id the server made for the board. The server takes a task list by
+    /// its id or by its `tasks-` slug alike (`tasklistSlug`, docs/tasklists.md), and the ids it makes are lower case. The
+    /// overview names the board's page, tags and caches by the id, so a link given the slug (`tasks-eurorack-choir`) or
+    /// capitals would load the board and find nothing that goes with it. Nil when the text is not a plain id.
+    static func projectID(_ text: String) -> String? {
+        guard isPlainID(text) else { return nil }
+        let id = text.lowercased()
+        let slugPrefix = "tasks-"
+        let bare = id.hasPrefix(slugPrefix) ? String(id.dropFirst(slugPrefix.count)) : id
+        return bare.isEmpty ? nil : bare
     }
 }

@@ -42,9 +42,6 @@ struct TaskBoardsScreen: View {
                 }
             }
             .task { await model.start() }
-            .navigationDestination(for: TaskBoardListing.self) { listing in
-                TaskBoardScreen(client: client, cache: cache, namespace: namespace, listing: listing)
-            }
             .sheet(isPresented: $showCreate) {
                 TaskBoardCreateView { draft in
                     let listing = try await model.create(draft)
@@ -90,20 +87,34 @@ struct TaskBoardsScreen: View {
                         .listRowInsets(EdgeInsets())
                 }
             }
-            Section {
-                ForEach(model.boards) { board in
-                    NavigationLink(value: board) {
-                        TaskBoardRowView(board: board, summary: model.summaries[board.project])
+            ForEach(model.groups) { group in
+                if let heading = group.title {
+                    Section {
+                        rows(of: group)
+                    } header: {
+                        HVSectionHeader(title: heading)
                     }
-                    .accessibilityIdentifier("taskboards.row.\(board.project)")
-                    .hvListRow()
-                    .task { await model.loadSummary(for: board) }
+                } else {
+                    Section { rows(of: group) }
                 }
             }
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .refreshable { await model.refresh() }
+    }
+
+    /// A row opens the project's overview, which opens the full board.
+    @ViewBuilder
+    private func rows(of group: ProjectGroup) -> some View {
+        ForEach(group.boards) { board in
+            NavigationLink(value: Route.project(id: board.project)) {
+                TaskBoardRowView(board: board, summary: model.summaries[board.project])
+            }
+            .accessibilityIdentifier("taskboards.row.\(board.project)")
+            .hvListRow()
+            .task { await model.loadSummary(for: board) }
+        }
     }
 }
 

@@ -352,6 +352,46 @@ final class DeepLinkTests: XCTestCase {
         XCTAssertEqual(DeepLink.route(review).destination.route, review)
     }
 
+    // MARK: Projects
+
+    func testAProjectLinkOpensItsOverview() {
+        XCTAssertEqual(link("hypervault://projects/eurorack-choir"), .route(.project(id: "eurorack-choir")))
+        XCTAssertEqual(link("hypervault://project/balcony-garden-k3x9a2"), .route(.project(id: "balcony-garden-k3x9a2")))
+    }
+
+    func testAProjectLinkNamesTheProjectTheWayTheServerDoes() {
+        XCTAssertEqual(link("hypervault://projects/tasks-eurorack-choir"), .route(.project(id: "eurorack-choir")), "the list's slug is the project it holds")
+        XCTAssertEqual(link("hypervault://Projects/Eurorack-Choir"), .route(.project(id: "eurorack-choir")), "the ids the server makes are lower case")
+        XCTAssertEqual(link("hypervault://project/TASKS-Garden-k3x9a2"), .route(.project(id: "garden-k3x9a2")))
+        XCTAssertEqual(link("hypervault://projects/tasks-"), .tab(.projects), "a slug with no project after it names none")
+    }
+
+    /// The list of boards is the Projects tab, so a project link that names no plain project opens the tab.
+    func testAProjectLinkThatNamesNoPlainProjectIsTheProjectsTab() {
+        XCTAssertEqual(link("hypervault://projects"), .tab(.projects))
+        XCTAssertEqual(link("hypervault://project"), .tab(.projects))
+        XCTAssertEqual(link("hypervault://projects/bad%20id"), .tab(.projects))
+        XCTAssertEqual(link("hypervault://projects/a.b"), .tab(.projects))
+    }
+
+    func testAProjectLandsOnTheProjectsTabWhereTheBoardsDoAndTheLinkStartsFromTheRootOfThatTab() {
+        XCTAssertEqual(DeepLink.route(.project(id: "p")).destination.tab, .projects)
+        XCTAssertEqual(DeepLink.route(.project(id: "p")).destination.tab, DeepLink.route(.taskBoard(slug: "s", project: "p", title: "t")).destination.tab)
+        XCTAssertEqual(DeepLink.route(.project(id: "p")).destination.route, .project(id: "p"))
+    }
+
+    @MainActor
+    func testAProjectLinkPutsTheOverviewAloneOnTheProjectsTabsPath() throws {
+        let tab = try XCTUnwrap(DeepLink.route(.project(id: "eurorack-choir")).destination.tab)
+        XCTAssertEqual(tab, .projects)
+        let router = AppRouter()
+        router.push(.taskBoard(slug: "tasks-garden", project: "garden", title: "Garden"), on: tab)
+        router.push(.project(id: "garden"), on: tab)
+        router.open(.route(.project(id: "eurorack-choir")))
+        XCTAssertEqual(router.tab, tab)
+        XCTAssertEqual(router.path(for: tab).wrappedValue.count, 1, "the overview is the one screen on the tab's path")
+    }
+
     // MARK: Pairing
 
     func testAPairLinkNamesNoTabAndKeepsTheCode() throws {

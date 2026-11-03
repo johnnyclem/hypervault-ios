@@ -26,8 +26,10 @@ final class ContentJourneyTests: HyperVaultUITestCase {
         }
 
         step("The answer is written from the memories it drew on") {
-            enter("What did I plan for the ferry?", into: textField("ask.field"), "the question field")
+            let question = "What did I plan for the ferry?"
+            enter(question, into: textField("ask.field"), "the question field")
             tap(button("Ask"), "Ask")
+            waitUntil("the question to leave the question box once it is asked") { self.fieldNoLongerHolds(self.textField("ask.field"), question) }
             require(text("What did I plan for the ferry?"), "the question, kept above its answer")
             require(shows("Your Lisbon notes say to book the Friday ferry"), "the answer", timeout: 40)
             require(shows("Drew from"), "the list of sources")
@@ -80,9 +82,11 @@ final class ContentJourneyTests: HyperVaultUITestCase {
         }
 
         step("What is said to the room is answered by a member") {
-            enter("claude, summarise the plan", into: textField("room.field"), "the message field")
+            let message = "claude, summarise the plan"
+            enter(message, into: textField("room.field"), "the message field")
             require(shows("Goes to @claude"), "the line that says who the message goes to")
             tap(button("Send"), "Send")
+            waitUntil("the message to leave the message box once it is sent") { self.fieldNoLongerHolds(self.textField("room.field"), message) }
             require(shows("Noted: claude, summarise the plan"), "claude's answer", timeout: 40)
         }
     }

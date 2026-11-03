@@ -161,6 +161,9 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
         step("Pasted text is read as a conversation") {
             tap(element("import.source.other"), "the Something else card")
             let editor = app.textViews["Pasted conversation"]
+            // The box is below the fold (about 270 points under the cards), and the page is a sheet's: a tap on a field whose
+            // middle is off the screen is not scrolled to there, so the page is moved to it first, as a person would.
+            reveal(editor, "the paste box")
             enter("User: What time is the ferry?\nAssistant: It leaves at seven.", into: editor, "the paste box")
             // (A tap that only lets go of the keyboard, or lands while the box is still settling, is made again.)
             tap(button("Check what I pasted"), "Check what I pasted", until: { self.shows("A pasted conversation").exists })
@@ -278,7 +281,10 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
         step("A page opens, and Back lands on the overview") {
             open(bakery, "the Bakery landing page row", until: { self.isShowingTitle("Bakery landing page") })
-            goBack(until: { self.element("project.openBoard").exists })
+            // The overview is known by its title, not by its first row: the steps above have scrolled the list down, and a row
+            // that is off the screen is not in the accessibility tree, so waiting for "Open the full board" here found nothing,
+            // tapped Back a second time, and left the person on the Projects list.
+            goBack(until: { self.isShowingTitle("Eurorack Choir Module") && !self.isShowingTitle("Bakery landing page") })
             waitUntil("the project's title") { isShowingTitle("Eurorack Choir Module") }
         }
 

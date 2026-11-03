@@ -67,6 +67,9 @@ public enum HVCopy {
     public static let hintExamples = ["Show my memories", "Show my files"]
     public static let hintAskLine = "Ask anything else and your model answers."
     public static let hintConnectLine = "Connect your AI and it keeps things here for you."
+    // Home's starter page, for someone with no chats (the app's own, not the web's). "Keep something" is the Keep widget's words.
+    public static let homeStartChatLabel = "Start a chat"
+    public static let homeKeepLabel = "Keep something"
     public static let connectAILabel = "Connect your AI"
     public static let noModelLine = "Nothing is connected yet, so nothing can answer. Connect your AI to get started."
     public static let helpLine = "Paste anything here to keep it. Say \"show my memories\" or \"show my files\" to see what you have. Ask anything else and your model answers."

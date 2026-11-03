@@ -3,26 +3,29 @@ import SwiftUI
 import XCTest
 @testable import HyperVault
 
-/// The You tab, the panes that are new in it, and the Account menu behind the avatar, rendered in light and dark on canned
+/// Settings (the list of panes and the panes), and the Account menu behind the avatar, rendered in light and dark on canned
 /// routes. CI publishes the PNGs to the branch's snapshots branch. Nothing here compares a render: they are for looking at.
 @MainActor
-final class YouTabSnapshotTests: XCTestCase {
+final class SettingsSnapshotTests: XCTestCase {
     private var tabRoutes: [MockRoute] {
         VaultPreviewData.routes + KeysPreviewData.routes + RealmsPreviewData.routes + MailPreviewData.routes
     }
 
-    func testTheYouTabOpensOnTheVault() throws {
-        try snapshot(PreviewHost(routes: tabRoutes, capabilities: RealmsPreviewData.capabilities, embedInNavigation: false) { YouTabView() }, named: "you-tab-vault")
+    func testTheListOfPanes() throws {
+        try snapshot(PreviewHost(routes: tabRoutes, capabilities: RealmsPreviewData.capabilities) { SettingsListView() }, named: "settings-list")
     }
 
-    func testTheYouTabWhereBothColumnsShow() throws {
-        // The iPad's layout is the device's, not the window's: it is asked for here, as a simulator of a phone has the other.
+    func testTheListOfPanesAtTheLargestType() throws {
         try snapshot(
-            PreviewHost(routes: tabRoutes, capabilities: RealmsPreviewData.capabilities, embedInNavigation: false, youIsStack: false) {
-                YouTabView()
+            PreviewHost(routes: tabRoutes, capabilities: RealmsPreviewData.capabilities) {
+                SettingsListView().environment(\.dynamicTypeSize, .accessibility3)
             },
-            named: "you-tab-wide", size: CGSize(width: 1180, height: 820)
+            named: "settings-list-large"
         )
+    }
+
+    func testTheVaultPane() throws {
+        try snapshot(PreviewHost(routes: tabRoutes, capabilities: RealmsPreviewData.capabilities) { AccountPaneView(pane: .vault) }, named: "settings-vault")
     }
 
     func testGeneralForAFreePerson() throws {
@@ -63,7 +66,7 @@ final class YouTabSnapshotTests: XCTestCase {
     }
 }
 
-/// The Models pane as the You tab has it, with the environment it reads.
+/// The Models pane as Settings has it, with the environment it reads.
 private struct ModelsPaneSnapshotHost: View {
     @Environment(AppEnvironment.self) private var env
 

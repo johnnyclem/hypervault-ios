@@ -1,7 +1,7 @@
 import HyperVaultKit
 import SwiftUI
 
-/// Share on a card of the Home canvas: the people-and-role sheet a page has under its Share button, opened over the canvas.
+/// Share on a card of the canvas: the people-and-role sheet a page has under its Share button, opened over the canvas.
 enum CanvasShare {
     /// The page the share sheet takes for a card, or nil for a card that offers no Share. A page, a file and a group do,
     /// because each has a link to give and people to give it to (they are the cards that have a slug); a memory and a key

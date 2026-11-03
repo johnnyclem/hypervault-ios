@@ -11,6 +11,11 @@ final class TaskBoardSnapshotTests: XCTestCase {
         try snapshot(PreviewHost(routes: TaskBoardPreviewData.indexRoutes, delay: 0) { TaskBoardsRootView() }, named: "taskboards-list", settle: 2)
     }
 
+    /// Nine boards: the one that moved last first, and Recent and Earlier headings over them.
+    func testManyBoardsAreRecentAndEarlier() throws {
+        try snapshot(PreviewHost(routes: TaskBoardPreviewData.manyIndexRoutes, delay: 0) { TaskBoardsRootView() }, named: "taskboards-list-many", settle: 2)
+    }
+
     func testNoBoards() throws {
         try snapshot(
             PreviewHost(routes: [.json(.get, "/api/taskboards", #"{"boards":[]}"#)], delay: 0) { TaskBoardsRootView() },

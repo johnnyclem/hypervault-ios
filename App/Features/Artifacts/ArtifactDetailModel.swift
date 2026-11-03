@@ -94,7 +94,7 @@ final class ArtifactDetailModel {
 
     /// What the share sheet reads of a page and nothing more: its title, who can open it, whether it is a group, and the
     /// person's own addresses (a public page is linked from the first). The page itself is not fetched, so a sheet over
-    /// something other than the page (the Home canvas) opens without it.
+    /// something other than the page (the canvas) opens without it.
     func loadForSharing() async {
         if summary == nil { summary = await cachedSummary() }
         async let metadata: Void = loadMetadata()

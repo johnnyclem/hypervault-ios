@@ -198,7 +198,7 @@ struct TruthDecisionSheet: View {
     @ViewBuilder
     private var askInputs: some View {
         if model.rooms.isEmpty {
-            Text("You have no agent rooms yet. Make one in Chat and the question goes there. The record on the card is what stands meanwhile.")
+            Text("You have no agent rooms yet. Make one under Group chats on Home and the question goes there. The record on the card is what stands meanwhile.")
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
         } else {

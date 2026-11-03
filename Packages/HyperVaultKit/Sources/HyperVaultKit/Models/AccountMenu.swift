@@ -1,22 +1,22 @@
 import Foundation
 
 // The Account menu: the drawer the web's Home opens from the corner mark (components/canvas/account-menu.tsx), in the
-// web's words (lib/copy.ts `MENU_*`, lib/mail/copy.ts). The app's tab bar carries Home, Chat, Memory and You, so the menu
-// holds what the tab bar does not ("this menu carries what the dock doesn't", components/mobile-nav.tsx): the web's
-// Memory and Chat history rows are left out. A signed-out drawer's Pricing and Sign in are not here either: signed out,
-// the app is the first-run flow.
+// web's words (lib/copy.ts `MENU_*`, lib/mail/copy.ts). The app's tab bar carries Home, Projects, Memory and Mail, so the
+// menu holds what the tab bar does not ("this menu carries what the dock doesn't", components/mobile-nav.tsx): Settings
+// (the account, its keys and the rest of what used to be the You tab), the Library, Group chats, Tools, the Beta features,
+// Admin for an admin, and signing out. The web's Memory and Chat history rows are left out. A signed-out drawer's Pricing
+// and Sign in are not here either: signed out, the app is the first-run flow.
 
 public enum AccountMenu {
     public static let title = "Account"
+    /// App only: the first row, and the name of the list of panes it opens (the web's You page, `/vault/account`, which the
+    /// menu there calls "Account & keys"). It is also the pane list's navigation title.
+    public static let settings = "Settings"
     public static let library = "Library"
+    /// The Mail tab's name, and the word on its unread badge's label.
     public static let mail = "Mail"
-    /// App only: the web reaches task boards from the Mail and Library screens.
-    public static let taskBoards = "Task boards"
-    /// The You page again, as the menu names it (`MENU_ACCOUNT_AND_KEYS`). It opens on the vault, as `/vault/account` does.
-    public static let accountAndKeys = "Account & keys"
     public static let groupChats = "Group chats"
     public static let tools = "Tools"
-    public static let importAnything = "Import"
     public static let beta = "Beta"
     public static let dreams = "Dreams"
     public static let truth = "Truth"

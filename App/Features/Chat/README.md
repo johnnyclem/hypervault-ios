@@ -1,10 +1,14 @@
 # Chat
 
-The fourth tab: chats, rooms (group chats with several of your models), your own
-models, on-device chat and reading replies aloud.
+Chats, rooms (group chats with several of your models), your own
+models, on-device chat and reading replies aloud. Home is the chats: `ChatRootView` is the root of the Home tab.
 
-- `ChatRootView`: "Chats | Rooms" list screen (the switch sits under the title); Models is the
-  toolbar button. Both lists are inset cards on paper (`hvListRow`), grouped by when they last moved.
+- `ChatRootView`: Home, a "Chats | Rooms" list screen (the switch sits under the title). Its one toolbar has the avatar, Keep
+  (pushes the canvas, `Route.keep`), New chat / New room and More (Yours, Models in Settings, Tools, Import). Both lists are
+  inset cards on paper (`hvListRow`), grouped by when they last moved.
+- `HomeStarterView`: what the Chats half is when the server says there are no chats (`ChatListModel.showsStarter`: never off a
+  cached copy or a refresh that failed): Start a chat, Keep something, the starter prompt to copy, and the first-run card
+  that asks for an agent's key.
 - `ConversationScreen`: the thread. `Conversation/` holds its model, composer,
   options sheet, bubbles, markdown and read-aloud.
 - Under a reply: copy, keep (a page or note in Yours), save as a memory (a memory tagged `chat`, titled by
@@ -20,12 +24,25 @@ models, on-device chat and reading replies aloud.
   person's own network. The turn itself (context, generate, save, the offline
   outbox) is `OnDeviceChat` in the Kit; a model on this iPhone and a model on
   the home network are two `ChatModelProvider`s behind it.
+- What a small model is told is not what the server sent. The server's system prompt is written for
+  large models ("answer from the excerpts, and if they fall short, say what is covered"), and Apple's
+  on-device model followed that to the letter: it answered about the excerpts, or handed one back. So
+  `OnDeviceBrief` (Kit) rewrites it: a short directive that makes the question the job, then only the
+  notes that bear on it, as optional background, inside the model's window. `OnDeviceReplyScreen`
+  reads the first words of the reply; if it is a non-answer or a copy of a note, the question is asked
+  once more with no notes. The grounding chips under a reply list only what the model was shown.
 
 ## Left out on purpose
 
 - Renaming a chat: `PATCH /api/conversations/[id]` takes only `visibility` and
   `truth_ledgers`, so there is nothing to call.
 - Truth ledger pinning per chat (`truth_ledgers`): the Kit sends it; no picker yet.
+- Photos in a message: the composer's photo button (a connected model only: a model on this phone or on
+  the home network is sent words) picks up to three. `ChatImagePrep` shrinks each to a JPEG under 800 KB
+  before it is sent as base64 in `images` (`POST /api/chat`). The server keeps a picture's name, type and size,
+  not the picture, so the bubble shows thumbnails while the chat is open and "2 photos" after it is reopened.
+  A message still needs words. The camera is not offered yet; the photo picker already lists the camera roll
+  and screenshots.
 - Importing a `.jsx` or `.pdf` from the composer (the web has it): Import and Keep
   already cover that on the phone.
 - Shared chat pages (`/c/<slug>`) open in Safari from the share sheet.

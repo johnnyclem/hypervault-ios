@@ -1,7 +1,8 @@
 import HyperVaultKit
 import SwiftUI
 
-/// The Chats half of the chat tab.
+/// The Chats half of Home: your chats, newest first; or, when the server says you have none, the starter page. (Its bar
+/// buttons, New chat among them, are Home's: `ChatRootView` draws them, so their order is the one it writes.)
 struct ChatConversationListView: View {
     @Environment(AppModel.self) private var app
     @State private var model: ChatListModel
@@ -14,17 +15,8 @@ struct ChatConversationListView: View {
     }
 
     var body: some View {
-        @Bindable var model = model
         content
-            .searchable(text: $model.query, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search chats")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(value: ChatDestination.newConversation) {
-                        Image(systemName: "square.and.pencil").frame(width: 44, height: 44)
-                    }
-                    .accessibilityLabel("New chat")
-                }
-            }
+            .modifier(ChatSearch(model: model))
             .confirmationDialog(
                 "Delete this chat?", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
                 titleVisibility: .visible, presenting: pendingDelete
@@ -51,16 +43,8 @@ struct ChatConversationListView: View {
             HVErrorState(message: message) { reloadToken += 1 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .loaded:
-            if model.conversations.isEmpty {
-                HVEmptyState(
-                    symbol: HVSymbol.chat,
-                    title: "No chats yet",
-                    message: "Start one, or bring in your history from ChatGPT, Claude, Gemini or Grok.",
-                    actionTitle: "Import your history"
-                ) {
-                    app.router.open(.route(.importHistory))
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if model.showsStarter {
+                HomeStarterView()
             } else {
                 VStack(spacing: 0) {
                     if showsFilter, !typeSize.isAccessibilitySize { filterChips }
@@ -86,7 +70,7 @@ struct ChatConversationListView: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
             }
-            if model.visible.isEmpty {
+            if model.visible.isEmpty, model.isFiltering {
                 Text("Nothing matches.")
                     .font(.hvCallout)
                     .foregroundStyle(Palette.textSecondary)
@@ -151,6 +135,24 @@ struct ChatConversationListView: View {
             } catch {
                 app.toasts.show(error: error)
             }
+        }
+    }
+}
+
+/// The search field under the title: there while there are chats to search or still to come, and not over the starter page,
+/// which has nothing to search.
+private struct ChatSearch: ViewModifier {
+    let model: ChatListModel
+
+    func body(content: Content) -> some View {
+        if model.showsStarter {
+            content
+        } else {
+            content.searchable(
+                text: Binding(get: { model.query }, set: { model.query = $0 }),
+                placement: .navigationBarDrawer(displayMode: .automatic),
+                prompt: "Search chats"
+            )
         }
     }
 }

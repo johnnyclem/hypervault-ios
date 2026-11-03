@@ -103,7 +103,7 @@ struct ChatRoomMembersSheet: View {
                 .disabled(backends.backends.isEmpty)
             } footer: {
                 if backends.backends.isEmpty, backends.phase == .loaded {
-                    ChatFooter("Connect a model under Chat, Models, then add it here.")
+                    ChatFooter("Connect a model under Home, More, Models, then add it here.")
                 }
             }
             .hvListRow()

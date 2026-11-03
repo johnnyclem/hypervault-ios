@@ -11,6 +11,8 @@ import XCTest
 @MainActor
 final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
     private let welcome = (identifier: "welcome.pages", description: "the welcome story")
+    /// Home, which a signed-in launch opens on (its avatar is there whatever Home shows).
+    private let home = Scenario.signedIn.firstScreen
 
     func testSigningOutEndsTheSessionAndTheNextLaunchDoesNotRestoreIt() {
         launch(.signedIn)
@@ -18,7 +20,7 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
         step("Closing the app and opening it again keeps the session") {
             app.terminate()
             launch(.signedIn, resuming: true)
-            require(element("canvas.field"), "the canvas, which a kept session opens on")
+            require(element(home.identifier), "Home, which a kept session opens on")
         }
 
         step("Sign out in General lands on the welcome story") {
@@ -27,7 +29,7 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
             reveal(signOut, "the Sign out row")
             tap(signOut, "Sign out")
             require(element(welcome.identifier), "the welcome story after signing out")
-            XCTAssertFalse(element("canvas.field").exists, "The canvas should be gone once the session has ended.")
+            XCTAssertFalse(element(home.identifier).exists, "Home should be gone once the session has ended.")
         }
 
         step("The app told the auth server the session is over") {
@@ -38,8 +40,8 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
         step("The next launch does not restore the session") {
             app.terminate()
             launch(.signedIn, resuming: true, reaching: welcome)
-            XCTAssertFalse(element("canvas.field").exists, "A launch after signing out should not open the canvas.")
-            XCTAssertFalse(tab("You").exists, "A launch after signing out should not show the tab bar.")
+            XCTAssertFalse(element(home.identifier).exists, "A launch after signing out should not open Home.")
+            XCTAssertFalse(tab("Mail").exists, "A launch after signing out should not show the tab bar.")
         }
     }
 
@@ -62,7 +64,7 @@ final class SessionAndSettingsWritesJourneyTests: HyperVaultUITestCase {
         }
 
         step("Leaving General and coming back shows the same choices") {
-            goBack(until: { self.isShowingTitle("You") })
+            goBack(until: { self.isShowingTitle("Settings") })
             openPane("general", title: "General")
             choicesAreKept("after leaving General")
         }

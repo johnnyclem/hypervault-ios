@@ -1,7 +1,7 @@
 import XCTest
 
-/// Share on a card of the Home canvas: a page, a file or a group offers it, and it opens the sheet of the people who can open the
-/// page, over the canvas. A memory and a key have none.
+/// Share on a card of the canvas (pushed on Home): a page, a file or a group offers it, and it opens the sheet of the people who
+/// can open the page, over the canvas. A memory and a key have none.
 @MainActor
 final class CanvasShareJourneyTests: HyperVaultUITestCase {
     /// Every Share button on the page. (Each is labelled "Share <title>", as Open and Hide are.)
@@ -17,6 +17,7 @@ final class CanvasShareJourneyTests: HyperVaultUITestCase {
 
     func testAPageAndAGroupOfferShareAndItOpensThePeopleSheetOverThePage() {
         launch(.signedIn)
+        openCanvas()
 
         step("Showing my files puts pages and a group on the page, each with Share") {
             say("show my files")
@@ -58,6 +59,7 @@ final class CanvasShareJourneyTests: HyperVaultUITestCase {
 
     func testAMemoryAndAKeyHaveNoShare() {
         launch(.signedIn)
+        openCanvas()
 
         step("A memory's card has Open and Hide and no Share") {
             say("show my memories")

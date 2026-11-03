@@ -6,8 +6,8 @@ import XCTest
 /// renders and not on somebody's phone: a list on the page, a card, a form of fields, a form under section notes, a
 /// sheet, a chat, a graph, a diff, the tag colours, the welcome story, the lock.
 let lightLookScreens: Set<String> = [
-    "yours", "yours-empty", "you", "settings", "welcome-1-keep", "lock",
-    "chat-list", "chat-conversation", "chat-connect-form", "pane-models", "pane-general-pro",
+    "yours", "yours-empty", "settings-panes", "settings", "welcome-1-keep", "lock",
+    "chat-list", "home-starter", "chat-conversation", "chat-connect-form", "pane-models", "pane-general-pro",
     "digest", "design-controls", "design-details", "design-palette", "force-graph", "group-new",
     "memory-list", "memory-graph", "memory-graph-controls", "memory-ask", "memory-memorize", "mind-diff", "mind-merge-preview", "library-all",
     "keys-webhooks-add", "mail-compose", "mail-settings", "realms-detail",

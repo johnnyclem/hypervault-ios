@@ -13,7 +13,10 @@ final class FirstRunCopyTests: XCTestCase {
 
     /// What a first-run surface may say: the vault section, and the lines the story shares with the canvas.
     private var firstRunLines: [String] {
-        vaultSection + [HVCopy.landingLine, HVCopy.productSentence, HVCopy.onlyYouLine, HVCopy.keepingLine, HVCopy.keptLine]
+        vaultSection + [
+            HVCopy.landingLine, HVCopy.productSentence, HVCopy.onlyYouLine, HVCopy.keepingLine, HVCopy.keptLine,
+            HVCopy.homeStartChatLabel, HVCopy.homeKeepLabel,
+        ]
     }
 
     func testTheVaultSectionIsTheWebsVerbatim() {
@@ -28,6 +31,11 @@ final class FirstRunCopyTests: XCTestCase {
             HVCopy.landingVaultLockLine,
             "Passwords, card numbers, API keys and each full entry are encrypted when you save them and never shown again. Only the name you give each one and a short label, like a username, an email or a card's brand and last four digits, stay visible so you can tell them apart."
         )
+    }
+
+    func testHomesStarterPageNamesTheTwoThingsToDo() {
+        XCTAssertEqual(HVCopy.homeStartChatLabel, "Start a chat")
+        XCTAssertEqual(HVCopy.homeKeepLabel, "Keep something")
     }
 
     func testTheReadersAreTheListTheLineNames() {

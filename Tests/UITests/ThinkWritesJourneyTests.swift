@@ -85,7 +85,7 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
     }
     func testANewChatIsBegunFromItsFirstMessageAndThenDeleted() {
         launch(.signedIn)
-        openTab("Chat")
+        openTab("Home")
 
         step("New chat opens an empty conversation") {
             tap(button("New chat"), "New chat")
@@ -205,7 +205,7 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
     }
     func testARoomIsMadeItsAgentsChangedItIsRenamedAndDeleted() {
         launch(.signedIn)
-        openTab("Chat")
+        openTab("Home")
         tap(segment("Group chats"), "the Group chats half", until: { self.button("New room").exists })
 
         step("New room offers the connected models and takes a name") {

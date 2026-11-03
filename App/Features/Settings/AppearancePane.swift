@@ -68,7 +68,7 @@ final class AppearanceModel {
     }
 }
 
-/// Appearance, a pane of the You tab. On the web it is one look for the dashboard and chat, and a look for each address.
+/// Appearance, a pane of Settings. On the web it is one look for the dashboard and chat, and a look for each address.
 /// Here it is the website's theme, in words that do not say the app changed; each address's look is under Domain.
 struct AppearancePane: View {
     @Environment(AppEnvironment.self) private var env

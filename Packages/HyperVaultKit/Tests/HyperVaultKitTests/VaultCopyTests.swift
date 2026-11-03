@@ -58,7 +58,7 @@ final class VaultCopyTests: XCTestCase {
 
     func testTheNoAgentKeysLineIsTheWebsAndNotTheOldOne() {
         XCTAssertEqual(VaultCopy.noAgentKeysLine, "No agent keys yet. Generate one under Agent keys, then allow it here.")  // handoff 4.6
-        // It points at the pane the You page calls "Agent keys".
+        // It points at the pane Settings calls "Agent keys".
         XCTAssertTrue(VaultCopy.noAgentKeysLine.contains(AccountPane.keys.label))
         XCTAssertNotEqual(VaultCopy.noAgentKeysLine, "No agent keys yet. Connect an agent, then allow it here.")
     }

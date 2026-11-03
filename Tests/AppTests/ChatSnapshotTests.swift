@@ -22,6 +22,25 @@ final class ChatSnapshotTests: XCTestCase {
         try snapshot(PreviewHost(routes: ChatPreviewData.routes) { ChatRootView() }, named: "chat-rooms")
     }
 
+    /// Home for someone with no chats: the server says `[]`, and the starter page takes the place of the list. (The empty
+    /// answer goes first: the first route that matches wins.)
+    private var noChats: [MockRoute] {
+        [.json(.get, "/api/conversations", #"{"conversations":[]}"#)] + ChatPreviewData.routes
+    }
+
+    func testHomeWithNoChats() throws {
+        UserDefaults.standard.set("Chats", forKey: sectionKey)
+        try snapshot(PreviewHost(routes: noChats) { ChatRootView() }, named: "home-starter")
+    }
+
+    func testHomeWithNoChatsAtTheLargestTextSize() throws {
+        UserDefaults.standard.set("Chats", forKey: sectionKey)
+        try snapshot(
+            PreviewHost(routes: noChats) { ChatRootView() }.dynamicTypeSize(.accessibility3),
+            named: "home-starter-xxl"
+        )
+    }
+
     func testConversation() throws {
         try snapshot(
             PreviewHost(routes: ChatPreviewData.routes) { ChatConversationContent(model: ChatPreviewData.conversationModel()) },

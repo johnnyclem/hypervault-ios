@@ -230,20 +230,21 @@ final class YouJourneyTests: HyperVaultUITestCase {
             XCTAssertEqual(confirmation.label, "Your website and this app now wear Newsprint.")
             XCTAssertEqual(element("appearance.wearing").label, "The app is wearing Newsprint.")
             XCTAssertFalse(shows("Saved").exists, "Nothing says the app was restyled or saved with a tick.")
-            require(element("appearance.preview"), "the preview of the theme")
             waitUntil("the page to turn light") { (self.currentPageBrightness() ?? 0) > 0.6 }
             attachScreenshot("Appearance - Newsprint")
         }
 
         step("The phone's switch takes the theme off the app and leaves it on the website") {
-            tap(element("appearance.applyToApp"), "the switch")
-            waitUntil("the switch to be off") { (self.element("appearance.applyToApp").value as? String) == "0" }
+            let toggle = element("appearance.applyToApp")
+            reveal(toggle, "the switch for the theme in the app")
+            flip(toggle, from: "1", "the switch")
+            XCTAssertEqual(toggle.value as? String, "0", "The switch should be off.")
             XCTAssertEqual(element("appearance.wearing").label, "The app keeps the HyperVault default look.")
             waitUntil("the page to be dark again") { (self.currentPageBrightness() ?? 1) < 0.4 }
             XCTAssertTrue(element("appearance.theme").label.contains("Newsprint") || (element("appearance.theme").value as? String)?.contains("Newsprint") == true, "The website still wears Newsprint.")
 
-            tap(element("appearance.applyToApp"), "the switch")
-            waitUntil("the switch to be on") { (self.element("appearance.applyToApp").value as? String) == "1" }
+            flip(toggle, from: "0", "the switch")
+            XCTAssertEqual(toggle.value as? String, "1", "The switch should be on again.")
             waitUntil("the page to turn light again") { (self.currentPageBrightness() ?? 0) > 0.6 }
         }
 

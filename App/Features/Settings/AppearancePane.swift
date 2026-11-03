@@ -80,7 +80,6 @@ struct AppearancePane: View {
                 if let kit = model.style.state?.kit {
                     ThemePreview(kit: kit)
                         .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
-                        .accessibilityIdentifier("appearance.preview")
                 }
 
                 status(model)

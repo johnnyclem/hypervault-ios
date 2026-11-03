@@ -405,6 +405,12 @@ final class UITestWritesTests: XCTestCase {
         let everything = try await api.send(.room(id: "rn1"))
         XCTAssertEqual(everything.messages.map(\.position), [0, 1, 2, 3, 4])
         XCTAssertEqual(everything.messages.map(\.id), ["rn1-x0", "rn1-x1", "rn1-x2", "rn1-x3", "rn1-x4"])
+        // A poll gets only what came past its place, and the roster with every read, so a follower goes quiet when it is level.
+        let past = try await api.send(.room(id: "rn1", after: 2))
+        XCTAssertEqual(past.messages.map(\.position), [3, 4])
+        XCTAssertEqual(past.members.map(\.handle), ["claude", "gpt"])
+        let level = try await api.send(.room(id: "rn1", after: 4))
+        XCTAssertTrue(level.messages.isEmpty)
 
         _ = try await api.send(.deleteRoom(id: "rn1"))
         do {

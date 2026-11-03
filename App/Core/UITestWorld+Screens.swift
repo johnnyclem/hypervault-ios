@@ -210,14 +210,17 @@ extension UITestWorld {
             roomMessage("x3", position: 2, kind: "agent", handle: "grok", content: "On it. Contract committed as v3; the importer streams rows in batches of 500.", ago: 700),
         ]
         return [
-            MockRoute(.get, "/api/rooms/r1") { _ in
-                reply(.object([
+            MockRoute(.get, "/api/rooms/r1") { request in
+                // As the server answers a poll: only what the room has said past the place the phone has reached.
+                let after = request.queryValue("after").flatMap(Int.init) ?? -1
+                let said = (started + room.messages()).filter { ($0["position"]?.int ?? 0) > after }
+                return reply(.object([
                     "room": .object([
                         "id": .string("r1"), "title": .string("Features X and Y"), "pending": .array([]), "budget": .int(12), "running": .bool(false),
                         "truth_ledgers": .null, "created_at": .string(date(90_000)), "updated_at": .string(date(600)),
                     ]),
                     "members": .array(roomMembers),
-                    "messages": .array(started + room.messages()),
+                    "messages": .array(said),
                 ]))
             },
             MockRoute(.post, "/api/rooms/r1/messages") { request in

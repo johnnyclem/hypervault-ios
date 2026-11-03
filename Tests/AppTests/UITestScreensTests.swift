@@ -158,8 +158,13 @@ final class UITestScreensTests: XCTestCase {
         XCTAssertEqual(run.messages.last?.content, "Noted: claude, summarise the plan")
         XCTAssertTrue(run.pending.isEmpty)
 
+        let whole = try await api.send(.room(id: "r1"))
+        XCTAssertEqual(whole.messages.count, 5, "What was said stays in the room.")
         let later = try await api.send(.room(id: "r1", after: 2))
-        XCTAssertEqual(later.messages.count, 5, "What was said stays in the room.")
+        XCTAssertEqual(later.messages.map(\.position), [3, 4], "A poll gets only what came past its place.")
+        XCTAssertEqual(later.members.map(\.handle), ["grok", "claude"], "The roster comes with every read.")
+        let caughtUp = try await api.send(.room(id: "r1", after: 4))
+        XCTAssertTrue(caughtUp.messages.isEmpty, "Nothing past the last message, so a follower goes quiet.")
         let idle = try await api.send(.runRoom(id: "r1"))
         XCTAssertTrue(idle.messages.isEmpty)
     }

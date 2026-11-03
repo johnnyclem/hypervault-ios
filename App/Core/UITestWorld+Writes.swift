@@ -378,8 +378,8 @@ extension UITestWorld {
             },
         ]
         for id in UITestRooms.madeIDs {
-            routes.append(MockRoute(.get, "/api/rooms/\(id)") { _ in
-                guard let raw = rooms.detailJSON(id: id) else { return notFound("That room is not here.") }
+            routes.append(MockRoute(.get, "/api/rooms/\(id)") { request in
+                guard let raw = rooms.detailJSON(id: id, after: request.queryValue("after").flatMap(Int.init)) else { return notFound("That room is not here.") }
                 return reply(raw: raw)
             })
             routes.append(MockRoute(.patch, "/api/rooms/\(id)") { request in
@@ -1540,15 +1540,18 @@ final class UITestRooms: @unchecked Sendable {
         return (id, shown, seated)
     }
 
-    func detailJSON(id: String) -> String? {
+    /// `GET /api/rooms/:id`: the room with its members and what has been said in it; with `after`, only the messages past
+    /// that position, as the server answers a poll (a follower that is given everything each time never goes quiet).
+    func detailJSON(id: String, after: Int? = nil) -> String? {
         lock.lock()
         defer { lock.unlock() }
         guard let room = made.first(where: { $0.id == id }), !deleted.contains(id) else { return nil }
+        let said = room.said.filter { ($0["position"]?.int ?? 0) > (after ?? -1) }
         let header: JSONValue = .object([
             "id": .string(id), "title": .string(room.title), "pending": Self.pending(room), "budget": .int(room.budget), "running": .bool(false),
             "truth_ledgers": .null, "created_at": .string(UITestWorld.date(120)), "updated_at": .string(UITestWorld.date(10)),
         ])
-        return JSONValue.object(["room": header, "members": .array(room.members), "messages": .array(room.said)]).jsonString()
+        return JSONValue.object(["room": header, "members": .array(room.members), "messages": .array(said)]).jsonString()
     }
 
     /// Says something to a room made on the phone, as `POST /api/rooms/:id/messages` does: the words are kept and a turn is

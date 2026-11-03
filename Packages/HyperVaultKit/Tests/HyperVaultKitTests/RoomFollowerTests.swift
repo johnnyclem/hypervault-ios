@@ -51,6 +51,52 @@ final class RoomFollowerTests: RoomTestCase {
         XCTAssertEqual(observed, [1.5, 1.5, 2, 3, 4, 5, 5], "1.5 seconds, backing off to 5")
     }
 
+    /// A room that answers `quiet` for its first four reads and `changed` from the fifth: a follower that has backed
+    /// off to 3 seconds goes back to 1.5 when the header changes, though no message came with the change.
+    func assertAChangeInTheHeaderWakesTheFollower(
+        quiet: String, changed: String, file: StaticString = #filePath, line: UInt = #line
+    ) async {
+        let calls = Counter()
+        let transport = MockTransport(routes: [
+            MockRoute(.get, "/api/rooms/r1") { _ in
+                calls.bump()
+                return HTTPResponse(status: 200, data: Data((calls.value <= 4 ? quiet : changed).utf8))
+            },
+        ])
+        let observed = await observedWaits(transport, isActive: true, until: 7)
+        XCTAssertEqual(
+            observed, [1.5, 1.5, 2, 3, 1.5, 1.5, 2], "backing off to 3 seconds, then the change, then backing off again",
+            file: file, line: line
+        )
+    }
+
+    static func header(running: Bool, current: String? = nil, pending: [String] = []) -> String {
+        let turn = current.map { #"{"handle":"\#($0)","reason":"","started_at":""}"# } ?? "null"
+        let queue = pending.map { #"{"handle":"\#($0)","reason":""}"# }.joined(separator: ",")
+        return #"{"room":{"id":"r1","title":"T","pending":[\#(queue)],"budget":12,"running":\#(running),"current":\#(turn)},"members":[],"messages":[]}"#
+    }
+
+    func testATurnThatBeginsInARoomThatWasQuietWakesTheFollower() async {
+        await assertAChangeInTheHeaderWakesTheFollower(
+            quiet: Self.header(running: true), changed: Self.header(running: true, current: "claude")
+        )
+    }
+
+    func testAQueueThatChangesInARoomThatWasQuietWakesTheFollower() async {
+        await assertAChangeInTheHeaderWakesTheFollower(
+            quiet: Self.header(running: true, current: "claude"),
+            changed: Self.header(running: true, current: "claude", pending: ["custom"])
+        )
+        await assertAChangeInTheHeaderWakesTheFollower(
+            quiet: Self.header(running: true, current: "claude", pending: ["custom"]),
+            changed: Self.header(running: true, current: "claude", pending: ["custom", "gpt"])
+        )
+    }
+
+    func testARunThatBeginsInARoomThatWasQuietWakesTheFollower() async {
+        await assertAChangeInTheHeaderWakesTheFollower(quiet: Self.header(running: false), changed: Self.header(running: true))
+    }
+
     func testAQuietRoomIsAskedEveryTwentySeconds() async {
         let transport = MockTransport(routes: [.json(.get, "/api/rooms/r1", Self.emptyRoom)])
         let observed = await observedWaits(transport, isActive: false, until: 3)

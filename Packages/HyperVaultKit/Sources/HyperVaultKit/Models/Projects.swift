@@ -22,7 +22,7 @@ public enum ProjectsCopy {
     public static let pagesSection = "Pages and files"
     public static let memoriesSection = "Memories"
     public static let chatsSection = "Chats"
-    public static let relatedFooter = "Found from links, tags and names. Nothing here was filed under this project by you unless it says Linked."
+    public static let relatedFooter = "Linked and Tagged were filed under this project by you or an agent. Mentions it only means the name matches."
     public static let nothingRelated = "Nothing linked to this project yet."
     public static let showPossiblyRelated = "Show possibly related"
     public static let hidePossiblyRelated = "Hide possibly related"

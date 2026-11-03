@@ -276,6 +276,7 @@ struct ProjectOverviewScreen: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("\(showPossibly ? ProjectsCopy.hidePossiblyRelated : ProjectsCopy.showPossiblyRelated), \(related.possiblyTotal)")
+                .accessibilityHint(showPossibly ? "Hides them" : "Shows them")
                 .accessibilityIdentifier("project.possibly")
                 .hvListRow()
             }

@@ -83,7 +83,8 @@ struct ProjectOverviewScreen: View {
     }
 
     private func boardSection(_ digest: ProjectBoardDigest) -> some View {
-        Section {
+        let board = Route.taskBoard(slug: "tasks-\(model.project)", project: model.project, title: model.title)
+        return Section {
             if digest.summary.total == 0 {
                 Text(ProjectsCopy.boardEmpty)
                     .font(.hvCallout)
@@ -103,15 +104,17 @@ struct ProjectOverviewScreen: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("project.progress")
                 .hvListRow()
+                // A task is opened from the board's own list, so a row here opens the board it is on.
                 ForEach(digest.focus) { task in
-                    HStack(alignment: .top, spacing: HV.Space.s) {
-                        Image(systemName: task.status.symbol)
-                            .foregroundStyle(task.status.tint)
-                            .frame(minWidth: 24, minHeight: 44)
-                            .accessibilityHidden(true)
-                        TaskRowBody(task: task, rollup: nil, parentTitle: nil)
+                    NavigationLink(value: board) {
+                        HStack(alignment: .top, spacing: HV.Space.s) {
+                            Image(systemName: task.status.symbol)
+                                .foregroundStyle(task.status.tint)
+                                .frame(minWidth: 24, minHeight: 44)
+                                .accessibilityHidden(true)
+                            TaskRowBody(task: task, rollup: nil, parentTitle: nil)
+                        }
                     }
-                    .accessibilityElement(children: .combine)
                     .accessibilityValue(task.status.title)
                     .accessibilityIdentifier("project.task.\(task.id)")
                     .hvListRow()
@@ -123,7 +126,7 @@ struct ProjectOverviewScreen: View {
                         .hvListRow()
                 }
             }
-            NavigationLink(value: Route.taskBoard(slug: "tasks-\(model.project)", project: model.project, title: model.title)) {
+            NavigationLink(value: board) {
                 HVRow(symbol: "checklist", title: ProjectsCopy.openBoard)
             }
             .accessibilityIdentifier("project.openBoard")

@@ -20,6 +20,9 @@ final class TaskBoardsModel {
     private(set) var isShowingSavedCopy = false
     private(set) var isCreating = false
 
+    /// The boards as the list shows them: the one that moved last first, and from eight of them Recent and Earlier.
+    var groups: [ProjectGroup] { ProjectGrouping.groups(boards) }
+
     @ObservationIgnored private let client: HVClient
     @ObservationIgnored private let cache: DiskCache
     @ObservationIgnored private let namespace: String

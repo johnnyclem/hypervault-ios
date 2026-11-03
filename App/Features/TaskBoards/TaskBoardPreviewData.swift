@@ -49,6 +49,31 @@ enum TaskBoardPreviewData {
         ]
     }
 
+    /// Nine boards, so the list splits into Recent (moved in the last two weeks) and Earlier. The server's order is the order
+    /// they were made in, newest first, which is not the order they moved in.
+    static var manyIndexRoutes: [MockRoute] {
+        func board(_ project: String, _ title: String, madeDaysAgo: Double, movedDaysAgo: Double?) -> String {
+            let made = HVDate.format(Date().addingTimeInterval(-madeDaysAgo * 86_400))
+            let moved = movedDaysAgo.map { "\"" + HVDate.format(Date().addingTimeInterval(-$0 * 86_400)) + "\"" } ?? "null"
+            return #"{"slug":"tasks-\#(project)","project":"\#(project)","title":"Tasks \#u{2014} \#(title)","url":"https://x/a/tasks-\#(project)","created_at":"\#(made)","updated_at":\#(moved)}"#
+        }
+        let boards = [
+            board("balcony-garden", "Balcony garden", madeDaysAgo: 2, movedDaysAgo: nil),
+            board("eurorack-choir", "Eurorack Choir Module", madeDaysAgo: 40, movedDaysAgo: 0.2),
+            board("website", "Website relaunch", madeDaysAgo: 30, movedDaysAgo: 3),
+            board("taxes", "Taxes 2026", madeDaysAgo: 20, movedDaysAgo: 9),
+            board("lisbon", "Lisbon trip", madeDaysAgo: 90, movedDaysAgo: 30),
+            board("garden", "Spring garden", madeDaysAgo: 60, movedDaysAgo: nil),
+            board("novel", "The novel", madeDaysAgo: 200, movedDaysAgo: 120),
+            board("kitchen", "Kitchen renovation", madeDaysAgo: 300, movedDaysAgo: 250),
+            board("ham", "Ham radio licence", madeDaysAgo: 400, movedDaysAgo: nil),
+        ]
+        return [
+            .json(.get, "/api/taskboards", #"{"boards":[\#(boards.joined(separator: ",\n"))],"schema":"x"}"#),
+            .json(.get, "/api/tasklists/*", #"{"slug":"tasks-x","summary":{"id":"x","title":"x","version":3,"total":4,"byStatus":{"todo":2,"in_progress":1,"done":1,"cancelled":0},"progress":25,"epics":[],"claimed":[],"unassigned":1}}"#),
+        ]
+    }
+
     static var boardRoutes: [MockRoute] {
         [.json(.get, "/api/tasklists/eurorack-choir", #"{"slug":"tasks-eurorack-choir","tasklist":\#(boardJSON)}"#)]
     }

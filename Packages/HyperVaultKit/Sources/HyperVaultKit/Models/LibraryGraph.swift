@@ -14,12 +14,15 @@ public struct LibraryGraphPage: Sendable, Hashable, Identifiable {
     public let slug: String
     public let title: String
     public let type: String
+    /// The tags the page carries, as saved. A project's overview reads the project's id off them.
+    public let tags: [String]
 
-    public init(id: String, slug: String, title: String, type: String = "page") {
+    public init(id: String, slug: String, title: String, type: String = "page", tags: [String] = []) {
         self.id = id
         self.slug = slug
         self.title = title
         self.type = type
+        self.tags = tags
     }
 }
 
@@ -59,7 +62,7 @@ public struct LibraryGraphRow: Sendable, Decodable, Equatable {
     /// or a group, which the web graph leaves out.
     public var page: LibraryGraphPage? {
         guard type != "group", !tags.contains(where: { ArtifactSummary.bookkeepingTags.contains($0) }) else { return nil }
-        return LibraryGraphPage(id: id, slug: slug, title: title, type: isJsx ? "react" : type.lowercased())
+        return LibraryGraphPage(id: id, slug: slug, title: title, type: isJsx ? "react" : type.lowercased(), tags: tags)
     }
 }
 

@@ -62,7 +62,11 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
         }
 
         visit(mode, .account("taskBoards"), "Task boards", key: element("taskboards.row.eurorack-choir"), "the Eurorack Choir board") {
-            open(element("taskboards.row.eurorack-choir"), "the Eurorack Choir board", until: { self.isShowingTitle("Eurorack Choir Module") })
+            // The overview and the board share a title, so the title cannot say which one is open. The progress is the first row of
+            // the page, drawn at every text size; the board's own rows can be below the fold of a large one.
+            open(element("taskboards.row.eurorack-choir"), "the Eurorack Choir board", until: { self.element("project.progress").exists })
+            look(mode, "a project", key: element("project.openBoard"), "the Open the full board row")
+            open(element("project.openBoard"), "Open the full board", until: { self.element("taskboard.add").exists })
             look(mode, "a task board", key: element("taskboard.task.t-panels"), "the front panels task")
             open(element("taskboard.task.t-panels"), "the front panels task", until: { self.isShowingTitle("Task") })
             look(mode, "a task", key: shows("Two quotes in, one to go."), "the agent's note")

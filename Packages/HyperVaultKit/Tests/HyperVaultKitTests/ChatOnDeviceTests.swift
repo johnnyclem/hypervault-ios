@@ -107,8 +107,15 @@ final class ChatOnDeviceTests: XCTestCase {
     // MARK: a turn
 
     func testContextThenGenerateThenSave() async throws {
+        let notes = ServerPrompt.system(recall: ServerPrompt.recall([ServerPrompt.memory("Flights", summary: "Trip flights.", body: "The flight is on the 3rd.")]))
+        let json = String(decoding: try JSONSerialization.data(withJSONObject: [
+            "conversation_id": "c1", "system": notes,
+            "messages": [["role": "user", "content": "hello"], ["role": "assistant", "content": "Hi!"], ["role": "user", "content": "when do we fly?"]],
+            "next_position": 2, "recalled": [["title": "Trip", "slug": "trip-1"]], "recalled_memories": ["Flights"], "pulled": [],
+            "smart_context": false, "deep_memory": NSNull(), "truth": NSNull(),
+        ] as [String: Any]), as: UTF8.self)
         let transport = MockTransport(routes: [
-            .json(.post, "/api/chat/context", Self.contextJSON),
+            .json(.post, "/api/chat/context", json),
             .json(.post, "/api/chat/turns", #"{"conversation_id":"c1","reply":{"id":"m7","role":"assistant","content":"Hello there.","model":"fake-on-device"}}"#),
         ])
         let model = FakeModel()
@@ -119,10 +126,15 @@ final class ChatOnDeviceTests: XCTestCase {
         XCTAssertEqual(outcome.reply, "Hello there.")
         XCTAssertEqual(outcome.saved, .saved(conversationID: "c1", messageID: "m7"))
         XCTAssertTrue(outcome.usedMemory)
+        // The note is in what the model was given, so it is what the reply rests on. The page link is not.
         XCTAssertEqual(outcome.grounding.memories, ["Flights"])
-        XCTAssertEqual(outcome.grounding.pages.map(\.slug), ["trip-1"])
-        XCTAssertEqual(partials.value, ["Hel", "Hello", "Hello there."])
-        XCTAssertEqual(model.seen.first?.system, "## Truth\nThe flight is on the 3rd.")
+        XCTAssertTrue(outcome.grounding.pages.isEmpty)
+        // The context has notes in it, so the opening words are read before anything is shown: a reply
+        // shorter than the screen's window appears once, whole, when it is known to be fine.
+        XCTAssertEqual(partials.value, ["Hello there."])
+        XCTAssertEqual(model.seen.first?.system.hasPrefix(OnDevicePrompt.defaultInstructions), true)
+        XCTAssertEqual(model.seen.first?.system.contains("The flight is on the 3rd."), true)
+        XCTAssertEqual(model.seen.first?.system.contains("answer from it"), false)
         XCTAssertEqual(model.seen.first?.messages.last?.content, "when do we fly?")
         let saved = requestJSON(await transport.requests(matching: "/api/chat/turns").first)
         XCTAssertEqual(saved?["user_message"], "when do we fly?")

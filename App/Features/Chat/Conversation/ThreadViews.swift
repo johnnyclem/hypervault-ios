@@ -62,6 +62,7 @@ struct ChatUserBubble: View {
 
     private var bubble: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
+            photos
             Text(row.text)
                 .font(.hvBody)
                 .foregroundStyle(.white)
@@ -84,8 +85,37 @@ struct ChatUserBubble: View {
         // already says the model is working.
         .background(Palette.action, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("You said: \(row.text)")
+        .accessibilityLabel("You said: \(row.text)\(photoSpeech)")
         .accessibilityValue(row.state == .sending ? "Sending" : "")
+    }
+
+    /// Thumbnails while this phone still has them; "2 photos" once the chat is reopened (the server keeps the
+    /// name and type of a picture, not the picture).
+    @ViewBuilder
+    private var photos: some View {
+        if !row.thumbnails.isEmpty {
+            HStack(spacing: HV.Space.xs) {
+                ForEach(Array(row.thumbnails.enumerated()), id: \.offset) { _, data in
+                    if let image = UIImage(data: data) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 96, height: 96)
+                            .clipShape(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
+                    }
+                }
+            }
+            .accessibilityHidden(true)
+        } else if row.imageCount > 0 {
+            Label(row.imageCount == 1 ? "1 photo" : "\(row.imageCount) photos", systemImage: "photo")
+                .font(.hvFootnote.weight(.semibold))
+                .foregroundStyle(.white)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private var photoSpeech: String {
+        row.imageCount == 0 ? "" : (row.imageCount == 1 ? ", with 1 photo" : ", with \(row.imageCount) photos")
     }
 }
 

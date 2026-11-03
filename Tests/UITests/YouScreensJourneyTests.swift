@@ -204,8 +204,19 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
             require(element("taskboards.row.garden"), "the garden board")
         }
 
-        step("A board lists its tasks by where they stand") {
+        step("A board opens to its project: how far along, what needs an eye, who is working on it") {
             tap(element("taskboards.row.eurorack-choir"), "the Eurorack Choir board")
+            waitUntil("the project's title") { isShowingTitle("Eurorack Choir Module") }
+            require(element("project.progress"), "the board's progress")
+            require(element("project.task.t-panels"), "the front panels task, which is in progress")
+            require(shows("Working on it"), "the heading over the agents holding work")
+            require(shows("1 open task"), "what the agent holding the front panels has")
+            require(element("project.openBoard"), "Open the full board")
+            XCTAssertFalse(element("taskboard.add").exists, "The list opens the project, not the full board.")
+        }
+
+        step("Open the full board lists its tasks by where they stand") {
+            open(element("project.openBoard"), "Open the full board", until: { self.element("taskboard.add").exists })
             waitUntil("the board's title") { isShowingTitle("Eurorack Choir Module") }
             require(element("taskboard.task.t-panels"), "the front panels task")
             require(shows("Order the front panels"), "the task's title")
@@ -217,6 +228,60 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
             require(shows("Comparing three quotes"), "what the agent says it is doing")
             reveal(shows("Two quotes in, one to go."), "the agent's note on the task")
             reveal(shows("Keep it under $80"), "the person's note on the task")
+        }
+    }
+
+    /// The launch flag that gives the Eurorack Choir Module the things that go with it (`UITestWorld.projectLinksFlag`): the plain
+    /// canned vault has none, and the Library graph journey counts what it has.
+    private let withProjectLinks = ["-HV_UITEST_PROJECT_LINKS"]
+
+    func testAProjectShowsItsBoardAndWhatGoesWithItAndWhyEachThingIsThere() {
+        launch(.signedIn, arguments: withProjectLinks)
+        openFromAccount("taskBoards", title: "Task boards")
+        let bakery = element("project.related.page:bakery-landing-page-x1")
+        let lisbon = element("project.related.page:trip-to-lisbon-q7")
+
+        step("The list opens the project's overview") {
+            tap(element("taskboards.row.eurorack-choir"), "the Eurorack Choir board")
+            waitUntil("the project's title") { isShowingTitle("Eurorack Choir Module") }
+            require(element("project.openBoard"), "Open the full board")
+        }
+
+        step("Pages and files say why each is there") {
+            reveal(bakery, "the Bakery landing page row")
+            XCTAssertTrue(bakery.label.contains("Linked"), "The page joined by hand says \"\(bakery.label)\".")
+            let panels = element("project.related.page:panel-drawings-x1")
+            reveal(panels, "the Panel drawings row")
+            XCTAssertTrue(panels.label.contains("Tagged"), "The page tagged with the project says \"\(panels.label)\".")
+        }
+
+        step("Memories and chats say why too") {
+            let memory = element("project.related.memory:m2")
+            reveal(memory, "the Auth decision memory row")
+            XCTAssertTrue(memory.label.contains("Linked"), "The memory joined by hand says \"\(memory.label)\".")
+            let chat = element("project.related.chat:c-choir-quotes")
+            reveal(chat, "the chat named for the project")
+            XCTAssertTrue(chat.label.contains("Mentions it"), "The chat says \"\(chat.label)\".")
+        }
+
+        step("What the server only guessed at waits behind a row, and is hidden again by it") {
+            requireGone(lisbon, "the page the server only guessed at")
+            open(element("project.possibly"), "Show possibly related", until: { lisbon.exists })
+            reveal(lisbon, "the guessed page")
+            XCTAssertTrue(lisbon.label.contains("Possibly related"), "The guessed page says \"\(lisbon.label)\".")
+            open(element("project.possibly"), "Hide possibly related", until: { !lisbon.exists })
+            requireGone(lisbon, "the guessed page, hidden again")
+        }
+
+        step("A page opens, and Back lands on the overview") {
+            open(bakery, "the Bakery landing page row", until: { self.isShowingTitle("Bakery landing page") })
+            goBack(until: { self.element("project.openBoard").exists })
+            waitUntil("the project's title") { isShowingTitle("Eurorack Choir Module") }
+        }
+
+        step("Open the full board pushes the board, and Back lands on the overview") {
+            open(element("project.openBoard"), "Open the full board", until: { self.element("taskboard.add").exists })
+            goBack(until: { self.element("project.openBoard").exists })
         }
     }
 }

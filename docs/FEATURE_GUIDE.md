@@ -297,7 +297,8 @@ app's `StyleKitStore` decides whether to wear it (the phone's "Use this theme in
 
 - **Colour goes through `Palette` (or `HVColor`) and nowhere else.** Both are computed from `StyleRuntime`, so a body that
   reads one is drawn again when the look changes, and nothing at a call site knows about themes. Never write a colour
-  with `Color("asset-name")`, `UIColor(named:)` or a literal `Color.white` on a themed fill: it would not follow. The
+  with `Color("asset-name")`, `UIColor(named:)` or a literal `Color.white` on a themed fill: it would not follow
+  (`scripts/check_prompts.py` fails the build on an asset-name lookup outside `StyleRuntime.swift`). The
   label on the flat `Palette.action` fill (a bubble, the send button, the filled button, a spinner in one) is
   `Palette.onAction`, and on the destructive fill `Palette.onDestructive`; both are white in the stock look. Fixed colours
   (the code panel, the card brands) are listed in `HVColor` and `HVCardBrandTile` and are the same under every theme.

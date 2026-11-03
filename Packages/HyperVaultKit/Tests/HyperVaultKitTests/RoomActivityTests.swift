@@ -49,6 +49,53 @@ final class RoomActivityTests: RoomTestCase {
         XCTAssertEqual(ChatRoomActivity.resolve(header: queued, sending: false), .next(handle: "claude", then: []))
     }
 
+    // MARK: the header after an answer
+
+    func testTheAnswerToAPostThatNamesAnotherDevicesTurnLeavesTheRoomRunning() {
+        // The screen last read a quiet room. Another device then started a run, and this phone posts without running:
+        // the answer names the turn in flight and says nothing of the lease.
+        let quiet = detail([]).room
+        let post = ChatRoomRun(
+            messages: [], pending: [ChatRoomTurn(handle: "custom")], budget: 11, busy: false,
+            current: ChatRoomCurrentTurn(handle: "claude")
+        )
+        let after = quiet.applying(post)
+        XCTAssertTrue(after.running)
+        XCTAssertEqual(after.current?.handle, "claude")
+        XCTAssertEqual(after.pending.map(\.handle), ["custom"])
+        XCTAssertEqual(after.budget, 11)
+        XCTAssertEqual(ChatRoomActivity.resolve(header: after, sending: false), .thinking(handle: "claude", since: nil, then: ["custom"]))
+        XCTAssertFalse(after.canBeContinued, "a run that is alive is not something to continue")
+        XCTAssertEqual(after.id, quiet.id)
+        XCTAssertEqual(after.title, quiet.title)
+    }
+
+    func testARunAnswerThatSaysBusyKeepsTheRoomRunning() {
+        let busy = ChatRoomRun(
+            messages: [], pending: [ChatRoomTurn(handle: "custom")], budget: 10, busy: true, current: ChatRoomCurrentTurn(handle: "claude")
+        )
+        let after = detail([]).room.applying(busy)
+        XCTAssertTrue(after.running)
+        XCTAssertEqual(ChatRoomActivity.resolve(header: after, sending: false), .thinking(handle: "claude", since: nil, then: ["custom"]))
+        // A server that does not report the turn: busy alone is enough.
+        let plain = detail([]).room.applying(ChatRoomRun(pending: [ChatRoomTurn(handle: "custom")], busy: true))
+        XCTAssertEqual(ChatRoomActivity.resolve(header: plain, sending: false), .working(then: ["custom"]))
+    }
+
+    func testTheAnswerToThisPhonesOwnRunEndsIt() {
+        // The screen read the room while the run was going (running, claude thinking); the run's answer says it is over.
+        let reading = detail([], running: true, pending: ["custom"], current: "claude").room
+        let finished = reading.applying(ChatRoomRun(messages: [message("a1", 3)], pending: [], budget: 9))
+        XCTAssertFalse(finished.running)
+        XCTAssertNil(finished.current)
+        XCTAssertEqual(ChatRoomActivity.resolve(header: finished, sending: false), .idle)
+        XCTAssertFalse(finished.canBeContinued)
+        // Turns left over (the budget ran out, say) are for the person to continue.
+        let leftOver = reading.applying(ChatRoomRun(pending: [ChatRoomTurn(handle: "custom")], budget: 0))
+        XCTAssertEqual(ChatRoomActivity.resolve(header: leftOver, sending: false), .next(handle: "custom", then: []))
+        XCTAssertTrue(leftOver.canBeContinued)
+    }
+
     func testTheSentenceUnderTheThreadNamesTheMemberWhoIsThinking() {
         let started = Date(timeIntervalSince1970: 1_000_000)
         XCTAssertNil(ChatRoomActivity.idle.line())

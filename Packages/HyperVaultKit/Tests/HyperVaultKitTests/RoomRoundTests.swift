@@ -46,12 +46,8 @@ final class RoomScreenProbe: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         seen.progress.append(run.messages.map { $0.senderHandle ?? $0.senderKind.rawValue })
         seen.transcript.merge(run.messages)
-        if var header = seen.header {
-            header.pending = run.pending
-            header.budget = run.budget
-            header.running = run.busy
-            header.current = run.current
-            seen.header = header
+        if let header = seen.header {
+            seen.header = header.applying(run)
             note()
         }
     }
@@ -268,6 +264,35 @@ final class RoomRoundTests: RoomTestCase {
         let lines = probe.snapshot.lines
         XCTAssertTrue(lines.contains { $0.hasPrefix("@custom is thinking...") }, "lines the person read: \(lines)")
         XCTAssertFalse(lines.contains { $0.hasPrefix("@custom is thinking...") && lines.first == $0 }, "never named custom first: claude had the turn")
+    }
+
+    /// Another device's run is on a turn when this phone posts without running. The answer names that turn and cannot
+    /// say the run is alive; read as a lost turn it would offer Continue for a room that is working.
+    func testAPostMadeWhileAnotherDevicesRunIsOnATurnDoesNotReadAsCutOff() async throws {
+        let server = FakeRoomServer(style: .queued, turnSeconds: 0.01)
+        let api = client(server)
+        let probe = RoomScreenProbe()
+        // The screen opened on the quiet room, before the other device began.
+        probe.apply(try await api.send(.room(id: "r1")))
+        XCTAssertEqual(probe.activity, .idle)
+
+        await server.holdTurn(1)
+        let other = ChatRoomDriver(client: api, roomID: "r1", pace: quick)
+        let otherRound = Task { try await other.send("from my other phone") { _ in } }
+        await eventually("claude's turn under way on the other device") { await server.turnsInFlight == "claude" }
+
+        // The answer is heard before any read of the room.
+        let answer = try await api.send(.postRoomMessage(roomID: "r1", content: "me too", run: false))
+        XCTAssertFalse(answer.busy, "a post says nothing of the lease")
+        XCTAssertEqual(answer.current?.handle, "claude")
+        probe.apply(answer)
+        guard case .thinking(let handle, _, _) = probe.activity else { return XCTFail("read as \(probe.activity)") }
+        XCTAssertEqual(handle, "claude")
+        XCTAssertFalse(probe.snapshot.header?.canBeContinued ?? true)
+        XCTAssertFalse(probe.snapshot.lines.contains { $0.contains("cut off") }, "lines: \(probe.snapshot.lines)")
+
+        await server.releaseTurn()
+        _ = try await otherRound.value
     }
 
     /// A run that dies leaves the room looking busy until its lease runs out; then the person is told the turn was

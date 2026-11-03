@@ -322,8 +322,10 @@ public struct ChatRoomRun: Sendable, Decodable, Equatable {
     public let budget: Int
     /// Another run holds the room; try again shortly.
     public let busy: Bool
-    /// The turn being taken as the answer was written: set when a request only queued the message, or when another
-    /// client's run holds the room. Nil from a server that does not report it.
+    /// The turn being taken as the answer was written: set when a post only queued the message while another client's
+    /// run was on a turn, or when that run holds the room (`busy`). Nil from a server that does not report it. An
+    /// answer never says whether a run holds the room unless `busy`; `ChatRoomHeader.applying(_:)` merges it into the
+    /// header.
     public let current: ChatRoomCurrentTurn?
 
     public init(

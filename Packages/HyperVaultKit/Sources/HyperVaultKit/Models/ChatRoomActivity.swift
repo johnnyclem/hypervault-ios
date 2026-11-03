@@ -94,4 +94,26 @@ extension ChatRoomHeader {
     public var canBeContinued: Bool {
         !running && (!pending.isEmpty || current != nil)
     }
+
+    /// The header after the answer to a post or a run: what is still queued, the turn in flight, and whether a run
+    /// holds the room. The screen's model and the tests share this one rule.
+    ///
+    /// An answer cannot say that no run holds the room, only that one does (`busy`), so `running` is worked out from
+    /// what it does say:
+    /// - `busy`: another run holds the room;
+    /// - a turn in flight and no `busy`: a live run is taking it. A post with `run: false` answers the turn another
+    ///   device's run is on, and says nothing of the lease, but the server settles a lost turn (writes its note and
+    ///   clears `current`) before it accepts the message, so a turn still named at that point is not lost. Reading the
+    ///   answer as `running = busy` would call it cut off and offer Continue for a run that is alive;
+    /// - neither: this phone's own run has ended and nothing holds the room.
+    ///
+    /// The next read of the room corrects whatever this gets wrong, and the follower is never long behind.
+    public func applying(_ run: ChatRoomRun) -> ChatRoomHeader {
+        var header = self
+        header.pending = run.pending
+        header.budget = run.budget
+        header.current = run.current
+        header.running = run.busy || run.current != nil
+        return header
+    }
 }

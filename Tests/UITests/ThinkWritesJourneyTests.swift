@@ -275,4 +275,37 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
             requireGone(element("chat.room.rn1"), "the deleted room")
         }
     }
+
+    /// The first message of a room just made is answered by its member. The canned server takes it as the real one now can:
+    /// the post only keeps it and queues the turn, and the turn is a request of its own. (That the person's words and each
+    /// answer show while a request is still open is the model's test, `RoomModelTests`: a canned server answers at once, too
+    /// fast for a journey to catch the words on their way.)
+    func testTheFirstMessageToANewRoomIsAnsweredByItsMember() {
+        launch(.signedIn)
+        openTab("Chat")
+        tap(segment("Group chats"), "the Group chats half", until: { self.button("New room").exists })
+
+        step("A new room is made and opens") {
+            tap(button("New room"), "New room")
+            require(element("room.new.title"), "the room name field")
+            enter("Book club", into: element("room.new.title"), "the room name field")
+            putTheKeyboardAway()
+            open(button("Start room with 1 member"), "Start room")
+            requireGone(element("room.new.title"), "the New room sheet")
+            waitUntil("the new room's screen") { self.isShowingTitle("Book club") }
+            require(textField("room.field"), "the message field")
+        }
+
+        step("The first message is kept, and the member answers it") {
+            let message = "claude, suggest a first book"
+            enter(message, into: textField("room.field"), "the message field")
+            require(shows("Goes to @claude"), "the line that says who the message goes to")
+            tap(button("Send"), "Send")
+            waitUntil("the message to leave the message box once it is sent") { self.fieldNoLongerHolds(self.textField("room.field"), message) }
+            require(shows("Noted: claude, suggest a first book"), "claude's answer", timeout: 40)
+            requireWrite("POST", "/api/rooms/rn1/messages", equal: ["content": message, "run": "false"])
+            let run = requireWrite("POST", "/api/rooms/rn1/run")
+            XCTAssertEqual(run?.query, "turns=1", "one turn to a request")
+        }
+    }
 }

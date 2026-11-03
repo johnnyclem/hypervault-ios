@@ -367,6 +367,54 @@ final class UITestWritesTests: XCTestCase {
         XCTAssertEqual(after.map(\.id), ["r1", "r2"])
     }
 
+    /// A room made on the phone had no routes for what is said to it, so a journey could make one and never talk in it.
+    /// It takes the post that only queues the turns (`run: false`, which the app sends) and then one turn per request, and the
+    /// post that is answered after the turns (which an older app sends).
+    func testARoomMadeOnThePhoneTakesAMessageAndAnswersItOneTurnAtATime() async throws {
+        let api = client()
+        let drafts = [ChatRoomMemberDraft(backendID: "b1", handle: "claude"), ChatRoomMemberDraft(backendID: "b2", handle: "gpt")]
+        _ = try await api.send(.createRoom(title: "Garden club", members: drafts))
+
+        let post = try await api.send(.postRoomMessage(roomID: "rn1", content: "pick a name", run: false))
+        XCTAssertEqual(post.messages.map(\.senderKind), [.human], "kept, and nobody has answered")
+        XCTAssertEqual(post.messages.first?.content, "pick a name")
+        XCTAssertEqual(post.pending.map(\.handle), ["claude", "gpt"], "nobody addressed, so everyone is queued, in order")
+        XCTAssertEqual(post.budget, 12)
+        XCTAssertFalse(post.busy)
+        let waiting = try await api.send(.room(id: "rn1"))
+        XCTAssertEqual(waiting.messages.count, 1)
+        XCTAssertEqual(waiting.room.pending.map(\.handle), ["claude", "gpt"])
+        XCTAssertFalse(waiting.room.running)
+
+        let first = try await api.send(.runRoom(id: "rn1", turns: 1))
+        XCTAssertEqual(first.messages.compactMap(\.senderHandle), ["claude"])
+        XCTAssertEqual(first.messages.first?.content, "Noted: pick a name")
+        XCTAssertEqual(first.pending.map(\.handle), ["gpt"])
+        XCTAssertEqual(first.budget, 11)
+        let second = try await api.send(.runRoom(id: "rn1", turns: 1))
+        XCTAssertEqual(second.messages.compactMap(\.senderHandle), ["gpt"])
+        XCTAssertTrue(second.pending.isEmpty)
+        let nothing = try await api.send(.runRoom(id: "rn1"))
+        XCTAssertTrue(nothing.messages.isEmpty, "an empty queue runs nothing")
+
+        // Whoever is addressed is queued, and a post that does not ask to hold its turns is answered after them.
+        let inline = try await api.send(.postRoomMessage(roomID: "rn1", content: "gpt, and again"))
+        XCTAssertEqual(inline.messages.map(\.senderKind), [.human, .agent])
+        XCTAssertEqual(inline.messages.last?.senderHandle, "gpt")
+        XCTAssertTrue(inline.pending.isEmpty)
+        let everything = try await api.send(.room(id: "rn1"))
+        XCTAssertEqual(everything.messages.map(\.position), [0, 1, 2, 3, 4])
+        XCTAssertEqual(everything.messages.map(\.id), ["rn1-x0", "rn1-x1", "rn1-x2", "rn1-x3", "rn1-x4"])
+
+        _ = try await api.send(.deleteRoom(id: "rn1"))
+        do {
+            _ = try await api.send(.postRoomMessage(roomID: "rn1", content: "anyone?", run: false))
+            XCTFail("A room that is gone takes nothing.")
+        } catch let error as HVError {
+            XCTAssertEqual(error.status, 404)
+        }
+    }
+
     // MARK: Truth
 
     func testAUVIsAssertedIntoTheLedgerAndTheOutOfDateItemsAreResolved() async throws {

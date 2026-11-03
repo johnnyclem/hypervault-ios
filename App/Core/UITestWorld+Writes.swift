@@ -403,6 +403,22 @@ extension UITestWorld {
                 guard let member = body(request)["member_id"]?.string, rooms.removeMember(id: id, memberID: member) else { return notFound("That member is not here.") }
                 return empty()
             })
+            // What is said to the room, and the turns that answer it. A post that says `run: false` is only kept and its turns
+            // queued, and each `run` takes the number it is asked for (`turns`, up to three): the phone drives the round one
+            // request at a time. A post that does not say it is answered after the turns, as the server did.
+            routes.append(MockRoute(.post, "/api/rooms/\(id)/messages") { request in
+                let sent = body(request)
+                guard let content = sent["content"]?.string, !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    return reply(.object(["error": .string("content is required.")]), status: 400)
+                }
+                guard let answer = rooms.say(id: id, content, runTurns: sent["run"]?.bool != false) else { return notFound("That room is not here.") }
+                return reply(answer)
+            })
+            routes.append(MockRoute(.post, "/api/rooms/\(id)/run") { request in
+                let turns = request.queryValue("turns").flatMap(Int.init) ?? UITestRooms.turnsPerRun
+                guard let answer = rooms.run(id: id, turns: turns) else { return notFound("That room is not here.") }
+                return reply(answer)
+            })
         }
         return routes
     }
@@ -1457,11 +1473,19 @@ final class UITestRooms: @unchecked Sendable {
         let message: String
     }
 
+    /// The turns one request takes at most, as the server's.
+    static let turnsPerRun = 3
+
     private struct Made {
         let id: String
         var title: String
         var members: [JSONValue]
         var memberCount: Int
+        /// Everything said in the room, oldest first: the person's words and each member's answer.
+        var said: [JSONValue] = []
+        /// The members whose turns are waiting, in order.
+        var queue: [String] = []
+        var budget = 12
     }
 
     private let lock = NSLock()
@@ -1521,10 +1545,68 @@ final class UITestRooms: @unchecked Sendable {
         defer { lock.unlock() }
         guard let room = made.first(where: { $0.id == id }), !deleted.contains(id) else { return nil }
         let header: JSONValue = .object([
-            "id": .string(id), "title": .string(room.title), "pending": .array([]), "budget": .int(12), "running": .bool(false),
+            "id": .string(id), "title": .string(room.title), "pending": Self.pending(room), "budget": .int(room.budget), "running": .bool(false),
             "truth_ledgers": .null, "created_at": .string(UITestWorld.date(120)), "updated_at": .string(UITestWorld.date(10)),
         ])
-        return JSONValue.object(["room": header, "members": .array(room.members), "messages": .array([])]).jsonString()
+        return JSONValue.object(["room": header, "members": .array(room.members), "messages": .array(room.said)]).jsonString()
+    }
+
+    /// Says something to a room made on the phone, as `POST /api/rooms/:id/messages` does: the words are kept and a turn is
+    /// queued for each member they address (everyone, when they address nobody). With `runTurns` the turns are taken before
+    /// the answer; without it they wait for `run`.
+    func say(id: String, _ content: String, runTurns: Bool) -> JSONValue? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let at = made.firstIndex(where: { $0.id == id }), !deleted.contains(id) else { return nil }
+        let handles = made[at].members.compactMap { $0["handle"]?.string }
+        let addressed = ChatRoomHandles.mentions(in: content, handles: handles)
+        let targets = addressed.isEmpty ? handles : addressed
+        for handle in targets where !made[at].queue.contains(handle) {
+            made[at].queue.append(handle)
+        }
+        made[at].budget = 12
+        let mine = Self.append(&made[at], kind: "human", handle: nil, content: content, mentions: addressed)
+        let answers = runTurns ? Self.take(&made[at], turns: Self.turnsPerRun) : []
+        return Self.answer(made[at], messages: [mine] + answers)
+    }
+
+    /// `POST /api/rooms/:id/run`: the next turns of the queue, at most `turns`. Each member answers "Noted: " and the words
+    /// the person last said.
+    func run(id: String, turns: Int) -> JSONValue? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let at = made.firstIndex(where: { $0.id == id }), !deleted.contains(id) else { return nil }
+        let answers = Self.take(&made[at], turns: turns)
+        return Self.answer(made[at], messages: answers)
+    }
+
+    private static func append(_ room: inout Made, kind: String, handle: String?, content: String, mentions: [String]) -> JSONValue {
+        let position = room.said.count
+        let message = UITestWorld.roomMessage(
+            "\(room.id)-x\(position)", position: position, kind: kind, handle: handle, content: content, mentions: mentions, ago: 5
+        )
+        room.said.append(message)
+        return message
+    }
+
+    private static func take(_ room: inout Made, turns: Int) -> [JSONValue] {
+        let asked = room.said.last(where: { $0["sender_kind"]?.string == "human" })?["content"]?.string ?? ""
+        var answers: [JSONValue] = []
+        for _ in 0..<max(0, min(turns, turnsPerRun)) {
+            guard !room.queue.isEmpty, room.budget > 0 else { break }
+            let handle = room.queue.removeFirst()
+            room.budget -= 1
+            answers.append(append(&room, kind: "agent", handle: handle, content: "Noted: \(asked)", mentions: []))
+        }
+        return answers
+    }
+
+    private static func pending(_ room: Made) -> JSONValue {
+        .array(room.queue.map { JSONValue.object(["handle": .string($0), "reason": .string("")]) })
+    }
+
+    private static func answer(_ room: Made, messages: [JSONValue]) -> JSONValue {
+        .object(["messages": .array(messages), "pending": pending(room), "budget": .int(room.budget), "busy": .bool(false)])
     }
 
     func rename(id: String, to title: String) -> Bool {

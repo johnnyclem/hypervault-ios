@@ -177,7 +177,9 @@ final class RoomModelTests: XCTestCase {
         await eventually("the request to have ended") { !model.isDriving }
         XCTAssertEqual(model.draft, "", "the message is in the room; it does not come back into the box to be sent twice")
         XCTAssertTrue(model.outgoing.isEmpty)
-        XCTAssertNil(model.notice, "the room carries on, so there is nothing to apologise for")
+        // The room is at work on the turn (and nothing is said), or the phone looked a moment before it took it (and it says
+        // to look at the room). Never that the message was not sent: `testARunThatDiedIsNotRunningForEver...` pins the silence.
+        XCTAssertTrue(model.notice == nil || model.notice == "Network hiccup. Check the room for what it has said.", "\(String(describing: model.notice))")
         XCTAssertEqual(model.messages.map(\.senderKind), [.human])
 
         await server.releaseTurn()
@@ -300,13 +302,12 @@ final class RoomModelTests: XCTestCase {
     /// answers one too, and the room is open again when it answers properly, with what was said before still there.
     func testARoomThatIsGoneIsSaidSoAndOpensAgainWhenItAnswers() async {
         let counter = ReadCounter()
+        let back = ReadSwitch()
         let transport = MockTransport(routes: [
             MockRoute(.get, "/api/rooms/r1") { _ in
-                switch counter.bump() {
-                case 1: return RoomJSON.answer(RoomJSON.json(messages: [RoomJSON.message("x1", 0, "human", nil)]))
-                case 2...4: return RoomJSON.answer(status: 404, #"{"error":"Room not found."}"#)
-                default: return RoomJSON.answer(RoomJSON.json(messages: [RoomJSON.message("x1", 0, "human", nil), RoomJSON.message("x2", 1, "agent", "claude")]))
-                }
+                if counter.bump() == 1 { return RoomJSON.answer(RoomJSON.json(messages: [RoomJSON.message("x1", 0, "human", nil)])) }
+                if !back.isSet { return RoomJSON.answer(status: 404, #"{"error":"Room not found."}"#) }
+                return RoomJSON.answer(RoomJSON.json(messages: [RoomJSON.message("x1", 0, "human", nil), RoomJSON.message("x2", 1, "agent", "claude")]))
             },
         ])
         let (model, _) = make(transport)
@@ -318,6 +319,7 @@ final class RoomModelTests: XCTestCase {
             return false
         }
         XCTAssertEqual(model.messages.count, 1, "what was said is kept")
+        back.set()
         await eventually("the room to open again") { model.phase == .ready && model.messages.count == 2 }
         XCTAssertEqual(model.messages.map(\.id), ["x1", "x2"], "the read after the gap added to the thread and did not replace it")
         following.cancel()
@@ -524,6 +526,24 @@ private final class ReadCounter: @unchecked Sendable {
         defer { lock.unlock() }
         count += 1
         return count
+    }
+}
+
+/// A switch a mock route reads from any thread.
+private final class ReadSwitch: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+
+    var isSet: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
+
+    func set() {
+        lock.lock()
+        value = true
+        lock.unlock()
     }
 }
 

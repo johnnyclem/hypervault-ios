@@ -115,6 +115,15 @@ final class AppearanceModelTests: XCTestCase {
         XCTAssertFalse(rig.model.isOffline)
         XCTAssertEqual(rig.wearer.last, StyleKitFixtures.glassmorphism)
         XCTAssertEqual(rig.model.wearingLine, "The app is wearing Glassmorphism.")
+        // The server moved Glassmorphism's primary to read as text, which the person can see as the theme's colour.
+        XCTAssertEqual(rig.model.adjustedLine, "Some colours are adjusted so text stays easy to read.")
+    }
+
+    func testNothingIsSaidAboutAColourOnlyAnErrorRedMoved() async {
+        // Newsprint's only adjustment is its destructive red, not a colour the person sees as the theme's.
+        let rig = makeRig(transport(ThemeServer(theme: "newsprint")))
+        await rig.model.load()
+        XCTAssertEqual(rig.model.wearingLine, "The app is wearing Newsprint.")
         XCTAssertNil(rig.model.adjustedLine)
     }
 

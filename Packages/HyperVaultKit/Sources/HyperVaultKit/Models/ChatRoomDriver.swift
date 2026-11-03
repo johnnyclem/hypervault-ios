@@ -62,7 +62,8 @@ public struct ChatRoomDriver: Sendable {
 
     func drive(after start: ChatRoomRun?, onProgress: @escaping @MainActor @Sendable (ChatRoomRun) -> Void) async throws -> Outcome {
         var current = start
-        var lastRun: ChatRoomRun?
+        // The run before the one being judged: after a post, the post's answer; a resumed round has none yet.
+        var lastRun = start
         var fruitless = 0
         var busyAsks = 0
         for _ in 0..<maxRequests {
@@ -80,8 +81,8 @@ public struct ChatRoomDriver: Sendable {
             await onProgress(next)
             if next.pending.isEmpty, !next.busy { return .finished }
             // A run that wrote nothing is fruitless, unless it took a turn off the queue all the same (the member
-            // had left the room): one turn per request would otherwise count three such turns as a stall. The
-            // first run has no run before it to compare with.
+            // had left the room): one turn per request would otherwise count three such turns as a stall. It is
+            // compared with the run before it, which for the first run after a post is the post's own answer.
             let tookATurn = lastRun.map { next.pending.count < $0.pending.count } ?? false
             fruitless = (next.messages.isEmpty && !next.busy && !tookATurn) ? fruitless + 1 : 0
             if fruitless >= 3 { return .stalled }

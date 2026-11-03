@@ -96,6 +96,39 @@ final class RoomDriverTests: RoomTestCase {
         XCTAssertEqual(script.value, [])
     }
 
+    func testTheFirstRunAfterAPostIsComparedWithThePostsAnswer() async throws {
+        // The post left two turns queued. The first run takes one off without writing (the member had left the room),
+        // which is progress; the next two move nothing, so that is two fruitless runs, not three. The fourth finishes.
+        @Sendable func run(_ pending: [String]) -> String {
+            #"{"messages":[],"pending":[\#(pending.map { #"{"handle":"\#($0)","reason":""}"# }.joined(separator: ","))],"budget":8}"#
+        }
+        let script = TestBox<[String]>([run(["y"]), run(["y"]), run(["y"]), run([])])
+        let transport = MockTransport(routes: [
+            .json(.post, "/api/rooms/r1/messages", #"{"messages":[{"id":"h1","position":0,"sender_kind":"human","content":"hi"}],"pending":[{"handle":"x","reason":""},{"handle":"y","reason":""}],"budget":12}"#),
+            MockRoute(.post, "/api/rooms/r1/run") { _ in
+                var rest = script.value
+                let next = rest.isEmpty ? run([]) : rest.removeFirst()
+                script.value = rest
+                return HTTPResponse(status: 200, data: Data(next.utf8))
+            },
+        ])
+        let driver = ChatRoomDriver(client: client(transport), roomID: "r1", pace: instant)
+        let outcome = try await driver.send("hi") { _ in }
+        XCTAssertEqual(outcome, .finished)
+        XCTAssertEqual(script.value, [], "all four runs were asked for")
+    }
+
+    func testARoundResumedHasNoRunBeforeItsFirstToCompareWith() async throws {
+        // Nothing to compare the first run with: three runs that write nothing and move nothing stall it, as ever.
+        let stall = #"{"messages":[],"pending":[{"handle":"y","reason":""}],"budget":9}"#
+        let transport = MockTransport(routes: [.json(.post, "/api/rooms/r1/run", stall)])
+        let driver = ChatRoomDriver(client: client(transport), roomID: "r1", pace: instant)
+        let outcome = try await driver.resume { _ in }
+        XCTAssertEqual(outcome, .stalled)
+        let asked = await transport.requests.count
+        XCTAssertEqual(asked, 3)
+    }
+
     func testRunsThatNeitherWriteNorMoveTheQueueStillStall() async throws {
         let stall = #"{"messages":[],"pending":[{"handle":"claude","reason":""},{"handle":"custom","reason":""}],"budget":9}"#
         let transport = MockTransport(routes: [.json(.post, "/api/rooms/r1/run", stall)])

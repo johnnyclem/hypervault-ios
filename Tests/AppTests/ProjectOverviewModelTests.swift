@@ -119,6 +119,7 @@ final class ProjectOverviewModelTests: XCTestCase {
     }
 
     func testTryAgainOnABoardPutsTheRestTogether() async throws {
+        let project = self.project   // the canned routes below are @Sendable closures: they take the value, not the test case
         let open = Asked()
         let board = MockRoute(.get, "/api/tasklists/\(project)") { _ in
             if open.count == 0 {
@@ -158,6 +159,7 @@ final class ProjectOverviewModelTests: XCTestCase {
     }
 
     func testComingBackWithinAMinuteChecksTheBoardAndReadsNothingElseAgain() async {
+        let project = self.project
         let links = Asked(), polls = Asked()
         let counted = [
             MockRoute(.get, "/api/connections") { _ in

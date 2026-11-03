@@ -2,11 +2,17 @@ import UIKit
 import XCTest
 
 extension HyperVaultUITestCase {
-    /// How bright the page is right now, 0 (black) to 1 (white): the middle one of 64 samples down a strip 12 points in from
-    /// the left edge, which is the page's own background on every screen (rows and cards start 16 points in). The same probe
-    /// the layout sweeps use, for a journey that changes the look and must see the page change with it.
+    /// How bright the page is right now, 0 (black) to 1 (white). The probe the layout sweeps use, for a journey that changes
+    /// the look and must see the page change with it.
     func currentPageBrightness() -> Double? {
-        let screenshot = XCUIScreen.main.screenshot()
+        edgeBrightness(of: XCUIScreen.main.screenshot())
+    }
+
+    /// How bright the page is in a screenshot, 0 (black) to 1 (white): the middle one of 64 samples taken down a strip 12
+    /// points in from the left edge, which is the page's own background on every screen (rows and cards start 16 points in)
+    /// and, on a sheet, the sheet's. The middle one, not the average: a sheet over a web page has the page, dimmed but white,
+    /// above it.
+    func edgeBrightness(of screenshot: XCUIScreenshot) -> Double? {
         guard let image = screenshot.image.cgImage else { return nil }
         let scale = Int(screenshot.image.scale)
         let strip = CGRect(x: 12 * scale, y: image.height / 8, width: 4 * scale, height: image.height * 6 / 8)

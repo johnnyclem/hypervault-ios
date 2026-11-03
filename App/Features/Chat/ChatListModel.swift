@@ -30,6 +30,11 @@ final class ChatListModel {
         self.namespace = namespace
     }
 
+    /// Whether the person has no chats, as the server last said it: Home shows its starter page then, and only then. "No
+    /// chats" is never read off a cached copy (which may be old) or off a refresh that failed, so a person who has chats
+    /// does not see the starter for the moment before the list comes, and one who is offline does not see it at all.
+    var showsStarter: Bool { phase == .loaded && conversations.isEmpty && !isStale }
+
     func load() async {
         let client = self.client
         do {
@@ -37,12 +42,21 @@ final class ChatListModel {
                 try await client.send(.conversations)
             }
             for try await loaded in stream {
+                // A cached "no chats" is a guess until the server has answered: it is passed over, so the page stays on what
+                // it was (the skeleton, on a first look) and the starter does not flash under it. If the refresh behind it
+                // failed too, nothing is known, and the page says so, unless the server's own "no chats" is already up.
+                if loaded.value.isEmpty, loaded.isStale {
+                    if let failure = loaded.refreshError, conversations.isEmpty, !showsStarter {
+                        phase = .failed(failure.userMessage)
+                    }
+                    continue
+                }
                 conversations = loaded.value.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
                 isStale = loaded.isStale
                 phase = .loaded
             }
         } catch {
-            if conversations.isEmpty {
+            if conversations.isEmpty, !showsStarter {
                 phase = .failed((error as? HVError)?.userMessage ?? error.localizedDescription)
             }
         }
@@ -86,6 +100,9 @@ final class ChatListModel {
             _ = try await client.send(.deleteConversation(id: conversation.id))
             await cache.store(conversations, key: Self.cacheKey, namespace: namespace)
             await cache.remove(key: "chat.conversation.\(conversation.id)", namespace: namespace)
+            // The last chat of a list that came from the cache: the cache cannot say there are no more, so the server is asked
+            // before Home says there are none. (A list the server sent is empty for good: the starter shows at once.)
+            if conversations.isEmpty, isStale { await load() }
         } catch let error as HVError {
             conversations.insert(removed, at: min(index, conversations.count))
             throw ChatActionError(message: error.sentence(offline: "Network hiccup. The chat was not deleted."))

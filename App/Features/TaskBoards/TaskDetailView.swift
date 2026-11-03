@@ -267,7 +267,7 @@ struct TaskDetailView: View {
     private func addNoteRow(_ task: BoardTask) -> some View {
         let isEmpty = newNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return HStack(alignment: .bottom, spacing: HV.Space.s) {
-            TextField("Leave a note", text: $newNote, prompt: Text.hvPrompt("Leave a note"), axis: .vertical)
+            TextField("Leave a note", text: $newNote.hvDroppingStaleWrites(epoch: noteEpoch, current: { noteEpoch }), prompt: Text.hvPrompt("Leave a note"), axis: .vertical)
                 .focused($focus, equals: .note)
                 .hvFieldReset(epoch: noteEpoch, focus: $focus, field: .note)
                 .lineLimit(1...5)

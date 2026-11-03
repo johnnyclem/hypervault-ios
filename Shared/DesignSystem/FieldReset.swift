@@ -17,6 +17,23 @@ extension View {
     }
 }
 
+extension Binding {
+    /// This binding for a field that `hvFieldReset` replaces, when its words live in the view and not in a model with a
+    /// `fieldWrote(_:epoch:)` of its own. Pass the field's epoch as it is when the body runs, and a way to read it now: a
+    /// write from a field that has since been replaced (its epoch is no longer the current one) is dropped, so it cannot
+    /// hand back words that were sent.
+    func hvDroppingStaleWrites(epoch: Int, current: @escaping () -> Int) -> Binding<Value> {
+        let wrapped = self
+        return Binding<Value>(
+            get: { wrapped.wrappedValue },
+            set: { newValue in
+                guard current() == epoch else { return }
+                wrapped.wrappedValue = newValue
+            }
+        )
+    }
+}
+
 struct HVFieldResetModifier<Value: Hashable>: ViewModifier {
     let epoch: Int
     var focus: FocusState<Value>.Binding

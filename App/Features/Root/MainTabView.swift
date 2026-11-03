@@ -40,6 +40,12 @@ struct MainTabView: View {
             guard !model.lock.isLocked else { return }
             await env.flushOutbox(toasts: model.toasts)
         }
+        // Chats written on this phone while offline go to the vault once the person is in. (The chat list did this when it
+        // showed, and no screen shows it for now; a conversation settles its own waiting rows when it opens.)
+        .task(id: model.lock.isLocked) {
+            guard !model.lock.isLocked else { return }
+            _ = await ChatOutboxes.outbox(for: env).flush(client: env.client)
+        }
         // The Mail tab's number is read here and not when Mail first shows: a tab's first screen is built when it is first visited.
         .task(id: model.lock.isLocked) {
             guard !model.lock.isLocked else { return }

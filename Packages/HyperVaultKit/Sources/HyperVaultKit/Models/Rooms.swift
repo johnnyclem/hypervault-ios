@@ -6,7 +6,9 @@ import Foundation
 // (everyone, when it addresses nobody); members hand the turn on by
 // @mentioning each other; a round has a budget of 12 agent turns. One request
 // runs at most three turns, so the client keeps calling `run` until the queue
-// drains: `ChatRoomDriver` is that loop.
+// drains: `ChatRoomDriver` is that loop. What the screen shows is not the
+// driver's business: `ChatRoomFollower` reads the room from the server, and
+// `ChatRoomTranscript` keeps what it read.
 
 public struct ChatRoomBackend: Sendable, Codable, Equatable, Hashable {
     public let name: String
@@ -220,6 +222,31 @@ public struct ChatRoomMessage: Sendable, Codable, Identifiable, Equatable, Hasha
     }
 }
 
+/// The turn a member is taking on the server right now: it has left the queue and has not answered yet. A server that
+/// has not learned to report it leaves it out.
+public struct ChatRoomCurrentTurn: Sendable, Decodable, Equatable, Hashable {
+    public let handle: String
+    public let reason: String
+    /// When the server started it (its clock), so the phone can say how long the member has been thinking.
+    public let startedAt: Date?
+
+    public init(handle: String, reason: String = "", startedAt: Date? = nil) {
+        self.handle = handle
+        self.reason = reason
+        self.startedAt = startedAt
+    }
+
+    enum Keys: String, CodingKey { case handle, reason, startedAt }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: Keys.self)
+        handle = try c.decode(String.self, forKey: .handle)
+        reason = try c.decodeIfPresent(String.self, forKey: .reason) ?? ""
+        // The server writes an empty string when it did not know the time.
+        startedAt = try? c.decodeIfPresent(Date.self, forKey: .startedAt)
+    }
+}
+
 /// The room header of `GET /api/rooms/[id]`.
 public struct ChatRoomHeader: Sendable, Equatable {
     public var id: String
@@ -227,20 +254,28 @@ public struct ChatRoomHeader: Sendable, Equatable {
     public var pending: [ChatRoomTurn]
     /// Agent turns left in this round.
     public var budget: Int
-    /// A run holds the room right now (this phone or another client).
+    /// A run holds the room right now (this phone or another client). A server that expires leases answers true only
+    /// while the run's lease is fresh, so a run that died does not read as running for ever.
     public var running: Bool
+    /// The turn being taken now. Set while `running` is false, it is a turn the server lost when its run died; the
+    /// next run records it. Nil from a server that does not report it.
+    public var current: ChatRoomCurrentTurn?
 
-    public init(id: String, title: String, pending: [ChatRoomTurn] = [], budget: Int = 0, running: Bool = false) {
+    public init(
+        id: String, title: String, pending: [ChatRoomTurn] = [], budget: Int = 0, running: Bool = false,
+        current: ChatRoomCurrentTurn? = nil
+    ) {
         self.id = id
         self.title = title
         self.pending = pending
         self.budget = budget
         self.running = running
+        self.current = current
     }
 }
 
 extension ChatRoomHeader: Decodable {
-    enum Keys: String, CodingKey { case id, title, pending, budget, running }
+    enum Keys: String, CodingKey { case id, title, pending, budget, running, current }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Keys.self)
@@ -249,6 +284,8 @@ extension ChatRoomHeader: Decodable {
         pending = try c.decodeIfPresent([ChatRoomTurn].self, forKey: .pending) ?? []
         budget = try c.decodeIfPresent(Int.self, forKey: .budget) ?? 0
         running = try c.decodeIfPresent(Bool.self, forKey: .running) ?? false
+        // Lenient on purpose: a malformed `current` costs the typing line its name, not the person the room.
+        current = try? c.decodeIfPresent(ChatRoomCurrentTurn.self, forKey: .current)
     }
 }
 
@@ -279,20 +316,28 @@ public struct ChatRoomDetail: Sendable, Decodable, Equatable {
 public struct ChatRoomRun: Sendable, Decodable, Equatable {
     /// Everything produced by this request (the person's message first).
     public let messages: [ChatRoomMessage]
-    /// Turns still queued when the request ran out of time.
+    /// Turns still queued: the request ran out of time, took only the turns it was asked for, or (a post with
+    /// `run: false`) took none.
     public let pending: [ChatRoomTurn]
     public let budget: Int
     /// Another run holds the room; try again shortly.
     public let busy: Bool
+    /// The turn being taken as the answer was written: set when a request only queued the message, or when another
+    /// client's run holds the room. Nil from a server that does not report it.
+    public let current: ChatRoomCurrentTurn?
 
-    public init(messages: [ChatRoomMessage] = [], pending: [ChatRoomTurn] = [], budget: Int = 0, busy: Bool = false) {
+    public init(
+        messages: [ChatRoomMessage] = [], pending: [ChatRoomTurn] = [], budget: Int = 0, busy: Bool = false,
+        current: ChatRoomCurrentTurn? = nil
+    ) {
         self.messages = messages
         self.pending = pending
         self.budget = budget
         self.busy = busy
+        self.current = current
     }
 
-    enum Keys: String, CodingKey { case messages, pending, budget, busy }
+    enum Keys: String, CodingKey { case messages, pending, budget, busy, current }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Keys.self)
@@ -300,6 +345,7 @@ public struct ChatRoomRun: Sendable, Decodable, Equatable {
         pending = try c.decodeIfPresent([ChatRoomTurn].self, forKey: .pending) ?? []
         budget = try c.decodeIfPresent(Int.self, forKey: .budget) ?? 0
         busy = try c.decodeIfPresent(Bool.self, forKey: .busy) ?? false
+        current = try? c.decodeIfPresent(ChatRoomCurrentTurn.self, forKey: .current)
     }
 }
 

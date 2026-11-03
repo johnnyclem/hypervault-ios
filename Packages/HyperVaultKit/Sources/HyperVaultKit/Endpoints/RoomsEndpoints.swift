@@ -1,7 +1,8 @@
 import Foundation
 
 // Room endpoints (docs/rooms.md). A message or a run can take up to two
-// minutes: the server makes several model calls in one request.
+// minutes: the server makes several model calls in one request (a message
+// posted with `run: false` and a run limited with `turns` are the short ones).
 
 private struct RoomsEnvelope: Decodable { let rooms: [ChatRoomSummary] }
 private struct MembersEnvelope: Decodable { let members: [ChatRoomMember] }
@@ -72,18 +73,29 @@ extension Endpoint where Response == [ChatRoomMember] {
 }
 
 extension Endpoint where Response == ChatRoomRun {
-    /// Says something to the room. The addressed members take turns (everyone,
-    /// when nobody is addressed); what did not fit in the request comes back as `pending`.
-    public static func postRoomMessage(roomID: String, content: String) -> Endpoint<ChatRoomRun> {
-        Endpoint(
-            .post, "/api/rooms/\(roomID)/messages", body: .jsonValue(["content": .string(content)]),
+    /// Says something to the room. The addressed members take turns (everyone, when nobody is addressed); what did
+    /// not fit in the request comes back as `pending`.
+    ///
+    /// With `run: false` the server only keeps the message and queues the turns, and answers at once: the phone
+    /// drives them one request at a time (`runRoom`) and shows each answer as it lands. A server that has not
+    /// learned `run` ignores it and answers after the turns, as it always did, so the field is left out of the body
+    /// unless it is asked for.
+    public static func postRoomMessage(roomID: String, content: String, run: Bool = true) -> Endpoint<ChatRoomRun> {
+        var object: [String: JSONValue] = ["content": .string(content)]
+        if !run { object["run"] = .bool(false) }
+        return Endpoint(
+            .post, "/api/rooms/\(roomID)/messages", body: .jsonValue(.object(object)),
             timeout: chatTurnTimeout
         )
     }
 
-    /// Continues the queued turns. Safe to repeat: with an empty queue it does
-    /// nothing, and `busy` says another run holds the room.
-    public static func runRoom(id: String) -> Endpoint<ChatRoomRun> {
-        Endpoint(.post, "/api/rooms/\(id)/run", timeout: chatTurnTimeout, idempotent: true)
+    /// Continues the queued turns, at most `turns` of them (the server's own cap, three, when nil; it clamps what
+    /// it is given). Safe to repeat: with an empty queue it does nothing, and `busy` says another run holds the
+    /// room. A server that has not learned `turns` ignores it.
+    public static func runRoom(id: String, turns: Int? = nil) -> Endpoint<ChatRoomRun> {
+        Endpoint(
+            .post, "/api/rooms/\(id)/run", query: .make([("turns", turns.map { String(Swift.max(1, $0)) })]),
+            timeout: chatTurnTimeout, idempotent: true
+        )
     }
 }

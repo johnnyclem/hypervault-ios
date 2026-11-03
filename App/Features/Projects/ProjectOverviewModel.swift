@@ -182,7 +182,9 @@ final class ProjectOverviewModel {
         return Sources(pages: await pagesRead, links: await linksRead, memories: await memoriesRead, chats: await chatsRead)
     }
 
-    /// The last whole answer first, so the sections do not start empty.
+    /// The last whole answer first, so the sections do not start empty. It is not marked as a saved copy here: the reads are
+    /// already under way, and a banner for the second they take would come and go on every open. `relatedIsStale` is set when
+    /// none of them worked (`put(together:)`), which is when the copy is what is being shown.
     private func seedRelatedFromTheSavedCopy() async {
         guard case .loading = related,
               let cached = await env.cache.entry(ProjectRelated.self, key: Self.relatedKey(project), namespace: env.user.id)

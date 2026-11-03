@@ -186,9 +186,9 @@ enum DeepLink: Hashable {
         case "library":
             self = libraryLink()
         case "projects", "project":
-            // hypervault://projects/<id> is one project's overview. The id is the board's project id, a plain one: an id
-            // that is not names nothing, and the link is the list of boards.
-            if let id = second, DeepLink.isPlainID(id) { self = .route(.project(id: id)) } else { self = .route(.taskBoards) }
+            // hypervault://projects/<id> is one project's overview. The id is the board's project id, as the server names it
+            // (`DeepLink.projectID`); text that is not one names nothing, and the link is the list of boards.
+            if let id = second.flatMap(DeepLink.projectID) { self = .route(.project(id: id)) } else { self = .route(.taskBoards) }
         case "pair":
             self = .pair(code: value("code") ?? value("user_code"))
         case "invite":
@@ -248,5 +248,17 @@ enum DeepLink: Hashable {
     /// cannot steer the request for a memory to another path.
     static func isPlainID(_ id: String) -> Bool {
         (1...128).contains(id.count) && id.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") }
+    }
+
+    /// The project a link names, as the screen needs it: the id the server made for the board. The server takes a task list by
+    /// its id or by its `tasks-` slug alike (`tasklistSlug`, docs/tasklists.md), and the ids it makes are lower case. The
+    /// overview names the board's page, tags and caches by the id, so a link given the slug (`tasks-eurorack-choir`) or
+    /// capitals would load the board and find nothing that goes with it. Nil when the text is not a plain id.
+    static func projectID(_ text: String) -> String? {
+        guard isPlainID(text) else { return nil }
+        let id = text.lowercased()
+        let slugPrefix = "tasks-"
+        let bare = id.hasPrefix(slugPrefix) ? String(id.dropFirst(slugPrefix.count)) : id
+        return bare.isEmpty ? nil : bare
     }
 }

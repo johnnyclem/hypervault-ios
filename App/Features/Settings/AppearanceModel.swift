@@ -71,11 +71,14 @@ final class AppearanceModel {
             try await style.refresh(using: loader)
             stored = style.state?.theme
             isOffline = false
+            problem = nil
             phase = .loaded
         } catch {
             if phase == .loaded {
-                // A second look at a pane that is showing: what it shows stays, and the failure is said.
+                // A second look at a pane that is showing (Try again): what it shows stays, and the failure is said. A server
+                // that answers with an error is not an absent one, so it is the error that is shown and not the offline note.
                 isOffline = Self.isOffline(error)
+                if !isOffline { problem = keysMessage(for: error) }
                 return
             }
             if style.state != nil {

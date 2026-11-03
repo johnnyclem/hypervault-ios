@@ -232,6 +232,30 @@ final class AppearanceModelTests: XCTestCase {
         XCTAssertEqual(wearer.last, StyleKitFixtures.glassmorphism)
     }
 
+    func testTryingAgainAndMeetingAServerErrorSaysSoAndIsNoLongerOffline() async {
+        let wearer = RecordingWearer()
+        let suite = "hv-appearance-" + UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let style = StyleKitStore(defaults: defaults, wearer: wearer)
+        style.adopt(DashboardThemeState(theme: "newsprint", kit: StyleKitFixtures.newsprint))
+        let server = Flaky(inner: MockTransport(routes: [.failure(.get, "/api/dashboard-theme", status: 500, message: "Could not read your theme.")]))
+        await server.setOnline(false)
+        let rig = makeRig(server, style: style, wearer: wearer)
+
+        await rig.model.load()
+        XCTAssertTrue(rig.model.isOffline)
+        XCTAssertNil(rig.model.problem)
+
+        // Try again: the phone is back, and the server answers with an error. That is not "no connection", and it is not silent.
+        await server.setOnline(true)
+        await rig.model.load()
+        XCTAssertEqual(rig.model.phase, .loaded)
+        XCTAssertFalse(rig.model.isOffline)
+        XCTAssertEqual(rig.model.problem, "Could not read your theme.")
+        XCTAssertEqual(wearer.last, StyleKitFixtures.newsprint, "the look already worn is not touched")
+    }
+
     // MARK: Choosing
 
     func testChoosingSendsItWearsTheAnswersKitAndConfirmsInWords() async {

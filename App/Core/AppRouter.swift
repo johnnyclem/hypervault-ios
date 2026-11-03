@@ -89,6 +89,9 @@ final class AppRouter {
     /// or to the pairing page names no tab: it presents the Account sheet over the tab that shows (`showSettings`).
     func open(_ link: DeepLink) {
         let hadSheet = sheet != nil
+        // The latest link wins over a pairing page an earlier one asked for and the Agent keys pane has not taken yet (the
+        // sheet was still on its way in, or never showed): a `pair` link makes its own request below.
+        pairing = nil
         switch link {
         case .pair, .invite, .account:
             // The latest link wins over a panel that was waiting for a sheet to go.
@@ -139,6 +142,8 @@ final class AppRouter {
     /// one presents when it has (`sheetDidDismiss`), since a sheet set while another is leaving does not present.
     func present(_ next: AppSheet) {
         if sheet == nil || sheet == next {
+            // Nothing is up to wait for, so a sheet that was queued by an earlier ask is not this one's: the latest ask wins.
+            queuedSheet = nil
             sheet = next
         } else {
             queuedSheet = next
@@ -147,16 +152,18 @@ final class AppRouter {
     }
 
     /// The router's sheet has been dismissed. A Yours link that arrived while it was up opens its panel now, and so does a
-    /// sheet that was asked for.
+    /// sheet that was asked for. A pairing page that no Account sheet is coming for is forgotten.
     func sheetDidDismiss() {
         if yoursWaitsForSheet {
             yoursWaitsForSheet = false
             yoursPanel = true
         }
-        if let next = queuedSheet {
-            queuedSheet = nil
-            sheet = next
-        }
+        let next = queuedSheet
+        queuedSheet = nil
+        if let next { sheet = next }
+        // With no Account sheet on its way (the person closed it before the Agent keys pane showed), a pairing page that was
+        // asked for is not shown later, when they open that pane by hand.
+        if next != .account { pairing = nil }
     }
 
     /// Pushes a screen where the person is looking: with the Account sheet up, on its stack (a screen the sheet shows, like

@@ -590,6 +590,55 @@ final class DeepLinkTests: XCTestCase {
     }
 
     @MainActor
+    func testTheLatestLinkWinsOverASheetThatWasWaitingForTheOneGoing() {
+        let router = AppRouter()
+        router.showAccountMenu()
+        router.open(.invite(code: "HV-1"))
+        XCTAssertNil(router.sheet, "the Account sheet goes first")
+        router.open(.account(.keys))
+        XCTAssertEqual(router.sheet, .account)
+        XCTAssertEqual(router.accountPane, .keys)
+        router.sheetDidDismiss()
+        XCTAssertEqual(router.sheet, .account, "the invite that was asked for first does not come back over the later link")
+    }
+
+    @MainActor
+    func testAPairingPageThatNothingIsComingToShowIsForgotten() {
+        // A later link that is not a pairing request forgets it.
+        let later = AppRouter()
+        later.sheet = .connectAgent
+        later.open(.pair(code: "ABCD-EFGH"))
+        XCTAssertNotNil(later.pairing)
+        later.open(.tab(.mail))
+        XCTAssertNil(later.pairing, "the latest link named a tab")
+        later.sheetDidDismiss()
+        XCTAssertNil(later.sheet)
+        XCTAssertNil(later.pairing)
+
+        // So does a link to Settings: it is the pane the person asked for, not the pairing page.
+        let settings = AppRouter()
+        settings.open(.pair(code: "ABCD-EFGH"))
+        settings.open(.account(.keys))
+        XCTAssertNil(settings.pairing)
+        XCTAssertEqual(settings.sheet, .account)
+
+        // The Account sheet closed before the Agent keys pane took the request: the pane is not handed it later, by hand.
+        let closed = AppRouter()
+        closed.open(.pair(code: "ZZZZ-1111"))
+        closed.sheet = nil
+        closed.sheetDidDismiss()
+        XCTAssertNil(closed.pairing)
+
+        // But it waits for a sheet that is only waiting for another to go.
+        let waiting = AppRouter()
+        waiting.sheet = .connectAgent
+        waiting.open(.pair(code: "ABCD-EFGH"))
+        waiting.sheetDidDismiss()
+        XCTAssertEqual(waiting.sheet, .account)
+        XCTAssertEqual(waiting.pairing?.code, "ABCD-EFGH", "the pane takes it when it shows")
+    }
+
+    @MainActor
     func testTheYoursPanelWaitsForTheSheetThatWasUpToGo() {
         let router = AppRouter()
         router.sheet = .account

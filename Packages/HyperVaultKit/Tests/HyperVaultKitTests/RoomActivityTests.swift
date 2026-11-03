@@ -41,6 +41,25 @@ final class RoomActivityTests: RoomTestCase {
         XCTAssertFalse(waiting.isBusy)
     }
 
+    func testAQueueThisPhoneIsWorkingThroughIsNotWaitingForAnybody() {
+        // Between two of the phone's requests no run holds the room: the turn before has been written and the next has
+        // not been claimed. The line stays on the room at work instead of flickering to "is next" and back.
+        let gap = detail([], running: false, pending: ["b", "c"]).room
+        let driving = ChatRoomActivity.resolve(header: gap, sending: false, driving: true)
+        XCTAssertEqual(driving, .working(then: ["b", "c"]))
+        XCTAssertTrue(driving.isBusy)
+        XCTAssertEqual(ChatRoomActivity.resolve(header: gap, sending: false, driving: false), .next(handle: "b", then: ["c"]))
+        // Nothing queued: nothing to be at work on, whoever is asking.
+        XCTAssertEqual(ChatRoomActivity.resolve(header: detail([]).room, sending: false, driving: true), .idle)
+        // A lost turn is still lost, and the message on its way still comes first.
+        let lost = detail([], running: false, pending: ["b"], current: "a").room
+        XCTAssertEqual(ChatRoomActivity.resolve(header: lost, sending: false, driving: true), .cutOff(handle: "a"))
+        XCTAssertEqual(ChatRoomActivity.resolve(header: gap, sending: true, driving: true), .sending)
+        // A member who is thinking is named, driving or not.
+        let thinking = detail([], running: true, pending: ["c"], current: "b").room
+        XCTAssertEqual(ChatRoomActivity.resolve(header: thinking, sending: false, driving: true), .thinking(handle: "b", since: nil, then: ["c"]))
+    }
+
     func testTurnsLeftWaitingWithNobodyRunningThemCanBeContinued() {
         XCTAssertTrue(detail([], running: false, pending: ["claude", "custom"]).room.canBeContinued)
         XCTAssertFalse(detail([], running: true, pending: ["claude"]).room.canBeContinued, "a run is at work on them")

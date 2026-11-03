@@ -25,7 +25,11 @@ public enum ChatRoomActivity: Sendable, Equatable {
     /// - Parameters:
     ///   - header: the room as the server last reported it (a read, or the end of a post or a run).
     ///   - sending: the person's message has not been acknowledged yet.
-    public static func resolve(header: ChatRoomHeader?, sending: Bool) -> ChatRoomActivity {
+    ///   - driving: this phone is working through the round, asking for each turn as soon as the one before it is
+    ///     written. Between two such requests no run holds the room for a moment, and a queue the phone is about to
+    ///     ask for is not waiting for anybody: it reads as the room at work, and not as a member who is "next" (which
+    ///     would flicker in and out of the line at every turn).
+    public static func resolve(header: ChatRoomHeader?, sending: Bool, driving: Bool = false) -> ChatRoomActivity {
         if sending { return .sending }
         guard let header else { return .idle }
         let queued = header.pending.map(\.handle)
@@ -34,7 +38,7 @@ public enum ChatRoomActivity: Sendable, Equatable {
                 ? .thinking(handle: current.handle, since: current.startedAt, then: queued)
                 : .cutOff(handle: current.handle)
         }
-        if header.running { return .working(then: queued) }
+        if header.running || (driving && !queued.isEmpty) { return .working(then: queued) }
         if let first = queued.first { return .next(handle: first, then: Array(queued.dropFirst())) }
         return .idle
     }

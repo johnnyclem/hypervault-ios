@@ -24,7 +24,7 @@ enum DictationProblem: Equatable {
 /// the app is away. `.inactive` alone is not that: Control Center and system alerts pass through it for a moment.
 enum DictationPolicy {
     static func mustStop(tab: AppTab, isCovered: Bool, phase: ScenePhase) -> Bool {
-        tab != .canvas || isCovered || phase == .background
+        tab != .home || isCovered || phase == .background
     }
 }
 

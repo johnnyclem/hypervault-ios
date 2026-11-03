@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 
 /// The Library: everything kept, behind the same four filters and the same
 /// search by name as Yours, with Files as the file manager. Pushed from the
-/// You tab and from Yours' "More".
+/// Account menu and from Yours' "More". (Mail is a tab of its own, not a fifth way to filter what is kept.)
 struct LibraryRootView: View {
     @Environment(AppEnvironment.self) private var env
     /// What a link chose (the web's `?filter=` and `?q=`). The Library a person opens themselves shows All, nothing typed.
@@ -173,13 +173,6 @@ struct LibraryScreen: View {
                 EditButton()
             }
         }
-        // Mail is its own place, not a fifth way to filter what is kept.
-        ToolbarItem(placement: .primaryAction) {
-            NavigationLink(value: Route.mail) {
-                Image(systemName: "envelope")
-            }
-            .accessibilityLabel("Mail")
-        }
         ToolbarItem(placement: .primaryAction) {
             Button {
                 Haptics.select()
@@ -295,7 +288,7 @@ struct LibraryScreen: View {
         }
     }
 
-    /// A key opens the Vault pane of the You tab; everything else is pushed on this screen's stack.
+    /// A key opens the Vault pane of Settings (the Account sheet); everything else is pushed on this screen's stack.
     private func open(_ item: KeptItem) {
         switch item.kind {
         case .memory: app.router.push(.memory(id: item.id))

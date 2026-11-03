@@ -1,18 +1,16 @@
 import HyperVaultKit
 import SwiftUI
-import UIKit
 
 /// A sheet the whole app can present from the root.
 enum AppSheet: Identifiable, Hashable {
-    case pair(code: String?)
     case invite(code: String?)
     case connectAgent
-    /// The Account menu behind the avatar on Home: what the tab bar does not carry.
+    /// The Account sheet behind the avatar on every tab's first screen: its menu, and Settings on the same stack. (The
+    /// pairing page is not one of these: the Agent keys pane presents it, over the sheet, once it is showing.)
     case account
 
     var id: String {
         switch self {
-        case .pair(let code): return "pair-\(code ?? "")"
         case .invite(let code): return "invite-\(code ?? "")"
         case .connectAgent: return "connect-agent"
         case .account: return "account"
@@ -20,23 +18,38 @@ enum AppSheet: Identifiable, Hashable {
     }
 }
 
+/// A step on the Account sheet's stack between its menu and a pane. The stack is `[]` for the menu, `[.settings]` for the list
+/// of panes and `[.settings, .pane(p)]` for a pane; what a pane pushes (a `Route`) follows it.
+enum AccountStep: Hashable {
+    case settings
+    case pane(AccountPane)
+}
+
+/// A pairing page that was asked for. A link with no code (`hypervault://pair`) is still a request, so this is not the code
+/// alone. The Agent keys pane takes it (and clears `AppRouter.pairing`) when it shows.
+struct PairingRequest: Equatable, Identifiable {
+    let id = UUID()
+    let code: String?
+}
+
 /// Which tab is showing, what is pushed on each, and what is waiting to be
 /// shown. Features call `open(_:)`; they never reach into each other's stacks.
 @MainActor
 @Observable
 final class AppRouter {
-    var tab: AppTab = .canvas
+    var tab: AppTab = .home
     var sheet: AppSheet?
 
-    /// The pane of the You tab that is showing, or that the list will open on.
+    /// The Account sheet's stack. `[]` is its menu, `[.settings]` the list of panes, `[.settings, .pane(p)]` a pane, and
+    /// what a pane pushes follows. Settings has no tab and no stack of its own: it is this one, in one sheet on every device.
+    var accountPath = NavigationPath()
+
+    /// The pane of Settings that is showing, or that the list opened last.
     private(set) var accountPane: AccountPane = .default
 
-    /// Whether the You tab is one stack (a phone: the list, then a pane pushed on it) rather than a list beside a pane (an
-    /// iPad). In a stack the tab's path starts with the pane, and what the pane pushes follows it; beside a list it holds
-    /// only what the pane pushes. It is chosen once, by the kind of device, and never by the width the window has at the
-    /// moment: a window that is resized (Split View, Slide Over) would otherwise swap one layout for the other and take the
-    /// pane down with a sheet, typed values or a key shown once.
-    let youIsStack: Bool
+    /// A link asked for the website's pairing page. The Agent keys pane takes it (and clears it) when it shows: the page is
+    /// presented by the pane, once the pane is up, and not by the router over a sheet that is still on its way in.
+    var pairing: PairingRequest?
 
     /// Text a link or a Shortcut wants in the canvas field. The canvas takes it
     /// (and clears it) when it appears.
@@ -48,7 +61,11 @@ final class AppRouter {
     /// A Yours link came while a sheet was up: the panel is a sheet too, and opens once that one is gone (`sheetDidDismiss`).
     @ObservationIgnored private var yoursWaitsForSheet = false
 
-    /// A link or the Account menu asked for Group chats. Chat shows that half (and clears this) when it sees it.
+    /// A sheet that was asked for while another was up: it presents once that one is gone (`sheetDidDismiss`), because a
+    /// sheet does not present over one that is still on its way out.
+    @ObservationIgnored private var queuedSheet: AppSheet?
+
+    /// A link or the Account menu asked for Group chats. The chat list shows that half (and clears this) when it sees it.
     var groupChats = false
 
     /// A link named a way of looking at Memory (Search, Ask or Graph). The Memory screen takes it (and clears it) when it
@@ -58,24 +75,7 @@ final class AppRouter {
     /// A link named a branch of the mind. The Memory screen takes it (and clears it), and switches to it if the person has it.
     var memoryBranch: String?
 
-    private var paths: [AppTab: NavigationPath]
-
-    init(youIsStack: Bool) {
-        self.youIsStack = youIsStack
-        paths = [.you: youIsStack ? Self.panePath(.default) : NavigationPath()]
-    }
-
-    /// A phone is a stack; an iPad has the room for the list beside the pane.
-    convenience init() {
-        self.init(youIsStack: UIDevice.current.userInterfaceIdiom != .pad)
-    }
-
-    /// A path that holds the pane a stack opens on.
-    private static func panePath(_ pane: AccountPane) -> NavigationPath {
-        var path = NavigationPath()
-        path.append(pane)
-        return path
-    }
+    private var paths: [AppTab: NavigationPath] = [:]
 
     func path(for tab: AppTab) -> Binding<NavigationPath> {
         Binding(
@@ -85,59 +85,78 @@ final class AppRouter {
     }
 
     /// A link lands where it says, from the first screen of its tab: what covers the app gives way (only a link that
-    /// presents a sheet of its own keeps one), and so does whatever was pushed on the tab the link names. The You tab's
-    /// own path is the pane's (`showPane`).
+    /// presents a sheet of its own keeps one), and so does whatever was pushed on the tab the link names. A link to Settings
+    /// or to the pairing page names no tab: it presents the Account sheet over the tab that shows (`showSettings`).
     func open(_ link: DeepLink) {
         let hadSheet = sheet != nil
         switch link {
-        case .pair, .invite:
-            break
+        case .pair, .invite, .account:
+            // The latest link wins over a panel that was waiting for a sheet to go.
+            yoursWaitsForSheet = false
         default:
             sheet = nil
+            queuedSheet = nil
         }
         switch link {
         case .keep(let prefill):
             if let prefill, !prefill.isEmpty { canvasDraft = prefill }
-            popToRoot(.canvas)
+            popToRoot(.home)
         case .pair(let code):
-            sheet = .pair(code: code)
-            showPane(.keys)
+            pairing = PairingRequest(code: code)
+            showSettings(.keys)
         case .invite(let code):
-            sheet = .invite(code: code)
+            present(.invite(code: code))
         case .account(let pane):
-            showPane(pane ?? .default)
+            showSettings(pane)
         case .yours:
             // The panel is a sheet of Home's. With another sheet still on its way out it would not present, so it waits.
             if hadSheet { yoursWaitsForSheet = true } else { yoursPanel = true }
-            popToRoot(.canvas)
+            popToRoot(.home)
         case .groupChats:
             groupChats = true
-            popToRoot(.chat)
+            popToRoot(.home)
         case .memoryTab(let mode, let branch):
             // What the link names is all that waits: a view or a branch an earlier link left behind is not this one's.
             memoryMode = mode
             memoryBranch = branch
             popToRoot(.memory)
         case .tab(let named):
-            if named != .you { popToRoot(named) }
+            popToRoot(named)
         case .route:
             break
         }
         let destination = link.destination
-        tab = destination.tab
-        if let route = destination.route {
+        if let named = destination.tab { tab = named }
+        if let route = destination.route, let target = destination.tab {
             // Start from the tab's root so the link lands where it says.
             var path = NavigationPath()
             path.append(route)
-            paths[destination.tab] = path
+            paths[target] = path
         }
     }
 
-    /// The router's sheet has been dismissed. A Yours link that arrived while it was up opens its panel now.
+    /// Presents a sheet. Where none is up (or this one is) it shows at once; where another is, that one goes first and this
+    /// one presents when it has (`sheetDidDismiss`), since a sheet set while another is leaving does not present.
+    func present(_ next: AppSheet) {
+        if sheet == nil || sheet == next {
+            sheet = next
+        } else {
+            queuedSheet = next
+            sheet = nil
+        }
+    }
+
+    /// The router's sheet has been dismissed. A Yours link that arrived while it was up opens its panel now, and so does a
+    /// sheet that was asked for.
     func sheetDidDismiss() {
-        guard yoursWaitsForSheet else { return }
-        yoursWaitsForSheet = false
-        yoursPanel = true
+        if yoursWaitsForSheet {
+            yoursWaitsForSheet = false
+            yoursPanel = true
+        }
+        if let next = queuedSheet {
+            queuedSheet = nil
+            sheet = next
+        }
     }
 
     func push(_ route: Route, on tab: AppTab? = nil) {
@@ -151,23 +170,50 @@ final class AppRouter {
         paths[tab] = NavigationPath()
     }
 
-    /// Brings a pane of the You tab forward, from its first screen. The tab's list uses this too.
-    func showPane(_ pane: AccountPane) {
+    /// The Account sheet, on its menu. The avatar on every tab's first screen calls this.
+    func showAccountMenu() {
+        accountPath = NavigationPath()
+        present(.account)
+    }
+
+    /// The Account sheet, on a pane of Settings (the vault when none is named), from the pane's first screen with the list
+    /// of panes one step back. Where the sheet is up already it is the stack that moves, and the sheet stays.
+    func showSettings(_ pane: AccountPane? = nil) {
+        let shown = pane ?? .default
+        accountPane = shown
+        var path = NavigationPath()
+        path.append(AccountStep.settings)
+        path.append(AccountStep.pane(shown))
+        accountPath = path
+        present(.account)
+    }
+
+    /// A pane chosen from the list of Settings: pushed on the Account sheet's stack.
+    func openPane(_ pane: AccountPane) {
         accountPane = pane
-        paths[.you] = youIsStack ? Self.panePath(pane) : NavigationPath()
+        accountPath.append(AccountStep.pane(pane))
+    }
+
+    /// A screen a pane of Settings shows another screen on (Import's chats and pages): pushed on the Account sheet's stack, not
+    /// on the stack of the tab behind it, where it would be out of sight.
+    func pushInAccount(_ route: Route) {
+        accountPath.append(route)
     }
 
     /// Back to a fresh canvas with nothing pushed, presented or waiting, for when the person who was here is gone.
     func reset() {
         accountPane = .default
-        paths = [.you: youIsStack ? Self.panePath(.default) : NavigationPath()]
+        accountPath = NavigationPath()
+        pairing = nil
+        paths = [:]
         sheet = nil
+        queuedSheet = nil
         canvasDraft = nil
         yoursPanel = false
         yoursWaitsForSheet = false
         groupChats = false
         memoryMode = nil
         memoryBranch = nil
-        tab = .canvas
+        tab = .home
     }
 }

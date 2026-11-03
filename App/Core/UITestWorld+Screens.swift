@@ -2,7 +2,7 @@
 import Foundation
 import HyperVaultKit
 
-/// What the screens behind the You tab (and what they open) are shown, in the shapes the real routes send: the keys, the
+/// What the screens behind Settings (and what they open) are shown, in the shapes the real routes send: the keys, the
 /// address, the ledger, the task boards, a room, the admin's codes. `UITestWorld.routes(for:)` puts these before the
 /// canned answers the previews use, so a route a journey needs is answered here first.
 ///
@@ -215,7 +215,7 @@ extension UITestWorld {
 
     // MARK: Admin
 
-    /// The admin check the You tab makes (an empty `PATCH` to an invite that does not exist) and the codes an admin mints.
+    /// The admin check the Account menu makes (an empty `PATCH` to an invite that does not exist) and the codes an admin mints.
     /// Every admin route refuses a person who is not an admin with a 403, which is what the check reads; an admin gets past
     /// the guard and is refused for the empty body (a 400).
     static func adminRoutes(isAdmin: Bool) -> [MockRoute] {

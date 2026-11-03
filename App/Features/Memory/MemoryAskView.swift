@@ -74,7 +74,7 @@ struct MemoryAskView: View {
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                         .multilineTextAlignment(.center)
-                    Button("Open Chat") { app.router.open(.tab(.chat)) }
+                    Button("Open Chat") { app.router.open(.tab(.home)) }
                         .buttonStyle(.hvGhost)
                 }
                 .padding(.horizontal, HV.Space.l)

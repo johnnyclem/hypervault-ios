@@ -1,30 +1,30 @@
 import Foundation
 import HyperVaultKit
 
-/// The four places the app lives, in the order of the web's dock. The Yours panel is on Home; the Account sheet is
-/// behind the avatar on Home.
+/// The four places the app lives, in the order of the tab bar: Home, Projects, Memory, Mail. Settings is not one of them:
+/// it is behind the avatar, in the Account sheet (`AppSheet.account`), so a link to it presents that sheet and names no tab.
 enum AppTab: String, CaseIterable, Identifiable, Hashable {
-    /// Home. The case keeps the engineering name for the page (the web's `/vault` renders the canvas), so nothing
-    /// that is about the canvas has to change; the person sees "Home".
-    case canvas, chat, memory, you
+    /// Home. The raw value stays "canvas": installed widgets carry `hypervault://tab/canvas`, and that opens for good.
+    case home = "canvas"
+    case projects, memory, mail
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .canvas: return "Home"
-        case .chat: return "Chat"
+        case .home: return "Home"
+        case .projects: return "Projects"
         case .memory: return "Memory"
-        case .you: return "You"
+        case .mail: return AccountMenu.mail
         }
     }
 
     var symbol: String {
         switch self {
-        case .canvas: return HVSymbol.home
-        case .chat: return HVSymbol.chat
+        case .home: return HVSymbol.home
+        case .projects: return HVSymbol.projects
         case .memory: return HVSymbol.memory
-        case .you: return HVSymbol.you
+        case .mail: return HVSymbol.mail
         }
     }
 }
@@ -32,7 +32,8 @@ enum AppTab: String, CaseIterable, Identifiable, Hashable {
 /// A screen that can be pushed onto any tab's navigation stack. Features push
 /// their own local destinations too; these are the ones other features and
 /// links need to reach by name. `RouteDestination` maps each to its screen. The
-/// screens that are panes of the You tab are not routes: they are `AccountPane`s.
+/// screens that are panes of Settings are not routes: they are `AccountPane`s. Mail and the Projects list are not routes
+/// either: they are the roots of their tabs.
 enum Route: Hashable {
     case artifact(slug: String)
     case memory(id: String)
@@ -42,7 +43,6 @@ enum Route: Hashable {
     case library
     /// The Library with a filter and a search already chosen (the web's `/vault/library?filter=&q=`).
     case libraryFiltered(filter: YoursFilter, query: String)
-    case mail
     case truth
     case truthReview
     /// The review session, opened on the ledger a link names (the web's `/vault/truth/review?ledger=`).
@@ -51,7 +51,6 @@ enum Route: Hashable {
     case importHistory
     case dreams
     case digest
-    case taskBoards
     /// One board, pushed after it is made (and by anything that has its listing). It is a route, not a destination of
     /// the list's own, so it goes on the tab's path with every other screen: a destination the list presented itself
     /// (`navigationDestination(item:)`) was pushed again over the task opened from it.
@@ -72,32 +71,35 @@ enum DeepLink: Hashable {
     /// The Memory tab in the view and on the branch the web's `/vault/memory?mode=&branch=` names. Either may be nil; a
     /// link that names neither is `.tab(.memory)`. The tab's own screen takes them from the router (`AppRouter.open`).
     case memoryTab(mode: MemoryMode?, branch: String?)
-    /// A pane of the You tab. Nil is the page when nothing names a pane, which is the vault.
+    /// A pane of Settings, in the Account sheet over whatever shows. Nil is the pane when nothing names one, which is the vault.
     case account(AccountPane?)
     /// Home, with the Yours panel open over it.
     case yours
-    /// Chat, on its Group chats half.
+    /// Home's chats, on their Group chats half.
     case groupChats
     /// Open the canvas with something already in the field.
     case keep(prefill: String?)
-    /// Open the website's pairing page, where a person answers an agent that is asking for a key, over the Agent keys pane.
+    /// Open the website's pairing page, where a person answers an agent that is asking for a key, over the Agent keys pane
+    /// (which is in Settings, so the Account sheet shows behind it).
     case pair(code: String?)
     case invite(code: String?)
 
     /// The tab a link lands on, and what to push there. Every route has a home here, and a new one has to be given
-    /// its own: there is no default.
-    var destination: (tab: AppTab, route: Route?) {
+    /// its own: there is no default. The tab is nil when the link presents a sheet over whatever shows instead of going
+    /// to a tab (Settings, the pairing page): the tab the person is on stays.
+    var destination: (tab: AppTab?, route: Route?) {
         switch self {
         case .tab(let tab): return (tab, nil)
         case .memoryTab: return (.memory, nil)
-        case .account, .pair: return (.you, nil)
-        case .yours, .keep, .invite: return (.canvas, nil)
-        case .groupChats: return (.chat, nil)
+        case .account, .pair: return (nil, nil)
+        case .yours, .keep, .invite, .groupChats: return (.home, nil)
         case .route(let route):
             switch route {
-            case .artifact, .library, .libraryFiltered, .mail, .mailThread, .taskBoards, .taskBoard, .admin: return (.canvas, route)
+            // Home is the catch-all stack: Library, pages, chats, Tools and Admin have always been pushed there.
+            case .artifact, .library, .libraryFiltered, .admin, .conversation, .room, .tools, .importHistory: return (.home, route)
+            case .mailThread: return (.mail, route)
+            case .taskBoard: return (.projects, route)
             case .memory, .truth, .truthReview, .truthReviewLedger, .dreams, .digest: return (.memory, route)
-            case .conversation, .room, .tools, .importHistory: return (.chat, route)
             }
         }
     }
@@ -172,7 +174,7 @@ enum DeepLink: Hashable {
             if let id = second { self = .route(.memory(id: id)) } else { self = memoryLink() }
         case "chat", "conversation":
             // The web pins a chat as /chat?c=<id>.
-            if let id = second ?? value("c") { self = .route(.conversation(id: id)) } else { self = .tab(.chat) }
+            if let id = second ?? value("c") { self = .route(.conversation(id: id)) } else { self = .tab(.home) }
         case "rooms", "room":
             if let id = second { self = .route(.room(id: id)) } else { self = .groupChats }
         case "canvas", "keep":
@@ -188,21 +190,24 @@ enum DeepLink: Hashable {
         case "login":
             if let code = value("invite") { self = .invite(code: code) } else { return nil }
         case "tab":
-            // Installed widgets and Spotlight results carry hypervault://tab/yours and tab/canvas: they open for good.
+            // Installed widgets and Spotlight results carry hypervault://tab/yours and tab/canvas: they open for good. The
+            // two tabs that are gone have their links kept: Chat is Home's chats, and You is Settings.
             switch second?.lowercased() {
             case "yours": self = .yours
-            case "home": self = .tab(.canvas)
+            case "home", "chat": self = .tab(.home)
+            case "you": self = .account(nil)
+            case "taskboards", "task-boards": self = .tab(.projects)
             case let name?:
                 guard let tab = AppTab(rawValue: name) else { return nil }
                 self = .tab(tab)
             case nil: return nil
             }
         case "mail":
-            if let id = second { self = .route(.mailThread(id: id)) } else { self = .route(.mail) }
+            if let id = second { self = .route(.mailThread(id: id)) } else { self = .tab(.mail) }
         case "truth":
             self = second?.lowercased() == "review" ? reviewLink() : .route(.truth)
-        case "taskboards", "task-boards", "tasks":
-            self = .route(.taskBoards)
+        case "projects", "taskboards", "task-boards", "tasks":
+            self = .tab(.projects)
         case "tools":
             self = .route(.tools)
         case "settings":
@@ -212,7 +217,7 @@ enum DeepLink: Hashable {
         case "vault":
             // The web's /vault/<section> paths. /vault itself is the canvas: Home.
             switch second?.lowercased() {
-            case nil: self = .tab(.canvas)
+            case nil: self = .tab(.home)
             case "memory": self = memoryLink()
             case "library": self = libraryLink()
             case "new": self = .route(.library)
@@ -220,7 +225,7 @@ enum DeepLink: Hashable {
                 // /vault/groups is where groups are listed, in the Library. /vault/groups/<slug> is the web's editor for one
                 // group, which opens as the group does (/g/<slug>); /vault/groups/new makes one, and the Library has that.
                 if let slug = third, slug.lowercased() != "new" { self = .route(.artifact(slug: slug)) } else { self = .route(.library) }
-            case "mail": self = .route(.mail)
+            case "mail": self = .tab(.mail)
             case "truth": self = third?.lowercased() == "review" ? reviewLink() : .route(.truth)
             case "dreams": self = .route(.dreams)
             case "digest": self = .route(.digest)

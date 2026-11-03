@@ -1,9 +1,10 @@
 import HyperVaultKit
 import SwiftUI
 
-/// The second tab: your chats, and your group chats (rooms, with several of
+/// Your chats, and your group chats (rooms, with several of
 /// your models). Models, where you connect your own, is one tap away, and
-/// Tools and Import are under More.
+/// Tools and Import are under More. It has no tab for now: the tab bar is Home, Projects, Memory and Mail, and Home is still
+/// the canvas until the chats take its place.
 struct ChatRootView: View {
     enum Half: String, CaseIterable, Identifiable {
         case chats = "Chats"

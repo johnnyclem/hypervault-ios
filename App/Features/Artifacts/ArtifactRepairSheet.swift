@@ -167,7 +167,7 @@ struct ArtifactRepairSheet: View {
                     .foregroundStyle(Palette.textSecondary)
                 Button("Open Chat") {
                     dismiss()
-                    app.router.open(.tab(.chat))
+                    app.router.open(.tab(.home))
                 }
                 .buttonStyle(.hvGhost)
             }
@@ -203,7 +203,7 @@ struct ArtifactRepairSheet: View {
                 if needsBackend {
                     Button("Open Chat") {
                         dismiss()
-                        app.router.open(.tab(.chat))
+                        app.router.open(.tab(.home))
                     }
                     .buttonStyle(.hvGhost)
                 }

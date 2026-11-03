@@ -106,10 +106,10 @@ final class CanvasKeyCardTests: CanvasTestCase {
     func testAnEntryThatIsGoneGoesWhereOpenAlwaysWentToBefore() {
         XCTAssertEqual(CanvasKeyCard.fallback, DeepLink.account(.vault))
 
-        let router = AppRouter(youIsStack: true)
+        let router = AppRouter()
         router.open(CanvasKeyCard.fallback)
 
-        XCTAssertEqual(router.tab, .you)
+        XCTAssertEqual(router.sheet, .account, "the vault is a pane of Settings, which is the Account sheet")
         XCTAssertEqual(router.accountPane, .vault)
     }
 

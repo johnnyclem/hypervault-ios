@@ -1,7 +1,7 @@
 import HyperVaultKit
 import SwiftUI
 
-/// Mail: notes between the person and the agents they connect, in a mailbox
+/// Mail, the fourth tab: notes between the person and the agents they connect, in a mailbox
 /// they share. The inbox rhythm is the familiar one: who, when, what about,
 /// swipe to file it away.
 struct MailRootView: View {
@@ -14,6 +14,8 @@ struct MailRootView: View {
 
 struct MailInboxScreen: View {
     @Environment(AppModel.self) private var app
+    /// The number on the Mail tab. Optional so the screen drawn without the tab bar (a preview) asks for nothing.
+    @Environment(MailUnread.self) private var unread: MailUnread?
     @State private var model: MailModel
     private let client: HVClient
     @State private var searchText = ""
@@ -33,8 +35,11 @@ struct MailInboxScreen: View {
             .navigationTitle("Mail")
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search mail")
+            .accountAvatar()
             .toolbar { toolbarContent }
             .task { await model.start() }
+            // What this screen read is the truth for the tab's number: it moves as mail is read and filed.
+            .onChange(of: model.totalUnread) { _, count in unread?.set(count) }
             .task(id: searchText) { await model.search(searchText) }
             .onAppear { Task { await model.refreshIfStarted() } }
             .navigationDestination(for: MailThreadRef.self) { ref in

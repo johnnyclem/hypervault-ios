@@ -52,7 +52,7 @@ struct ChatModelsContent: View {
         }
     }
 
-    /// The Models pane of the You tab: its heading is a large one, and the web's line about the pane stands above the list.
+    /// The Models pane of Settings: its heading is a large one, and the web's line about the pane stands above the list.
     private let embedded: Bool
 
     init(

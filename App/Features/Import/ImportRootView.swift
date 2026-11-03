@@ -347,7 +347,7 @@ struct ImportScreen: View {
             }
             VStack(spacing: HV.Space.xs) {
                 // A link to a tab starts the tab from its first screen, so this closes Import where it was pushed on Chat too.
-                Button("Open Chat") { app.router.open(.tab(.chat)) }.buttonStyle(.hvPrimary)
+                Button("Open Chat") { app.router.open(.tab(.home)) }.buttonStyle(.hvPrimary)
                 Button("Import another") { model.startOver() }.buttonStyle(.hvGhost)
             }
         }

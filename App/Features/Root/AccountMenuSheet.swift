@@ -1,30 +1,33 @@
 import HyperVaultKit
 import SwiftUI
 
-/// The Account menu, behind the avatar on Home: the native version of the web's account drawer
-/// (components/canvas/account-menu.tsx). The tab bar carries Home, Chat, Memory and You, so this holds what it does not: the
-/// Library, Mail, task boards, the account and its keys, group chats, Tools, Import, the Beta features, Admin for an admin,
-/// and signing out. A row closes the menu and goes there, on the tab that has it.
+/// The Account sheet, behind the avatar on every tab's first screen: the native version of the web's account drawer
+/// (components/canvas/account-menu.tsx), with Settings on the same stack. The tab bar carries Home, Projects, Memory and Mail,
+/// so the menu holds what it does not: Settings first (the web's You page, whose panes are the account and its keys), then the
+/// Library, group chats, Tools, the Beta features, Admin for an admin, and signing out.
+///
+/// The sheet has one navigation stack, on a phone and on an iPad (where the sheet is page-sized): the menu, then Settings, then a
+/// pane, then whatever the pane pushes (`AppRouter.accountPath`). The Settings row pushes; every other row closes the sheet and
+/// goes there, on the tab that has it.
 struct AccountMenuSheet: View {
     @Environment(AppModel.self) private var app
     @Environment(AppEnvironment.self) private var env
 
-    /// Unread mail, and what waits in Dreams for a decision, read once when the menu opens. Nothing polls them, and a read
-    /// that fails shows no badge.
-    @State private var unread = 0
+    /// What waits in Dreams for a decision, read once when the menu opens. Nothing polls it, and a read that fails shows no badge.
     @State private var dreamsWaiting = 0
 
     var body: some View {
-        NavigationStack {
+        @Bindable var router = app.router
+        NavigationStack(path: $router.accountPath) {
             List {
                 Section {
+                    NavigationLink(value: AccountStep.settings) {
+                        HVRow(symbol: HVSymbol.general, title: AccountMenu.settings)
+                    }
+                    .accessibilityIdentifier("account.settings")
                     row("library", AccountMenu.library, symbol: "folder", to: .route(.library))
-                    row("mail", AccountMenu.mail, symbol: "envelope", to: .route(.mail), badge: unread)
-                    row("taskBoards", AccountMenu.taskBoards, symbol: "checklist", to: .route(.taskBoards))
-                    row("accountAndKeys", AccountMenu.accountAndKeys, symbol: HVSymbol.agentKeys, to: .account(nil))
                     row("groupChats", AccountMenu.groupChats, symbol: "person.2", to: .groupChats)
                     row("tools", AccountMenu.tools, symbol: "wrench.and.screwdriver", to: .route(.tools))
-                    row("import", AccountMenu.importAnything, symbol: HVSymbol.importData, to: .account(.import))
                 }
                 .hvListRow()
 
@@ -64,9 +67,18 @@ struct AccountMenuSheet: View {
                     .accessibilityIdentifier("account.close")
                 }
             }
+            // Settings, then a pane of it; and the screens a pane shows (Import's chats and pages) resolve here too.
+            .navigationDestination(for: AccountStep.self) { step in
+                switch step {
+                case .settings: SettingsListView()
+                case .pane(let pane): AccountPaneView(pane: pane)
+                }
+            }
+            .navigationDestination(for: Route.self) { route in
+                RouteDestination(route: route)
+            }
             // Whether this account is an admin decides whether Admin is here; the answer is kept for hours.
             .task { await env.probeAdmin() }
-            .task { await loadUnread() }
             .task { await loadDreamsWaiting() }
         }
     }
@@ -96,12 +108,6 @@ struct AccountMenuSheet: View {
         .accessibilityIdentifier("account.\(id)")
     }
 
-    private func loadUnread() async {
-        guard let list = try? await env.client.send(.mailMailboxes) else { return }
-        unread = list.totalUnread
-    }
-
-    /// Its own read, so a slow mail read does not hold the badge back.
     private func loadDreamsWaiting() async {
         guard let queue = try? await env.client.send(.dreamQueue) else { return }
         dreamsWaiting = queue.pendingCount

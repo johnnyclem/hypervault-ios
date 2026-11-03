@@ -2,7 +2,8 @@ import HyperVaultKit
 import SwiftUI
 
 /// Home, the first tab: a quiet page with a field. Everything a person has is behind the avatar (the Account menu)
-/// or the panel icon (Yours) and appears only when asked for.
+/// or the panel icon (Yours) and appears only when asked for. (The next step puts the chats on Home; this page is then
+/// its empty state.)
 struct CanvasRootView: View {
     @Environment(AppEnvironment.self) private var env
 
@@ -13,7 +14,8 @@ struct CanvasRootView: View {
 }
 
 struct CanvasScreen: View {
-    /// The page no longer greets by name (the avatar opens the Account menu); the initialisers still take it.
+    /// The page no longer greets by name, and the avatar is the shared `AccountAvatarButton`, which reads the person from the
+    /// environment: the initialisers still take all three.
     let userName: String?
     let avatarName: String
     let avatarURL: URL?
@@ -24,6 +26,8 @@ struct CanvasScreen: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var model: CanvasModel
     @State private var showYours = false
+    /// A link the Yours panel asked for that presents a sheet (a key's entry, in Settings): it opens once the panel is gone.
+    @State private var afterYours: DeepLink?
     /// The page whose people-and-role share sheet is up over the canvas.
     @State private var sharing: CanvasShareTarget?
     /// The key whose entry's page is up over the canvas (allow, revoke and rename an agent's use of it).
@@ -91,7 +95,7 @@ struct CanvasScreen: View {
         .toolbar { toolbarContent }
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showYours) {
+        .sheet(isPresented: $showYours, onDismiss: openWhatYoursAskedFor) {
             YoursSheet(onPull: { item in
                 model.pullItem(item)
                 showYours = false
@@ -102,6 +106,9 @@ struct CanvasScreen: View {
                 // The panel closes as the Library opens, so the Library is not pushed under it.
                 showYours = false
                 app.router.open(.route(.library))
+            }, onVault: {
+                afterYours = .account(.vault)
+                showYours = false
             })
         }
         .sheet(item: $sharing) { target in
@@ -212,15 +219,7 @@ struct CanvasScreen: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button {
-                app.router.sheet = .account
-            } label: {
-                HVAvatar(name: avatarName, imageURL: avatarURL, size: 32)
-            }
-            .accessibilityLabel("Account")
-            .accessibilityIdentifier("canvas.account")
-        }
+        ToolbarItem(placement: .topBarLeading) { AccountAvatarButton() }
         ToolbarItem(placement: .topBarTrailing) {
             Button {
                 showYours = true
@@ -250,6 +249,13 @@ struct CanvasScreen: View {
                 app.router.open(CanvasKeyCard.fallback)
             }
         }
+    }
+
+    /// The Yours panel is gone: what it asked for that needed it gone can present now.
+    private func openWhatYoursAskedFor() {
+        guard let link = afterYours else { return }
+        afterYours = nil
+        app.router.open(link)
     }
 
     /// The sheet found no entry for its key: it closes, and the Vault's list opens once it has.

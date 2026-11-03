@@ -181,8 +181,9 @@ final class KeysLogicTests: XCTestCase {
     func testAPairLinkOpensTheWebsitePageInsteadOfAnsweringItInTheApp() {
         let router = AppRouter()
         router.open(.pair(code: "BCDF-2346"))
-        XCTAssertEqual(router.sheet, .pair(code: "BCDF-2346"))
-        XCTAssertEqual(router.tab, .you)
-        XCTAssertEqual(router.sheet?.id, "pair-BCDF-2346")
+        // The page is the Agent keys pane's to present, so the router shows the pane (in the Account sheet) and keeps the request.
+        XCTAssertEqual(router.sheet, .account)
+        XCTAssertEqual(router.pairing?.code, "BCDF-2346")
+        XCTAssertEqual(router.accountPane, .keys)
     }
 }

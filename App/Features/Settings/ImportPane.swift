@@ -2,7 +2,7 @@ import HyperVaultKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Import, a pane of the You tab: two rows, as the web has them (components/account-sections.tsx). The first goes on to
+/// Import, a pane of Settings: two rows, as the web has them (components/account-sections.tsx). The first goes on to
 /// the history importer; the second keeps one file, and sends it where it belongs by its type, as the web's side menu Import
 /// does (components/import-anything-button.tsx): a component or an HTML file as a running page, a PDF or an image as it is,
 /// a text, Markdown or Word file as a memory (`ImportFileModel`).
@@ -38,7 +38,7 @@ struct ImportPane: View {
                     detail: "Bring your ChatGPT, Claude, Gemini, and Grok history home, then continue any thread in Chat with your vault as memory.",
                     action: "Import your AI history"
                 ) {
-                    app.router.push(.importHistory, on: .you)
+                    app.router.pushInAccount(.importHistory)
                 }
                 // The web's account line adds "(up to 10 MB)" after PDFs, which is older than its code: the server takes 50 MB on Pro
                 // and 1 MB on Free, and the app's own check says 50 MB (`FileImport`). The size is left out rather than be wrong.
@@ -92,10 +92,10 @@ struct ImportPane: View {
         switch await model.keep(url, branch: MemoryBranchStore.current(for: env.user.id)) {
         case .page(let slug, let duplicate):
             app.toasts.show(duplicate ? LibraryCopy.alreadyKept : LibraryCopy.kept, style: .success)
-            app.router.push(.artifact(slug: slug), on: .you)
+            app.router.pushInAccount(.artifact(slug: slug))
         case .memory(let id, let message):
             app.toasts.success(message)
-            if !id.isEmpty { app.router.push(.memory(id: id), on: .you) }
+            if !id.isEmpty { app.router.pushInAccount(.memory(id: id)) }
         case .refused(let reason):
             problem = reason
             Haptics.failure()

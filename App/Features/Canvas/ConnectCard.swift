@@ -163,13 +163,13 @@ struct ConnectCardSlot: View {
             }
             await model?.refresh()
         }
-        // A key made in the Connect sheet ends the card as the sheet closes.
+        // A key made in the Connect sheet ends the card as the sheet closes, and so does one made in Settings (the Account sheet).
         .onChange(of: app.router.sheet) { old, new in
-            if old == .connectAgent, new == nil { Task { await model?.refresh() } }
+            if new == nil, old == .connectAgent || old == .account { Task { await model?.refresh() } }
         }
-        // So does one made under You, by the time the person is back on Home.
+        // So does one made elsewhere, by the time the person is back on Home.
         .onChange(of: app.router.tab) { _, tab in
-            if tab == .canvas { Task { await model?.refresh() } }
+            if tab == .home { Task { await model?.refresh() } }
         }
     }
 }

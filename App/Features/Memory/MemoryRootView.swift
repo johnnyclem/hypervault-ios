@@ -78,7 +78,11 @@ struct MemoryTabScreen: View {
         .navigationTitle("Memory")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) { branchMenu }
+            // The avatar first, then the branch: one group, so the order is the one written.
+            ToolbarItemGroup(placement: .topBarLeading) {
+                AccountAvatarButton()
+                branchMenu
+            }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
                     showMemorize = true

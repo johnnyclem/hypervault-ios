@@ -90,9 +90,9 @@ private struct JobNoticesModifier: ViewModifier {
     @State private var isShowing = false
 
     func body(content: Content) -> some View {
-        // Showing, in front of the person, out from behind the lock, and on the Home tab, where both screens are.
+        // Showing, in front of the person, out from behind the lock, and on the Home tab, where the canvas is.
         let inFront = scenePhase == .active && app?.lock.isLocked == false
-        let watching = isShowing && inFront && app?.router.tab == .canvas
+        let watching = isShowing && inFront && app?.router.tab == .home
         content
             .safeAreaInset(edge: .top, spacing: 0) { JobNoticeBar() }
             .onAppear { isShowing = true }

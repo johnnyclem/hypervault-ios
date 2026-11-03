@@ -13,6 +13,12 @@ The same run holds one more line of the design system: colour has one door. `Pal
 theme is wearing (`StyleRuntime`), so a colour looked up by asset name (`Color("background")`, `UIColor(named:)`) anywhere else
 would stay the stock colour under a theme. Only `StyleRuntime.swift` (the stock look) and the tab bar's stock fallback
 (`TabBarStyle.swift`) may do it.
+
+And it has a second door for a label: a literal white (or black) as a text or glyph colour (`.foregroundStyle(.white)`,
+`.foregroundColor(.white)`, `.tint(.white)`, `Color.white`, `UIColor.white`). On a themed fill it is the label a theme's
+own `action_foreground` replaces (the dark kits hold black on a bright action fill), so it is `Palette.onAction` there.
+A literal that is right under every theme (a mark on a photo scrim, a card brand's tile) is listed below with the line it
+is allowed on.
 """
 import re
 import sys
@@ -58,19 +64,57 @@ ASSET_LOOKUP = re.compile(r'\bColor\("|\bUIColor\(named:')
 ASSET_LOOKUP_ALLOWED = {"Shared/DesignSystem/StyleRuntime.swift", "App/Features/Root/TabBarStyle.swift"}
 
 
-def asset_lookups() -> list[str]:
-    """Every colour looked up by asset name outside the places allowed to (comments excepted)."""
-    found = []
+def swift_lines():
+    """Every non-comment line of the app's Swift sources and the extensions' (the files that compile `Shared/`), with its place."""
     for root in ROOTS + ["ShareExtension", "WidgetExtension"]:
         for path in sorted((ROOT / root).rglob("*.swift")):
             relative = path.relative_to(ROOT).as_posix()
-            if relative in ASSET_LOOKUP_ALLOWED:
-                continue
             for number, line in enumerate(path.read_text().splitlines(), start=1):
-                if line.lstrip().startswith("//"):
-                    continue
-                if ASSET_LOOKUP.search(line):
-                    found.append(f"{relative}:{number}: a colour looked up by asset name does not follow the theme: {line.strip()}")
+                if not line.lstrip().startswith("//"):
+                    yield relative, number, line
+
+
+def asset_lookups() -> list[str]:
+    """Every colour looked up by asset name outside the places allowed to (comments excepted)."""
+    found = []
+    for relative, number, line in swift_lines():
+        if relative in ASSET_LOOKUP_ALLOWED:
+            continue
+        if ASSET_LOOKUP.search(line):
+            found.append(f"{relative}:{number}: a colour looked up by asset name does not follow the theme: {line.strip()}")
+    return found
+
+
+# A label drawn in a literal white or black: as the colour of text or a glyph (`foregroundStyle`, `foregroundColor`, `tint`), or
+# `Color.white` / `UIColor.white` wherever it is written. (`.black` as a shadow, a mask or a font weight is not a label.)
+LITERAL_LABEL = re.compile(
+    r"\.(?:foregroundStyle|foregroundColor|tint)\(\s*(?:Color|UIColor)?\.(?:white|black)\b|\b(?:Color|UIColor)\.white\b"
+)
+# Where a literal is the right colour under every theme. The stock look is `StyleRuntime.swift` itself (its `onAction` is white).
+LITERAL_LABEL_ALLOWED_FILES = {"Shared/DesignSystem/StyleRuntime.swift"}
+# The rest, by file and the line (stripped) it is allowed on, so a second one in the same file is a new decision.
+LITERAL_LABEL_ALLOWED_LINES = {
+    # The brand mark on a card brand's tile: fixed colours, the same under every theme (`HVCardBrandTile`).
+    "Shared/DesignSystem/HVCardBrandTile.swift": {".overlay(mark.foregroundStyle(.white))"},
+    # The cross of the button that removes a photo from the composer: white on a black disc of its own, over the photo.
+    "App/Features/Chat/Conversation/ComposerView.swift": {".foregroundStyle(.white, .black.opacity(0.65))"},
+    # The glyph on an artifact's tile, whose fill is seeded from its slug and is the same under every theme.
+    "App/Features/Artifacts/ArtifactSupport.swift": {
+        "let ink = ArtifactIcon.prefersDarkGlyph(seed: slug) ? Color(hex: 0x0B0F14) : Color.white"
+    },
+    # A photo is flattened onto white before it is sent as a JPEG: pixels, not a label.
+    "App/Features/Chat/Conversation/ChatImagePrep.swift": {"UIColor.white.setFill()"},
+}
+
+
+def literal_labels() -> list[str]:
+    """Every literal white or black label outside the places allowed to (comments excepted)."""
+    found = []
+    for relative, number, line in swift_lines():
+        if relative in LITERAL_LABEL_ALLOWED_FILES:
+            continue
+        if LITERAL_LABEL.search(line) and line.strip() not in LITERAL_LABEL_ALLOWED_LINES.get(relative, set()):
+            found.append(f"{relative}:{number}: a literal white or black label does not follow the theme: {line.strip()}")
     return found
 
 
@@ -108,6 +152,16 @@ def main() -> int:
         print("\nUse Palette (or HVColor) so the colour follows the person's theme. Only StyleRuntime.swift looks colours up by name.")
         return 1
     print("colour has one door: no asset-name lookups outside StyleRuntime")
+    labels = literal_labels()
+    if labels:
+        print("\n".join(labels))
+        print(
+            "\nA label on a themed fill is Palette.onAction (Palette.onDestructive on the destructive fill), which a theme's own "
+            "action_foreground replaces. If the literal is right under every theme (on a photo, in a brand tile), list the line in "
+            "scripts/check_prompts.py with the reason."
+        )
+        return 1
+    print("no literal white or black label outside the listed lines")
     return 0
 
 

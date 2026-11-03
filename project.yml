@@ -12,6 +12,11 @@ options:
   groupSortPosition: top
   developmentLanguage: en
   generateEmptyDirectories: true
+  # Keeps LastUpgradeCheck / scheme LastUpgradeVersion on this Xcode. The generator's default is 14.3.
+  xcodeVersion: "27.0"
+
+attributes:
+  LastUpgradeCheck: "2700"
 
 configFiles:
   Debug: Config/Debug.xcconfig
@@ -24,6 +29,7 @@ settings:
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: GV49AHY2S2
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     ENABLE_MODULE_VERIFIER: NO
     # Off: the colour sets are named for the web's tokens (primary, secondary, background, accent), and the symbols Xcode

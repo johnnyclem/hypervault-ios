@@ -10,6 +10,8 @@ struct MemoryAskView: View {
     @State private var model: MemoryAskModel
     @State private var speech = ChatSpeechController()
     @State private var draft = ""
+    /// Bumped when `send()` empties the field, so the field is replaced and cannot keep the sent words on screen.
+    @State private var fieldEpoch = 0
     @FocusState private var focused: Bool
 
     init(list: MemoryListModel) {
@@ -118,6 +120,7 @@ struct MemoryAskView: View {
                     .accessibilityIdentifier("ask.field")
                     .lineLimit(1...4)
                     .focused($focused)
+                    .hvFieldReset(epoch: fieldEpoch, focus: $focused, field: true)
                     .submitLabel(.send)
                     .onSubmit(send)
                     .padding(.horizontal, HV.Space.m)
@@ -143,6 +146,7 @@ struct MemoryAskView: View {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !model.isBusy else { return }
         draft = ""
+        fieldEpoch &+= 1
         Haptics.tap()
         let branch = list.branch
         Task { await model.ask(text, branch: branch) }

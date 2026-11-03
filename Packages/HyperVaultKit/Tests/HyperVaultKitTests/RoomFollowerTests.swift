@@ -26,7 +26,8 @@ final class RoomFollowerTests: RoomTestCase {
 
     /// Runs a follower over `transport` until it has waited `count` times; returns the waits it chose.
     func observedWaits(
-        _ transport: any HTTPTransport, isActive: Bool, until count: Int, schedule: ChatRoomPollSchedule = .standard
+        _ transport: any HTTPTransport, isActive: Bool, until count: Int, schedule: ChatRoomPollSchedule = .standard,
+        onFailure: @escaping @MainActor @Sendable (HVError) -> Void = { _ in }
     ) async -> [Double] {
         let slept = TestBox<[Double]>([])
         // A tick longer than any wait: each wait is one sleep, so what was slept is what was decided.
@@ -35,7 +36,9 @@ final class RoomFollowerTests: RoomTestCase {
             try? await Task.sleep(nanoseconds: 1_000_000)
         })
         let follower = ChatRoomFollower(client: client(transport), roomID: "r1", pace: pace)
-        let task = Task { await follower.follow(state: { ChatRoomFollowState(cursor: nil, isActive: isActive) }, onSnapshot: { _ in }) }
+        let task = Task {
+            await follower.follow(state: { ChatRoomFollowState(cursor: nil, isActive: isActive) }, onSnapshot: { _ in }, onFailure: onFailure)
+        }
         await eventually("\(count) waits") { slept.value.count >= count }
         task.cancel()
         _ = await task.value
@@ -72,6 +75,61 @@ final class RoomFollowerTests: RoomTestCase {
         ])
         let observed = await observedWaits(transport, isActive: true, until: 4)
         XCTAssertEqual(observed, [2, 4, 1.5, 2], "two failures, an answer (1.5), a failure that starts again from 2")
+    }
+
+    func testEveryFailedAskIsReportedWithWhatWentWrong() async {
+        let transport = MockTransport(routes: [.failure(.get, "/api/rooms/r1", status: 503, message: "down")])
+        let failures = TestBox<[HVError]>([])
+        let observed = await observedWaits(transport, isActive: true, until: 3, onFailure: { failures.value.append($0) })
+        XCTAssertEqual(observed, [2, 4, 8])
+        // Each report is heard before the follower sleeps, so three waits mean three reports.
+        XCTAssertEqual(failures.value.prefix(3).map(\.status), [503, 503, 503])
+        XCTAssertEqual(failures.value.first?.userMessage, "down")
+    }
+
+    func testARoomThatIsGoneIsReportedAsNotFoundAndKeepsBeingAskedAtTheCeiling() async {
+        // Not ended by the follower: the screen decides to leave. Until it does, asking stays at the slowest pace.
+        let transport = MockTransport(routes: [.failure(.get, "/api/rooms/r1", status: 404, message: "Room not found.")])
+        let failures = TestBox<[HVError]>([])
+        let observed = await observedWaits(transport, isActive: true, until: 6, onFailure: { failures.value.append($0) })
+        XCTAssertEqual(observed, [2, 4, 8, 15, 15, 15])
+        XCTAssertEqual(failures.value.prefix(6).count, 6)
+        XCTAssertTrue(failures.value.prefix(6).allSatisfy(\.isNotFound))
+    }
+
+    func testAnOfflinePhoneIsReportedAsOfflineAndTheNextAnswerIsTheNewsThatItIsBack() async {
+        let calls = Counter()
+        let transport = RoomDroppingTransport(failFirst: 2, calls: calls)
+        let events = TestBox<[String]>([])
+        let follower = ChatRoomFollower(client: client(transport), roomID: "r1", pace: instant)
+        let task = Task {
+            await follower.follow(
+                state: { ChatRoomFollowState(cursor: nil, isActive: true) },
+                onSnapshot: { _ in events.value.append("snapshot") },
+                onFailure: { events.value.append($0.isOffline ? "offline" : "other") }
+            )
+        }
+        await eventually("an answer after two failures") { events.value.contains("snapshot") }
+        task.cancel()
+        XCTAssertEqual(Array(events.value.prefix(3)), ["offline", "offline", "snapshot"])
+    }
+
+    func testAnAskCutShortByCancellingIsNotReportedAsAFailure() async {
+        let started = Counter()
+        let transport = RoomDroppingTransport(hangs: true, calls: started)
+        let failures = TestBox<[HVError]>([])
+        let finished = TestBox<Bool>(false)
+        let follower = ChatRoomFollower(client: client(transport), roomID: "r1", pace: instant)
+        let task = Task {
+            await follower.follow(
+                state: { ChatRoomFollowState(cursor: nil, isActive: true) }, onSnapshot: { _ in }, onFailure: { failures.value.append($0) }
+            )
+            finished.value = true
+        }
+        await eventually("an ask under way") { started.value >= 1 }
+        task.cancel()
+        await eventually("the follower to return") { finished.value }
+        XCTAssertEqual(failures.value, [])
     }
 
     func testAFailedAskIsTriedAgainAndDoesNotEndTheFollower() async throws {
@@ -202,5 +260,22 @@ final class RoomFollowerTests: RoomTestCase {
         active.value = true
         await eventually("a read within a tick of the round starting") { await transport.requests.count >= 2 }
         task.cancel()
+    }
+}
+
+/// A phone with a poor connection: its first asks are dropped and then the room answers, or an ask that hangs until the
+/// screen goes and fails as the connection is torn down.
+private struct RoomDroppingTransport: HTTPTransport {
+    var failFirst = 0
+    var hangs = false
+    let calls: Counter
+
+    func send(_ request: URLRequest) async throws -> HTTPResponse {
+        calls.bump()
+        if hangs {
+            do { try await Task.sleep(nanoseconds: 60_000_000_000) } catch { throw URLError(.networkConnectionLost) }
+        }
+        if calls.value <= failFirst { throw URLError(.notConnectedToInternet) }
+        return HTTPResponse(status: 200, headers: ["content-type": "application/json"], data: Data(RoomTestCase.emptyRoom.utf8))
     }
 }

@@ -75,7 +75,11 @@ public struct ChatRoomFollowState: Sendable, Equatable {
 /// run that died, cannot keep the person from seeing what the room has said.
 ///
 /// It runs until the task it runs in is cancelled (a SwiftUI `.task` is, when the screen goes), and a failed ask
-/// never ends it: a flaky network must not leave a screen stuck.
+/// never ends it: a flaky network must not leave a screen stuck. A failed ask is handed to `onFailure`, so the screen
+/// can say it cannot reach the room (`isOffline`), or that the room is gone (`isNotFound`), and leave by cancelling
+/// the task. The follower does not decide that for it: a 404 from a server in the middle of a deploy would otherwise
+/// end a screen for good. Until then it asks again after 2, 4 and 8 seconds and then every 15, and the next snapshot is
+/// the news that the room can be reached again.
 public struct ChatRoomFollower: Sendable {
     let client: HVClient
     let roomID: String
@@ -97,9 +101,12 @@ public struct ChatRoomFollower: Sendable {
     ///   - state: asked on the main actor before every request and after every tick of a wait.
     ///   - onSnapshot: hears every read of the room, on the main actor, in order. Apply it to a `ChatRoomTranscript`
     ///     so that the next `state()` reports the cursor it moved.
+    ///   - onFailure: hears every read that failed (not one cut short by cancelling), on the main actor, in order.
+    ///     The next `onSnapshot` means the room can be reached again.
     public func follow(
         state: @escaping @MainActor @Sendable () -> ChatRoomFollowState,
-        onSnapshot: @escaping @MainActor @Sendable (ChatRoomDetail) -> Void
+        onSnapshot: @escaping @MainActor @Sendable (ChatRoomDetail) -> Void,
+        onFailure: @escaping @MainActor @Sendable (HVError) -> Void = { _ in }
     ) async {
         var quiet = 0
         var failures = 0
@@ -126,8 +133,10 @@ public struct ChatRoomFollower: Sendable {
             } catch HVError.cancelled {
                 return
             } catch {
+                if Task.isCancelled { return }
                 failures += 1
                 wait = schedule.delay(failures: failures)
+                await onFailure((error as? HVError) ?? .transport(error.localizedDescription))
             }
             // Sleep in short ticks, and look again at once if the room woke (or went to sleep) in the meantime.
             while wait > 0, !Task.isCancelled {

@@ -232,6 +232,13 @@ final class StyleKitTests: XCTestCase {
         XCTAssertNil(kit.rejection)
     }
 
+    func testTheLargerRadiiFollowTheBaseAsTheWebsDo() throws {
+        let stock = try StyleKitFixtures.kit("newsprint")
+        XCTAssertEqual([stock.radius, stock.radiusXL, stock.radius2XL, stock.radius3XL], [12, 16, 20, 28], "HVTokens.RadiusPx")
+        let round = try StyleKitFixtures.decode(StyleKit.self, from: StyleKitFixtures.variant(["radius", "base"], to: 24))
+        XCTAssertEqual([round.radius, round.radiusXL, round.radius2XL, round.radius3XL], [24, 28, 32, 40])
+    }
+
     func testTheRadiusIsKeptInRange() throws {
         func radius(_ value: JSONValue) throws -> Double {
             try StyleKitFixtures.decode(StyleKit.self, from: StyleKitFixtures.variant(["radius", "base"], to: value)).radius

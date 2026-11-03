@@ -180,7 +180,7 @@ public struct StyleKit: Sendable, Equatable {
     public var name: String
     public var appearance: StyleAppearance
     public var colors: StyleKitColors
-    /// `--radius` in points. The card radius is this plus 4, the sheet radius plus 8, the large one plus 16.
+    /// `--radius` in points.
     public var radius: Double
     public var font: StyleFontDesign
     public var backdrop: StyleBackdropKind
@@ -201,6 +201,12 @@ public struct StyleKit: Sendable, Equatable {
         self.backdrop = backdrop
         self.adjusted = adjusted
     }
+
+    /// The radii the app draws, from `radius`: the web's `rounded-xl`, `2xl` and `3xl` are `--radius` plus 4, 8 and 16
+    /// (12, 16, 20 and 28 in the stock look, `HVTokens.RadiusPx`).
+    public var radiusXL: Double { radius + 4 }
+    public var radius2XL: Double { radius + 8 }
+    public var radius3XL: Double { radius + 16 }
 
     /// Whether a colour the person can see as a colour of the theme moved: the line "some colours are adjusted so text
     /// stays easy to read" is true then. A nudged error red or a flipped button label is not worth a line.

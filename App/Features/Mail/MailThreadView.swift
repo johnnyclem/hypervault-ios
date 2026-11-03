@@ -34,8 +34,6 @@ struct MailThreadScreen: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: MailThreadModel
     @State private var draft = ""
-    /// Bumped when a sent reply empties the field, so the field is replaced and cannot keep the sent words on screen.
-    @State private var fieldEpoch = 0
     @FocusState private var composerFocused: Bool
 
     init(client: HVClient, threadID: String, mailbox: String?, agentsSeeOwnerMail: Bool) {
@@ -117,7 +115,6 @@ struct MailThreadScreen: View {
                     .accessibilityIdentifier("mail.reply")
                     .lineLimit(1...5)
                     .focused($composerFocused)
-                    .hvFieldReset(epoch: fieldEpoch, focus: $composerFocused, field: true)
                     .hvFieldChrome(isFocused: composerFocused)
                 Button {
                     send()
@@ -186,7 +183,6 @@ struct MailThreadScreen: View {
             do {
                 try await model.reply(text)
                 draft = ""
-                fieldEpoch &+= 1
                 Haptics.success()
             } catch {
                 app.toasts.show(mailError: error)

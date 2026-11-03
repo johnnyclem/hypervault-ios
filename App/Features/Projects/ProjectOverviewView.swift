@@ -288,7 +288,7 @@ struct ProjectOverviewScreen: View {
                 } header: {
                     HVSectionHeader(title: ProjectsCopy.possiblySection, detail: "\(related.possiblyTotal)")
                 } footer: {
-                    Text(ProjectsCopy.possiblyFooter)
+                    Text(ProjectsCopy.possiblyFooter).hvSectionNote()
                 }
             }
         }

@@ -70,6 +70,9 @@ final class ChatConversationModel {
     private(set) var recallBranch = MindBranchName.defaultName
     var useTools = true
     var draft = ""
+    /// Counts the times code, not the person's typing, replaced `draft` (a message was sent, or words were put back).
+    /// The text field takes a new identity with each one (`hvFieldReset`), so what it shows is what `draft` says.
+    private(set) var composerEpoch = 0
     private(set) var isWorking = false
     private(set) var workStarted: Date?
     /// A calm line under the thread: what stopped, or what to know.
@@ -464,8 +467,23 @@ final class ChatConversationModel {
             notice = HVCopy.noModelLine
             return
         }
-        draft = ""
+        replaceDraft("")
         start(text, toolChoice: nil, replacing: nil)
+    }
+
+    // MARK: The message box
+
+    /// What the text field writes when the person types. A field that `replaceDraft` has since replaced is still wired to
+    /// the words it held and may hand them back as it goes; those are not typing, and are dropped.
+    func fieldWrote(_ text: String, epoch: Int) {
+        guard epoch == composerEpoch else { return }
+        draft = text
+    }
+
+    /// Every write to `draft` that is not the person typing goes through here.
+    private func replaceDraft(_ text: String) {
+        draft = text
+        composerEpoch &+= 1
     }
 
     /// Runs the tool the person picked from the model's question.
@@ -488,7 +506,7 @@ final class ChatConversationModel {
     func edit(_ row: ChatThreadRow) {
         guard row.kind == .user, case .failed = row.state else { return }
         rows.removeAll { $0.id == row.id }
-        if draft.isEmpty { draft = row.text }
+        if draft.isEmpty { replaceDraft(row.text) }
     }
 
     func stop() {
@@ -562,7 +580,7 @@ final class ChatConversationModel {
             // The person stopped it. Their words go back in the box; the server
             // may still finish the turn, and the reply will be there next time.
             rows.removeAll { $0.id == userRowID }
-            if draft.isEmpty { draft = text }
+            if draft.isEmpty { replaceDraft(text) }
             notice = "Stopped. If the model still answers, the reply will be here when you open this chat again."
             return
         }
@@ -651,7 +669,7 @@ final class ChatConversationModel {
     private func dropAfterStop(assistantID: String?, userRowID: String, text: String) {
         if let assistantID { rows.removeAll { $0.id == assistantID } }
         rows.removeAll { $0.id == userRowID }
-        if draft.isEmpty { draft = text }
+        if draft.isEmpty { replaceDraft(text) }
     }
 
     private func update(_ id: String, text: String) {

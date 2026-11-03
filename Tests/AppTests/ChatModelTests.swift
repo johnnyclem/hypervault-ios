@@ -76,15 +76,18 @@ final class ChatModelTests: XCTestCase {
 
     func testTheServersOwnSentenceIsShownAndTheMessageCanBeRetried() async {
         let model = makeModel(routes: [.failure(.post, "/api/chat", status: 502, message: "No response from the endpoint.")])
+        let start = model.composerEpoch
         model.draft = "hello"
         model.sendDraft()
         await settle(model)
+        XCTAssertEqual(model.draft, "", "a failed message stays in the thread, not in the box")
         XCTAssertEqual(model.rows.count, 1)
         XCTAssertEqual(model.rows[0].state, .failed("No response from the endpoint."))
 
         model.edit(model.rows[0])
         XCTAssertTrue(model.rows.isEmpty)
         XCTAssertEqual(model.draft, "hello")
+        XCTAssertEqual(model.composerEpoch, start &+ 2, "sent, then taken back to edit: each is a new field")
     }
 
     func testAMessageOverTheLimitNeverLeaves() async {
@@ -98,6 +101,7 @@ final class ChatModelTests: XCTestCase {
 
     func testStoppingPutsTheWordsBack() async {
         let model = makeModel(routes: [], transport: HangingTransport())
+        let start = model.composerEpoch
         model.draft = "this will take a while"
         model.sendDraft()
         try? await Task.sleep(nanoseconds: 50_000_000)
@@ -107,6 +111,71 @@ final class ChatModelTests: XCTestCase {
         XCTAssertTrue(model.rows.isEmpty)
         XCTAssertEqual(model.draft, "this will take a while")
         XCTAssertNotNil(model.notice)
+        XCTAssertEqual(model.composerEpoch, start &+ 2, "sent, then put back: each is a new field")
+    }
+
+    // MARK: The message box
+
+    func testSendingEmptiesTheDraftAtOnceAndGivesTheFieldANewIdentity() async {
+        let model = makeModel(routes: [.json(.post, "/api/chat", turn)])
+        let start = model.composerEpoch
+        model.draft = "  plan it  "
+        model.sendDraft()
+        XCTAssertEqual(model.draft, "")
+        XCTAssertEqual(model.composerEpoch, start &+ 1, "the field the words were typed in is replaced, so it cannot keep them on screen")
+        await settle(model)
+        XCTAssertEqual(model.draft, "", "the reply does not put the words back")
+        XCTAssertEqual(model.composerEpoch, start &+ 1, "one send, one new field")
+    }
+
+    func testASendThatDoesNotGoOutKeepsTheWordsAndTheField() {
+        let model = makeModel(routes: [])
+        let start = model.composerEpoch
+        model.choice = nil
+        model.draft = "hello"
+        model.sendDraft()
+        XCTAssertEqual(model.notice, HVCopy.noModelLine)
+        XCTAssertEqual(model.draft, "hello")
+
+        model.choice = .server("b1")
+        model.draft = String(repeating: "a", count: model.maxCharacters + 1)
+        model.sendDraft()
+        XCTAssertEqual(model.notice, "Message is too long.")
+        XCTAssertEqual(model.draft.count, model.maxCharacters + 1)
+        XCTAssertEqual(model.composerEpoch, start, "nothing was sent, so the field stays")
+    }
+
+    func testTypingNeverReplacesTheField() {
+        let model = makeModel(routes: [])
+        let start = model.composerEpoch
+        for text in ["h", "he", "hel"] { model.fieldWrote(text, epoch: model.composerEpoch) }
+        XCTAssertEqual(model.draft, "hel")
+        XCTAssertEqual(model.composerEpoch, start)
+    }
+
+    func testAFieldThatWasReplacedCannotHandTheOldWordsBack() async {
+        let model = makeModel(routes: [.json(.post, "/api/chat", turn)])
+        let old = model.composerEpoch
+        model.draft = "plan it"
+        model.sendDraft()
+        model.fieldWrote("plan it", epoch: old)
+        XCTAssertEqual(model.draft, "")
+        model.fieldWrote("n", epoch: model.composerEpoch)
+        XCTAssertEqual(model.draft, "n", "the new field is the one the person types in")
+        await settle(model)
+    }
+
+    func testWordsTypedWhileATurnRunsAreKeptWhenItIsStopped() async {
+        let model = makeModel(routes: [], transport: HangingTransport())
+        model.draft = "first"
+        model.sendDraft()
+        let sent = model.composerEpoch
+        model.fieldWrote("next", epoch: sent)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        model.stop()
+        await settle(model)
+        XCTAssertEqual(model.draft, "next", "Stop puts words back only into an empty box")
+        XCTAssertEqual(model.composerEpoch, sent, "and does not replace a field the person is typing in")
     }
 
     func testAThumbIsUndoneWhenTheServerSaysNo() async throws {

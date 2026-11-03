@@ -4,7 +4,7 @@ import SwiftUI
 /// The message field in glass chrome. The send button exists only while there
 /// is something to send; while a turn is in flight it is a stop button.
 struct ChatComposerView: View {
-    @Bindable var model: ChatConversationModel
+    let model: ChatConversationModel
     var focus: FocusState<Bool>.Binding
     var onOptions: () -> Void
 
@@ -31,19 +31,26 @@ struct ChatComposerView: View {
         .padding(.bottom, HV.Space.xs)
         .hvReadableWidth()
         .hvAnimation(HV.Motion.entrance, value: model.notice)
-        .hvAnimation(HV.Motion.entrance, value: model.canSend)
+    }
+
+    /// The text field's binding. A write from a field that has since been replaced is dropped (`fieldWrote`).
+    private var draftBinding: Binding<String> {
+        let epoch = model.composerEpoch
+        return Binding(get: { model.draft }, set: { model.fieldWrote($0, epoch: epoch) })
     }
 
     private var field: some View {
         VStack(alignment: .leading, spacing: 0) {
-            TextField("Message", text: $model.draft, prompt: Text("Message").foregroundStyle(Palette.textSecondary), axis: .vertical)
+            TextField("Message", text: draftBinding, prompt: Text("Message").foregroundStyle(Palette.textSecondary), axis: .vertical)
                 .font(.hvBody)
                 .lineLimit(1...8)
                 .focused(focus)
+                .hvFieldReset(epoch: model.composerEpoch, focus: focus, field: true)
                 .padding(.horizontal, HV.Space.m)
                 .padding(.top, HV.Space.s)
                 .padding(.bottom, HV.Space.xs)
                 .accessibilityLabel("Message")
+                .accessibilityIdentifier("chat.field")
                 .accessibilityHint("Sends to \(model.modelName)")
 
             HStack(spacing: HV.Space.xs) {
@@ -96,6 +103,9 @@ struct ChatComposerView: View {
             .padding(.leading, HV.Space.s)
             .padding(.trailing, HV.Space.xs)
             .padding(.bottom, HV.Space.xxs)
+            // Only the buttons move with `canSend`. The text field is not in this subtree, so an animated change of
+            // Send never shares a transaction with the field's text.
+            .hvAnimation(HV.Motion.entrance, value: model.canSend)
         }
         .hvGlass(radius: HV.Radius.floating)
     }

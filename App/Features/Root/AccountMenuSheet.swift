@@ -85,7 +85,7 @@ struct AccountMenuSheet: View {
 
     private func row(
         _ id: String, _ title: String, symbol: String, to link: DeepLink, badge: Int = 0,
-        badgeLabel: @escaping (Int) -> String = AccountMenu.mailBadgeLabel
+        badgeLabel: @escaping (Int) -> String = AccountMenu.pendingBadgeLabel
     ) -> some View {
         Button {
             app.router.sheet = nil

@@ -28,7 +28,11 @@ struct MainTabView: View {
                 .tag(AppTab.memory)
 
             TabRoot(tab: .mail) { MailRootView() }
-                .tabItem { Label(AppTab.mail.title, systemImage: AppTab.mail.symbol) }
+                .tabItem {
+                    Label(AppTab.mail.title, systemImage: AppTab.mail.symbol)
+                        // The badge draws the number; VoiceOver is also told what it counts ("2 unread").
+                        .accessibilityValue(mailUnread.count > 0 ? AccountMenu.mailBadgeLabel(mailUnread.count) : "")
+                }
                 .badge(mailUnread.count > 0 ? Text(AccountMenu.badgeText(mailUnread.count)) : nil)
                 .tag(AppTab.mail)
         }

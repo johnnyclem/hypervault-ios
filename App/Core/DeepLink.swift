@@ -56,6 +56,9 @@ enum Route: Hashable {
     /// the list's own, so it goes on the tab's path with every other screen: a destination the list presented itself
     /// (`navigationDestination(item:)`) was pushed again over the task opened from it.
     case taskBoard(slug: String, project: String, title: String)
+    /// One project's overview: its board in brief, who is working on it, and what else goes with it. The list of boards
+    /// opens it, and it opens the full board (`taskBoard`). The id is the board's project id (`tasks-<id>`).
+    case project(id: String)
     case admin
 }
 
@@ -98,6 +101,7 @@ enum DeepLink: Hashable {
             case .artifact, .library, .libraryFiltered, .mail, .mailThread, .taskBoards, .taskBoard, .admin: return (.canvas, route)
             case .memory, .truth, .truthReview, .truthReviewLedger, .dreams, .digest: return (.memory, route)
             case .conversation, .room, .tools, .importHistory: return (.chat, route)
+            case .project: return (.canvas, route)
             }
         }
     }
@@ -181,6 +185,10 @@ enum DeepLink: Hashable {
             self = .yours
         case "library":
             self = libraryLink()
+        case "projects", "project":
+            // hypervault://projects/<id> is one project's overview. The id is the board's project id, a plain one: an id
+            // that is not names nothing, and the link is the list of boards.
+            if let id = second, DeepLink.isPlainID(id) { self = .route(.project(id: id)) } else { self = .route(.taskBoards) }
         case "pair":
             self = .pair(code: value("code") ?? value("user_code"))
         case "invite":

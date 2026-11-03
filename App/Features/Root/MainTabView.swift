@@ -100,6 +100,7 @@ struct RouteDestination: View {
         case .taskBoards: TaskBoardsRootView()
         case .taskBoard(let slug, let project, let title):
             TaskBoardView(listing: TaskBoardListing(slug: slug, project: project, title: title))
+        case .project(let id): ProjectOverviewView(project: id)
         case .admin: AdminRootView()
         }
     }

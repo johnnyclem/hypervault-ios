@@ -1,0 +1,11 @@
+dark / the Share sheet
+
+small target  Button "Reload" (arrow.clockwise)  339,51 27x36
+small target  Button "Sheet Grabber"  159,389 73x24
+small target  Button "Done"  300,413 63x34
+small target  TextField (artifact.share.email)  35,859 320x21
+small target  Button "View"  23,903 56x42
+small target  Button "Use"  87,903 49x42
+small target  Button "Edit"  144,903 49x42
+small target  Button "maya@example.com, Edit"  39,1057 313x42
+small target  Button "Remove maya@example.com"  297,1057 55x42

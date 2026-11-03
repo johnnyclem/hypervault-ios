@@ -1,0 +1,6 @@
+large / Library
+
+small target  Button "Mail" (envelope)  192,51 53x36
+small target  Button "Show as a graph" (library.view)  262,51 50x36
+small target  Button "New"  327,51 43x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

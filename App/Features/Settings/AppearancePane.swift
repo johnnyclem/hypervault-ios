@@ -1,75 +1,9 @@
 import HyperVaultKit
 import SwiftUI
 
-/// What the Appearance pane holds: the theme the person's web dashboard wears, and the choice of another. The app does
-/// not wear it (the stock look is the only one it draws), so the pane says it is about the website, and a change is
-/// confirmed only once the server has agreed to it.
-@MainActor
-@Observable
-final class AppearanceModel {
-    enum Phase: Equatable {
-        case loading
-        case loaded
-        case failed(String)
-    }
-
-    private(set) var phase: Phase = .loading
-    /// What the profile holds, as the server last said it.
-    private(set) var stored: String?
-    private(set) var isSaving = false
-    /// The sentence for a change the server agreed to; cleared when the next one starts.
-    private(set) var confirmation: String?
-    private(set) var problem: String?
-
-    let choices: [DashboardThemeChoice]
-
-    @ObservationIgnored private let client: HVClient
-    @ObservationIgnored private let rest: AccountRest
-    @ObservationIgnored private let userID: String
-    @ObservationIgnored private let catalog: [Capabilities.ThemeInfo]
-
-    init(client: HVClient, rest: AccountRest, userID: String, catalog: [Capabilities.ThemeInfo]) {
-        self.client = client
-        self.rest = rest
-        self.userID = userID
-        self.catalog = catalog
-        choices = DashboardThemes.choices(from: catalog)
-    }
-
-    /// The choice the picker shows: an id the catalog does not list is the stock look, as on the web.
-    var selection: String? { DashboardThemes.selection(stored: stored, in: catalog) }
-
-    func load() async {
-        do {
-            stored = try await rest.dashboardTheme(userID: userID)
-            phase = .loaded
-        } catch {
-            if phase != .loaded { phase = .failed(keysMessage(for: error)) }
-        }
-    }
-
-    func choose(_ id: String?) async {
-        guard !isSaving, id != selection else { return }
-        isSaving = true
-        problem = nil
-        confirmation = nil
-        defer { isSaving = false }
-        do {
-            let saved = try await client.send(.setDashboardTheme(id))
-            stored = saved.theme
-            let sentence = DashboardThemeCopy.confirmation(for: saved.theme, in: catalog)
-            confirmation = sentence
-            AccessibilityNotification.Announcement(sentence).post()
-        } catch {
-            let sentence = keysMessage(for: error)
-            problem = sentence
-            AccessibilityNotification.Announcement(sentence).post()
-        }
-    }
-}
-
 /// Appearance, a pane of the You tab. On the web it is one look for the dashboard and chat, and a look for each address.
-/// Here it is the website's theme, in words that do not say the app changed; each address's look is under Domain.
+/// Here it is the account's theme, which the website and this app wear (the phone can keep the app out of it); each
+/// address's look is under Domain.
 struct AppearancePane: View {
     @Environment(AppEnvironment.self) private var env
     @State private var model: AppearanceModel?
@@ -85,7 +19,7 @@ struct AppearancePane: View {
         .hvScreenBackground()
         .task {
             if model == nil {
-                model = AppearanceModel(client: env.client, rest: env.keysRest, userID: env.user.id, catalog: env.capabilities.themes)
+                model = AppearanceModel(client: env.client, loader: env.styleLoader, style: env.style, catalog: env.capabilities.themes)
             }
             await model?.load()
         }
@@ -128,18 +62,61 @@ struct AppearancePane: View {
                     }
                 }
                 .pickerStyle(.menu)
-                .disabled(model.isSaving)
+                .disabled(model.isSaving || model.isOffline)
                 .frame(minHeight: 44)
                 .accessibilityIdentifier("appearance.theme")
 
+                if model.selection != nil {
+                    Button {
+                        Task { await model.choose(nil) }
+                    } label: {
+                        Text(DashboardThemeCopy.resetRow).font(.hvBody)
+                    }
+                    .disabled(model.isSaving || model.isOffline)
+                    .frame(minHeight: 44)
+                    .accessibilityIdentifier("appearance.reset")
+                }
+
+                if let kit = model.style.state?.kit {
+                    ThemePreview(kit: kit)
+                        .listRowInsets(EdgeInsets(top: HV.Space.xs, leading: HV.Space.m, bottom: HV.Space.xs, trailing: HV.Space.m))
+                        .accessibilityIdentifier("appearance.preview")
+                }
+
                 status(model)
+            }
+            .hvListRow()
+
+            Section(
+                header: HVSectionHeader(title: DashboardThemeCopy.inAppTitle),
+                footer: Text(DashboardThemeCopy.inAppFooter).hvSectionNote()
+            ) {
+                Toggle(DashboardThemeCopy.inAppToggle, isOn: Binding(
+                    get: { model.style.appliesToApp },
+                    set: { model.style.setAppliesToApp($0) }
+                ))
+                .accessibilityIdentifier("appearance.applyToApp")
+
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
+                    Text(model.wearingLine)
+                        .font(.hvFootnote)
+                        .foregroundStyle(Palette.textSecondary)
+                        .accessibilityIdentifier("appearance.wearing")
+                    if let adjusted = model.adjustedLine {
+                        Text(adjusted)
+                            .font(.hvFootnote)
+                            .foregroundStyle(Palette.textSecondary)
+                            .accessibilityIdentifier("appearance.adjusted")
+                    }
+                }
             }
             .hvListRow()
         }
         .scrollContentBackground(.hidden)
     }
 
-    /// What became of the last choice: working on it, the server's refusal, or the server's yes.
+    /// What became of the last choice: working on it, the server's refusal, the server's yes (and the way back from it), or
+    /// that the server cannot be reached.
     @ViewBuilder
     private func status(_ model: AppearanceModel) -> some View {
         if model.isSaving {
@@ -152,10 +129,100 @@ struct AppearancePane: View {
             KeysInlineMessage(text: problem)
                 .accessibilityIdentifier("appearance.problem")
         } else if let confirmation = model.confirmation {
-            Text(confirmation)
-                .font(.hvFootnote)
-                .foregroundStyle(Palette.textSecondary)
-                .accessibilityIdentifier("appearance.confirmation")
+            NoteWithAction(
+                text: confirmation, textIdentifier: "appearance.confirmation",
+                actionTitle: model.undo == nil ? nil : DashboardThemeCopy.undo, actionIdentifier: "appearance.undo"
+            ) { Task { await model.undoLastChange() } }
         }
+        if model.isOffline {
+            NoteWithAction(
+                text: DashboardThemeCopy.offline, textIdentifier: "appearance.offline",
+                actionTitle: "Try again", actionIdentifier: "appearance.retry"
+            ) { Task { await model.load() } }
+        }
+    }
+}
+
+/// A line of small print with a button beside it, or under it where the two do not fit on a line (a long sentence, a large
+/// text size).
+private struct NoteWithAction: View {
+    let text: String
+    let textIdentifier: String
+    let actionTitle: String?
+    let actionIdentifier: String
+    let action: () -> Void
+
+    var body: some View {
+        if let actionTitle {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: HV.Space.s) {
+                    note
+                    Spacer(minLength: 0)
+                    button(actionTitle)
+                }
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
+                    note
+                    button(actionTitle)
+                }
+            }
+        } else {
+            note
+        }
+    }
+
+    private var note: some View {
+        Text(text)
+            .font(.hvFootnote)
+            .foregroundStyle(Palette.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier(textIdentifier)
+    }
+
+    private func button(_ title: String) -> some View {
+        Button(title, action: action)
+            .buttonStyle(.hvGhost)
+            .accessibilityIdentifier(actionIdentifier)
+    }
+}
+
+/// The picked theme as it looks, drawn from the kit's own colours and not through `Palette`, so it shows the theme whether
+/// or not the app is wearing it (the phone's switch may be off, or the app may not have changed over yet). Decorative: the
+/// words under it say what is worn.
+private struct ThemePreview: View {
+    let kit: StyleKit
+
+    var body: some View {
+        let colors = kit.colors
+        let inner = CGFloat(kit.radiusXL)
+        VStack(alignment: .leading, spacing: HV.Space.xs) {
+            Text(kit.name)
+                .font(.system(.subheadline, weight: .semibold))
+                .foregroundStyle(Color(rgb: colors.foreground))
+            Text("Secondary text")
+                .font(.hvFootnote)
+                .foregroundStyle(Color(rgb: colors.mutedForeground))
+            HStack(spacing: HV.Space.s) {
+                Text("Button")
+                    .font(.system(.footnote, weight: .semibold))
+                    .foregroundStyle(Color(rgb: colors.actionForeground))
+                    .padding(.horizontal, HV.Space.s)
+                    .padding(.vertical, HV.Space.xxs)
+                    .background(Color(rgb: colors.action), in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
+                Text("Link")
+                    .font(.hvFootnote)
+                    .foregroundStyle(Color(rgb: colors.primary))
+                Text("Accent")
+                    .font(.hvFootnote)
+                    .foregroundStyle(Color(rgb: colors.accent))
+            }
+        }
+        .padding(HV.Space.s)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(rgb: colors.card), in: RoundedRectangle(cornerRadius: inner, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: inner, style: .continuous).strokeBorder(Color(rgb: colors.border).opacity(0.6), lineWidth: 1))
+        .padding(HV.Space.s)
+        .background(Color(rgb: colors.background), in: RoundedRectangle(cornerRadius: CGFloat(kit.radius2XL), style: .continuous))
+        .fontDesign(kit.font.swiftUIDesign)
+        .accessibilityHidden(true)
     }
 }

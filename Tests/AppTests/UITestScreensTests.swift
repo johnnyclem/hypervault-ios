@@ -118,10 +118,12 @@ final class UITestScreensTests: XCTestCase {
         let net = transport()
         let profiles = rest(net)
         let before = try await profiles.dashboardTheme(userID: UITestWorld.user.id)
-        XCTAssertEqual(before, "glassmorphism")
+        XCTAssertNil(before, "the canned profile starts on the HyperVault default, so a launch wears the default look")
 
         let saved = try await client(net).send(.setDashboardTheme("newsprint"))
         XCTAssertEqual(saved.theme, "newsprint")
+        XCTAssertEqual(saved.state.kit?.id, "newsprint", "the answer carries the look the server derived for the choice")
+        XCTAssertEqual(saved.state.kit?.appearance, .light)
         let after = try await profiles.dashboardTheme(userID: UITestWorld.user.id)
         XCTAssertEqual(after, "newsprint", "the profile holds what the server agreed to")
         let plan = try await profiles.profile(userID: UITestWorld.user.id)
@@ -129,8 +131,29 @@ final class UITestScreensTests: XCTestCase {
 
         let stock = try await client(net).send(.setDashboardTheme(nil))
         XCTAssertNil(stock.theme)
+        XCTAssertNil(stock.state.kit)
         let none = try await profiles.dashboardTheme(userID: UITestWorld.user.id)
         XCTAssertNil(none)
+    }
+
+    /// The canned server sends kits, as a server with `features.stylekit` does: the app reads `GET /api/dashboard-theme`.
+    func testTheCannedServerSendsTheKitOfTheTheme() async throws {
+        let net = transport()
+        let caps = try await client(net).send(.capabilities)
+        XCTAssertTrue(caps.features.stylekit)
+
+        let none = try await client(net).send(.dashboardTheme)
+        XCTAssertEqual(none, .stock, "no theme is the default look")
+
+        _ = try await client(net).send(.setDashboardTheme("glassmorphism"))
+        let glass = try await client(net).send(.dashboardTheme)
+        XCTAssertEqual(glass.theme, "glassmorphism")
+        XCTAssertEqual(glass.kit?.appearance, .dark)
+        XCTAssertEqual(glass.kit?.violations.count, 0, "the canned kits are ones the app may wear")
+
+        _ = try await client(net).send(.setDashboardTheme("newsprint"))
+        let paper = try await client(net).send(.dashboardTheme)
+        XCTAssertEqual(paper.kit?.font, .serif)
     }
 
     func testAnUnknownThemeIsRefusedWithTheServersSentence() async {

@@ -6,7 +6,7 @@ import XCTest
 @testable import HyperVault
 
 /// A flag a `@Sendable` observation callback can set.
-private final class Flag: @unchecked Sendable {
+private final class ToldFlag: @unchecked Sendable {
     private let lock = NSLock()
     private var value = false
     var isSet: Bool {
@@ -237,7 +237,7 @@ final class StyleRuntimeTests: StyleRuntimeTestCase {
     // MARK: Observation
 
     func testReadingAColourInsideATrackingScopeIsToldWhenTheLookChanges() {
-        let told = Flag()
+        let told = ToldFlag()
         withObservationTracking {
             _ = Palette.background
         } onChange: {
@@ -250,7 +250,7 @@ final class StyleRuntimeTests: StyleRuntimeTestCase {
 
     func testEveryDoorToAColourIsTracked() {
         func isTold(_ read: @escaping @Sendable () -> Void) -> Bool {
-            let told = Flag()
+            let told = ToldFlag()
             withObservationTracking(read, onChange: { told.set() })
             StyleRuntime.shared.apply(StyleKitFixtures.glassmorphism)
             StyleRuntime.shared.apply(nil)

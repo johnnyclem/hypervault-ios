@@ -14,13 +14,6 @@ final class RecordingWearer: StyleWearer {
     }
 }
 
-/// A network that cannot be reached.
-struct OfflineTransport: HTTPTransport {
-    func send(_ request: URLRequest) async throws -> HTTPResponse {
-        throw URLError(.notConnectedToInternet)
-    }
-}
-
 /// The store that decides what the app wears: the look on disk first, then the server, per person, with the phone's own
 /// switch, and dropping an answer that something newer has overtaken.
 @MainActor

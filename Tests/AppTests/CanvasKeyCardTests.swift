@@ -2,7 +2,7 @@ import HyperVaultKit
 import XCTest
 @testable import HyperVault
 
-/// Open on a key card of the Home canvas: which cards have an entry page to open, how the entry is found in the vault
+/// Open on a key card of the canvas: which cards have an entry page to open, how the entry is found in the vault
 /// (by the card's row id, then by its title), what the sheet has to say while the vault is read and when it cannot be, that an
 /// entry which is not there falls back to the Vault's list without a word, and that the card reads its key again after the page
 /// changed it. The canned world's key card has its entry only when a launch asks for it.

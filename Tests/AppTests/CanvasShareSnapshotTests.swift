@@ -3,7 +3,7 @@ import SwiftUI
 import XCTest
 @testable import HyperVault
 
-/// The Home canvas with Share on the cards of pages, files and groups (and none on a memory or a key), and the sheet it opens.
+/// The canvas with Share on the cards of pages, files and groups (and none on a memory or a key), and the sheet it opens.
 @MainActor
 final class CanvasShareSnapshotTests: XCTestCase {
     private let origin = URL(string: "https://hypervault.store")!

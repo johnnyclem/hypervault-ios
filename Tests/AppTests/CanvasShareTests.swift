@@ -2,7 +2,7 @@ import HyperVaultKit
 import XCTest
 @testable import HyperVault
 
-/// Share on a card of the Home canvas: which cards offer it, what the sheet is told about the page, what is read for it (and
+/// Share on a card of the canvas: which cards offer it, what the sheet is told about the page, what is read for it (and
 /// that the page itself is not), and that the sheet's own model does its work when the page it was given came from a card.
 @MainActor
 final class CanvasShareTests: XCTestCase {

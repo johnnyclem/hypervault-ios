@@ -18,12 +18,16 @@ any can be reversed.
    bars, sheets and toolbars, with `.glassEffect` for custom chrome and a solid `card` under Reduce Transparency.
 4. **Four tabs:** Home, Projects, Memory, Mail (the tab overhaul; it replaced Home, Chat, Memory, You). Home is the chats
    (under a Chats / Group chats switch); with none at all, and only once the server has said so, it is a starter page (Start a
-   chat, Keep something, a prompt to copy, the first-run card that asks for an agent's key). The canvas is no tab: it is a
+   chat, Keep something, a prompt to copy, the first-run card that asks for an agent's key). The old no-chats state's "Import
+   your history" button is gone on purpose (Import is under Home's More and in Settings), and the key card shows only on the
+   starter page, not above a list of chats (open for the owner: someone who chats first does not see the ask again on Home). The canvas is no tab: it is a
    screen pushed on Home (`Route.keep`) from the Keep button in Home's bar, and its page lives in `AppEnvironment.canvas`, so a
    paste that is waiting survives Back. Yours is the canvas's panel (also under Home's More; the Library is under the panel's
    More). Models left Home's bar: it is under More, which opens Settings > Models. Projects is the task boards; Mail carries its unread number. The avatar, on the first
    screen of every tab, opens an Account sheet with what the tab bar does not carry (Settings, Library, Group chats, Tools,
    Dreams, Truth, Admin for admins, Sign out). The pinned Menu list with drag-reorder (the web drawer's) is **not built**.
+   Copy that sends a person somewhere says Home, More or Models, since there is no Chat tab; "Chat" stays where it names a
+   conversation (Continue in Chat) and in the words that mirror the web (the Models pane's description, the import summary).
 5. **Settings is a frame inside the Account sheet**, the first row of its menu, with seven panes in the web's order: General,
    Vault (the default for a link that names none), Agent keys, Models, Domain, Appearance, Import. It is one navigation stack
    (`AppRouter.accountPath`: the menu, the list of panes, a pane, what the pane pushes) on a phone and on an iPad, where the

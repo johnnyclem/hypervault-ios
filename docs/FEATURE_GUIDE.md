@@ -212,6 +212,12 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   `"Unread, 3"`. It carries the selected trait and its 44pt area itself, so do not wrap it in a `Button`. `HVChip` is for
   a chip that is not a filter (an example to try, a name, a preset). A count or a plan is `HVCount`, quiet text that
   takes a number or a short fact (`HVCount(3)`, `HVCount("2 of 3 on")`), and not an `HVTag`, which is for a status.
+- A field that code empties or refills after Send (a composer) takes `.hvFieldReset(epoch:focus:field:)` directly after
+  `.focused(...)`, and the code bumps the epoch where it replaces the text, never while the person types. A focused
+  `TextField` has been seen to keep showing words its string no longer holds (that this happens here is not confirmed
+  on a device); a field with a new identity starts from the string it is given. The chat, room and canvas models do it
+  through `composerEpoch` and `fieldWrote(_:epoch:)`, which drops a write from a field that was replaced; a field whose
+  words live in the view takes `$text.hvDroppingStaleWrites(epoch:current:)` for the same.
 - The system Paste control is `HVPasteButton { strings in ... }`, never a bare `PasteButton`: it sets the rounded
   rectangle at `HV.Radius.control` and `.controlSize(.large)` once, so every Paste asks to be as tall as a button (the
   system draws the control, so check the height on a device). A tint or an identifier goes on it as on any view.

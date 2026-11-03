@@ -4,7 +4,7 @@ import SwiftUI
 /// The field at the foot of the canvas. A long paste waits above it as a chip, to be
 /// kept or asked about; everything else is typed.
 struct CanvasComposer: View {
-    @Bindable var model: CanvasModel
+    let model: CanvasModel
     var onNewThread: () -> Void
     var onCopyStarter: () -> Void
     var isDictating = false
@@ -43,6 +43,12 @@ struct CanvasComposer: View {
         .hvAnimation(HV.Motion.entrance, value: model.notice)
     }
 
+    /// The text field's binding. A write from a field that has since been replaced is dropped (`fieldWrote`).
+    private var draftBinding: Binding<String> {
+        let epoch = model.composerEpoch
+        return Binding(get: { model.draft }, set: { model.fieldWrote($0, epoch: epoch) })
+    }
+
     private var field: some View {
         HStack(alignment: .bottom, spacing: HV.Space.xs) {
             Menu {
@@ -59,10 +65,11 @@ struct CanvasComposer: View {
             .accessibilityLabel("More")
             .accessibilityIdentifier("canvas.more")
 
-            TextField(HVCopy.chatPlaceholder, text: $model.draft, prompt: Text.hvPrompt(HVCopy.chatPlaceholder), axis: .vertical)
+            TextField(HVCopy.chatPlaceholder, text: draftBinding, prompt: Text.hvPrompt(HVCopy.chatPlaceholder), axis: .vertical)
                 .font(.hvBody)
                 .lineLimit(1...6)
                 .focused($focused)
+                .hvFieldReset(epoch: model.composerEpoch, focus: $focused, field: true)
                 .submitLabel(.send)
                 .onSubmit(sendFromKeyboard)
                 .padding(.vertical, 9)

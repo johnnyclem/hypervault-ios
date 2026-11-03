@@ -11,6 +11,8 @@ struct TaskDetailView: View {
     @State private var title = ""
     @State private var newSubtask = ""
     @State private var newNote = ""
+    /// Bumped when a note is added, so the field is replaced and starts again from the empty string.
+    @State private var noteEpoch = 0
     @State private var progress = 0.0
     @State private var isSliding = false
     @State private var confirmTakeOver = false
@@ -265,14 +267,16 @@ struct TaskDetailView: View {
     private func addNoteRow(_ task: BoardTask) -> some View {
         let isEmpty = newNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return HStack(alignment: .bottom, spacing: HV.Space.s) {
-            TextField("Leave a note", text: $newNote, prompt: Text.hvPrompt("Leave a note"), axis: .vertical)
+            TextField("Leave a note", text: $newNote.hvDroppingStaleWrites(epoch: noteEpoch, current: { noteEpoch }), prompt: Text.hvPrompt("Leave a note"), axis: .vertical)
                 .focused($focus, equals: .note)
+                .hvFieldReset(epoch: noteEpoch, focus: $focus, field: .note)
                 .lineLimit(1...5)
             Button {
                 let text = newNote.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !text.isEmpty else { return }
                 model.enqueue(.addNote(taskID: task.id, text: text))
                 newNote = ""
+                noteEpoch &+= 1
                 Haptics.tap()
             } label: {
                 Image(systemName: "arrow.up.circle.fill").font(.system(size: HV.glyphBox(scaled: glyph, base: TaskCheck.glyphSize)))

@@ -109,13 +109,21 @@ final class StyleKitStore {
         try? await refresh(using: loader)
     }
 
-    /// Wears a state the server just returned, the answer to a `PATCH`, and keeps it on disk. It is the newest news, so
-    /// anything still on its way is the old.
-    func keep(_ saved: DashboardThemeState, using loader: StyleKitLoader) async {
+    /// Where the session is now: handed back to `keep` with the answer to a request that was made in it, so an answer that
+    /// outlived its session can be told from one that did not.
+    var sessionMark: Int { epoch }
+
+    /// Wears a state the server just returned, the answer to a `PATCH` made when the session was at `mark`, and keeps it on
+    /// disk. It is the newest news, so anything still on its way is the old. If the session has ended since (`reset()`), the
+    /// answer is the old account's: nothing is worn or written, and this says so by returning false.
+    @discardableResult
+    func keep(_ saved: DashboardThemeState, using loader: StyleKitLoader, since mark: Int) async -> Bool {
+        guard mark == epoch else { return false }
         epoch += 1
         lastAsked = now()
         adopt(saved)
         await loader.remember(saved)
+        return true
     }
 
     /// The session has ended: the look goes back to the app's own, and what was in flight is dropped. The disk copy is the

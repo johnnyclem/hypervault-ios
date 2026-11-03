@@ -107,12 +107,14 @@ final class AppearanceModel {
         problem = nil
         confirmation = nil
         defer { isSaving = false }
+        let mark = style.sessionMark
         do {
             let saved = try await client.send(.setDashboardTheme(id))
             stored = saved.theme
             undo = isUndo ? nil : Undo(themeID: before)
-            // The answer carries the look the server derived for the choice, so it is worn now, without another request.
-            await style.keep(saved.state, using: loader)
+            // The answer carries the look the server derived for the choice, so it is worn now, without another request. If the
+            // session ended while the server was answering, the answer is the old account's: nothing of it is worn, kept or said.
+            guard await style.keep(saved.state, using: loader, since: mark) else { return }
             let sentence = DashboardThemeCopy.confirmation(for: saved.theme, in: catalog, inApp: style.look.isWorn)
             confirmation = sentence
             AccessibilityNotification.Announcement(sentence).post()

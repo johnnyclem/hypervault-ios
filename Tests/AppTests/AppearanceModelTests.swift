@@ -281,6 +281,30 @@ final class AppearanceModelTests: XCTestCase {
         XCTAssertEqual(rig.wearer.calls, 1, "nothing was re-worn")
     }
 
+    func testAChangeAnsweredAfterTheSessionEndedIsNeitherWornNorSaid() async {
+        let hold = RequestHold()
+        await hold.arm()
+        let base = transport(ThemeServer(theme: "glassmorphism"))
+        let held = HeldTransport(base: base, hold: hold, holds: { $0.httpMethod == "PATCH" })
+        let rig = makeRig(held)
+        await rig.model.load()
+        XCTAssertEqual(rig.wearer.last, StyleKitFixtures.glassmorphism)
+
+        // The person picks Newsprint, and signs out while the server is still answering.
+        let choosing = Task { await rig.model.choose("newsprint") }
+        while await hold.waiting == 0 { await Task.yield() }
+        rig.style.reset()
+        await hold.release()
+        await choosing.value
+
+        XCTAssertNil(rig.wearer.last, "the sign-in screen is not drawn in the old account's theme")
+        XCTAssertNil(rig.style.state)
+        XCTAssertNil(rig.model.confirmation, "and nothing is announced about an account that has gone")
+        XCTAssertFalse(rig.model.isSaving)
+        let onDisk = await rig.loader.cached()
+        XCTAssertEqual(onDisk?.theme, "glassmorphism", "nor written to the phone: the disk holds what the first read left")
+    }
+
     func testChoosingTheOneAlreadyChosenSendsNothing() async {
         let rig = makeRig(transport(ThemeServer(theme: "newsprint")))
         await rig.model.load()

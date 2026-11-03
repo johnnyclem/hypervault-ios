@@ -319,7 +319,7 @@ final class StyleKitStoreTests: XCTestCase {
         let loader = makeLoader(transport, cache: cache)
         let wearer = RecordingWearer()
         let store = makeStore(wearer)
-        await store.keep(DashboardThemeState(theme: "newsprint", kit: StyleKitFixtures.newsprint), using: loader)
+        await store.keep(DashboardThemeState(theme: "newsprint", kit: StyleKitFixtures.newsprint), using: loader, since: store.sessionMark)
         XCTAssertEqual(wearer.last, StyleKitFixtures.newsprint)
         let kept = await loader.cached()
         XCTAssertEqual(kept?.theme, "newsprint")
@@ -340,7 +340,7 @@ final class StyleKitStoreTests: XCTestCase {
         let refreshing = Task { try? await store.refresh(using: slow) }
         // The refresh is out; meanwhile the person chooses Glassmorphism.
         while await hold.waiting == 0 { await Task.yield() }
-        await store.keep(DashboardThemeState(theme: "glassmorphism", kit: StyleKitFixtures.glassmorphism), using: slow)
+        await store.keep(DashboardThemeState(theme: "glassmorphism", kit: StyleKitFixtures.glassmorphism), using: slow, since: store.sessionMark)
         await hold.release()
         await refreshing.value
 
@@ -368,6 +368,25 @@ final class StyleKitStoreTests: XCTestCase {
         XCTAssertNil(store.state)
         let kept = await slow.cached()
         XCTAssertNil(kept, "nothing of the account is written after it has gone")
+    }
+
+    func testAPatchAnswerThatArrivesAfterASignOutIsDroppedAndNotKept() async throws {
+        let cache = tempCache()
+        let loader = makeLoader(MockTransport(), cache: cache)
+        let wearer = RecordingWearer()
+        let store = makeStore(wearer)
+
+        // The PATCH goes out in one session; the person signs out while it is on its way, and its answer comes in after.
+        let mark = store.sessionMark
+        store.reset()
+        let kept = await store.keep(DashboardThemeState(theme: "newsprint", kit: StyleKitFixtures.newsprint), using: loader, since: mark)
+
+        XCTAssertFalse(kept, "the answer belongs to the session that ended")
+        XCTAssertNil(wearer.last, "the sign-in screen is not drawn in the old account's theme")
+        XCTAssertNil(store.state)
+        XCTAssertEqual(store.look, .standard)
+        let onDisk = await loader.cached()
+        XCTAssertNil(onDisk, "and the old account's theme is not written after its cache has gone")
     }
 
     // MARK: Signing out

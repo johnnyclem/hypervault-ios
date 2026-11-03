@@ -154,7 +154,7 @@ final class StyleKitTests: XCTestCase {
         XCTAssertEqual(kit.colors.card.hexString, "#1a1f2d", "the server flattened the 6% white over the page: the app never sees an alpha")
         XCTAssertEqual(kit.adjusted, [.primary, .destructive, .actionForeground])
         XCTAssertTrue(kit.hasNoticeableAdjustments, "the brand colour moved")
-        XCTAssertEqual(kit.colors.primary.hexString, "#7679f3", "primary is ink, moved until it reads")
+        XCTAssertEqual(kit.colors.primary.hexString, "#7678f3", "primary is ink, moved until it reads")
         XCTAssertEqual(kit.colors.action.hexString, "#6366f1", "action is the fill the theme designed, not moved")
         XCTAssertEqual(kit.colors.actionForeground, .black)
     }
@@ -385,7 +385,7 @@ final class StyleKitTests: XCTestCase {
         try StyleKitFixtures.decode([PresetAnswer].self, from: StyleKitFixtures.data("all-presets"))
     }
 
-    /// With the prototype's builder over the 39 preset blocks of app/globals.css.
+    /// `all-presets.json` is the server's own `themePayload` over its 39 themes (Fixtures/stylekit/README.md).
     func testTheAppsFloorsAgreeWithTheServersClampForEveryPreset() throws {
         let all = try presets()
         XCTAssertEqual(all.count, 39)
@@ -408,6 +408,17 @@ final class StyleKitTests: XCTestCase {
             }
         }
         XCTAssertGreaterThanOrEqual(tightest, 1, "no pair passes only on the floating point slack")
+    }
+
+    /// The four goldens are the server's files and the sweep is the server's builder run over every theme, so each golden
+    /// is the `kit` of its own row. Editing one by hand and not the other fails here.
+    func testTheGoldensAreTheKitsOfTheSweep() throws {
+        let rows = try XCTUnwrap(StyleKitFixtures.json("all-presets").array)
+        XCTAssertEqual(rows.count, 39)
+        for name in StyleKitFixtures.goldens {
+            let row = try XCTUnwrap(rows.first(where: { $0["theme"] == JSONValue.string(name) }), name)
+            XCTAssertEqual(row["kit"], try StyleKitFixtures.json(name), name)
+        }
     }
 
     func testEveryPresetsAppearanceIsTheSideOfItsPage() throws {

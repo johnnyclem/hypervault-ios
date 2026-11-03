@@ -1,7 +1,7 @@
 import HyperVaultKit
 import SwiftUI
 
-/// Yours, the panel Home opens from its corner icon: everything that has been kept, newest used first. Tapping a thing, or
+/// Yours, the panel the canvas opens from its corner icon: everything that has been kept, newest used first. Tapping a thing, or
 /// choosing "Put on the page" on it, puts it on the page; "Open" opens it where it lives. The Library, the longer list,
 /// is under More.
 struct YoursSheet: View {
@@ -76,13 +76,14 @@ private struct YoursSheetContent: View {
         .presentationDragIndicator(.visible)
     }
 
-    /// Opens the thing where it lives, and closes the panel so what opens is not under it.
+    /// Opens the thing where it lives, and closes the panel so what opens is not under it. The panel is the canvas's, and a
+    /// page opens on the stack above the canvas (on Home's), so Back lands on the canvas the person came from.
     private func open(_ item: KeptItem) {
         model.markOpened(item)
         switch item.kind {
         case .page, .file, .group:
             onClose()
-            if let slug = item.slug { app.router.open(.route(.artifact(slug: slug))) }
+            if let slug = item.slug { app.router.push(.artifact(slug: slug), on: .home) }
         case .memory:
             onClose()
             app.router.open(.route(.memory(id: item.id)))

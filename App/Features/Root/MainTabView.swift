@@ -1,9 +1,10 @@
 import HyperVaultKit
 import SwiftUI
 
-/// The four tabs, in the order of the tab bar: Home, Projects, Memory, Mail. Each has its own navigation stack, kept alive
-/// while another tab shows, and every stack resolves the same `Route`s. Settings is not a tab: it is the Account sheet
-/// behind the avatar on each tab's first screen, with a stack of its own (`AccountMenuSheet`).
+/// The four tabs, in the order of the tab bar: Home (the chats), Projects, Memory, Mail. Each has its own navigation stack,
+/// kept alive while another tab shows, and every stack resolves the same `Route`s. Settings is not a tab: it is the Account
+/// sheet behind the avatar on each tab's first screen, with a stack of its own (`AccountMenuSheet`). The canvas, where
+/// something is kept, is not a tab either: it is a screen pushed on Home (`Route.keep`).
 struct MainTabView: View {
     @Environment(AppModel.self) private var model
     @Environment(AppEnvironment.self) private var env
@@ -15,7 +16,7 @@ struct MainTabView: View {
     var body: some View {
         @Bindable var router = model.router
         TabView(selection: $router.tab) {
-            TabRoot(tab: .home) { CanvasRootView() }
+            TabRoot(tab: .home) { ChatRootView() }
                 .tabItem { Label(AppTab.home.title, systemImage: AppTab.home.symbol) }
                 .tag(AppTab.home)
 
@@ -44,8 +45,8 @@ struct MainTabView: View {
             guard !model.lock.isLocked else { return }
             await env.flushOutbox(toasts: model.toasts)
         }
-        // Chats written on this phone while offline go to the vault once the person is in. (The chat list did this when it
-        // showed, and no screen shows it for now; a conversation settles its own waiting rows when it opens.)
+        // Chats written on this phone while offline go to the vault once the person is in, wherever they are in the app. (Home
+        // does it too when it shows; a conversation settles its own waiting rows when it opens.)
         .task(id: model.lock.isLocked) {
             guard !model.lock.isLocked else { return }
             _ = await ChatOutboxes.outbox(for: env).flush(client: env.client)
@@ -109,6 +110,7 @@ struct RouteDestination: View {
 
     var body: some View {
         switch route {
+        case .keep: CanvasRootView()
         case .artifact(let slug): ArtifactDetailView(slug: slug)
         case .memory(let id): MemoryDetailView(id: id)
         case .conversation(let id): ConversationScreen(conversationID: id)

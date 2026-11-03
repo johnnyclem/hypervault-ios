@@ -23,7 +23,7 @@ final class CanvasShareSnapshotTests: XCTestCase {
         for thing in things { model.dispatch(.add(CanvasState.itemCard(thing))) }
         let routes: [MockRoute] = [.json(.get, "/api/backends", Fixtures.backends), .json(.get, "/api/yours", Fixtures.yours)]
         return PreviewHost(routes: routes, embedInNavigation: true) {
-            CanvasScreen(model: model, origin: origin, userName: "Sam", avatarName: "Sam Rivers", avatarURL: nil)
+            CanvasScreen(model: model, origin: origin)
                 .environment(\.dynamicTypeSize, size)
         }
     }

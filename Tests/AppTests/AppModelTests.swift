@@ -188,6 +188,7 @@ final class AppModelTests: XCTestCase {
         await settle(app, to: .ready)
         XCTAssertEqual(app.router.tab, .home)
         XCTAssertTrue(app.router.yoursPanel)
+        XCTAssertEqual(app.router.path(for: .home).wrappedValue.count, 1, "the canvas is already pushed on Home when the tab first builds, to take the flag")
     }
 
     // MARK: A reinstall
@@ -250,6 +251,7 @@ final class AppModelTests: XCTestCase {
         OutboxStore.add(OutboxItem(content: "a pasted secret"))
         SharedConfig.defaults.set(Data("[]".utf8), forKey: SharedConfig.widgetRecentKey)
         app.router.push(.memory(id: "m1"), on: .memory)
+        app.router.push(.keep, on: .home)
         app.router.open(.account(.keys))
         app.router.pushInAccount(.importHistory)
         app.router.yoursPanel = true
@@ -268,6 +270,7 @@ final class AppModelTests: XCTestCase {
         XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.approvedUser), "the approval", file: file, line: line)
         XCTAssertNil(SharedConfig.defaults.string(forKey: PrefKey.sessionUser), "the marker", file: file, line: line)
         XCTAssertEqual(app.router.path(for: .memory).wrappedValue.count, 0, "the pushed screens", file: file, line: line)
+        XCTAssertEqual(app.router.path(for: .home).wrappedValue.count, 0, "the canvas pushed on Home", file: file, line: line)
         XCTAssertEqual(app.router.accountPath.count, 0, "the Account sheet's stack (Settings, its pane and what the pane pushed)", file: file, line: line)
         XCTAssertNil(app.router.pairing, "the pairing page waiting to show", file: file, line: line)
         XCTAssertEqual(app.router.accountPane, .vault, "the pane", file: file, line: line)

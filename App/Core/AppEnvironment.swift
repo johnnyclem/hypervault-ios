@@ -14,8 +14,13 @@ final class AppEnvironment {
     let user: AuthUser
     let server: ServerConfig
     @ObservationIgnored let cache: DiskCache
-    /// Tells of background jobs (a page repair) that finished while nobody was watching: on the Home canvas and the Library.
+    /// Tells of background jobs (a page repair) that finished while nobody was watching: on Home, the canvas pushed on it, and
+    /// the Library.
     let jobNotices: JobNotices
+    /// The canvas's page: its cards, its thread, and what is waiting in its field. The canvas is a screen pushed on Home, and
+    /// a pushed screen is built again every time it is opened, so the page is kept here for the session: a paste staged
+    /// there is still there after Back. One per signed-in person, like everything in this environment.
+    let canvas: CanvasModel
 
     /// Set by the Admin feature's probe; the Account menu shows the Admin row when true.
     var isAdmin = false
@@ -28,6 +33,7 @@ final class AppEnvironment {
         self.server = server
         self.cache = cache
         self.jobNotices = JobNotices(client: client)
+        self.canvas = CanvasModel(client: client, origin: server.baseURL)
     }
 
     var limits: Capabilities.Limits { capabilities.limits }

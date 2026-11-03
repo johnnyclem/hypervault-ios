@@ -33,8 +33,11 @@ enum AppTab: String, CaseIterable, Identifiable, Hashable {
 /// their own local destinations too; these are the ones other features and
 /// links need to reach by name. `RouteDestination` maps each to its screen. The
 /// screens that are panes of Settings are not routes: they are `AccountPane`s. Mail and the Projects list are not routes
-/// either: they are the roots of their tabs.
+/// either: they are the roots of their tabs. (Home's chats are the root of Home.)
 enum Route: Hashable {
+    /// The canvas, where a person keeps something or asks about what they have kept, pushed on Home. It is reached from
+    /// the Keep button in Home's bar and from its starter page, and by the `keep`, `canvas` and `yours` links.
+    case keep
     case artifact(slug: String)
     case memory(id: String)
     case conversation(id: String)
@@ -73,11 +76,11 @@ enum DeepLink: Hashable {
     case memoryTab(mode: MemoryMode?, branch: String?)
     /// A pane of Settings, in the Account sheet over whatever shows. Nil is the pane when nothing names one, which is the vault.
     case account(AccountPane?)
-    /// Home, with the Yours panel open over it.
+    /// The canvas on Home, with the Yours panel open over it.
     case yours
     /// Home's chats, on their Group chats half.
     case groupChats
-    /// Open the canvas with something already in the field.
+    /// Open the canvas, pushed on Home, with something already in the field.
     case keep(prefill: String?)
     /// Open the website's pairing page, where a person answers an agent that is asking for a key, over the Agent keys pane
     /// (which is in Settings, so the Account sheet shows behind it).
@@ -92,11 +95,13 @@ enum DeepLink: Hashable {
         case .tab(let tab): return (tab, nil)
         case .memoryTab: return (.memory, nil)
         case .account, .pair: return (nil, nil)
-        case .yours, .keep, .invite, .groupChats: return (.home, nil)
+        // The canvas is a screen of Home's stack, and the Yours panel is the canvas's: both land on it.
+        case .yours, .keep: return (.home, .keep)
+        case .invite, .groupChats: return (.home, nil)
         case .route(let route):
             switch route {
-            // Home is the catch-all stack: Library, pages, chats, Tools and Admin have always been pushed there.
-            case .artifact, .library, .libraryFiltered, .admin, .conversation, .room, .tools, .importHistory: return (.home, route)
+            // Home is the catch-all stack: the canvas, Library, pages, chats, Tools and Admin are pushed there.
+            case .keep, .artifact, .library, .libraryFiltered, .admin, .conversation, .room, .tools, .importHistory: return (.home, route)
             case .mailThread: return (.mail, route)
             case .taskBoard: return (.projects, route)
             case .memory, .truth, .truthReview, .truthReviewLedger, .dreams, .digest: return (.memory, route)
@@ -190,8 +195,9 @@ enum DeepLink: Hashable {
         case "login":
             if let code = value("invite") { self = .invite(code: code) } else { return nil }
         case "tab":
-            // Installed widgets and Spotlight results carry hypervault://tab/yours and tab/canvas: they open for good. The
-            // two tabs that are gone have their links kept: Chat is Home's chats, and You is Settings.
+            // Installed widgets and Spotlight results carry hypervault://tab/yours and tab/canvas: they open for good. Yours
+            // is the canvas's panel; tab/canvas, which used to be the canvas, is Home, and the canvas is `keep`. The two tabs
+            // that are gone have their links kept: Chat is Home's chats, and You is Settings.
             switch second?.lowercased() {
             case "yours": self = .yours
             case "home", "chat": self = .tab(.home)
@@ -215,7 +221,7 @@ enum DeepLink: Hashable {
         case "account":
             self = pane()
         case "vault":
-            // The web's /vault/<section> paths. /vault itself is the canvas: Home.
+            // The web's /vault/<section> paths. /vault itself is Home.
             switch second?.lowercased() {
             case nil: self = .tab(.home)
             case "memory": self = memoryLink()

@@ -1,8 +1,8 @@
 import HyperVaultKit
 import SwiftUI
 
-/// Whether the quiet Home page shows the first-run card that asks for one thing: give an agent a key (the web's
-/// `ConnectAgentCard`). It shows only when everything it depends on is known:
+/// Whether a quiet page (the canvas, and Home's starter page) shows the first-run card that asks for one thing: give an agent a
+/// key (the web's `ConnectAgentCard`). It shows only when everything it depends on is known:
 ///
 /// - the person has no agent key (the keys list was read, fresh, and was empty), and
 /// - "I'll look around first" has not been chosen, on this phone or on the profile (`onboarding.connect_dismissed_at`,
@@ -105,7 +105,8 @@ struct ConnectCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
             KeysRowLayout {
-                // The key's own tile, as on a key card: this is a Home card, where the kind colour lives.
+                // The key's own tile, as on a key card: this card is on the canvas and on Home's starter page, where the kind
+                // colour lives.
                 HVIconBadge(symbol: HVSymbol.key, tint: KeptKind.key.tint, size: 36)
             } words: {
                 Text(ConnectCardCopy.title)
@@ -134,9 +135,9 @@ struct ConnectCard: View {
     }
 }
 
-/// Where the card sits on the quiet page, under the hints, and it takes no room at all while the card is off. The page
-/// holds the model, so the hints above can leave out their own Connect button while the card is the one asking; the slot
-/// makes the model once there is an account to ask about.
+/// Where the card sits on a quiet page, under the hints (the canvas's) or under the buttons (Home's starter page), and it
+/// takes no room at all while the card is off. The page holds the model, so the hints above can leave out their own Connect
+/// button while the card is the one asking; the slot makes the model once there is an account to ask about.
 struct ConnectCardSlot: View {
     @Environment(AppModel.self) private var app
     @Environment(AppEnvironment.self) private var env
@@ -167,7 +168,7 @@ struct ConnectCardSlot: View {
         .onChange(of: app.router.sheet) { old, new in
             if new == nil, old == .connectAgent || old == .account { Task { await model?.refresh() } }
         }
-        // So does one made elsewhere, by the time the person is back on Home.
+        // So does one made in Settings, by the time the person is back on Home.
         .onChange(of: app.router.tab) { _, tab in
             if tab == .home { Task { await model?.refresh() } }
         }

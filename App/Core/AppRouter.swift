@@ -51,11 +51,12 @@ final class AppRouter {
     /// presented by the pane, once the pane is up, and not by the router over a sheet that is still on its way in.
     var pairing: PairingRequest?
 
-    /// Text a link or a Shortcut wants in the canvas field. The canvas takes it
-    /// (and clears it) when it appears.
+    /// Text a link wants in the canvas field. The canvas takes it (and clears it) when it shows, which may be as it is first
+    /// built: the link that sets this also pushes the canvas on Home.
     var canvasDraft: String?
 
-    /// A link asked for the Yours panel. The canvas opens it (and clears this) when it sees it.
+    /// A link asked for the Yours panel. The canvas opens it (and clears this) when it sees it, which may be as it is first
+    /// built: the link that sets this also pushes the canvas on Home.
     var yoursPanel = false
 
     /// A Yours link came while a sheet was up: the panel is a sheet too, and opens once that one is gone (`sheetDidDismiss`).
@@ -92,18 +93,22 @@ final class AppRouter {
         // The latest link wins over a pairing page an earlier one asked for and the Agent keys pane has not taken yet (the
         // sheet was still on its way in, or never showed): a `pair` link makes its own request below.
         pairing = nil
+        // The same goes for what an earlier link left for the canvas to take (some text, the Yours panel, a panel that was
+        // waiting for a sheet to go) when the canvas never showed to take it: the link below makes its own ask.
+        canvasDraft = nil
+        yoursPanel = false
+        yoursWaitsForSheet = false
         switch link {
         case .pair, .invite, .account:
-            // The latest link wins over a panel that was waiting for a sheet to go.
-            yoursWaitsForSheet = false
+            break
         default:
             sheet = nil
             queuedSheet = nil
         }
         switch link {
         case .keep(let prefill):
+            // (The canvas itself is pushed below, from the link's destination: on Home's first screen, over nothing.)
             if let prefill, !prefill.isEmpty { canvasDraft = prefill }
-            popToRoot(.home)
         case .pair(let code):
             pairing = PairingRequest(code: code)
             showSettings(.keys)
@@ -112,9 +117,9 @@ final class AppRouter {
         case .account(let pane):
             showSettings(pane)
         case .yours:
-            // The panel is a sheet of Home's. With another sheet still on its way out it would not present, so it waits.
+            // The panel is a sheet of the canvas's, which the link pushes below. With another sheet still on its way out it
+            // would not present, so it waits.
             if hadSheet { yoursWaitsForSheet = true } else { yoursPanel = true }
-            popToRoot(.home)
         case .groupChats:
             groupChats = true
             popToRoot(.home)

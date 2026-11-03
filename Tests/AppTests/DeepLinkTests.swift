@@ -49,10 +49,12 @@ final class DeepLinkTests: XCTestCase {
         XCTAssertEqual(link("hypervault://tab/YOURS"), .yours)
         XCTAssertEqual(link("hypervault://tab/Canvas"), .tab(.home))
 
-        // What each opens: the panel on Home, and Home.
+        // What each opens: the panel on the canvas (pushed on Home), the canvas, and Home itself, which is the chats now.
         XCTAssertEqual(DeepLink.yours.destination.tab, .home)
-        XCTAssertNil(DeepLink.yours.destination.route)
+        XCTAssertEqual(DeepLink.yours.destination.route, .keep, "the panel is the canvas's, so the canvas is pushed")
+        XCTAssertEqual(DeepLink.keep(prefill: nil).destination.route, .keep)
         XCTAssertEqual(DeepLink.tab(.home).destination.tab, .home)
+        XCTAssertNil(DeepLink.tab(.home).destination.route, "tab/canvas is Home's first screen, not the canvas: keep is the link for that")
     }
 
     func testEveryTabNamesItself() {
@@ -368,6 +370,10 @@ final class DeepLinkTests: XCTestCase {
         XCTAssertEqual(DeepLink.route(.library).destination.tab, .home)
         XCTAssertEqual(DeepLink.route(.admin).destination.tab, .home)
         XCTAssertEqual(DeepLink.keep(prefill: nil).destination.tab, .home)
+        XCTAssertEqual(DeepLink.keep(prefill: "x").destination.route, .keep, "the canvas is a screen pushed on Home")
+        XCTAssertEqual(DeepLink.yours.destination.route, .keep)
+        XCTAssertEqual(DeepLink.route(.keep).destination.tab, .home)
+        XCTAssertEqual(DeepLink.route(.keep).destination.route, .keep)
         XCTAssertEqual(DeepLink.invite(code: nil).destination.tab, .home)
         XCTAssertEqual(DeepLink.route(.room(id: "x")).destination.tab, .home)
         XCTAssertEqual(DeepLink.route(.conversation(id: "x")).destination.tab, .home)
@@ -464,12 +470,13 @@ final class DeepLinkTests: XCTestCase {
     }
 
     @MainActor
-    func testTheYoursLinkOpensThePanelOnHome() {
+    func testTheYoursLinkOpensThePanelOnTheCanvasPushedOnHome() {
         let router = AppRouter()
         router.tab = .memory
         router.open(.yours)
         XCTAssertEqual(router.tab, .home)
         XCTAssertTrue(router.yoursPanel)
+        XCTAssertEqual(router.path(for: .home).wrappedValue.count, 1, "the canvas is pushed in the same step, to take the flag as it is built")
     }
 
     @MainActor
@@ -484,16 +491,64 @@ final class DeepLinkTests: XCTestCase {
     // MARK: A link that names no route still starts its tab from the first screen
 
     @MainActor
-    func testTheKeepAndYoursLinksAndAHomeLinkShowHomeFromItsFirstScreen() {
+    func testTheKeepAndYoursLinksPushTheCanvasOnHomeAndAHomeLinkShowsHomeFromItsFirstScreen() {
         let router = AppRouter()
-        for link in [DeepLink.keep(prefill: nil), .keep(prefill: "a thought"), .yours, .tab(.home)] {
+        for link in [DeepLink.keep(prefill: nil), .keep(prefill: "a thought"), .yours] {
             router.push(.artifact(slug: "x"), on: .home)
+            router.push(.library, on: .home)
             router.tab = .memory
             router.open(link)
             XCTAssertEqual(router.tab, .home, "\(link)")
-            XCTAssertEqual(router.path(for: .home).wrappedValue.count, 0, "Home shows its first screen for \(link)")
+            XCTAssertEqual(router.path(for: .home).wrappedValue.count, 1, "the canvas alone: what was pushed on Home is closed for \(link)")
         }
+        XCTAssertNil(router.canvasDraft, "the last of them (Yours) asked for no text, and the text of the one before is not its own")
+
+        router.push(.artifact(slug: "x"), on: .home)
+        router.tab = .memory
+        router.open(.tab(.home))
+        XCTAssertEqual(router.tab, .home)
+        XCTAssertEqual(router.path(for: .home).wrappedValue.count, 0, "Home shows its first screen, the chats")
+    }
+
+    @MainActor
+    func testTheKeepLinkLeavesTheTextForTheCanvasAndPushesIt() {
+        let router = AppRouter()
+        router.open(.keep(prefill: "a thought"))
         XCTAssertEqual(router.canvasDraft, "a thought", "the text is waiting for the canvas")
+        XCTAssertEqual(router.path(for: .home).wrappedValue.count, 1)
+        router.open(.keep(prefill: nil))
+        XCTAssertNil(router.canvasDraft, "a link with no text does not leave an older link's")
+        router.open(.keep(prefill: ""))
+        XCTAssertNil(router.canvasDraft)
+    }
+
+    @MainActor
+    func testAnOpenFromTheCanvasIsAPushAndSoBackComesBackToIt() {
+        let router = AppRouter()
+        router.open(.keep(prefill: nil))
+        router.push(.artifact(slug: "a"), on: .home)
+        XCTAssertEqual(router.path(for: .home).wrappedValue.count, 2, "the page is over the canvas, and Back lands on it")
+        router.open(.yours)
+        XCTAssertEqual(router.path(for: .home).wrappedValue.count, 1, "a link starts from Home's first screen: the canvas alone")
+    }
+
+    @MainActor
+    func testWhatALinkLeftForTheCanvasIsForgottenByTheNextLink() {
+        let router = AppRouter()
+        router.open(.keep(prefill: "a thought"))
+        router.open(.tab(.memory))
+        XCTAssertNil(router.canvasDraft, "the canvas never showed to take it, and the later link is the one that counts")
+
+        router.open(.yours)
+        XCTAssertTrue(router.yoursPanel)
+        router.open(.route(.truth))
+        XCTAssertFalse(router.yoursPanel)
+
+        router.sheet = .account
+        router.open(.yours)
+        router.open(.groupChats)
+        router.sheetDidDismiss()
+        XCTAssertFalse(router.yoursPanel, "a panel that waited for a sheet to go is not opened by a later link's sheet going")
     }
 
     @MainActor

@@ -35,7 +35,8 @@ struct RecentWidgetView: View {
             case .locked:
                 message("Hidden while the lock is on. Open HyperVault to see what you kept.")
             case .empty:
-                message("Nothing kept yet.")
+                // Nothing kept: the tap goes to the canvas, where the person keeps something, not to Home's chats.
+                message("Nothing kept yet.", opening: "hypervault://keep")
             case .items(let things):
                 list(things)
             }
@@ -89,7 +90,8 @@ struct RecentWidgetView: View {
         }
     }
 
-    private func message(_ text: String) -> some View {
+    /// A line in place of the list. Its tap opens Home (`tab/canvas`, the raw value `AppTab.home` keeps) unless it names a link.
+    private func message(_ text: String, opening link: String = "hypervault://tab/canvas") -> some View {
         VStack(spacing: 8) {
             BrandMark(size: 30)
             Text(text)
@@ -98,7 +100,7 @@ struct RecentWidgetView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .widgetURL(URL(string: "hypervault://tab/canvas"))
+        .widgetURL(URL(string: link))
     }
 }
 

@@ -63,7 +63,8 @@ waiting and come back: the paste is still staged (the canvas keeps its page whil
   and the app keeps it on next open (Settings shows "Waiting to keep" until then).
 - **Widgets:** add the Home Screen and Lock Screen widgets; they show recent things, never keys. Keep
   something and the widget updates. The Yours widget's tap opens the Yours panel on the canvas (Back is Home); the Keep widget
-  opens the canvas with the field ready; a widget's "nothing to show" message (`tab/canvas`) opens Home.
+  opens the canvas with the field ready; the Yours widget's "Nothing kept yet." (`keep`) opens the canvas too, and its signed-out
+  and locked messages (`tab/canvas`) open Home. A widget added before this build still opens Home from "Nothing kept yet."
 - **Siri / Shortcuts:** "Keep this in HyperVault" with text.
 - **Spotlight:** search a page's name from the Home Screen; tapping opens it in the app. Keys never appear.
 - **Pairing link:** put `hypervault://pair?code=BCDF-2346` in a note and tap it. Agent keys opens with the website's

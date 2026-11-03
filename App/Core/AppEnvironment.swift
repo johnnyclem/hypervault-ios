@@ -16,11 +16,17 @@ final class AppEnvironment {
     @ObservationIgnored let cache: DiskCache
     /// Tells of background jobs (a page repair) that finished while nobody was watching: on the Home canvas and the Library.
     let jobNotices: JobNotices
+    /// The look the app wears for the person's theme (`AppModel.style`).
+    let style: StyleKitStore
 
     /// Set by the Admin feature's probe; the Account menu shows the Admin row when true.
     var isAdmin = false
 
-    init(client: HVClient, auth: AuthService, capabilities: Capabilities, user: AuthUser, server: ServerConfig, cache: DiskCache) {
+    init(
+        client: HVClient, auth: AuthService, capabilities: Capabilities, user: AuthUser, server: ServerConfig, cache: DiskCache,
+        style: StyleKitStore? = nil
+    ) {
+        self.style = style ?? StyleKitStore()
         self.client = client
         self.auth = auth
         self.capabilities = capabilities
@@ -28,6 +34,12 @@ final class AppEnvironment {
         self.server = server
         self.cache = cache
         self.jobNotices = JobNotices(client: client)
+    }
+
+    /// Reads and keeps this person's look, on the server and on disk. A server that sends no kits (`features.stylekit` false) is
+    /// asked for the theme's id the way the Appearance pane always did, and the theme is then one the app cannot show.
+    var styleLoader: StyleKitLoader {
+        StyleKitLoader(client: client, rest: keysRest, cache: cache, userID: user.id, serverSendsKits: features.stylekit)
     }
 
     var limits: Capabilities.Limits { capabilities.limits }

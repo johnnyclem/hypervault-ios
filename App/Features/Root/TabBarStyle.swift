@@ -11,22 +11,59 @@ import UIKit
 enum HVTabBarStyle {
     @MainActor
     static func install() {
-        let appearance = UITabBarAppearance()
-        appearance.configureWithDefaultBackground()
-        let quiet = UIColor(named: "muted-foreground") ?? .secondaryLabel
-        let selected = UIColor { traits in
-            let name = traits.userInterfaceStyle == .light ? "primary" : "foreground"
-            return UIColor(named: name)?.resolvedColor(with: traits) ?? .label
-        }
-        for layout in [appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance, appearance.compactInlineLayoutAppearance] {
-            style(layout.normal, color: quiet)
-            style(layout.selected, color: selected)
-        }
+        let appearance = makeAppearance()
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
         // A symbol with no spoken name is labelled with its own name. The memory glyph's name contains
         // "connected", and the tab button already says Memory, so the glyph is not its own element.
         TabSymbolQuiet.install
+    }
+
+    /// The system's default appearance with only the item colours set: the stock ones, or the worn theme's.
+    @MainActor
+    static func makeAppearance() -> UITabBarAppearance {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithDefaultBackground()
+        let ink = itemColors()
+        for layout in [appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance, appearance.compactInlineLayoutAppearance] {
+            style(layout.normal, color: ink.quiet)
+            style(layout.selected, color: ink.selected)
+        }
+        return appearance
+    }
+
+    /// The colours of the bar's items. A worn theme's are its muted text and, as in the stock look, the page's own text in a
+    /// dark look and `primary` in a light one; both have an Increase Contrast twin.
+    private static func itemColors() -> (quiet: UIColor, selected: UIColor) {
+        if let ink = StyleRuntime.shared.snapshot.window {
+            return (
+                UIColor.hvDynamic(normal: ink.quiet, high: ink.quietHigh),
+                UIColor.hvDynamic(normal: ink.selected, high: ink.selectedHigh)
+            )
+        }
+        let quiet = UIColor(named: "muted-foreground") ?? .secondaryLabel
+        let selected = UIColor { traits in
+            let name = traits.userInterfaceStyle == .light ? "primary" : "foreground"
+            return UIColor(named: name)?.resolvedColor(with: traits) ?? .label
+        }
+        return (quiet, selected)
+    }
+
+    /// Puts the look being worn on the bars already on screen in `window`, and on the proxy for the ones still to come. The
+    /// proxy alone only reaches a bar made after it is set, and a theme can change under a bar that is up.
+    @MainActor
+    static func refresh(in window: UIWindow) {
+        let appearance = makeAppearance()
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+        var pending: [UIView] = [window]
+        while let view = pending.popLast() {
+            if let bar = view as? UITabBar {
+                bar.standardAppearance = appearance
+                bar.scrollEdgeAppearance = appearance
+            }
+            pending.append(contentsOf: view.subviews)
+        }
     }
 
     private static func style(_ item: UITabBarItemStateAppearance, color: UIColor) {

@@ -70,7 +70,10 @@ public struct StyleKitLoader: Sendable {
         await cache.remove(key: Self.cacheKey, namespace: userID)
     }
 
-    func fetch() async throws -> DashboardThemeState {
+    /// Asks the server and returns the answer without keeping it: for a caller that decides whether the answer is still the
+    /// one it wants (the app's store drops an answer that a newer choice or a sign-out has overtaken) before it `remember`s it.
+    /// Same rules as `refresh()`.
+    public func fetch() async throws -> DashboardThemeState {
         if serverSendsKits, let state = try await client.dashboardThemeState() {
             return state
         }

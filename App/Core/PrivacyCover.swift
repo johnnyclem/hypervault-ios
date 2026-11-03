@@ -19,7 +19,8 @@ extension AppLock {
     }
 }
 
-/// What the cover window draws. It is a hierarchy of its own, so it sets the app's tint the way the root does.
+/// What the cover window draws. It is a hierarchy of its own, so it sets the app's tint, font design and appearance the way
+/// the root does: a lock screen in the theme's colours over the system's black or white would not read.
 struct PrivacyCoverView: View {
     let cover: PrivacyCover
     let lock: AppLock
@@ -32,7 +33,7 @@ struct PrivacyCoverView: View {
             case .none: Color.clear
             }
         }
-        .tint(HVColor.primary)
+        .hvAppStyle()
     }
 }
 

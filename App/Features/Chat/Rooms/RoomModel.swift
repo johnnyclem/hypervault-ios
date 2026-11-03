@@ -44,6 +44,9 @@ final class ChatRoomModel {
     let roomID: String
     private let client: HVClient
     private let pace: ChatRoomPace
+    /// The longest the phone waits for a look at the room after a request has ended badly. (The client alone would keep
+    /// asking for a minute and a half on a connection that hangs, and the person is waiting on every second of it.)
+    private let lookSeconds: TimeInterval
     @ObservationIgnored private let announcer: SpeechAnnouncer
     /// iOS lends a little time to finish a turn when the person leaves the app, as it does for the 1:1 chat.
     @ObservationIgnored private let grace = ChatBackgroundGrace()
@@ -57,11 +60,15 @@ final class ChatRoomModel {
     /// Reads in a row that found the room gone. A server in the middle of a deploy answers one too, so it takes a few.
     @ObservationIgnored private var notFoundReads = 0
 
-    init(roomID: String, client: HVClient, announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared, pace: ChatRoomPace = .live) {
+    init(
+        roomID: String, client: HVClient, announcer: SpeechAnnouncer = VoiceOverAnnouncer.shared, pace: ChatRoomPace = .live,
+        lookSeconds: TimeInterval = 6
+    ) {
         self.roomID = roomID
         self.client = client
         self.announcer = announcer
         self.pace = pace
+        self.lookSeconds = lookSeconds
     }
 
     // MARK: Derived
@@ -200,17 +207,18 @@ final class ChatRoomModel {
         let driver = ChatRoomDriver(client: client, roomID: roomID, pace: pace)
         driveTask = Task { [weak self] in
             guard let self else { return }
+            var unsettled: Outgoing?
             do {
                 let outcome = try await driver.send(text) { run in self.applyRun(run) }
                 // The post was answered, so the room has the message: whatever copy of it is still travelling is done.
                 self.outgoing.removeAll { $0.id == echo.id }
                 if outcome == .stalled { self.tell("The room stopped answering. Continue to try again.") }
             } catch let error as HVError {
-                await self.failed(error, echo: echo)
+                unsettled = await self.failed(error, echo: echo)
             } catch {
-                await self.failed(.transport(error.localizedDescription), echo: echo)
+                unsettled = await self.failed(.transport(error.localizedDescription), echo: echo)
             }
-            self.finishDriving()
+            self.finishDriving(unsettled: unsettled)
         }
     }
 
@@ -227,11 +235,11 @@ final class ChatRoomModel {
                 let outcome = try await driver.resume { run in self.applyRun(run) }
                 if outcome == .stalled { self.tell("The room stopped answering. Continue to try again.") }
             } catch let error as HVError {
-                await self.failed(error, echo: nil)
+                _ = await self.failed(error, echo: nil)
             } catch {
-                await self.failed(.transport(error.localizedDescription), echo: nil)
+                _ = await self.failed(.transport(error.localizedDescription), echo: nil)
             }
-            self.finishDriving()
+            self.finishDriving(unsettled: nil)
         }
     }
 
@@ -239,36 +247,46 @@ final class ChatRoomModel {
         driveTask?.cancel()
     }
 
-    private func finishDriving() {
+    /// The drive is over, and the person has their screen back at once. `unsettled` is the message whose fate is still
+    /// to be found out (the request that carried it ended before the room said); that is looked into from here, in the
+    /// open, and does not hold the screen.
+    private func finishDriving(unsettled: Outgoing?) {
         isDriving = false
         driveTask = nil
         grace.end()
         // Whatever stopped the round has just told the person so, and what to do about it.
         continueAnnounced = canContinue
-        Task { await refresh() }
+        Task { await settle(unsettled) }
     }
 
-    /// A request ended badly. The server may have the message, and may be at work on it: look before saying anything.
-    private func failed(_ error: HVError, echo: Outgoing?) async {
-        let read = await readRoom()
+    /// A request ended badly. The server may have the message, and may be at work on it: look before saying anything,
+    /// but not for long, since the person is waiting. Stop is different: the person has ended the round, it ends now, and
+    /// what became of their words is found out afterwards. Gives back the message whose fate is then still to be found.
+    private func failed(_ error: HVError, echo: Outgoing?) async -> Outgoing? {
+        var stopped = false
+        if case .cancelled = error { stopped = true }
+        var read = false
+        if !stopped {
+            read = await look()
+            // Stop while the look was under way: nothing was learned, and the person asked for the end.
+            stopped = Task.isCancelled && !read
+        }
+        if stopped {
+            let said = "Stopped. Turns still waiting will stay queued."
+            tell(said)
+            return echo
+        }
         // Gone from `outgoing` means a read or an answer reported it. Still there after a read of the room: not sent.
         // Still there and the room could not be read: not known, and the words go back all the same, with a notice that
         // says so, rather than being lost.
         var delivered = true
         if let echo {
             delivered = !outgoing.contains { $0.id == echo.id }
-            if !delivered {
-                outgoing.removeAll { $0.id == echo.id }
-                if draft.isEmpty { replaceDraft(echo.text) }
-            }
-        }
-        if case .cancelled = error {
-            tell("Stopped. Turns still waiting will stay queued.")
-            return
+            if !delivered { giveBack(echo) }
         }
         // The message arrived and the room is at work on it (only the answer to this request was lost): the thread
         // shows what happens as it does, and an error would be wrong.
-        if delivered, header?.running == true { return }
+        if delivered, header?.running == true { return nil }
         let offline: String
         if delivered {
             offline = "Network hiccup. Check the room for what it has said."
@@ -278,12 +296,39 @@ final class ChatRoomModel {
             offline = "Network hiccup. Your message may not have been sent. Check the room, then try again."
         }
         tell(error.sentence(offline: offline))
+        return nil
     }
 
-    /// One read of the room, in a task of its own: the task that asks may be cancelled (Stop), and a cancelled task
-    /// cannot make a request.
-    private func readRoom() async -> Bool {
-        await Task { await self.refresh() }.value
+    /// What became of words the person has not been told about yet: one look at the room, and then they are in the
+    /// thread, or back in the box.
+    private func settle(_ echo: Outgoing?) async {
+        _ = await look()
+        guard let echo, outgoing.contains(where: { $0.id == echo.id }) else { return }
+        giveBack(echo)
+    }
+
+    /// The room does not have these words, so they go back into the box (when the person has not begun on something else).
+    private func giveBack(_ echo: Outgoing) {
+        outgoing.removeAll { $0.id == echo.id }
+        if draft.isEmpty { replaceDraft(echo.text) }
+    }
+
+    /// One read of the room that someone is waiting on, and whether the room could be reached. It runs as a task of its
+    /// own, because the task that asks may have been cancelled (Stop), and a cancelled task cannot make a request; Stop
+    /// still cuts it short, and so does `lookSeconds`.
+    private func look() async -> Bool {
+        let read = Task { await self.refresh() }
+        let limit = UInt64(max(0, lookSeconds) * 1_000_000_000)
+        let patience = Task {
+            do { try await Task.sleep(nanoseconds: limit) } catch { return }
+            read.cancel()
+        }
+        defer { patience.cancel() }
+        return await withTaskCancellationHandler {
+            await read.value
+        } onCancel: {
+            read.cancel()
+        }
     }
 
     /// A line under the thread, said as well as shown: it appears where VoiceOver is not looking.

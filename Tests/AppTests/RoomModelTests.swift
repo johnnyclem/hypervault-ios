@@ -20,9 +20,10 @@ final class RoomModelTests: XCTestCase {
         HVClient(baseURL: base, transport: transport, tokens: StaticTokenProvider(), retry: .none, sleep: { _ in })
     }
 
-    private func make(_ transport: any HTTPTransport) -> (model: ChatRoomModel, speech: RecordingAnnouncer) {
+    /// `lookSeconds`: the longest the model waits on a look at the room after a request has ended badly.
+    private func make(_ transport: any HTTPTransport, lookSeconds: Double = 6) -> (model: ChatRoomModel, speech: RecordingAnnouncer) {
         let speech = RecordingAnnouncer()
-        return (ChatRoomModel(roomID: "r1", client: client(transport), announcer: speech, pace: quick), speech)
+        return (ChatRoomModel(roomID: "r1", client: client(transport), announcer: speech, pace: quick, lookSeconds: lookSeconds), speech)
     }
 
     private func make(_ server: FakeRoomServer) -> (model: ChatRoomModel, speech: RecordingAnnouncer) {
@@ -412,9 +413,36 @@ final class RoomModelTests: XCTestCase {
         await server.releaseTurn()
         await eventually("the request to have ended") { !model.isDriving }
         XCTAssertEqual(model.notice, "Stopped. Turns still waiting will stay queued.")
+        // The look follows the end of the round (`testStopEndsTheRoundAtOnce...`), and finds the words in the room.
+        await eventually("the room's copy of the words to take their place") { model.outgoing.isEmpty }
         XCTAssertEqual(model.draft, "", "the room has the message; it does not come back")
         XCTAssertEqual(model.messages.first?.senderKind, .human)
-        XCTAssertTrue(model.outgoing.isEmpty)
+    }
+
+    /// Stop ends the round at once, however slow the room is to answer the look that settles what became of the words: a
+    /// Stop button that does nothing for a minute and a half (a hung connection, tried three times) is a broken one.
+    func testStopEndsTheRoundAtOnceWhateverTheRoomIsSlowToAnswer() async {
+        let server = FakeRoomServer(style: .legacy, turnSeconds: 0.01)
+        await server.holdTurn(1)
+        let network = RoomTestNetwork(server)
+        let (model, _) = make(network)
+        await model.load()
+        network.hold("GET /api/rooms/r1")
+        model.draft = "introduce yourselves"
+        model.send()
+        await waitForATurn(on: server)
+        model.stop()
+        await server.releaseTurn()
+        await eventually("the round to end while the room is still being read", timeout: 1) { !model.isDriving }
+        XCTAssertEqual(model.notice, "Stopped. Turns still waiting will stay queued.")
+        // Whether the room has the words is not known yet: they stay in the thread as they were sent, and are not put back.
+        XCTAssertEqual(model.outgoing.map(\.text), ["introduce yourselves"])
+        XCTAssertEqual(model.draft, "")
+
+        network.release()
+        await eventually("the room's copy of the words to take their place") { model.outgoing.isEmpty }
+        XCTAssertEqual(model.draft, "", "the room has the message; it does not come back")
+        XCTAssertEqual(model.messages.first?.senderKind, .human)
     }
 
     func testStopBeforeTheMessageGotThereGivesItBack() async {
@@ -429,8 +457,48 @@ final class RoomModelTests: XCTestCase {
         network.release()
         await eventually("the request to have ended") { !model.isDriving }
         XCTAssertEqual(model.notice, "Stopped. Turns still waiting will stay queued.")
-        XCTAssertEqual(model.draft, "hello")
+        await eventually("the words to be given back") { model.draft == "hello" }
+        XCTAssertTrue(model.outgoing.isEmpty)
         XCTAssertTrue(model.messages.isEmpty)
+    }
+
+    /// Stop while the phone is looking at the room after a failure ends the round just as quickly: the look is cut short and
+    /// the words are settled afterwards, once the room answers.
+    func testStopWhileTheRoomIsBeingLookedAtEndsTheRoundToo() async {
+        let server = FakeRoomServer(style: .queued)
+        let network = RoomTestNetwork(server)
+        network.drop("POST /api/rooms/r1/messages")
+        let (model, _) = make(network)
+        await model.load()
+        network.hold("GET /api/rooms/r1")
+        model.draft = "hello"
+        model.send()
+        // The post has failed and the look at the room is waiting for an answer that does not come.
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertTrue(model.isDriving)
+        model.stop()
+        await eventually("the round to end while the room is still not answering", timeout: 1) { !model.isDriving }
+        XCTAssertEqual(model.notice, "Stopped. Turns still waiting will stay queued.")
+        network.release()
+        await eventually("the words to be given back, the room not having them") { model.draft == "hello" }
+        XCTAssertTrue(model.outgoing.isEmpty)
+    }
+
+    /// A look at a room that hangs is not waited on for the client's minute and a half: the phone says what it does not
+    /// know, and the words are in the box.
+    func testAFailedPostIsNotHeldUpByARoomThatHangs() async {
+        let server = FakeRoomServer(style: .queued)
+        let network = RoomTestNetwork(server)
+        network.drop("POST /api/rooms/r1/messages")
+        let (model, _) = make(network, lookSeconds: 0.15)
+        await model.load()
+        network.hold("GET /api/rooms/r1")
+        model.draft = "hello"
+        model.send()
+        await eventually("the round to end though the room never answers", timeout: 2) { !model.isDriving }
+        XCTAssertEqual(model.draft, "hello")
+        XCTAssertTrue(model.outgoing.isEmpty)
+        XCTAssertEqual(model.notice, "Network hiccup. Your message may not have been sent. Check the room, then try again.")
     }
 
     // MARK: What the person did here, and a read that is older than it

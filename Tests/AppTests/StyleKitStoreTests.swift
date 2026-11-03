@@ -441,4 +441,21 @@ final class StyleKitStoreTests: XCTestCase {
         await store.refreshIfStale(using: makeLoader(OfflineTransport(), cache: tempCache()))
         XCTAssertEqual(wearer.last, StyleKitFixtures.newsprint)
     }
+
+    func testAnAskThatFailedDoesNotUseUpTheFifteenMinutes() async throws {
+        let wearer = RecordingWearer()
+        let clock = Date(timeIntervalSince1970: 1_000_000)
+        let store = makeStore(wearer, now: { clock })
+
+        // Offline when the app came to the front: nothing is said and nothing changes.
+        await store.refreshIfStale(using: makeLoader(OfflineTransport(), cache: tempCache()))
+        XCTAssertNil(wearer.last)
+
+        // The phone is back online a moment later, and coming to the front asks again, without waiting out the interval.
+        let transport = try canned(StyleKitFixtures.newsprint)
+        await store.refreshIfStale(using: makeLoader(transport, cache: tempCache()))
+        let asked = await transport.requests.count
+        XCTAssertEqual(asked, 1, "the failed ask was not an ask")
+        XCTAssertEqual(wearer.last, StyleKitFixtures.newsprint)
+    }
 }

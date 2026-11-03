@@ -92,12 +92,13 @@ final class StyleKitStore {
         adopt(cached)
     }
 
-    /// Asks the server, wears the answer and keeps it on disk. A failure throws and leaves whatever is worn as it was.
+    /// Asks the server, wears the answer and keeps it on disk. A failure throws and leaves whatever is worn as it was, and does
+    /// not count as an ask: the phone that was offline at launch asks again as soon as it comes to the front.
     func refresh(using loader: StyleKitLoader) async throws {
         let epoch = self.epoch
-        lastAsked = now()
         let fresh = try await loader.fetch()
         guard epoch == self.epoch else { return }
+        lastAsked = now()
         adopt(fresh)
         await loader.remember(fresh)
     }

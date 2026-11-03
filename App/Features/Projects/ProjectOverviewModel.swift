@@ -80,17 +80,27 @@ final class ProjectOverviewModel {
 
     /// Pull to refresh: the board by the cheap poll, what goes with it read again.
     func refresh() async {
-        async let boardDone: Void = pollBoard()
-        async let relatedDone: Void = loadRelated(force: true)
-        _ = await (boardDone, relatedDone)
+        await reload(force: true)
     }
 
     /// The screen came back (from the board, or a page it opened). The board is polled every time, which is one small
     /// request that answers "unchanged"; what goes with it only when the last read is old.
     func refreshIfStarted() async {
         guard firstLoadDone else { return }
+        await reload(force: false)
+    }
+
+    /// The board and what goes with it, side by side. A board that has not answered yet (the first read failed, or the
+    /// screen was left before it came back) is read first, whatever the screen was doing: what goes with the project is
+    /// matched by the board's name, which only the board says right, and sections built before it would match by the id.
+    private func reload(force: Bool) async {
+        guard boardVersion != nil else {
+            await loadBoard()
+            if !boardFailed { await loadRelated(force: force) }
+            return
+        }
         async let boardDone: Void = pollBoard()
-        async let relatedDone: Void = loadRelated(force: false)
+        async let relatedDone: Void = loadRelated(force: force)
         _ = await (boardDone, relatedDone)
     }
 

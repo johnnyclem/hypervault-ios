@@ -138,6 +138,32 @@ final class ProjectOverviewModelTests: XCTestCase {
         XCTAssertEqual(related.chats.count, 2, "matched by the board's name, which the board has now said")
     }
 
+    func testRefreshingABoardThatNeverAnsweredReadsItBeforeTheSections() async throws {
+        let project = self.project
+        let tries = Asked(), answered = Asked(), armed = Asked(), early = Asked()
+        let board = MockRoute(.get, "/api/tasklists/\(project)") { _ in
+            tries.hit()
+            if tries.count == 1 {
+                return HTTPResponse(status: 404, headers: ["content-type": "application/json"], data: Data(#"{"error":"No task list."}"#.utf8))
+            }
+            answered.hit()
+            return HTTPResponse(status: 200, headers: ["content-type": "application/json"], data: Data(#"{"slug":"tasks-\#(project)","tasklist":\#(TaskBoardPreviewData.boardJSON)}"#.utf8))
+        }
+        let chats = MockRoute(.get, "/api/conversations") { _ in
+            if armed.count > 0, answered.count == 0 { early.hit() }
+            return HTTPResponse(status: 200, headers: ["content-type": "application/json"], data: Data(ProjectPreviewData.conversationsJSON.utf8))
+        }
+        let env = AppEnvironment.preview(routes: [board, chats] + ProjectPreviewData.overviewRoutes)
+        let model = ProjectOverviewModel(env: env, project: project)
+        await model.start()
+        XCTAssertTrue(model.boardFailed)
+        armed.hit()
+        await model.refresh()
+        XCTAssertEqual(early.count, 0, "no section is read while the board has still not said what it is called")
+        let (_, related) = try XCTUnwrap(loaded(model))
+        XCTAssertEqual(related.chats.count, 2, "matched by the board's name, not by the id the screen guessed it from")
+    }
+
     func testTheBoardPageIsLookedUpByItsCardWhenTheTableDoesNotHoldIt() async throws {
         let cards = Asked()
         let card = MockRoute(.get, "/api/yours/card") { _ in

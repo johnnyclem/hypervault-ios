@@ -10,7 +10,8 @@ import SwiftUI
 ///   "Trip to Lisbon" was joined by the server's guess (Possibly related, behind "Show possibly related"), and "Garden
 ///   — Task Board" is another board the server joined by the same guess, which the overview leaves out.
 /// - "Power budget" is a memory joined by hand (Linked), "Bench notes" is tagged, "Choir module wiring" has the project's
-///   name in its title (Mentions it), and "Planning chat with Sam" is a chat's own memory, which is never listed.
+///   name in its title (Mentions it, although the server also joined it to the board page by its guess, which it does to
+///   most memories that share words with a page), and "Planning chat with Sam" is a chat's own memory, which is never listed.
 /// - "Eurorack choir front panel quotes" and "Choir module power budget" are chats whose titles are about the project.
 enum ProjectPreviewData {
     static let project = "eurorack-choir"
@@ -26,7 +27,8 @@ enum ProjectPreviewData {
     """#
 
     /// `GET /api/connections`: the hand-made link to the power supply notes, the server's guesses at the Lisbon page and at
-    /// the garden board, and a memory joined to the board page by hand.
+    /// the garden board, a memory joined to the board page by hand, and the server's guess at the memory that is also titled
+    /// for the project (which the overview keeps for its name).
     static let connectionsJSON = #"""
     {"connections":[
        {"id":"e1","a_id":"art-board-choir","b_id":"art-psu","kind":"manual","created_at":"2026-10-21T09:00:00Z"},
@@ -36,7 +38,8 @@ enum ProjectPreviewData {
      "memory_links":[],
      "memory_artifact_links":[
        {"id":"b1","memory_id":"m-power","artifact_id":"art-board-choir","kind":"manual","created_at":"2026-10-22T09:00:00Z"},
-       {"id":"b2","memory_id":"m-chat","artifact_id":"art-board-choir","kind":"auto","created_at":"2026-10-22T09:00:00Z"}]}
+       {"id":"b2","memory_id":"m-chat","artifact_id":"art-board-choir","kind":"auto","created_at":"2026-10-22T09:00:00Z"},
+       {"id":"b3","memory_id":"m-wiring","artifact_id":"art-board-choir","kind":"auto","created_at":"2026-10-20T09:30:00Z"}]}
     """#
 
     static let memoriesJSON = #"""

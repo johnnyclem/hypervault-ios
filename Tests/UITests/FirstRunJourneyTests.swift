@@ -1,11 +1,12 @@
 import XCTest
 
 /// Someone signed in who has kept nothing, has no chats and connected no model: Home's starter page offers the first things to
-/// do, Start a chat opens an empty conversation, and Keep something opens the canvas, which teaches; the connect sheet opens,
-/// an example chip finds nothing, Yours says it is empty.
+/// do, Start a chat opens an empty conversation that says nothing is connected and offers to connect (there is no message
+/// field to type in without a model; the journey with a model is HomeJourneyTests'), and Keep something opens the canvas,
+/// which teaches; the connect sheet opens, an example chip finds nothing, Yours says it is empty.
 @MainActor
 final class FirstRunJourneyTests: HyperVaultUITestCase {
-    func testHomeOffersTheFirstStepsAndStartAChatOpensAnEmptyConversation() {
+    func testHomeOffersTheFirstStepsAndStartAChatOpensAConversationThatAsksToConnectAnAI() {
         launch(.signedInEmpty)
 
         step("Home is the starter page, with no chats and nothing to search") {
@@ -21,9 +22,12 @@ final class FirstRunJourneyTests: HyperVaultUITestCase {
             require(button("New chat"), "the New chat button in Home's bar")
         }
 
-        step("Start a chat opens an empty conversation") {
-            tap(element("home.startChat"), "Start a chat", until: { self.textField("Message").exists })
-            require(textField("Message"), "the message field of a conversation with nothing in it")
+        step("Start a chat opens a conversation that says nothing is connected") {
+            // (The message field is there for the first frame, before the conversation has read the models, and is replaced
+            // by the connect card once it has: with no model, the card is the settled state to wait for.)
+            tap(element("home.startChat"), "Start a chat", until: { self.shows("Nothing is connected yet").exists })
+            require(shows("Nothing is connected yet"), "the line that says nothing can answer yet")
+            requireGone(textField("Message"), "the message field, which a conversation with no model does not offer")
         }
 
         step("Back is the starter page again") {

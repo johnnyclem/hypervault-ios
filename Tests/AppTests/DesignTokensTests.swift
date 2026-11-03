@@ -7,6 +7,12 @@ import XCTest
 /// CI's `gen_tokens.py --check` holds the generated files to that file; these hold what the app compiled to the
 /// generated numbers, so a colour set that was edited by hand or left out of a target fails here and not on a phone.
 final class DesignTokensTests: XCTestCase {
+    /// These hold the stock look. Another test's kit must not be worn when they run, so each starts from the stock look.
+    override func setUp() {
+        super.setUp()
+        StyleRuntime.shared.apply(nil)
+    }
+
     private let bundle = Bundle(for: AppModel.self)
 
     /// The colour a name resolves to under a style, as 0xRRGGBB.

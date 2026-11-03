@@ -137,7 +137,7 @@ struct ChatRoomMembersSheet: View {
                     Button {
                         add()
                     } label: {
-                        if isWorking { ProgressView().tint(.white) } else { Text("Add to the room") }
+                        if isWorking { ProgressView().tint(Palette.onAction) } else { Text("Add to the room") }
                     }
                     .buttonStyle(.hvPrimary)
                     .disabled(isWorking || chosenBackend == nil || problem != nil || newHandle.trimmingCharacters(in: .whitespaces).isEmpty)

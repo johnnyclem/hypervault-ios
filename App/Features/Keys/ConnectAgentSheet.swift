@@ -286,7 +286,7 @@ private struct ConnectClientScreen: View {
                 Task { await model.makeKey() }
             } label: {
                 if case .making = model.make {
-                    HStack(spacing: HV.Space.xs) { ProgressView().tint(.white); Text(ConnectCopy.makingLine) }
+                    HStack(spacing: HV.Space.xs) { ProgressView().tint(Palette.onAction); Text(ConnectCopy.makingLine) }
                 } else {
                     Text("Make the key")
                 }

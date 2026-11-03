@@ -393,7 +393,7 @@ private struct AddWebhookSheet: View {
                     Button {
                         Task { await save() }
                     } label: {
-                        if saving { ProgressView().tint(.white) } else { Text("Add webhook") }
+                        if saving { ProgressView().tint(Palette.onAction) } else { Text("Add webhook") }
                     }
                     .buttonStyle(.hvPrimary)
                     .disabled(!canSave || saving)

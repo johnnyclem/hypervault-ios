@@ -205,7 +205,7 @@ struct TaskBoardCreateView: View {
                     Button {
                         create()
                     } label: {
-                        if isCreating { ProgressView().tint(.white) } else { Text("Create board") }
+                        if isCreating { ProgressView().tint(Palette.onAction) } else { Text("Create board") }
                     }
                     .buttonStyle(.hvPrimary)
                     .disabled(!draft.canCreate || isCreating)

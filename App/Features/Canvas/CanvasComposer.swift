@@ -99,7 +99,7 @@ struct CanvasComposer: View {
                 Image(systemName: "arrow.up")
                     .font(.system(.body, weight: .semibold))
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.onAction)
                     .frame(width: 44, height: 44)
                     .background(Palette.action, in: Circle())
             }

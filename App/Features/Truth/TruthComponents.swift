@@ -89,6 +89,7 @@ func truthPrompt(_ text: String) -> Text {
 /// readable grey, not the system's faded blue that looks like a caption.
 struct TruthRowButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    let look = StyleStamp()
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -135,7 +136,7 @@ struct TruthTypeTag: View {
     var body: some View {
         Text(type.tag)
             .font(.system(.caption2, design: .monospaced, weight: .bold))
-            .foregroundStyle(type == .tb ? Color.white : Palette.textPrimary)
+            .foregroundStyle(type == .tb ? Palette.onAction : Palette.textPrimary)
             .padding(.horizontal, HV.Space.xs)
             .padding(.vertical, HV.Space.xxs)
             // A signed truth is the one flat fill under white (5.17:1); an unverified claim is raised paper with an edge.

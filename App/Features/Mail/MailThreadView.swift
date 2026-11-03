@@ -120,7 +120,7 @@ struct MailThreadScreen: View {
                     send()
                 } label: {
                     if model.isSending {
-                        ProgressView().tint(.white)
+                        ProgressView().tint(Palette.onAction)
                     } else {
                         Image(systemName: "arrow.up")
                     }

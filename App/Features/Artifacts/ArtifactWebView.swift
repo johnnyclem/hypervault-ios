@@ -44,6 +44,8 @@ struct ArtifactWebView: UIViewRepresentable {
     var onOpenInApp: (URL) -> Void = { _ in }
     /// The "Fix it" link of a broken page, with the error it carries.
     var onRepair: (String?) -> Void = { _ in }
+    /// The paper under the page follows the look; a view made after it changed is told, and repaints it.
+    let look = StyleStamp()
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 

@@ -165,7 +165,7 @@ private struct MemoryAskTurnView: View {
                 Spacer(minLength: HV.Space.xl)
                 Text(turn.question)
                     .font(.hvBody)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.onAction)
                     .padding(.horizontal, HV.Space.m)
                     .padding(.vertical, HV.Space.s)
                     .background(Palette.action, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))

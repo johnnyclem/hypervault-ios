@@ -7,6 +7,12 @@ import XCTest
 /// WCAG ratios: 4.5:1 for body text, 3:1 for the bold and large exceptions, each recorded where it is made. A colour
 /// that drifts, or a new text colour on an old surface, fails here.
 final class DesignContrastTests: XCTestCase {
+    /// These hold the stock look. Another test's kit must not be worn when they run, so each starts from the stock look.
+    override func setUp() {
+        super.setUp()
+        StyleRuntime.shared.apply(nil)
+    }
+
     private func hex(_ token: String) throws -> UInt32 {
         try XCTUnwrap(HVTokens.stockColors[token] ?? HVTokens.appColors[token], "No colour called \(token).")
     }

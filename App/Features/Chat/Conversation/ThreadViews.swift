@@ -64,7 +64,7 @@ struct ChatUserBubble: View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
             Text(row.text)
                 .font(.hvBody)
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.onAction)
                 .multilineTextAlignment(.leading)
                 .lineLimit(isLong && !expanded ? 14 : nil)
                 .textSelection(.enabled)
@@ -73,7 +73,7 @@ struct ChatUserBubble: View {
                     HV.Motion.animate { expanded.toggle() }
                 }
                 .font(.hvCaption.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.onAction)
                 .frame(minHeight: 44, alignment: .leading)
             }
         }

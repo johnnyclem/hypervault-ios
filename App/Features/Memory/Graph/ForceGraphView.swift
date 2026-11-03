@@ -86,6 +86,9 @@ struct ForceGraphView: View {
     /// behind it, moving the map and speaking over whoever is using the sheet.
     var isCovered = false
     var onOpen: (String) -> Void
+    /// The renderer reads `Palette` while it draws, which is not a body: a graph made after the look changed is a different
+    /// value, so its canvas is drawn again.
+    let look = StyleStamp()
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -351,7 +354,7 @@ struct ForceGraphView: View {
             } label: {
                 Text("Open")
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.onAction)
                     .padding(.horizontal, HV.Space.m)
                     .frame(minHeight: 44)
                     .background(Palette.action, in: Capsule())

@@ -282,7 +282,7 @@ final class ThinkWritesJourneyTests: HyperVaultUITestCase {
     /// fast for a journey to catch the words on their way.)
     func testTheFirstMessageToANewRoomIsAnsweredByItsMember() {
         launch(.signedIn)
-        openTab("Chat")
+        openTab("Home")
         tap(segment("Group chats"), "the Group chats half", until: { self.button("New room").exists })
 
         step("A new room is made and opens") {

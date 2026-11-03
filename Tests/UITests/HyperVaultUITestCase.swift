@@ -275,10 +275,12 @@ class HyperVaultUITestCase: XCTestCase {
         (element.value(forKey: "hasKeyboardFocus") as? Bool) ?? false
     }
 
-    /// Whether nothing the person typed is in the field. (An empty field reports its placeholder, or its label, as its value.)
-    func fieldIsEmpty(_ field: XCUIElement) -> Bool {
-        let value = (field.value as? String) ?? ""
-        return value.isEmpty || value == field.placeholderValue || value == field.label
+    /// Whether the words `typed` have left the field. It asks only that, and not that the field is "empty", because what an
+    /// empty field reports for its value (nothing, its placeholder or its label) is up to the system. A field that is
+    /// not on screen at this moment (it is being replaced) has not answered yet.
+    func fieldNoLongerHolds(_ field: XCUIElement, _ typed: String) -> Bool {
+        guard field.exists else { return false }
+        return !((field.value as? String) ?? "").contains(typed)
     }
 
     /// Taps the system's Paste control. It draws itself outside the app's own view tree, so it is tapped as soon as it

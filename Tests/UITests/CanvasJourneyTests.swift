@@ -45,9 +45,10 @@ final class CanvasJourneyTests: HyperVaultUITestCase {
         }
 
         step("A typed note is answered by the model") {
-            enter("Remember to buy milk on Friday", into: textField("canvas.field"), "the canvas field")
+            let note = "Remember to buy milk on Friday"
+            enter(note, into: textField("canvas.field"), "the canvas field")
             tap(element("canvas.send"), "Send")
-            waitUntil("the canvas field to be empty once the note is sent") { self.fieldIsEmpty(self.textField("canvas.field")) }
+            waitUntil("the note to leave the canvas field once it is sent") { self.fieldNoLongerHolds(self.textField("canvas.field"), note) }
             require(text("You said: Remember to buy milk on Friday"), "the note as it was sent")
             require(text("Reply: Noted: Remember to buy milk on Friday"), "the model's reply")
         }

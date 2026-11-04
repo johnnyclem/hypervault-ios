@@ -4,24 +4,15 @@ import UIKit
 
 /// The tab bar's colours, from the iOS guides: the selected item is the page's own text in the dark look and
 /// `primary` in the light look, and the others are `muted-foreground`. It is set on the bar itself, not with `.tint`
-/// on the `TabView`, which would retint every control inside it.
+/// on the `TabView`, which would retint every control inside it. The number on the Mail tab is the system's red badge in the
+/// stock look; a worn theme draws it as the flat `action` fill with its label, like the Dreams badge in the Account menu.
 ///
 /// The appearance is the system's default one with only the item colours changed. It sets no background colour and no
 /// background effect: on iOS 26 either one replaces the Liquid Glass bar with a flat one.
 enum HVTabBarStyle {
     @MainActor
     static func install() {
-        let appearance = UITabBarAppearance()
-        appearance.configureWithDefaultBackground()
-        let quiet = UIColor(named: "muted-foreground") ?? .secondaryLabel
-        let selected = UIColor { traits in
-            let name = traits.userInterfaceStyle == .light ? "primary" : "foreground"
-            return UIColor(named: name)?.resolvedColor(with: traits) ?? .label
-        }
-        for layout in [appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance, appearance.compactInlineLayoutAppearance] {
-            style(layout.normal, color: quiet)
-            style(layout.selected, color: selected)
-        }
+        let appearance = makeAppearance()
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
         // A symbol with no spoken name is labelled with its own name. The memory glyph's name contains
@@ -29,9 +20,68 @@ enum HVTabBarStyle {
         TabSymbolQuiet.install
     }
 
+    /// The system's default appearance with only the item colours set: the stock ones, or the worn theme's.
+    @MainActor
+    static func makeAppearance() -> UITabBarAppearance {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithDefaultBackground()
+        let worn = StyleRuntime.shared.snapshot.window
+        let ink = itemColors(worn)
+        for layout in [appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance, appearance.compactInlineLayoutAppearance] {
+            style(layout.normal, color: ink.quiet)
+            style(layout.selected, color: ink.selected)
+            if let worn {
+                styleBadge(layout.normal, ink: worn)
+                styleBadge(layout.selected, ink: worn)
+            }
+        }
+        return appearance
+    }
+
+    /// The colours of the bar's items. A worn theme's are its muted text and, as in the stock look, the page's own text in a
+    /// dark look and `primary` in a light one; both have an Increase Contrast twin.
+    private static func itemColors(_ worn: StyleRuntime.WindowInk?) -> (quiet: UIColor, selected: UIColor) {
+        if let ink = worn {
+            return (
+                UIColor.hvDynamic(normal: ink.quiet, high: ink.quietHigh),
+                UIColor.hvDynamic(normal: ink.selected, high: ink.selectedHigh)
+            )
+        }
+        let quiet = UIColor(named: "muted-foreground") ?? .secondaryLabel
+        let selected = UIColor { traits in
+            let name = traits.userInterfaceStyle == .light ? "primary" : "foreground"
+            return UIColor(named: name)?.resolvedColor(with: traits) ?? .label
+        }
+        return (quiet, selected)
+    }
+
+    /// Puts the look being worn on the bars already on screen in `window`, and on the proxy for the ones still to come. The
+    /// proxy alone only reaches a bar made after it is set, and a theme can change under a bar that is up.
+    @MainActor
+    static func refresh(in window: UIWindow) {
+        let appearance = makeAppearance()
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+        var pending: [UIView] = [window]
+        while let view = pending.popLast() {
+            if let bar = view as? UITabBar {
+                bar.standardAppearance = appearance
+                bar.scrollEdgeAppearance = appearance
+            }
+            pending.append(contentsOf: view.subviews)
+        }
+    }
+
     private static func style(_ item: UITabBarItemStateAppearance, color: UIColor) {
         item.iconColor = color
         item.titleTextAttributes = [.foregroundColor: color]
+    }
+
+    /// The Mail tab's number, in a worn theme: the flat `action` fill under its label, which the Kit holds to 4.5:1 in every
+    /// theme (`StyleKitContract`, "action_foreground on action"), with an Increase Contrast twin for each.
+    private static func styleBadge(_ item: UITabBarItemStateAppearance, ink: StyleRuntime.WindowInk) {
+        item.badgeBackgroundColor = UIColor.hvDynamic(normal: ink.badge, high: ink.badgeHigh)
+        item.badgeTextAttributes = [.foregroundColor: UIColor.hvDynamic(normal: ink.onBadge, high: ink.onBadgeHigh)]
     }
 }
 

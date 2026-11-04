@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "id": "newsprint",
+  "name": "Newsprint",
+  "appearance": "light",
+  "colors": {
+    "background": "#f6f3ea",
+    "foreground": "#17150f",
+    "card": "#fffdf4",
+    "muted": "#eae5d6",
+    "muted_foreground": "#5c574a",
+    "primary": "#17150f",
+    "accent": "#a41623",
+    "destructive": "#dd1313",
+    "success": "#1b5929",
+    "warning": "#843603",
+    "action": "#17150f",
+    "action_foreground": "#fffdf4",
+    "border": "#17150f",
+    "ring": "#a41623"
+  },
+  "radius": {
+    "base": 12
+  },
+  "font": {
+    "design": "serif"
+  },
+  "backdrop": {
+    "kind": "lines"
+  },
+  "adjusted": [
+    "destructive"
+  ]
+}

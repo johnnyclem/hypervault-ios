@@ -15,6 +15,8 @@ extension View {
 }
 
 private struct HVActionBarModifier: ViewModifier {
+    let look = StyleStamp()
+
     func body(content: Content) -> some View {
         content
             .padding(.horizontal, HV.Space.m)

@@ -17,6 +17,8 @@ final class AppEnvironment {
     /// Tells of background jobs (a page repair) that finished while nobody was watching: on Home, the canvas pushed on it, and
     /// the Library.
     let jobNotices: JobNotices
+    /// The look the app wears for the person's theme (`AppModel.style`).
+    let style: StyleKitStore
     /// The canvas's page: its cards, its thread, and what is waiting in its field. The canvas is a screen pushed on Home, and
     /// a pushed screen is built again every time it is opened, so the page is kept here for the session: a paste staged
     /// there is still there after Back. One per signed-in person, like everything in this environment.
@@ -25,7 +27,11 @@ final class AppEnvironment {
     /// Set by the Admin feature's probe; the Account menu shows the Admin row when true.
     var isAdmin = false
 
-    init(client: HVClient, auth: AuthService, capabilities: Capabilities, user: AuthUser, server: ServerConfig, cache: DiskCache) {
+    init(
+        client: HVClient, auth: AuthService, capabilities: Capabilities, user: AuthUser, server: ServerConfig, cache: DiskCache,
+        style: StyleKitStore? = nil
+    ) {
+        self.style = style ?? StyleKitStore()
         self.client = client
         self.auth = auth
         self.capabilities = capabilities
@@ -34,6 +40,12 @@ final class AppEnvironment {
         self.cache = cache
         self.jobNotices = JobNotices(client: client)
         self.canvas = CanvasModel(client: client, origin: server.baseURL)
+    }
+
+    /// Reads and keeps this person's look, on the server and on disk. A server that sends no kits (`features.stylekit` false) is
+    /// asked for the theme's id the way the Appearance pane always did, and the theme is then one the app cannot show.
+    var styleLoader: StyleKitLoader {
+        StyleKitLoader(client: client, rest: keysRest, cache: cache, userID: user.id, serverSendsKits: features.stylekit)
     }
 
     var limits: Capabilities.Limits { capabilities.limits }

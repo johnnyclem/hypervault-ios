@@ -32,7 +32,7 @@ struct TruthHandleForm: View {
             Button {
                 save()
             } label: {
-                if isSaving { ProgressView().tint(.white) } else { Text("Save and continue") }
+                if isSaving { ProgressView().tint(Palette.onAction) } else { Text("Save and continue") }
             }
             .buttonStyle(.hvPrimary)
             .disabled(handle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)

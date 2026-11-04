@@ -202,7 +202,7 @@ struct ArtifactVersionScreen: View {
                 Button {
                     confirmRestore = true
                 } label: {
-                    if restoring { ProgressView().tint(.white) } else { Text("Restore this version") }
+                    if restoring { ProgressView().tint(Palette.onAction) } else { Text("Restore this version") }
                 }
                 .buttonStyle(.hvPrimary)
                 .disabled(restoring)

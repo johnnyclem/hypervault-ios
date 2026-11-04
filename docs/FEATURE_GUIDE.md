@@ -168,9 +168,10 @@ fonts. `Palette` (colour), `Font.hv*` (type, all Dynamic Type), `HV.Space` /
 `.hvSecondary`, `.hvGhost`), `.hvFieldChrome()` for inputs, `.hvGlass()` only for
 floating chrome (a composer, a legend, a bar of icons), never for lists or a pinned action bar. Lists are plain paper.
 
-- The look follows the system. Dark is the web's stock tokens; light is the same roles with the values in the iOS
-  guides. There is no appearance picker. The one accent is the web's `primary` (the root `.tint(HVColor.primary)` and
-  the `AccentColor` asset). The selected tab is the page's own text in the dark look and `primary` in the light look,
+- The look follows the system unless the person's theme is worn (see "The look is a runtime" below). Dark is the web's
+  stock tokens; light is the same roles with the values in the iOS guides. There is no appearance picker of the app's own.
+  The one accent is the web's `primary` (`.tint(HVColor.primary)` on the root, in `HVAppStyle`, and the `AccentColor`
+  asset). The selected tab is the page's own text in the dark look and `primary` in the light look,
   set through `UITabBarAppearance` (`HVTabBarStyle`) with no background of its own, so the bar stays Liquid Glass.
   A UI-test launch pins dark.
 - Colours are the web's tokens plus that light mirror. `docs/brand/tokens.json` (a copy of the web repo's file) is
@@ -291,6 +292,48 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
   (a card arriving, a row leaving) is welcome; motion that decorates is not.
 - iPad: content stays in a readable column (`.hvReadableWidth()`); lists may
   use the full width.
+
+### The look is a runtime
+
+The person's theme (`profiles.theme`) is worn by the app. The server derives an accessible **kit** for it and sends it with
+`GET /api/dashboard-theme`; the Kit reads it (`StyleKit`, `DashboardThemeState`, wire format in the server's
+`docs/stylekit.md`), re-checks the accessibility floors (`StyleKitContract`) and keeps it on disk (`StyleKitLoader`). The
+app's `StyleKitStore` decides whether to wear it (the phone's "Use this theme in the app", on by default) and tells
+`StyleRuntime`, the process's look.
+
+- **Colour goes through `Palette` (or `HVColor`) and nowhere else.** Both are computed from `StyleRuntime`, so a body that
+  reads one is drawn again when the look changes, and nothing at a call site knows about themes. Never write a colour
+  with `Color("asset-name")`, `UIColor(named:)` or a literal `Color.white` on a themed fill: it would not follow
+  (`scripts/check_prompts.py` fails the build on an asset-name lookup outside `StyleRuntime.swift` and the tab bar's stock
+  fallback in `TabBarStyle.swift`, and on a literal white or black text or glyph colour: `.foregroundStyle(.white)`,
+  `.foregroundColor(.white)`, `.tint(.white)`, `Color.white`, `UIColor.white`. A literal that is right under every theme, on a
+  photo or in a brand tile, is listed in that script with its line and the reason). The
+  label on the flat `Palette.action` fill (a bubble, the send button, the filled button, a spinner in one) is
+  `Palette.onAction`, and on the destructive fill `Palette.onDestructive`; both are white in the stock look. Fixed colours
+  (the code panel, the card brands) are listed in `HVColor` and `HVCardBrandTile` and are the same under every theme.
+- **A `ButtonStyle`, a `ViewModifier` or a `UIViewRepresentable` that reads `Palette` in its body carries
+  `let look = StyleStamp()`.** The view that makes it re-evaluates when the look changes (that is Observation in a view
+  body), and the stamp makes what it hands down a different value, which is what makes SwiftUI run the style's own body
+  again. Do not rely on Observation reaching inside a style.
+- **`HV.Radius.card`, `surface` and `sheet` follow the kit's `radius.base`**; the controls (8 and 6), the brand tile and
+  the floating glass do not. Never store one in a `static let`.
+- **The kit pins the appearance.** A worn theme is one palette, light or dark, so `HVAppStyle` pins the window and the
+  hierarchy to it (plain `Text`, a `Form`, the keyboard take the system's black or white). The Kit holds the system label
+  to the floors on the theme's surfaces for that reason. Plain `Text` is not given the theme's `foreground` (a root
+  `foregroundStyle` would also override the tint of every `Button`). The Account sheet (which holds Settings, this pane
+  included) and the pairing page over it are presented inside the root's hierarchy, so they take the window's style and the root's tint;
+  nothing sets a scheme or a tint of its own, and a new sheet should not.
+- **UIKit chrome follows through `StyleRuntime.WindowInk`**, which `HVAppStyle` hands to the window and to the bars in it:
+  the window's tint, the tab bar's quiet and selected items (`HVTabBarStyle`), and the number on the Mail tab, which is the
+  flat `action` fill with its label in a worn theme (the stock look leaves the system's own badge alone). A control that
+  draws its colour in UIKit reads `WindowInk` or `StyleRuntime.uiMutedForeground`, not an asset name.
+- **Increase Contrast** is derived in the Kit (`StyleKitIncreasedContrast`: ink to 7:1 along its own hue, edges to 3:1) and
+  chosen by the trait (`UIColor.hvDynamic`). Reduce Transparency already swaps glass for solid `card` and `border`, which
+  are the theme's. Dynamic Type is untouched: the font design is laid over the text style (`fontDesign`), never a size.
+- **Tests that wear a kit reset the runtime** (`StyleRuntimeTestCase`), because the runtime is the process's. Snapshots of a
+  theme use `StyleKitFixtures` (the server's golden kits) and read a pixel back (`renderSnapshot`, `PixelBuffer`).
+- Widgets and the Share sheet compile `Shared/` and never call `apply`, so they are stock. Theming them needs an
+  app-group copy of the kit and a timeline reload (v1.1).
 
 ## Writing SwiftUI without a compiler at hand
 

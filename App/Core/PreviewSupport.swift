@@ -12,7 +12,8 @@ extension AppEnvironment {
         routes: [MockRoute] = [],
         delay: TimeInterval = 0,
         user: AuthUser = AuthUser(id: "preview-user", email: "sam@example.com", displayName: "Sam Rivers"),
-        capabilities: Capabilities = Capabilities()
+        capabilities: Capabilities = Capabilities(),
+        style: StyleKitStore? = nil
     ) -> AppEnvironment {
         let transport = MockTransport(routes: routes, delay: delay)
         let server = ServerConfig(baseURL: URL(string: "https://preview.hypervault.test")!)
@@ -23,7 +24,7 @@ extension AppEnvironment {
             store: InMemorySecureStore()
         )
         let cache = DiskCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-preview-\(UUID().uuidString)"))
-        return AppEnvironment(client: client, auth: auth, capabilities: capabilities, user: user, server: server, cache: cache)
+        return AppEnvironment(client: client, auth: auth, capabilities: capabilities, user: user, server: server, cache: cache, style: style)
     }
 }
 
@@ -50,9 +51,10 @@ struct PreviewHost<Content: View>: View {
         capabilities: Capabilities = Capabilities(),
         delay: TimeInterval = 0.2,
         embedInNavigation: Bool = true,
+        style: StyleKitStore? = nil,
         @ViewBuilder content: () -> Content
     ) {
-        _env = State(initialValue: AppEnvironment.preview(routes: routes, delay: delay, capabilities: capabilities))
+        _env = State(initialValue: AppEnvironment.preview(routes: routes, delay: delay, capabilities: capabilities, style: style))
         _model = State(initialValue: AppModel.preview())
         self.content = content()
         self.embedInNavigation = embedInNavigation

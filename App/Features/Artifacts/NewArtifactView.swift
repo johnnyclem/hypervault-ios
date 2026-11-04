@@ -222,7 +222,7 @@ struct NewArtifactView: View {
                         if model.result != nil { Haptics.success() } else if model.error != nil { Haptics.failure() }
                     }
                 } label: {
-                    if model.saving { ProgressView().tint(.white) } else { Text("Keep it") }
+                    if model.saving { ProgressView().tint(Palette.onAction) } else { Text("Keep it") }
                 }
                 .buttonStyle(.hvPrimary)
                 .disabled(!model.canKeep)

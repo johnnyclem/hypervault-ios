@@ -104,7 +104,7 @@ struct TruthAssertView: View {
             Button {
                 send()
             } label: {
-                if model.isSending { ProgressView().tint(.white) } else { Text("Assert \(draft.type.tag)") }
+                if model.isSending { ProgressView().tint(Palette.onAction) } else { Text("Assert \(draft.type.tag)") }
             }
             .buttonStyle(.hvPrimary)
             .disabled(!draft.canSend || model.isSending)
@@ -242,7 +242,7 @@ struct TruthNewLedgerView: View {
                     Button {
                         create()
                     } label: {
-                        if isCreating { ProgressView().tint(.white) } else { Text("Create ledger") }
+                        if isCreating { ProgressView().tint(Palette.onAction) } else { Text("Create ledger") }
                     }
                     .buttonStyle(.hvPrimary)
                     .disabled(slug.isEmpty || isCreating)

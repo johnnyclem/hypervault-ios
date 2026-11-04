@@ -22,11 +22,12 @@ private extension View {
 /// off for Reduce Motion.
 struct HVPrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    let look = StyleStamp()
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.hvButton)
-            .foregroundStyle(isEnabled ? HVColor.primaryForeground : Palette.textSecondary)
+            .foregroundStyle(isEnabled ? Palette.onAction : Palette.textSecondary)
             // A label that wraps at a large text size is centred in its box, not left on the first line's edge.
             .multilineTextAlignment(.center)
             .hvButtonLabelBox()
@@ -40,6 +41,7 @@ struct HVPrimaryButtonStyle: ButtonStyle {
 /// A quieter action beside the primary one: `muted` with a control border, the web's secondary button.
 struct HVSecondaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    let look = StyleStamp()
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -58,14 +60,15 @@ struct HVSecondaryButtonStyle: ButtonStyle {
 /// exception, held by `DesignContrastTests`), so the label stays bold here though `hvButton` is semibold.
 struct HVDestructiveButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    let look = StyleStamp()
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.hvButton.bold())
-            .foregroundStyle(isEnabled ? Color.white : Palette.textSecondary)
+            .foregroundStyle(isEnabled ? Palette.onDestructive : Palette.textSecondary)
             .multilineTextAlignment(.center)
             .hvButtonLabelBox()
-            .background(isEnabled ? HVColor.destructive : Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
+            .background(isEnabled ? Palette.danger : Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: HV.Radius.control, style: .continuous).strokeBorder(isEnabled ? Color.clear : Palette.controlBorder, lineWidth: 1))
             .opacity(configuration.isPressed ? 0.85 : 1)
     }
@@ -77,6 +80,7 @@ struct HVDestructiveButtonStyle: ButtonStyle {
 /// and sits a few points in.
 struct HVGhostButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    let look = StyleStamp()
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -99,11 +103,12 @@ struct HVGhostButtonStyle: ButtonStyle {
 struct HVIconButtonStyle: ButtonStyle {
     var prominent = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let look = StyleStamp()
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 17, weight: .semibold))
-            .foregroundStyle(prominent ? Color.white : Palette.textPrimary)
+            .foregroundStyle(prominent ? Palette.onAction : Palette.textPrimary)
             .frame(width: 44, height: 44)
             .background(Circle().fill(prominent ? Palette.action : Palette.surfaceRaised))
             .overlay(Circle().strokeBorder(prominent ? Color.clear : Palette.border, lineWidth: 1))
@@ -177,6 +182,7 @@ extension View {
 struct HVGlassModifier<S: InsettableShape>: ViewModifier {
     let shape: S
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    let look = StyleStamp()
 
     func body(content: Content) -> some View {
         if reduceTransparency {

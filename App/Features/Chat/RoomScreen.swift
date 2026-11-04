@@ -405,7 +405,7 @@ struct ChatRoomHumanBubble: View {
             Spacer(minLength: 56)
             Text(text)
                 .font(.hvBody)
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.onAction)
                 .multilineTextAlignment(.leading)
                 .textSelection(.enabled)
                 .padding(.horizontal, HV.Space.m)

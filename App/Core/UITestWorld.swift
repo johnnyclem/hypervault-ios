@@ -148,7 +148,7 @@ enum UITestWorld {
                     "supabase_anon_key": .string(anonKey),
                     "invite_gated": .bool(true),
                 ]),
-                "features": .object([:]),
+                "features": .object(["stylekit": .bool(true)]),
                 "limits": .object([:]),
                 "providers": .array([]),
                 "domains": .array([

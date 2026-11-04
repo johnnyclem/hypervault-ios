@@ -48,7 +48,7 @@ struct WaitlistView: View {
                         Button {
                             redeem()
                         } label: {
-                            if isWorking { ProgressView().tint(.white) } else { Text("Use this code") }
+                            if isWorking { ProgressView().tint(Palette.onAction) } else { Text("Use this code") }
                         }
                         .buttonStyle(.hvPrimary)
                         .disabled(code.trimmingCharacters(in: .whitespaces).isEmpty || isWorking || isChecking)

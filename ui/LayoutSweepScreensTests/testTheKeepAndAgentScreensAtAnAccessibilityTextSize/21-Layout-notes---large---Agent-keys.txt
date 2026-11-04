@@ -1,0 +1,3 @@
+large / Agent keys
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

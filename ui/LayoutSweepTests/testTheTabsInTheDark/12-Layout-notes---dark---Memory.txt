@@ -1,0 +1,12 @@
+dark / Memory
+
+small target  Button "Branch: main"  20,51 74x36
+small target  Button  20,51 74x36
+small target  Button "Memorize something" (memory.memorize)  276,51 38x36
+small target  Button "More" (memory.more)  330,51 40x36
+small target  Button  330,51 40x36
+small target  Button "Search"  16,109 119x32
+small target  Button "Ask"  135,109 119x32
+small target  Button "Graph"  254,109 120x32
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  TextField (memory.search)  56,168 306x22

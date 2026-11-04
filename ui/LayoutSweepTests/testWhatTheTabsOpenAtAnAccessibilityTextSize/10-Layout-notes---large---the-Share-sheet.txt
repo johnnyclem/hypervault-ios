@@ -1,0 +1,5 @@
+large / the Share sheet
+
+small target  Button "Reload" (arrow.clockwise)  336,51 32x36
+small target  Button "Sheet Grabber"  159,389 73x24
+small target  Button "Done"  291,413 72x34

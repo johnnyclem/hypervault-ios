@@ -1,0 +1,4 @@
+dark / the paste box
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  Button "Paste"  16,1009 87x34

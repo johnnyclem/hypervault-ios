@@ -613,8 +613,18 @@ class HyperVaultUITestCase: XCTestCase {
         closeTheAccountSheet(file: file, line: line)
         var goneBack = 0
         while !element("account.avatar").exists, goneBack < 5 {
-            goBack(file: file, line: line)
+            // Only a real back button is tapped. `goBack()` falls back to the bar's first button when it finds none, and on a
+            // first screen that is the avatar: a tap on it opens the Account sheet over what the sweep was about to look at.
+            let back = named("BackButton", in: app.navigationBars.buttons)
+            guard back.waitForExistence(timeout: 3) else { break }
+            tap(back, "the back button", file: file, line: line)
             goneBack += 1
+            // A pop is animated, and at a large text size it is slow: the screen behind answers a moment after the tap. Looking
+            // for the avatar at once found nothing, tapped "back" again, and that second tap landed on the avatar.
+            let deadline = Date().addingTimeInterval(3)
+            while Date() < deadline, !element("account.avatar").exists {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+            }
         }
         require(element("account.avatar"), "the first screen of the tab", file: file, line: line)
     }

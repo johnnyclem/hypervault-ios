@@ -1,0 +1,6 @@
+dark / a key
+
+small target  Button "Account" (account.avatar)  20,51 44x36
+small target  Button "New board" (plus)  322,51 48x36
+small target  Switch  297,490 63x28
+small target  Button "Mail address, Default address"  32,539 326x34

@@ -1,0 +1,9 @@
+large / General
+
+small target  Button "Account" (account.avatar)  20,51 46x36
+small target  Button "Branch: main"  82,51 90x36
+small target  Button  82,51 90x36
+small target  Button "Memorize something" (memory.memorize)  265,51 43x36
+small target  Button "More" (memory.more)  324,51 46x36
+small target  Button  324,51 46x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

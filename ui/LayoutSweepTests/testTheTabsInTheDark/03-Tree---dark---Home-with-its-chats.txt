@@ -1,0 +1,212 @@
+Attributes: Application, 0x115060c80, pid: 6628, label: 'HyperVault'
+Element subtree:
+ →Application, 0x115060c80, pid: 6628, label: 'HyperVault'
+    Window (Main), 0x115060dc0, {{0.0, 0.0}, {390.0, 844.0}}
+      Other, 0x115060f00, {{0.0, 0.0}, {390.0, 844.0}}
+        Other, 0x115061040, {{0.0, 0.0}, {390.0, 844.0}}
+          Other, 0x115061180, {{0.0, 0.0}, {390.0, 844.0}}
+            Other, 0x1150612c0, {{0.0, 0.0}, {390.0, 844.0}}
+              Other, 0x115061400, {{0.0, 47.0}, {390.0, 763.0}}
+              Other, 0x115061540, {{0.0, 47.0}, {390.0, 763.0}}
+              Other, 0x115061680, {{0.0, 0.0}, {390.0, 844.0}}
+                Other, 0x1150617c0, {{0.0, 0.0}, {390.0, 844.0}}
+                  Other, 0x115061900, {{0.0, 0.0}, {390.0, 844.0}}
+                    Other, 0x115061a40, {{0.0, 0.0}, {390.0, 844.0}}
+                      Other, 0x115061b80, {{0.0, 0.0}, {390.0, 844.0}}
+                        Other, 0x115061cc0, {{0.0, 0.0}, {390.0, 844.0}}
+                          Other, 0x115061e00, {{0.0, 0.0}, {390.0, 844.0}}
+                            NavigationBar, 0x115061f40, {{0.0, 47.0}, {390.0, 114.0}}, identifier: 'Home'
+                              Other, 0x115062080, {{20.0, 51.0}, {44.0, 36.0}}, identifier: 'account.avatar', label: 'Account'
+                                Other, 0x1150621c0, {{20.0, 51.0}, {44.0, 36.0}}
+                                  Button, 0x115062300, {{20.0, 51.0}, {44.0, 36.0}}, identifier: 'account.avatar', label: 'Account'
+                                    StaticText, 0x115062440, {{20.0, 51.0}, {44.0, 36.0}}, label: 'S'
+                              StaticText, 0x115062580, {{80.0, 58.7}, {47.3, 20.7}}, label: 'Home'
+                              Other, 0x1150626c0, {{164.0, 51.0}, {58.0, 36.0}}, identifier: 'home.keep', label: 'Keep'
+                                Other, 0x115062800, {{164.0, 51.0}, {58.0, 36.0}}
+                                  Button, 0x115062940, {{164.0, 51.0}, {58.0, 36.0}}, identifier: 'home.keep', label: 'Keep'
+                              Other, 0x115062a80, {{238.0, 51.0}, {58.0, 36.0}}, identifier: 'square.and.pencil', label: 'New chat'
+                                Other, 0x115062bc0, {{238.0, 51.0}, {58.0, 36.0}}
+                                  Button, 0x115062d00, {{238.0, 51.0}, {58.0, 36.0}}, identifier: 'square.and.pencil', label: 'New chat'
+                              Other, 0x115062e40, {{312.0, 51.0}, {58.0, 36.0}}, identifier: 'chat.more', label: 'More'
+                                Other, 0x115062f80, {{312.0, 51.0}, {58.0, 36.0}}
+                                  Button, 0x1150630c0, {{312.0, 51.0}, {58.0, 36.0}}, identifier: 'chat.more', label: 'More'
+                                    Button, 0x115063200, {{312.0, 51.0}, {58.0, 36.0}}
+                                      Image, 0x115063340, {{330.0, 58.0}, {22.0, 22.0}}, identifier: 'ellipsis.circle', label: 'More'
+                              SearchField, 0x115063480, {{16.0, 102.0}, {358.0, 44.0}}, label: 'Search chats', placeholderValue: 'Search chats'
+                                Image, 0x1150635c0, {{28.0, 114.3}, {20.3, 18.7}}, identifier: 'magnifyingglass', label: 'Search'
+                            Other, 0x115063700, {{0.0, 0.0}, {390.0, 844.0}}
+                              Other, 0x115063840, {{0.0, 0.0}, {390.0, 844.0}}
+                                Other, 0x115063980, {{0.0, 0.0}, {390.0, 844.0}}
+                                  Other, 0x115063ac0, {{0.0, 0.0}, {390.0, 844.0}}
+                                    SegmentedControl, 0x115063c00, {{16.0, 169.0}, {358.0, 31.0}}, identifier: 'chat.section'
+                                      Button, 0x115063d40, {{16.0, 169.0}, {179.0, 32.0}}, label: 'Chats', Selected
+                                      Button, 0x115063e80, {{195.0, 169.0}, {179.0, 32.0}}, label: 'Group chats'
+                                    ScrollView, 0x115094000, {{0.0, 208.0}, {390.0, 44.0}}
+                                      Other, 0x115094140, {{0.0, 208.0}, {586.7, 44.0}}
+                                        Button, 0x115094280, {{16.0, 208.0}, {56.3, 44.0}}, label: 'All, 7', Selected
+                                          StaticText, 0x1150943c0, {{28.0, 221.0}, {18.0, 18.0}}, label: 'All'
+                                          StaticText, 0x115094500, {{52.0, 222.2}, {8.3, 15.7}}, label: '7'
+                                        Button, 0x115094640, {{80.3, 208.0}, {114.3, 44.0}}, label: 'HyperVault, 3'
+                                          StaticText, 0x115094780, {{92.3, 221.0}, {76.0, 18.0}}, label: 'HyperVault'
+                                          StaticText, 0x1150948c0, {{174.3, 222.2}, {8.3, 15.7}}, label: '3'
+                                        Button, 0x115094a00, {{202.7, 208.0}, {100.3, 44.0}}, label: 'ChatGPT, 1'
+                                          StaticText, 0x115094b40, {{214.7, 221.0}, {62.0, 18.0}}, label: 'ChatGPT'
+                                          StaticText, 0x115094c80, {{282.7, 222.2}, {8.3, 15.7}}, label: '1'
+                                        Button, 0x115094dc0, {{311.0, 208.0}, {86.3, 44.0}}, label: 'Claude, 1'
+                                          StaticText, 0x115094f00, {{323.0, 221.0}, {48.0, 18.0}}, label: 'Claude'
+                                          StaticText, 0x115095040, {{377.0, 222.2}, {8.3, 15.7}}, label: '1'
+                                        Button, 0x115095180, {{405.3, 208.0}, {86.0, 44.0}}, label: 'Gemini, 1'
+                                          StaticText, 0x1150952c0, {{417.3, 221.0}, {47.7, 18.0}}, label: 'Gemini'
+                                          StaticText, 0x115095400, {{471.0, 222.2}, {8.3, 15.7}}, label: '1'
+                                        Button, 0x115095540, {{499.3, 208.0}, {71.3, 44.0}}, label: 'Grok, 1'
+                                          StaticText, 0x115095680, {{511.3, 221.0}, {33.0, 18.0}}, label: 'Grok'
+                                          StaticText, 0x1150957c0, {{550.3, 222.2}, {8.3, 15.7}}, label: '1'
+                                    CollectionView, 0x115095900, {{0.0, 252.0}, {390.0, 592.0}}
+                                      Other, 0x115095a40, {{-16.0, -932.0}, {422.0, 1394.3}}
+                                      Other, 0x115095b80, {{0.0, 252.0}, {390.0, 592.0}}
+                                        Other, 0x115095cc0, {{0.0, 696.2}, {390.0, 147.8}}
+                                      Other, 0x115095e00, {{0.0, 252.0}, {390.0, 592.0}}
+                                        Other, 0x115095f40, {{0.0, 696.2}, {390.0, 147.8}}
+                                          Image, 0x115096080, {{-120.0, 701.0}, {630.0, 286.0}}, identifier: 'AdditionalDimmingOverlay'
+                                          Other, 0x1150961c0, {{0.0, 696.2}, {390.0, 147.8}}
+                                            Other, 0x115096300, {{0.0, 696.2}, {390.0, 147.8}}
+                                          Other, 0x115096440, {{0.0, 696.2}, {390.0, 147.8}}
+                                            Other, 0x115096580, {{0.0, 696.2}, {390.0, 147.8}}
+                                            Other, 0x1150966c0, {{0.0, 696.2}, {390.0, 147.8}}
+                                      Cell, 0x115096800, {{16.0, 252.0}, {358.0, 38.0}}
+                                        Other, 0x115096940, {{16.0, 252.0}, {358.0, 38.0}}
+                                        Other, 0x115096a80, {{16.0, 252.0}, {358.0, 38.0}}
+                                          Other, 0x115096bc0, {{16.0, 252.0}, {358.0, 38.0}}
+                                            Other, 0x115096d00, {{16.0, 252.0}, {358.0, 38.0}}
+                                              StaticText, 0x115096e40, {{16.0, 252.0}, {358.0, 38.0}}, label: 'Today'
+                                      Cell, 0x115096f80, {{16.0, 290.0}, {358.0, 78.0}}
+                                        Other, 0x1150970c0, {{16.0, 290.0}, {358.0, 78.0}}
+                                          Other, 0x115097200, {{16.0, 290.0}, {358.0, 78.0}}
+                                            Other, 0x115097340, {{16.0, 290.0}, {358.0, 78.0}}
+                                        Other, 0x115097480, {{16.0, 290.0}, {358.0, 78.0}}
+                                          Other, 0x1150975c0, {{16.0, 290.0}, {358.0, 78.0}}
+                                            Other, 0x115097700, {{16.0, 290.0}, {358.0, 78.0}}
+                                              Button, 0x115097840, {{16.0, 290.0}, {358.0, 78.0}}, identifier: 'chat.row.c1', label: 'Three days in Lisbon, Shared, 20 min ago'
+                                                StaticText, 0x115097980, {{32.0, 309.0}, {157.0, 39.3}}, label: 'Three days in Lisbon, Shared, 20 min ago'
+                                                  StaticText, 0x115097ac0, {{32.0, 309.0}, {157.0, 20.3}}, label: 'Three days in Lisbon'
+                                                  Image, 0x115097c00, {{33.0, 334.3}, {13.7, 13.7}}, identifier: 'link', label: 'Link'
+                                                  StaticText, 0x115097d40, {{51.7, 334.0}, {40.0, 14.3}}, label: 'Shared'
+                                                  StaticText, 0x115097e80, {{99.7, 334.0}, {63.0, 14.3}}, label: '20 min ago'
+                                                Image, 0x11509c000, {{348.7, 323.0}, {7.0, 12.0}}, identifier: 'chevron.forward'
+                                      Cell, 0x11509c140, {{16.0, 368.0}, {358.0, 76.7}}
+                                        Other, 0x11509c280, {{16.0, 368.0}, {358.0, 76.7}}
+                                          Other, 0x11509c3c0, {{16.0, 368.0}, {358.0, 76.7}}
+                                            Other, 0x11509c500, {{16.0, 368.0}, {358.0, 76.7}}
+                                        Other, 0x11509c640, {{16.0, 368.0}, {358.0, 76.7}}
+                                          Other, 0x11509c780, {{16.0, 368.0}, {358.0, 76.7}}
+                                            Other, 0x11509c8c0, {{16.0, 368.0}, {358.0, 76.7}}
+                                              Button, 0x11509ca00, {{16.0, 368.0}, {358.0, 76.7}}, identifier: 'chat.row.c2', label: 'Refactor the sync engine, 3 hr ago'
+                                                StaticText, 0x11509cb40, {{32.0, 387.0}, {189.3, 38.7}}, label: 'Refactor the sync engine, 3 hr ago'
+                                                  StaticText, 0x11509cc80, {{32.0, 387.0}, {189.3, 20.3}}, label: 'Refactor the sync engine'
+                                                  StaticText, 0x11509cdc0, {{32.0, 411.3}, {47.0, 14.3}}, label: '3 hr ago'
+                                                Image, 0x11509cf00, {{348.7, 400.3}, {7.0, 12.0}}, identifier: 'chevron.forward'
+                                      Other, 0x11509d040, {{32.0, 367.0}, {326.0, 1.0}}
+                                      Other, 0x11509d180, {{-16.0, 462.3}, {422.0, 132.3}}
+                                      Cell, 0x11509d2c0, {{16.0, 462.3}, {358.0, 38.0}}
+                                        Other, 0x11509d400, {{16.0, 462.3}, {358.0, 38.0}}
+                                        Other, 0x11509d540, {{16.0, 462.3}, {358.0, 38.0}}
+                                          Other, 0x11509d680, {{16.0, 462.3}, {358.0, 38.0}}
+                                            Other, 0x11509d7c0, {{16.0, 462.3}, {358.0, 38.0}}
+                                              StaticText, 0x11509d900, {{16.0, 462.3}, {358.0, 38.0}}, label: 'Yesterday'
+                                      Cell, 0x11509da40, {{16.0, 500.3}, {358.0, 76.7}}
+                                        Other, 0x11509db80, {{16.0, 500.3}, {358.0, 76.7}}
+                                          Other, 0x11509dcc0, {{16.0, 500.3}, {358.0, 76.7}}
+                                            Other, 0x11509de00, {{16.0, 500.3}, {358.0, 76.7}}
+                                        Other, 0x11509df40, {{16.0, 500.3}, {358.0, 76.7}}
+                                          Other, 0x11509e080, {{16.0, 500.3}, {358.0, 76.7}}
+                                            Other, 0x11509e1c0, {{16.0, 500.3}, {358.0, 76.7}}
+                                              Button, 0x11509e300, {{16.0, 500.3}, {358.0, 76.7}}, identifier: 'chat.row.c3', label: 'Dinner ideas for Saturday, Yesterday'
+                                                StaticText, 0x11509e440, {{32.0, 519.3}, {192.3, 38.7}}, label: 'Dinner ideas for Saturday, Yesterday'
+                                                  StaticText, 0x11509e580, {{32.0, 519.3}, {192.3, 20.3}}, label: 'Dinner ideas for Saturday'
+                                                  StaticText, 0x11509e6c0, {{32.0, 543.7}, {56.0, 14.3}}, label: 'Yesterday'
+                                                Image, 0x11509e800, {{348.7, 532.7}, {7.0, 12.0}}, identifier: 'chevron.forward'
+                                      Other, 0x11509e940, {{-16.0, 594.3}, {422.0, 140.3}}
+                                      Cell, 0x11509ea80, {{16.0, 594.3}, {358.0, 38.0}}
+                                        Other, 0x11509ebc0, {{16.0, 594.3}, {358.0, 38.0}}
+                                        Other, 0x11509ed00, {{16.0, 594.3}, {358.0, 38.0}}
+                                          Other, 0x11509ee40, {{16.0, 594.3}, {358.0, 38.0}}
+                                            Other, 0x11509ef80, {{16.0, 594.3}, {358.0, 38.0}}
+                                              StaticText, 0x11509f0c0, {{16.0, 594.3}, {358.0, 38.0}}, label: 'Previous 7 days'
+                                      Cell, 0x11509f200, {{16.0, 632.3}, {358.0, 84.7}}
+                                        Other, 0x11509f340, {{16.0, 632.3}, {358.0, 84.7}}
+                                          Other, 0x11509f480, {{16.0, 632.3}, {358.0, 84.7}}
+                                            Other, 0x11509f5c0, {{16.0, 632.3}, {358.0, 84.7}}
+                                        Other, 0x11509f700, {{16.0, 632.3}, {358.0, 84.7}}
+                                          Other, 0x11509f840, {{16.0, 632.3}, {358.0, 84.7}}
+                                            Other, 0x11509f980, {{16.0, 632.3}, {358.0, 84.7}}
+                                              Button, 0x11509fac0, {{16.0, 632.3}, {358.0, 84.7}}, identifier: 'chat.row.c4', label: 'Quarterly planning notes, ChatGPT, 3 days ago'
+                                                StaticText, 0x11509fc00, {{32.0, 651.3}, {187.3, 46.7}}, label: 'Quarterly planning notes, ChatGPT, 3 days ago'
+                                                  StaticText, 0x11509fd40, {{32.0, 651.3}, {187.3, 20.3}}, label: 'Quarterly planning notes'
+                                                  StaticText, 0x11509fe80, {{40.0, 679.7}, {52.7, 14.3}}, label: 'ChatGPT'
+                                                  StaticText, 0x1150b0000, {{108.7, 679.7}, {62.0, 14.3}}, label: '3 days ago'
+                                                Image, 0x1150b0140, {{348.7, 668.7}, {7.0, 12.0}}, identifier: 'chevron.forward'
+                                      Other, 0x1150b0280, {{-16.0, 734.7}, {422.0, 140.3}}
+                                      Cell, 0x1150b03c0, {{16.0, 734.7}, {358.0, 38.0}}
+                                        Other, 0x1150b0500, {{16.0, 734.7}, {358.0, 38.0}}
+                                        Other, 0x1150b0640, {{16.0, 734.7}, {358.0, 38.0}}
+                                          Other, 0x1150b0780, {{16.0, 734.7}, {358.0, 38.0}}
+                                            Other, 0x1150b08c0, {{16.0, 734.7}, {358.0, 38.0}}
+                                              StaticText, 0x1150b0a00, {{16.0, 734.7}, {358.0, 38.0}}, label: 'Previous 30 days'
+                                      Cell, 0x1150b0b40, {{16.0, 772.7}, {358.0, 84.7}}
+                                        Other, 0x1150b0c80, {{16.0, 772.7}, {358.0, 84.7}}
+                                          Other, 0x1150b0dc0, {{16.0, 772.7}, {358.0, 84.7}}
+                                            Other, 0x1150b0f00, {{16.0, 772.7}, {358.0, 84.7}}
+                                        Other, 0x1150b1040, {{16.0, 772.7}, {358.0, 84.7}}
+                                          Other, 0x1150b1180, {{16.0, 772.7}, {358.0, 84.7}}
+                                            Other, 0x1150b12c0, {{16.0, 772.7}, {358.0, 84.7}}
+                                              Button, 0x1150b1400, {{16.0, 772.7}, {358.0, 84.7}}, identifier: 'chat.row.c5', label: 'Reading list for the autumn, Claude, 14 days ago'
+                                                StaticText, 0x1150b1540, {{32.0, 791.7}, {204.3, 46.7}}, label: 'Reading list for the autumn, Claude, 14 days ago'
+                                                  StaticText, 0x1150b1680, {{32.0, 791.7}, {204.3, 20.3}}, label: 'Reading list for the autumn'
+                                                  StaticText, 0x1150b17c0, {{40.0, 820.0}, {41.3, 14.3}}, label: 'Claude'
+                                                  StaticText, 0x1150b1900, {{97.3, 820.0}, {67.7, 14.3}}, label: '14 days ago'
+                                                Image, 0x1150b1a40, {{348.7, 809.0}, {7.0, 12.0}}, identifier: 'chevron.forward'
+                                      Other, 0x1150b1b80, {{357.0, 273.0}, {30.0, 488.0}}, label: 'Vertical scroll bar, 2 pages', value: 0%
+                                        Other, 0x1150b1cc0, {{384.0, 751.0}, {3.0, 7.0}}
+                                      Other, 0x1150b1e00, {{357.0, 273.0}, {30.0, 488.0}}, label: 'Vertical scroll bar, 2 pages', value: 0%
+                                        Other, 0x1150b1f40, {{384.0, 751.0}, {3.0, 7.0}}
+                            Other, 0x1150b2080, {{0.0, 0.0}, {390.0, 844.0}}
+                              Other, 0x1150b21c0, {{0.0, 0.0}, {390.0, 844.0}}
+                Other, 0x1150b2300, {{0.0, 761.0}, {390.0, 83.0}}
+                  Other, 0x1150b2440, {{0.0, 0.0}, {390.0, 844.0}}
+                    TabBar, 0x1150b2580, {{0.0, 761.0}, {390.0, 83.0}}, label: 'Tab Bar'
+                      Other, 0x1150b26c0, {{21.0, 761.0}, {348.0, 62.0}}
+                        Other, 0x1150b2800, {{21.0, 761.0}, {95.0, 54.0}}
+                        Other, 0x1150b2940, {{21.0, 761.0}, {348.0, 62.0}}
+                          Button, 0x1150b2a80, {{25.0, 765.0}, {95.0, 54.0}}, identifier: 'house', label: 'Home', Selected
+                            Image, 0x1150b2bc0, {{56.0, 771.0}, {33.3, 28.0}}, identifier: 'house.fill', label: 'home'
+                          Button, 0x1150b2d00, {{106.7, 765.0}, {95.0, 54.0}}, identifier: 'square.stack.3d.up', label: 'Projects'
+                            Image, 0x1150b2e40, {{139.7, 767.7}, {28.7, 32.0}}, identifier: 'square.stack.3d.up.fill', label: 'hdr'
+                          Button, 0x1150b2f80, {{188.3, 765.0}, {95.0, 54.0}}, identifier: 'point.3.connected.trianglepath.dotted', label: 'Memory'
+                            Image, 0x1150b30c0, {{220.3, 772.7}, {30.7, 24.3}}, identifier: 'tab-glyph-quiet', label: 'Memory'
+                          Button, 0x1150b3200, {{270.0, 765.0}, {95.0, 54.0}}, identifier: 'envelope', label: 'Mail', value: 2 unread
+                            Image, 0x1150b3340, {{301.0, 773.0}, {33.7, 23.7}}, identifier: 'envelope.fill', label: 'get mail'
+                        Other, 0x1150b3480, {{25.0, 765.0}, {95.0, 54.0}}
+                          Other, 0x1150b35c0, {{25.0, 765.0}, {95.0, 54.0}}
+                            Other, 0x1150b3700, {{25.0, 765.0}, {95.0, 54.0}}
+                            Other, 0x1150b3840, {{25.0, 765.0}, {95.0, 54.0}}
+                              Other, 0x1150b3980, {{25.0, 765.0}, {95.0, 54.0}}
+                                Other, 0x1150b3ac0, {{25.0, 765.0}, {95.0, 54.0}}
+                                  Other, 0x1150b3c00, {{25.0, 765.0}, {95.0, 54.0}}
+                                Other, 0x1150b3d40, {{25.0, 765.0}, {95.0, 54.0}}
+                              Other, 0x1150b3e80, {{25.0, 765.0}, {95.0, 54.0}}
+                  Other, 0x1150bc000, {{0.0, 761.0}, {390.0, 83.0}}
+                    Other, 0x1150bc140, {{0.0, 761.0}, {390.0, 83.0}}
+                      Other, 0x1150bc280, {{0.0, 761.0}, {390.0, 83.0}}
+                        Other, 0x1150bc3c0, {{0.0, 761.0}, {390.0, 83.0}}
+                          Other, 0x1150bc500, {{0.0, 761.0}, {390.0, 83.0}}
+                            Other, 0x1150bc640, {{0.0, 761.0}, {390.0, 83.0}}
+                        Other, 0x1150bc780, {{0.0, 761.0}, {390.0, 83.0}}
+                          Other, 0x1150bc8c0, {{0.0, 761.0}, {390.0, 83.0}}
+              Other, 0x1150bca00, {{0.0, 47.0}, {3.0, 3.0}}, identifier: 'uitest.writes', label: 'no writes'
+Path to element:
+ →Application, 0x115060c80, pid: 6628, label: 'HyperVault'
+Query chain:
+ →Find: Target Application 'store.hypervault.app'
+  Output: {
+    Application, 0x1150bcb40, pid: 6628, label: 'HyperVault'
+  }

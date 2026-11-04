@@ -1,0 +1,8 @@
+large / Home with its chats
+
+small target  Button "Account" (account.avatar)  20,51 44x36
+small target  Button "Keep" (home.keep)  164,51 58x36
+small target  Button "New chat" (square.and.pencil)  238,51 58x36
+small target  Button "More" (chat.more)  312,51 58x36
+small target  Button  312,51 58x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

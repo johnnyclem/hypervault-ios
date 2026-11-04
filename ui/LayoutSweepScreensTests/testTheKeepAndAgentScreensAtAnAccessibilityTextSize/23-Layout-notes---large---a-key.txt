@@ -1,0 +1,5 @@
+large / a key
+
+small target  Button "Account" (account.avatar)  20,51 44x36
+small target  Button "New board" (plus)  322,51 48x36
+off screen    Image (AdditionalDimmingOverlay)  -120,-151 630x302

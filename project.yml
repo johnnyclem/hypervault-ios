@@ -12,6 +12,11 @@ options:
   groupSortPosition: top
   developmentLanguage: en
   generateEmptyDirectories: true
+  # Keeps LastUpgradeCheck / scheme LastUpgradeVersion on this Xcode. The generator's default is 14.3.
+  xcodeVersion: "27.0"
+
+attributes:
+  LastUpgradeCheck: "2700"
 
 configFiles:
   Debug: Config/Debug.xcconfig

@@ -1,0 +1,4 @@
+large / the canvas with cards
+
+small target  Button "Open panel" (canvas.yours)  331,51 39x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

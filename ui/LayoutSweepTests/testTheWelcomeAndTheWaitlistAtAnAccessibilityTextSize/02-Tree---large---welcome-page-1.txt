@@ -1,0 +1,39 @@
+Attributes: Application, 0x116ec08c0, pid: 17865, label: 'HyperVault'
+Element subtree:
+ →Application, 0x116ec08c0, pid: 17865, label: 'HyperVault'
+    Window (Main), 0x116ec17c0, {{0.0, 0.0}, {390.0, 844.0}}
+      Other, 0x116ec2f80, {{0.0, 0.0}, {390.0, 844.0}}
+        Other, 0x116ec0a00, {{0.0, 0.0}, {390.0, 844.0}}
+          Other, 0x116ec1540, {{0.0, 0.0}, {390.0, 844.0}}
+            Other, 0x116ec0f00, {{0.0, 0.0}, {390.0, 844.0}}
+              Other, 0x116ec0dc0, {{0.0, 47.0}, {390.0, 763.0}}
+              Other, 0x116ec1a40, {{0.0, 0.0}, {390.0, 844.0}}
+              Button, 0x116ec1b80, {{277.3, 47.0}, {96.7, 44.0}}, identifier: 'welcome.skip', label: 'Skip'
+              CollectionView, 0x1158e75c0, {{0.0, 91.0}, {390.0, 455.0}}
+                Cell, 0x1158e7700, {{0.0, 91.0}, {390.0, 455.0}}
+                  Other, 0x1158d2300, {{0.0, 91.0}, {390.0, 455.0}}
+                    Other, 0x1158d2f80, {{0.0, 91.0}, {390.0, 455.0}}
+                      Other, 0x1158d30c0, {{0.0, 91.0}, {390.0, 455.0}}
+                        ScrollView, 0x1158d3200, {{0.0, 91.0}, {390.0, 455.0}}
+                          Other, 0x1158d3340, {{0.0, 91.0}, {390.0, 455.0}}
+                            StaticText, 0x1158d3480, {{40.2, 144.0}, {309.7, 211.7}}, label: 'Keep what your AI just made.'
+                            StaticText, 0x1158d35c0, {{44.0, 367.7}, {302.0, 125.3}}, label: 'Only you can open it.'
+                          Other, 0x1158d3e80, {{357.0, 91.0}, {30.0, 455.0}}, label: 'Vertical scroll bar, 1 page', value: 0%
+                            Other, 0x1158d2080, {{384.0, 536.0}, {3.0, 7.0}}
+                          Other, 0x1158d3700, {{357.0, 91.0}, {30.0, 455.0}}, label: 'Vertical scroll bar, 1 page', value: 0%
+                            Other, 0x1158d1f40, {{384.0, 536.0}, {3.0, 7.0}}
+                Other, 0x1158d1e00, {{357.0, 91.0}, {30.0, 455.0}}, label: 'Vertical scroll bar, 4 pages', value: 0%
+                  Other, 0x1158d3980, {{384.0, 536.0}, {3.0, 7.0}}
+                Other, 0x1158d3d40, {{357.0, 91.0}, {30.0, 455.0}}, label: 'Vertical scroll bar, 4 pages', value: 0%
+                  Other, 0x1158d2440, {{384.0, 536.0}, {3.0, 7.0}}
+              Other, 0x1158d2d00, {{170.0, 546.0}, {50.0, 8.0}}, identifier: 'welcome.pages', label: 'Page 1 of 4'
+              Button, 0x1158d2bc0, {{20.0, 570.0}, {350.0, 87.3}}, identifier: 'welcome.continue', label: 'Continue'
+              Button, 0x1158d1cc0, {{39.7, 673.3}, {310.7, 116.7}}, identifier: 'welcome.haveAccount', label: 'I already have an account'
+              Other, 0x1158d17c0, {{0.0, 47.0}, {3.0, 3.0}}, identifier: 'uitest.writes', label: 'no writes'
+Path to element:
+ →Application, 0x116ec08c0, pid: 17865, label: 'HyperVault'
+Query chain:
+ →Find: Target Application 'store.hypervault.app'
+  Output: {
+    Application, 0x1158d2800, pid: 17865, label: 'HyperVault'
+  }

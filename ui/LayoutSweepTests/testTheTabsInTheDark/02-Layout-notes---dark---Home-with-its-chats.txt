@@ -1,0 +1,17 @@
+dark / Home with its chats
+
+small target  Button "Account" (account.avatar)  20,51 44x36
+small target  Button "Keep" (home.keep)  164,51 58x36
+small target  Button "New chat" (square.and.pencil)  238,51 58x36
+small target  Button "More" (chat.more)  312,51 58x36
+small target  Button  312,51 58x36
+small target  Button "Chats"  16,169 179x32
+small target  Button "Group chats"  195,169 179x32
+off screen    Button "Claude, 1"  311,208 86x44
+off screen    Button "Gemini, 1"  405,208 86x44
+off screen    StaticText "Gemini"  417,221 48x18
+off screen    StaticText "1"  471,222 8x16
+off screen    Button "Grok, 1"  499,208 71x44
+off screen    StaticText "Grok"  511,221 33x18
+off screen    StaticText "1"  550,222 8x16
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

@@ -32,10 +32,19 @@ models, on-device chat and reading replies aloud. Home is the chats: `ChatRootVi
 - What a small model is told is not what the server sent. The server's system prompt is written for
   large models ("answer from the excerpts, and if they fall short, say what is covered"), and Apple's
   on-device model followed that to the letter: it answered about the excerpts, or handed one back. So
-  `OnDeviceBrief` (Kit) rewrites it: a short directive that makes the question the job, then only the
-  notes that bear on it, as optional background, inside the model's window. `OnDeviceReplyScreen`
-  reads the first words of the reply; if it is a non-answer or a copy of a note, the question is asked
-  once more with no notes. The grounding chips under a reply list only what the model was shown.
+  the on-device turn asks `POST /api/chat/context` for the compact profile (`profile: "compact"`, with
+  `budget_chars` set to the room the model's window has left after the directive). The server picks
+  the notes that bear on the question and returns them apart from a short directive
+  (`ChatContext.notes`, `.instructions`); `OnDeviceBrief.compact` takes them as they are, cut to the
+  room. The directive goes to Apple's `instructions`; the notes go in the **prompt**
+  (`OnDevicePrompt.prompt(notes:messages:)`), because the model obeys its instructions over its prompt
+  and a note is text the person saved, some of it pasted from elsewhere: background to read, never an
+  order. A provider that takes one system string (`generate(system:messages:)`) is given the two joined.
+  An older server ignores the profile and answers in full; `OnDeviceBrief.make` then does the rewrite
+  on the phone, as before. `OnDeviceReplyScreen` reads the first words of the reply; if it is a
+  non-answer or a copy of a note, the question is asked once more with no notes (the compact profile
+  asks the server again with `use_recall: false`, so what it adds beside the notes goes too). The
+  grounding chips under a reply list only what the model was shown.
 
 ## Left out on purpose
 

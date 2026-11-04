@@ -28,25 +28,51 @@ import Foundation
 // its sense: the directive still says to answer the question.
 
 public struct OnDeviceBrief: Sendable, Equatable {
-    /// The instructions for the model: the directive, then the notes (if any).
-    public let system: String
-    /// For a second try, when a reply only repeated the notes: the same, less
-    /// the notes that recall guessed at. What the person pulled onto their page
-    /// and what they recorded stay, because those are what they are asking about.
-    public let retrySystem: String
-    /// What the reply can be said to rest on: the server's grounding, narrowed
-    /// to what `system` carries.
+    /// What the model is told: the directive. Never the person's own words.
+    public let instructions: String
+    /// What the model may use as background: the person's own words, empty when none are worth giving. Apart from
+    /// `instructions` so a model that reads instructions and a prompt apart can be given them as data.
+    public let notes: String
+    /// What the reply can be said to rest on: the server's grounding, narrowed to what `notes` carries.
     public let grounding: ChatGrounding
-    /// The same for `retrySystem`.
-    public let retryGrounding: ChatGrounding
-    /// Whether any of the person's own words are in `system`.
-    public let hasNotes: Bool
+    /// What a second try is given, when the first reply only repeated the notes. Nil when only the server can say
+    /// (a compact context was taken as it came).
+    public let retry: Retry?
+
+    /// The notes a second try has, and what it rests on. What they pulled onto their page and what they recorded
+    /// stay, because those are what they are asking about; what recall guessed at goes.
+    public struct Retry: Sendable, Equatable {
+        public let notes: String
+        public let grounding: ChatGrounding
+
+        public init(notes: String, grounding: ChatGrounding) {
+            self.notes = notes
+            self.grounding = grounding
+        }
+
+        /// A second try with no notes at all.
+        public static let noNotes = Retry(notes: "", grounding: .none)
+    }
+
+    /// Whether any of the person's own words are in `notes`.
+    public var hasNotes: Bool { !notes.isEmpty }
+    /// The instructions, then the notes, in one string: for a model that reads a single system prompt.
+    public var system: String { Self.joined(instructions, notes) }
+    /// `system` for a second try; the directive alone when only the server can say what it holds.
+    public var retrySystem: String { Self.joined(instructions, retry?.notes ?? "") }
+    public var retryGrounding: ChatGrounding { retry?.grounding ?? .none }
+
+    static func joined(_ instructions: String, _ notes: String) -> String {
+        notes.isEmpty ? instructions : instructions + "\n\n" + notes
+    }
 
     /// When the server could not be asked: no notes, and a line that says so.
     public static let offline = OnDeviceBrief(
-        system: OnDevicePrompt.offlineSystem, retrySystem: OnDevicePrompt.offlineSystem,
-        grounding: .none, retryGrounding: .none, hasNotes: false
+        instructions: OnDevicePrompt.offlineSystem, notes: "", grounding: .none, retry: .noNotes
     )
+
+    /// The least a compact context can be asked for (the server holds `budget_chars` to 300 and more).
+    public static let compactMinimumRoom = 300
 
     /// `server` is `ChatContext.system`; `question` the person's new message;
     /// `budget` the provider's `contextBudget` in characters.
@@ -54,12 +80,12 @@ public struct OnDeviceBrief: Sendable, Equatable {
         let directive = OnDevicePrompt.defaultInstructions
         let context = OnDeviceServerContext.parse(server)
         if context.isBlank {
-            return OnDeviceBrief(system: directive, retrySystem: directive, grounding: grounding, retryGrounding: grounding, hasNotes: false)
+            return OnDeviceBrief(instructions: directive, notes: "", grounding: grounding, retry: Retry(notes: "", grounding: grounding))
         }
 
         let room = notesRoom(budget: budget, directive: directive)
         guard let notes = OnDeviceNotes.write(from: context, question: question, room: room) else {
-            return OnDeviceBrief(system: directive, retrySystem: directive, grounding: .none, retryGrounding: .none, hasNotes: false)
+            return OnDeviceBrief(instructions: directive, notes: "", grounding: .none, retry: .noNotes)
         }
 
         var withoutGuesses = context
@@ -67,12 +93,22 @@ public struct OnDeviceBrief: Sendable, Equatable {
         withoutGuesses.deep = []
         let retry = OnDeviceNotes.write(from: withoutGuesses, question: question, room: room)
         return OnDeviceBrief(
-            system: directive + "\n\n" + notes.text,
-            retrySystem: retry.map { directive + "\n\n" + $0.text } ?? directive,
-            grounding: notes.narrow(grounding),
-            retryGrounding: retry?.narrow(grounding) ?? .none,
-            hasNotes: true
+            instructions: directive, notes: notes.text, grounding: notes.narrow(grounding),
+            retry: retry.map { Retry(notes: $0.text, grounding: $0.narrow(grounding)) } ?? .noNotes
         )
+    }
+
+    /// From a server that wrote the small version itself (`profile: "compact"`): its notes are the background and
+    /// its lists name only what they hold, so nothing is taken apart or narrowed here. The directive is the app's own
+    /// (the server's `instructions` are the same words, for clients that have none). What the server sent beyond the
+    /// room asked for is cut, not trusted: a window this small cannot take it.
+    static func compact(_ context: ChatContext, budget: Int) -> OnDeviceBrief {
+        let directive = OnDevicePrompt.defaultInstructions
+        let room = notesRoom(budget: budget, directive: directive)
+        let given = (context.notes ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let notes = room >= compactMinimumRoom ? OnDeviceNotes.cut(given, to: room) : ""
+        // Nothing was given, so nothing is claimed, whatever the lists say.
+        return OnDeviceBrief(instructions: directive, notes: notes, grounding: notes.isEmpty ? .none : context.grounding, retry: nil)
     }
 
     /// The system prompt may use 45% of the budget (`ChatContextFitter`); the

@@ -16,6 +16,7 @@ struct ChatRoomContent: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.scenePhase) private var scenePhase
     private let env: AppEnvironment
     @State private var model: ChatRoomModel
     @State private var showMembers = false
@@ -26,7 +27,6 @@ struct ChatRoomContent: View {
     @FocusState private var focused: Bool
 
     private static let bottomID = "bottom"
-    private static let pollSeconds: UInt64 = 4
 
     private var palette: ChatRoomPalette { ChatRoomPalette(members: model.members) }
 
@@ -72,15 +72,15 @@ struct ChatRoomContent: View {
                 Text("The room and everything said in it are deleted. This can't be undone.")
             }
             .task { await model.load() }
-            .task { await watch() }
-    }
-
-    /// While a round runs somewhere else (another device), look for what is new.
-    private func watch() async {
-        while !Task.isCancelled {
-            try? await Task.sleep(nanoseconds: Self.pollSeconds * 1_000_000_000)
-            if model.header?.running == true, !model.isDriving { await model.refresh() }
-        }
+            // The room is followed for as long as the screen is up and the app is in front: SwiftUI cancels this task
+            // when the screen goes, and starts it again, with a read at once, when the app comes back to the front (the
+            // phone slept; the server did not). Turns this phone is driving go on when the app goes to the background, for
+            // a while, on their own (`ChatBackgroundGrace`); when the screen goes they stop, and the rest wait in the queue.
+            .task(id: scenePhase == .active) {
+                guard scenePhase == .active else { return }
+                await model.follow()
+            }
+            .onDisappear { model.leave() }
     }
 
     // MARK: Thread
@@ -101,7 +101,8 @@ struct ChatRoomContent: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: HV.Space.m) {
                     roster
-                    if model.messages.isEmpty { emptyRoom }
+                    // (Not once the first words are on their way: "nobody has spoken" would sit above them.)
+                    if model.messages.isEmpty, model.outgoing.isEmpty { emptyRoom }
                     if model.messages.count > windowSize {
                         Button("Show \(min(model.messages.count - windowSize, 60)) earlier") { windowSize += 60 }
                             .buttonStyle(.hvGhost)
@@ -112,8 +113,12 @@ struct ChatRoomContent: View {
                             app.router.push(.artifact(slug: slug))
                         }
                     }
-                    if let next = model.pending.first {
-                        ChatTypingLine(next: next, later: Array(model.pending.dropFirst()), isRunning: model.isDriving)
+                    // What the person just said, until the room reports it.
+                    ForEach(model.outgoing) { sent in
+                        ChatRoomSendingView(text: sent.text)
+                    }
+                    if model.activity != .idle {
+                        ChatRoomActivityLine(activity: model.activity)
                     }
                     if model.canContinue {
                         continueCard
@@ -127,7 +132,8 @@ struct ChatRoomContent: View {
             .defaultScrollAnchor(.bottom)
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: model.messages.count) { scroll(proxy) }
-            .onChange(of: model.pending.count) { scroll(proxy) }
+            .onChange(of: model.outgoing.count) { scroll(proxy) }
+            .onChange(of: model.activity) { scroll(proxy) }
         }
     }
 
@@ -150,7 +156,7 @@ struct ChatRoomContent: View {
                 .background(Palette.surfaceRaised, in: Capsule())
                 .accessibilityElement(children: .combine)
             }
-            if !model.pending.isEmpty {
+            if !model.pending.isEmpty || model.header?.current != nil {
                 Text("\(model.budget) turn\(model.budget == 1 ? "" : "s") left in this round")
                     .font(.hvCaption.monospacedDigit())
                     .foregroundStyle(Palette.textTertiary)
@@ -174,7 +180,7 @@ struct ChatRoomContent: View {
     private var continueCard: some View {
         HStack(spacing: HV.Space.s) {
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
-                Text("\(model.pending.count) turn\(model.pending.count == 1 ? "" : "s") still waiting")
+                Text(model.pending.isEmpty ? "A turn was cut off" : "\(model.pending.count) turn\(model.pending.count == 1 ? "" : "s") still waiting")
                     .font(.hvFootnote.weight(.semibold).monospacedDigit())
                 Text("Nobody is running this round").font(.hvCaption).foregroundStyle(Palette.textSecondary)
             }
@@ -322,19 +328,9 @@ struct ChatRoomMessageView: View {
                 .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
                 .frame(maxWidth: .infinity)
         case .human:
-            HStack(spacing: 0) {
-                Spacer(minLength: 56)
-                Text(message.content)
-                    .font(.hvBody)
-                    .foregroundStyle(Palette.onAction)
-                    .multilineTextAlignment(.leading)
-                    .textSelection(.enabled)
-                    .padding(.horizontal, HV.Space.m)
-                    .padding(.vertical, HV.Space.s)
-                    .background(Palette.action, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("You said: \(message.content)")
+            ChatRoomHumanBubble(text: message.content)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("You said: \(message.content)")
         case .agent:
             agent
         }
@@ -399,27 +395,66 @@ struct ChatRoomMessageView: View {
     }
 }
 
-/// Who is up next, from the server's queue.
-struct ChatTypingLine: View {
-    let next: ChatRoomTurn
-    let later: [ChatRoomTurn]
-    let isRunning: Bool
+/// The person's words in their bubble. `action` is the one flat fill white text reads on at body size in both looks,
+/// so the words stay at full strength whether the room has them yet or not (as in the 1:1 chat).
+struct ChatRoomHumanBubble: View {
+    let text: String
 
     var body: some View {
-        HStack(spacing: HV.Space.xs) {
-            if isRunning { ChatThinkingDots() }
-            Text(line)
-                .font(.hvCallout)
-                .foregroundStyle(Palette.textSecondary)
+        HStack(spacing: 0) {
+            Spacer(minLength: 56)
+            Text(text)
+                .font(.hvBody)
+                .foregroundStyle(Palette.onAction)
+                .multilineTextAlignment(.leading)
+                .textSelection(.enabled)
+                .padding(.horizontal, HV.Space.m)
+                .padding(.vertical, HV.Space.s)
+                .background(Palette.action, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
         }
-        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The person's own words, on their way to the room: in the thread at once, drawn as they will be when the room has them,
+/// so the real message takes its place without a change. The line under the thread says they are being sent, and
+/// VoiceOver is told so.
+struct ChatRoomSendingView: View {
+    let text: String
+
+    var body: some View {
+        ChatRoomHumanBubble(text: text)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("You said: \(text)")
+            .accessibilityValue("Sending")
+    }
+}
+
+/// What the room is doing, from what the server says (`ChatRoomActivity`): who is thinking and for how long, who is next,
+/// or that a turn was cut off. Nothing here is guessed from what the phone is doing.
+struct ChatRoomActivityLine: View {
+    let activity: ChatRoomActivity
+
+    @ViewBuilder var body: some View {
+        if case .thinking = activity {
+            // The seconds a member has been thinking count up, so this one line is redrawn once a second.
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                line(at: context.date)
+            }
+        } else {
+            line(at: Date())
+        }
     }
 
-    private var line: String {
-        let head = isRunning ? "@\(next.handle) is thinking..." : "@\(next.handle) is next"
-        guard !later.isEmpty else { return head }
-        let tail = "then " + later.map { "@" + $0.handle }.joined(separator: ", ")
-        return head + (isRunning ? " " : ", ") + tail
+    @ViewBuilder private func line(at date: Date) -> some View {
+        if let text = activity.line(now: date) {
+            HStack(spacing: HV.Space.xs) {
+                if activity.isBusy { ChatThinkingDots() }
+                Text(text)
+                    .font(.hvCallout)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .accessibilityElement(children: .combine)
+        }
     }
 }
 

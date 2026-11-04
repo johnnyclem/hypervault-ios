@@ -174,6 +174,30 @@ them on glass (handoff 2.3, 4.1, 9):
   in the middle of a word) and no chevron, General shows the whole email address, wrapped, and the Yours panel opens at
   full height with its first rows visible. The Dreams badge in the Account menu is white on the flat blue `action` fill.
 
+### A room, on a device
+
+A room is followed from the server while its screen is up and the app is in front, and the turns this phone drives are
+pushed along one request at a time. A unit test and the canned server in the UI tests cannot show the timing or the
+lifecycle, so check these in a room with two or more connected models (Home > Group chats). None of this was run on a
+device by the person who built it.
+
+- **Words appear at once.** Type a message and send it: the words are in the thread straight away, drawn like a sent
+  message, with "Sending..." under the thread (VoiceOver reads "You said: ..., Sending"). When the room reports them the real
+  message takes the place of those words without a jump or a second copy.
+- **The thinking line counts.** While a member works, the line under the thread reads "@name is thinking..." and, from five
+  seconds on, adds the seconds ("12s", then "1m 5s"), counting up once a second; who is next is named under it. It goes
+  away when the last answer is in.
+- **Backgrounding mid-round.** Send, and while a member is thinking go to the Home Screen (or lock the phone) for half a
+  minute, then come back: the room is read at once and shows what it said meanwhile, each message once, and the line under the
+  thread is true (a member still thinking, or nothing).
+- **Another device or an agent speaks.** With the room open on the phone, say something in it from the website: the words
+  arrive without opening the room again, within about 20 seconds, and the answers follow within a few seconds each while the
+  round moves.
+- **Leaving mid-round.** Send a message that addresses two members, and go Back (or to another tab) while the first is
+  thinking. Return to the room: the turn that was in flight is there, the rest are not spent, and a card at the end of the
+  thread says "N turns still waiting" with "Nobody is running this round" and Continue. Continue answers the rest. With a
+  turn that was lost, the card says "A turn was cut off" instead. VoiceOver says the card has appeared.
+
 ### The Vault, on a device
 
 A render and a unit test cannot show these, and each one decides a line of the code (handoff 4.5, 4.6):

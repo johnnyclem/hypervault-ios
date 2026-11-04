@@ -21,7 +21,7 @@ struct ChatRoomPalette {
     }
 }
 
-/// The Rooms half of the chat tab: cached first, then fresh; delete is optimistic.
+/// The Rooms half of Home: cached first, then fresh; delete is optimistic.
 @MainActor
 @Observable
 final class ChatRoomsListModel {

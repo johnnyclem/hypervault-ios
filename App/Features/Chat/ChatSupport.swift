@@ -2,8 +2,8 @@ import HyperVaultKit
 import SwiftUI
 import UIKit
 
-/// Screens the chat tab pushes by itself. Conversations and rooms are `Route`s
-/// (other features and links reach them); these are only for this tab.
+/// Screens Home pushes by itself. Conversations and rooms are `Route`s
+/// (other features and links reach them); these are only for Home.
 enum ChatDestination: Hashable {
     case newConversation
     case models

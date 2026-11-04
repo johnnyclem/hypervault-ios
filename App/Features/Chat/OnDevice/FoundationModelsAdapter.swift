@@ -102,7 +102,8 @@ struct ChatFoundationModelsProvider: ChatModelProvider {
     /// instructions over its prompt, and a note is text the person saved (some of it pasted from elsewhere): it is
     /// background to read, never an order to follow.
     func generate(instructions: String, notes: String, messages: [ChatWireMessage]) -> AsyncThrowingStream<String, Error> {
-        stream(instructions: OnDevicePrompt.instructions(system: instructions), prompt: OnDevicePrompt.prompt(notes: notes, messages: messages))
+        let slots = OnDevicePrompt.slots(instructions: instructions, notes: notes, messages: messages)
+        return stream(instructions: slots.instructions, prompt: slots.prompt)
     }
 
     private func stream(instructions: String, prompt: String) -> AsyncThrowingStream<String, Error> {

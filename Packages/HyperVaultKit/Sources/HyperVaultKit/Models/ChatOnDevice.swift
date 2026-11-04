@@ -93,28 +93,35 @@ public enum ChatContextFitter {
         let fittedInstructions = clip(instructions, to: share).text
         let room = max(share - fittedInstructions.count, 0)
         let fittedNotes = notes.count > room ? OnDeviceNotes.cut(notes, to: room) : notes
-        let thread = prepare(system: "", messages: messages, budget: max(budget - fittedInstructions.count - fittedNotes.count, 200))
+        let thread = fitThread(sanitize(messages), budget: budget, reserved: fittedInstructions.count + fittedNotes.count)
         return FittedTurn(instructions: fittedInstructions, notes: fittedNotes, messages: thread.messages)
     }
 
     public static func prepare(system: String, messages: [ChatWireMessage], budget: Int) -> Fitted {
         let cleaned = sanitize(messages)
-        guard let latest = cleaned.last else {
+        guard !cleaned.isEmpty else {
             let fitted = clip(system, to: max(budget, 0))
             return Fitted(system: fitted.text, messages: [], shortenedSystem: fitted.clipped, droppedMessages: 0)
         }
-
-        // The new message always goes, shortened if it alone is most of the room.
-        let latestRoom = max(Int(Double(budget) * 0.5), 200)
-        let latestFit = clip(latest.content, to: latestRoom, keepHead: true)
-        let newest = ChatWireMessage(role: latest.role, content: latestFit.text)
 
         // The system prompt may use up to 45% of the budget, its head first:
         // asserted truth and pulled things lead it.
         let systemRoom = min(system.count, Int(Double(budget) * 0.45))
         let systemFit = clip(system, to: systemRoom)
+        let thread = fitThread(cleaned, budget: budget, reserved: systemFit.text.count)
+        return Fitted(system: systemFit.text, messages: thread.messages, shortenedSystem: systemFit.clipped, droppedMessages: thread.dropped)
+    }
 
-        var remaining = budget - systemFit.text.count - newest.content.count
+    /// The thread, newest words first, in what a budget leaves after `reserved` characters of instructions and notes.
+    /// The new message always goes, shortened if it alone is most of the room, and its cap is half of the whole budget
+    /// (not half of what is left), so a long message asked alongside notes is kept as whole as one asked without.
+    private static func fitThread(_ cleaned: [ChatWireMessage], budget: Int, reserved: Int) -> (messages: [ChatWireMessage], dropped: Int) {
+        guard let latest = cleaned.last else { return ([], 0) }
+        let latestRoom = max(Int(Double(budget) * 0.5), 200)
+        let latestFit = clip(latest.content, to: latestRoom, keepHead: true)
+        let newest = ChatWireMessage(role: latest.role, content: latestFit.text)
+
+        var remaining = budget - reserved - newest.content.count
         var kept: [ChatWireMessage] = []
         for message in cleaned.dropLast().reversed() {
             let cost = message.content.count + 12
@@ -123,8 +130,7 @@ public enum ChatContextFitter {
             kept.append(message)
         }
         kept.reverse()
-        let dropped = cleaned.count - 1 - kept.count
-        return Fitted(system: systemFit.text, messages: kept + [newest], shortenedSystem: systemFit.clipped, droppedMessages: dropped)
+        return (kept + [newest], cleaned.count - 1 - kept.count)
     }
 
     /// Roles and words a tool-free model can use: no tool rows, no tool
@@ -195,6 +201,13 @@ public enum OnDevicePrompt {
     public static func instructions(system: String) -> String {
         let trimmed = system.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? defaultInstructions : trimmed
+    }
+
+    /// The two strings a model with an instructions slot and a prompt slot reads for a turn whose notes are kept apart:
+    /// the directive is the instructions, the notes lead the prompt. Foundation Models is such a model and its adapter
+    /// only hands these over, so what may reach its instructions is settled here, where a test can see it.
+    public static func slots(instructions: String, notes: String, messages: [ChatWireMessage]) -> (instructions: String, prompt: String) {
+        (Self.instructions(system: instructions), prompt(notes: notes, messages: messages))
     }
 
     /// The notes, then the thread, with the new message last and said to be: what a model that is given its notes in
@@ -336,13 +349,15 @@ public struct OnDeviceChat: Sendable {
     }
 
     /// What a second try is given. A brief taken apart here knows. A compact one is the server's to say: it is
-    /// asked again with recall off, which drops what recall guessed at and keeps what the person pulled onto their
-    /// page and recorded. If that cannot be asked, the second try has no notes at all.
+    /// asked again with recall and deep memory off (the two things that guess at what a message needs; on the server
+    /// they are separate switches), which drops what they guessed at and keeps what the person pulled onto their page
+    /// and recorded, as the brief taken apart here does. If that cannot be asked, the second try has no notes at all.
     private func retryNotes(for brief: OnDeviceBrief, turn: OnDeviceTurn, message: String, compactBudget: Int?) async -> OnDeviceBrief.Retry {
         if let known = brief.retry { return known }
         guard let compactBudget else { return .noNotes }
         var options = turn.options
         options.useRecall = false
+        options.deepMemory = false
         guard
             let context = try? await client.send(
                 .chatContext(message: message, conversationID: turn.conversationID, options: options, compactBudget: compactBudget)

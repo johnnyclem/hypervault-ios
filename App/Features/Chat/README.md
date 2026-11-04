@@ -42,9 +42,14 @@ models, on-device chat and reading replies aloud. Home is the chats: `ChatRootVi
   order. A provider that takes one system string (`generate(system:messages:)`) is given the two joined.
   An older server ignores the profile and answers in full; `OnDeviceBrief.make` then does the rewrite
   on the phone, as before. `OnDeviceReplyScreen` reads the first words of the reply; if it is a
-  non-answer or a copy of a note, the question is asked once more with no notes (the compact profile
-  asks the server again with `use_recall: false`, so what it adds beside the notes goes too). The
-  grounding chips under a reply list only what the model was shown.
+  non-answer or a copy of a note, the question is asked once more without what recall and deep
+  memory guessed at (what the person pulled onto their page stays). The compact profile does that
+  by asking the server again with `use_recall: false` and `use_deep_memory: false` (separate
+  switches on the route); an older server's prompt is taken apart again on the phone; if the server
+  cannot be asked, the second try has no notes. The second try is not screened. The grounding chips
+  under a reply list only what the model was shown. The adapter hands Apple's model what
+  `OnDevicePrompt.slots` returns, so which text may reach its `instructions` is decided, and
+  tested, in the Kit.
 
 ## Left out on purpose
 

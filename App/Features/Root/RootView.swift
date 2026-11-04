@@ -18,6 +18,7 @@ struct RootView: View {
             content
             ToastHost(center: model.toasts)
         }
+        .hvAppStyle()
         .accessibilityHidden(model.lock.isLocked)
         .disabled(model.lock.isLocked)
         .hvAnimation(HV.Motion.entrance, value: model.phase)
@@ -26,6 +27,12 @@ struct RootView: View {
             model.lock.scenePhaseChanged(phase)
             // The cover follows the lock by itself; this is for one that had no scene to go in yet.
             model.privacy.sync()
+            // The theme is most often changed on the website: when the app comes back to the front, ask what it is now (at
+            // most every fifteen minutes; the answer is worn only if it differs from the look already worn).
+            if phase == .active, let env = model.env {
+                let loader = env.styleLoader
+                Task { await env.style.refreshIfStale(using: loader) }
+            }
         }
     }
 

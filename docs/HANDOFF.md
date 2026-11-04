@@ -10,19 +10,34 @@ any can be reversed.
 1. **Dark-native, light-ready.** The dark look is the web's stock tokens. The light look is the mirror in the iOS
    guides (the same roles, the proposed values). Each colour set has a light slot, a dark slot, and an Any slot that
    repeats the dark value (`scripts/gen_tokens.py`; `UIColor(named:)` is nil without Any). The app
-   follows the system: there is no `UIUserInterfaceStyle` override and no appearance picker. A UI-test launch pins dark
-   so the layout sweep still measures a dark page.
-2. **Themes.** Stock only. The Appearance pane is the web dashboard's theme (`profiles.theme`, `PATCH /api/dashboard-theme`),
-   labelled as such, and it never claims the app restyled. The wording is new copy for the owner.
+   follows the system until the person's theme is worn: a worn theme pins the window to its own light or dark
+   (`overrideUserInterfaceStyle` and `preferredColorScheme`, `HVAppStyle`), and there is no appearance picker of the
+   app's own. A UI-test launch pins dark so the layout sweep still measures a dark page.
+2. **Themes.** Stock unless the person picked one. The Appearance pane edits the account's theme (`profiles.theme`,
+   `PATCH /api/dashboard-theme`); the server sends the accessible look for it (`GET /api/dashboard-theme` -> `{ theme, kit }`)
+   and the app wears it (`StyleKitStore`, `StyleRuntime`), unless the phone's "Use this theme in the app" is off. Widgets and
+   the Share sheet are stock (v1.1), and so is the system's launch frame and the first frame of the app's own launch view (the
+   kept theme is read once the app runs: a light theme on a dark phone flashes the stock page at launch; worth a line in the
+   release notes). The wording is new copy for the owner.
 3. **iOS 26 minimum** (set in the Xcode project by the owner; `project.yml` follows). Liquid Glass is the system's on tab
    bars, sheets and toolbars, with `.glassEffect` for custom chrome and a solid `card` under Reduce Transparency.
-4. **Four tabs:** Home, Chat, Memory, You. Yours is the Home canvas panel (Library under More). The avatar opens an Account
-   sheet with what the dock does not carry (Library, Mail, Task boards, Account & keys, Group chats, Tools, Import, Dreams,
-   Truth, Admin for admins, Sign out). The pinned Menu list with drag-reorder (the web drawer's) is **not built**.
-5. **You is a settings frame** with seven panes in the web's order: General, Vault (the default), Agent keys, Models,
-   Domain, Appearance, Import. On an iPhone it is a stack (the list, then the pane); on an iPad it is a
-   `NavigationSplitView` with the list beside the pane. The layout is chosen once by device idiom, not by window width, so
-   resizing an iPad window never rebuilds the tab. General also holds the phone-only settings under "On this phone".
+4. **Four tabs:** Home, Projects, Memory, Mail (the tab overhaul; it replaced Home, Chat, Memory, You). Home is the chats
+   (under a Chats / Group chats switch); with none at all, and only once the server has said so, it is a starter page (Start a
+   chat, Keep something, a prompt to copy, the first-run card that asks for an agent's key). The old no-chats state's "Import
+   your history" button is gone on purpose (Import is under Home's More and in Settings), and the key card shows only on the
+   starter page, not above a list of chats (open for the owner: someone who chats first does not see the ask again on Home). The canvas is no tab: it is a
+   screen pushed on Home (`Route.keep`) from the Keep button in Home's bar, and its page lives in `AppEnvironment.canvas`, so a
+   paste that is waiting survives Back. Yours is the canvas's panel (also under Home's More; the Library is under the panel's
+   More). Models left Home's bar: it is under More, which opens Settings > Models. Projects is the task boards, and a row opens the project's overview (the board in brief, who is working on it, the pages, memories and chats that go with it), which opens the full board; Mail carries its unread number. The avatar, on the first
+   screen of every tab, opens an Account sheet with what the tab bar does not carry (Settings, Library, Group chats, Tools,
+   Dreams, Truth, Admin for admins, Sign out). The pinned Menu list with drag-reorder (the web drawer's) is **not built**.
+   Copy that sends a person somewhere says Home, More or Models, since there is no Chat tab; "Chat" stays where it names a
+   conversation (Continue in Chat) and in the words that mirror the web (the Models pane's description, the import summary).
+5. **Settings is a frame inside the Account sheet**, the first row of its menu, with seven panes in the web's order: General,
+   Vault (the default for a link that names none), Agent keys, Models, Domain, Appearance, Import. It is one navigation stack
+   (`AppRouter.accountPath`: the menu, the list of panes, a pane, what the pane pushes) on a phone and on an iPad, where the
+   sheet is page-sized; the earlier iPad split view and its `youIsStack` are gone, so resizing an iPad window has no layout
+   to swap and nothing to tear down. General also holds the phone-only settings under "On this phone".
 6. **No "Agent connected"** (or "N agents connected", "Verified", "Connected") for an agent key: no route reports the
    server's check, and the app's own re-derivation of it was removed (handoff 5.10, 10). The Agent keys pane says only
    "One key per agent. A key is shown once, and comes with a setup challenge the agent completes to prove the link works."
@@ -59,8 +74,16 @@ any can be reversed.
   while the draft is dirty so the swipe cannot drop it either. Close is disabled while a save is in flight.
 - The Import pane's file row no longer says "PDFs (up to 10 MB)": the server holds 50 MB on Pro and 1 MB on Free (the web's own
   line still says 10 MB; the owner may want to reconcile it).
-- A link that names a tab but no screen (the Keep widget, `hypervault://rooms`, `tab/yours`) starts that tab from its first
-  screen and closes any sheet over the tabs; installed widgets' `hypervault://tab/yours` and `tab/canvas` links keep working.
+- A link that names a tab but no screen (`hypervault://rooms`, `tab/home`) starts that tab from its first screen and closes any
+  sheet over the tabs. The links that ask for the canvas (the Keep widget's `hypervault://keep`, `canvas`, `keep?text=`, and
+  `yours`, `tab/yours`) start Home from its first screen and push the canvas on it in the same step, with the text or the
+  Yours panel waiting for it. Installed widgets' `hypervault://tab/yours` and `tab/canvas` links keep working (`AppTab.home`
+  keeps the raw value `canvas`); `tab/canvas`, which used to be the canvas, is now Home's chats, and `keep` is the link for the
+  field. A link to Settings (`vault/account?tab=keys`, `settings`, `tab/you`) or to
+  pairing presents the Account sheet over whatever shows and names no tab; the Agent keys pane presents the pairing page. The
+  links of the tabs that went keep opening something: `tab/chat` and `/chat` open Home, `tab/taskboards`, `taskboards` and
+  `projects` open Projects, `mail` opens Mail. `projects/<id>` (and `project/<id>`, or the board's `tasks-<id>` slug) opens
+  that project's overview, pushed on Projects (`Route.project`); with no plain id it is the tab.
 - Type names in the Kit and app still say `VaultItem...` (handoff 4.4 asks for "entry"): the ids and routes that carried the
   words are gone, so the names no longer leak, and a rename of the Kit's public API was not worth its risk without a compiler.
 - The app icon is the supplied keyhole-hexagon artwork; the old dark and tinted variants were removed so iOS derives them.
@@ -106,5 +129,6 @@ tracked project to be reproducible, move those into `project.yml` first.
 
 The switch thumb, SecureField paste-then-edit, the Passwords bar and Save Password, VoiceOver announcement priority and focus
 after a 409, Liquid Glass and the tab bar's unselected colour, the app-switcher cover's timing, Keychain migration, file
-protection and the URL cache on a device, `NavigationSplitView` in compact width and on iPad, the Face ID prompt. They are in
+protection and the URL cache on a device, the Account sheet's page sizing on iPad, a non-empty `NavigationPath` applied to a
+sheet's stack as it first presents, the Face ID prompt. They are in
 `docs/DEVICE_TEST_PLAN.md`.

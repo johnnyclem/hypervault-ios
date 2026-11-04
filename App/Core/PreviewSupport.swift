@@ -12,7 +12,8 @@ extension AppEnvironment {
         routes: [MockRoute] = [],
         delay: TimeInterval = 0,
         user: AuthUser = AuthUser(id: "preview-user", email: "sam@example.com", displayName: "Sam Rivers"),
-        capabilities: Capabilities = Capabilities()
+        capabilities: Capabilities = Capabilities(),
+        style: StyleKitStore? = nil
     ) -> AppEnvironment {
         let transport = MockTransport(routes: routes, delay: delay)
         let server = ServerConfig(baseURL: URL(string: "https://preview.hypervault.test")!)
@@ -23,18 +24,16 @@ extension AppEnvironment {
             store: InMemorySecureStore()
         )
         let cache = DiskCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-preview-\(UUID().uuidString)"))
-        return AppEnvironment(client: client, auth: auth, capabilities: capabilities, user: user, server: server, cache: cache)
+        return AppEnvironment(client: client, auth: auth, capabilities: capabilities, user: user, server: server, cache: cache, style: style)
     }
 }
 
 extension AppModel {
-    /// `youIsStack` sets the You tab's layout (nil is the device's): a snapshot of the iPad's wide layout asks for it.
     @MainActor
-    static func preview(youIsStack: Bool? = nil) -> AppModel {
+    static func preview() -> AppModel {
         AppModel(
             secureStore: InMemorySecureStore(),
-            server: ServerConfig(baseURL: URL(string: "https://preview.hypervault.test")!),
-            router: youIsStack.map { AppRouter(youIsStack: $0) }
+            server: ServerConfig(baseURL: URL(string: "https://preview.hypervault.test")!)
         )
     }
 }
@@ -52,11 +51,11 @@ struct PreviewHost<Content: View>: View {
         capabilities: Capabilities = Capabilities(),
         delay: TimeInterval = 0.2,
         embedInNavigation: Bool = true,
-        youIsStack: Bool? = nil,
+        style: StyleKitStore? = nil,
         @ViewBuilder content: () -> Content
     ) {
-        _env = State(initialValue: AppEnvironment.preview(routes: routes, delay: delay, capabilities: capabilities))
-        _model = State(initialValue: AppModel.preview(youIsStack: youIsStack))
+        _env = State(initialValue: AppEnvironment.preview(routes: routes, delay: delay, capabilities: capabilities, style: style))
+        _model = State(initialValue: AppModel.preview())
         self.content = content()
         self.embedInNavigation = embedInNavigation
     }

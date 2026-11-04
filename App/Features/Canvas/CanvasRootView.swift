@@ -1,22 +1,20 @@
 import HyperVaultKit
 import SwiftUI
 
-/// Home, the first tab: a quiet page with a field. Everything a person has is behind the avatar (the Account menu)
-/// or the panel icon (Yours) and appears only when asked for.
+/// The canvas: a quiet page with a field, where a person keeps something or asks about what they have kept. It is a screen
+/// pushed on Home (`Route.keep`), reached from the Keep button in Home's bar, from Home's starter page, and by the `keep`,
+/// `canvas` and `yours` links. Its page lives in the environment (`AppEnvironment.canvas`), so a paste that is waiting there
+/// is still waiting after Back.
 struct CanvasRootView: View {
     @Environment(AppEnvironment.self) private var env
 
     var body: some View {
-        CanvasScreen(client: env.client, origin: env.server.baseURL, userName: env.user.firstName, avatarName: env.user.displayName ?? env.user.email ?? "?", avatarURL: env.user.avatarUrl.flatMap(URL.init(string:)))
+        CanvasScreen(model: env.canvas, origin: env.server.baseURL)
             .jobNotices()
     }
 }
 
 struct CanvasScreen: View {
-    /// The page no longer greets by name (the avatar opens the Account menu); the initialisers still take it.
-    let userName: String?
-    let avatarName: String
-    let avatarURL: URL?
     let origin: URL
 
     @Environment(AppModel.self) private var app
@@ -24,6 +22,8 @@ struct CanvasScreen: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var model: CanvasModel
     @State private var showYours = false
+    /// A link the Yours panel asked for that presents a sheet (a key's entry, in Settings): it opens once the panel is gone.
+    @State private var afterYours: DeepLink?
     /// The page whose people-and-role share sheet is up over the canvas.
     @State private var sharing: CanvasShareTarget?
     /// The key whose entry's page is up over the canvas (allow, revoke and rename an agent's use of it).
@@ -39,17 +39,11 @@ struct CanvasScreen: View {
     @State private var celebrating = false
     @AppStorage("hv.firstKeepCelebrated") private var celebrated = false
 
-    init(client: HVClient, origin: URL, userName: String?, avatarName: String, avatarURL: URL?) {
-        self.init(model: CanvasModel(client: client, origin: origin), origin: origin, userName: userName, avatarName: avatarName, avatarURL: avatarURL)
-    }
-
-    /// For previews and tests, which stand the page up with things already on it.
-    init(model: CanvasModel, origin: URL, userName: String?, avatarName: String, avatarURL: URL?) {
+    /// The page it shows is the one the environment keeps (`AppEnvironment.canvas`); previews and tests stand it up with
+    /// things already on it.
+    init(model: CanvasModel, origin: URL) {
         _model = State(initialValue: model)
         self.origin = origin
-        self.userName = userName
-        self.avatarName = avatarName
-        self.avatarURL = avatarURL
     }
 
     var body: some View {
@@ -82,8 +76,9 @@ struct CanvasScreen: View {
             let separator = dictationBase.isEmpty || dictationBase.hasSuffix(" ") ? "" : " "
             model.setDraft(dictationBase + separator + transcript)
         }
-        // The tabs stay alive under each other, so leaving the canvas does not end the view. Dictation would go on
+        // The tabs stay alive under each other, so leaving for another tab does not end the view. Dictation would go on
         // listening, with the indicator lit and other audio lowered, and rewrite the draft from wherever the person is.
+        // (Going back, or opening a card's page over the canvas, ends it with `onDisappear`.)
         .onChange(of: dictationMustStop) { _, mustStop in
             if mustStop { dictation.stop() }
         }
@@ -91,7 +86,7 @@ struct CanvasScreen: View {
         .toolbar { toolbarContent }
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showYours) {
+        .sheet(isPresented: $showYours, onDismiss: openWhatYoursAskedFor) {
             YoursSheet(onPull: { item in
                 model.pullItem(item)
                 showYours = false
@@ -99,9 +94,13 @@ struct CanvasScreen: View {
                 showYours = false
                 model.ask()
             }, onLibrary: {
-                // The panel closes as the Library opens, so the Library is not pushed under it.
+                // The panel closes as the Library opens, so the Library is not pushed under it. The Library goes on the
+                // stack above the canvas, so Back lands on the canvas the person came from.
                 showYours = false
-                app.router.open(.route(.library))
+                app.router.push(.library, on: .home)
+            }, onVault: {
+                afterYours = .account(.vault)
+                showYours = false
             })
         }
         .sheet(item: $sharing) { target in
@@ -115,11 +114,10 @@ struct CanvasScreen: View {
             // what name, so it reads the key again. (An entry that is gone has nothing to read.)
             if shown == nil, let closed, !keyEntryIsGone { model.refreshCard(key: closed) }
         }
-        .task {
-            await model.loadBackends()
-            takeRouterDraft()
-        }
-        .onChange(of: app.router.canvasDraft) { _, _ in takeRouterDraft() }
+        .task { await model.loadBackends() }
+        // The link that asks for the canvas pushes it in the same step that sets the text, so the text is there as the canvas
+        // is first built: it is taken now, and not after the models have been read (a request that may take a while).
+        .onChange(of: app.router.canvasDraft, initial: true) { _, _ in takeRouterDraft() }
         .onChange(of: app.router.yoursPanel, initial: true) { _, wanted in
             guard wanted else { return }
             app.router.yoursPanel = false
@@ -210,17 +208,9 @@ struct CanvasScreen: View {
         }
     }
 
+    /// (No avatar: the canvas is pushed on Home, which has it, and the bar's own back button leads there.)
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button {
-                app.router.sheet = .account
-            } label: {
-                HVAvatar(name: avatarName, imageURL: avatarURL, size: 32)
-            }
-            .accessibilityLabel("Account")
-            .accessibilityIdentifier("canvas.account")
-        }
         ToolbarItem(placement: .topBarTrailing) {
             Button {
                 showYours = true
@@ -239,7 +229,8 @@ struct CanvasScreen: View {
         model.markOpened(card)
         switch card.kind {
         case .page, .file, .group:
-            if let slug = card.slug { app.router.open(.route(.artifact(slug: slug))) }
+            // Pushed over the canvas, so Back returns to it. (Memory is another tab: that one is a jump.)
+            if let slug = card.slug { app.router.push(.artifact(slug: slug), on: .home) }
         case .memory:
             if let id = card.ref?.id { app.router.open(.route(.memory(id: id))) }
         case .key:
@@ -250,6 +241,13 @@ struct CanvasScreen: View {
                 app.router.open(CanvasKeyCard.fallback)
             }
         }
+    }
+
+    /// The Yours panel is gone: what it asked for that needed it gone can present now.
+    private func openWhatYoursAskedFor() {
+        guard let link = afterYours else { return }
+        afterYours = nil
+        app.router.open(link)
     }
 
     /// The sheet found no entry for its key: it closes, and the Vault's list opens once it has.
@@ -285,11 +283,10 @@ struct CanvasScreen: View {
     }
 
     private func copyStarter() {
-        UIPasteboard.general.string = HVCopy.starterPrompt(origin: origin.absoluteString)
+        StarterPrompt.copy(origin: origin)
         starterCopied = true
-        Haptics.success()
         Task {
-            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            try? await Task.sleep(nanoseconds: StarterPrompt.copiedFor)
             starterCopied = false
         }
     }

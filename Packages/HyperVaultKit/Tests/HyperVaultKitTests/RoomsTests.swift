@@ -211,7 +211,8 @@ final class RoomsTests: XCTestCase {
     }
 
     func testAStalledRoomStopsInsteadOfLooping() async throws {
-        let stall = #"{"messages":[],"pending":[{"handle":"grok","reason":""}],"budget":5}"#
+        // Nothing written and nothing leaving the queue: the post left grok and gemini waiting and they still are.
+        let stall = #"{"messages":[],"pending":[{"handle":"grok","reason":""},{"handle":"gemini","reason":""}],"budget":5}"#
         let (transport, runs) = scriptedRoom([stall, stall, stall, stall, stall, stall])
         let driver = ChatRoomDriver(client: client(transport), roomID: "r1", sleep: { _ in })
         let outcome = try await driver.send("hello") { _ in }

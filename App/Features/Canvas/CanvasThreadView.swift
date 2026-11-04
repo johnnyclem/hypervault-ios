@@ -53,7 +53,7 @@ private struct MessageRow: View {
     private var bubble: some View {
         Text(ThreadMessage.rendered(message.content))
             .font(.hvBody)
-            .foregroundStyle(message.role == .user ? Color.white : (message.isLocal ? Palette.textSecondary : Palette.textPrimary))
+            .foregroundStyle(message.role == .user ? Palette.onAction : (message.isLocal ? Palette.textSecondary : Palette.textPrimary))
             .textSelection(.enabled)
             .padding(.horizontal, HV.Space.m)
             .padding(.vertical, HV.Space.s)

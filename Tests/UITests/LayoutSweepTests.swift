@@ -20,8 +20,14 @@ final class LayoutSweepTests: LayoutSweepCase {
         launch(.signedIn, arguments: setting.arguments)
         continueAfterFailure = true
 
-        look(mode, "Home with its hints", key: element("canvas.field"), "the canvas field", dumpTree: true)
+        look(mode, "Home with its chats", key: element("chat.row.c1"), "the Lisbon conversation row", dumpTree: true)
+        choose("Group chats", from: "chat.section")
+        look(mode, "Home, group chats", key: element("chat.room.r1"), "the Features X and Y room row")
+        choose("Chats", from: "chat.section")
 
+        // The canvas is a screen pushed on Home, with Home's Keep button.
+        openCanvas()
+        look(mode, "the canvas with its hints", key: element("canvas.field"), "the canvas field", dumpTree: true)
         openYours()
         // The panel opens at half the height of the screen, and at a large text size its first row is below the fold: it is
         // looked at as it opens, and then at its whole height, where the rows are (scrolling a half-height panel from the
@@ -31,34 +37,40 @@ final class LayoutSweepTests: LayoutSweepCase {
         look(mode, "Yours", key: element("yours.row.a1"), "the Bakery landing page row")
         tap(button("Done"), "Done", until: { !self.element("yours.filter").exists })
         requireGone(element("yours.filter"), "the Yours panel")
-        openTab("Chat")
-        look(mode, "Chat", key: element("chat.row.c1"), "the Lisbon conversation row")
-        choose("Group chats", from: "chat.section")
-        look(mode, "Chat, group chats", key: element("chat.room.r1"), "the Features X and Y room row")
+        openTab("Projects")
+        look(mode, "Projects", key: element("taskboards.row.eurorack-choir"), "the Eurorack Choir board row")
         openTab("Memory")
         look(mode, "Memory", key: element("memory.row.m1"), "the Lisbon memory row")
-        openTab("You")
-        look(mode, "You, the vault", key: element("vault.row.github.com"), "the github.com entry")
-        showPaneList()
-        look(mode, "You, the panes", key: element("you.pane.import"), "the Import pane")
+        openTab("Mail")
+        look(mode, "Mail", key: element("mail.thread.11111111-1111-4111-8111-111111111111"), "the Weekly plan thread")
 
+        // Settings is in the Account sheet: the menu, then the list of panes, then a pane.
         openAccountMenu()
         look(mode, "the Account menu", key: element("account.library"), "the Library row")
-        tap(element("account.close"), "Close", until: { !self.element("account.close").exists })
-        // A tap on a tab while the menu is still going would land on the menu, which covers the tab bar.
-        requireGone(element("account.close"), "the Account menu")
+        showPaneList()
+        look(mode, "Settings, the panes", key: element("settings.pane.import"), "the Import pane")
+        openPane("vault")
+        look(mode, "Settings, the vault", key: element("vault.row.github.com"), "the github.com entry")
+        // A tap on a tab while the sheet is still going would land on the sheet, which covers the tab bar.
+        closeTheAccountSheet()
 
         // Last, because typing brings the keyboard up over the tab bar.
-        openTab("Home")
+        openCanvas()
         step("\(mode): the canvas puts memories on the page") {
             enter("show my memories", into: textField("canvas.field"), "the canvas field")
             tap(element("canvas.send"), "Send")
             require(button("Hide Trip to Lisbon: ferry and passports"), "the Lisbon memory's card")
         }
-        look(mode, "Home with cards", key: element("canvas.field"), "the canvas field")
+        look(mode, "the canvas with cards", key: element("canvas.field"), "the canvas field")
+
+        // Home for someone with no chats and no agent key: the starter page, and the card that asks for the key.
+        launch(.signedInNoKeys, arguments: setting.arguments)
+        continueAfterFailure = true
+        look(mode, "Home, the starter page", key: element("home.startChat"), "the Start a chat button", dumpTree: true)
+        look(mode, "Home, the first-run card", key: element("canvas.connectCard.connect"), "the Connect an agent button")
     }
 
-    // MARK: Memory, chat and a page
+    // MARK: Chat, memory and a page
 
     func testWhatTheTabsOpenInTheDark() { sweepOpened(Self.dark) }
 
@@ -74,7 +86,7 @@ final class LayoutSweepTests: LayoutSweepCase {
         look(mode, "a memory", key: shows("Lisbon, first weekend"), "the heading inside the memory's text")
         goBack(until: { isShowingTitle("Memory") })
 
-        openTab("Chat")
+        openTab("Home")
         open(element("chat.row.c1"), "the Lisbon conversation")
         look(mode, "a conversation", key: textField("Message"), "the message field")
         // (A back tap that is lost leaves the conversation up, and the choice of half is looked for on it.)

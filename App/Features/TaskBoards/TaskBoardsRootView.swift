@@ -1,7 +1,7 @@
 import HyperVaultKit
 import SwiftUI
 
-/// Lists the person shares with their agents. Light to look at, satisfying to tick.
+/// Projects, the second tab: the boards the person shares with their agents, one per project. Light to look at, satisfying to tick.
 struct TaskBoardsRootView: View {
     @Environment(AppEnvironment.self) private var env
 
@@ -28,8 +28,9 @@ struct TaskBoardsScreen: View {
     var body: some View {
         content
             .hvScreenBackground()
-            .navigationTitle("Task boards")
+            .navigationTitle("Projects")
             .navigationBarTitleDisplayMode(.large)
+            .accountAvatar()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -216,7 +217,7 @@ struct TaskBoardCreateView: View {
                     Button {
                         create()
                     } label: {
-                        if isCreating { ProgressView().tint(.white) } else { Text("Create board") }
+                        if isCreating { ProgressView().tint(Palette.onAction) } else { Text("Create board") }
                     }
                     .buttonStyle(.hvPrimary)
                     .disabled(!draft.canCreate || isCreating)

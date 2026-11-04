@@ -72,11 +72,11 @@ struct MemoryAskView: View {
             )
             if model.backendsLoaded, model.backends.isEmpty {
                 VStack(spacing: HV.Space.xs) {
-                    Text("No model is connected yet, so you will get the memories themselves. Connect one in Chat to have them written up as an answer.")
+                    Text("No model is connected yet, so you will get the memories themselves. On Home, open More and then Models to connect one and have them written up as an answer.")
                         .font(.hvFootnote)
                         .foregroundStyle(Palette.textSecondary)
                         .multilineTextAlignment(.center)
-                    Button("Open Chat") { app.router.open(.tab(.chat)) }
+                    Button("Open Home") { app.router.open(.tab(.home)) }
                         .buttonStyle(.hvGhost)
                 }
                 .padding(.horizontal, HV.Space.l)
@@ -169,7 +169,7 @@ private struct MemoryAskTurnView: View {
                 Spacer(minLength: HV.Space.xl)
                 Text(turn.question)
                     .font(.hvBody)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.onAction)
                     .padding(.horizontal, HV.Space.m)
                     .padding(.vertical, HV.Space.s)
                     .background(Palette.action, in: RoundedRectangle(cornerRadius: HV.Radius.l, style: .continuous))
@@ -243,7 +243,7 @@ private struct MemoryAskTurnView: View {
             }
             .hvCard()
         } else if !hasModel {
-            Text(turn.hits.isEmpty ? noMatch : "Here is what your memory holds on that. Connect a model in Chat to have it written up as an answer.")
+            Text(turn.hits.isEmpty ? noMatch : "Here is what your memory holds on that. Connect a model (Home, then More, then Models) to have it written up as an answer.")
                 .font(.hvFootnote)
                 .foregroundStyle(Palette.textSecondary)
                 .padding(.horizontal, HV.Space.xxs)

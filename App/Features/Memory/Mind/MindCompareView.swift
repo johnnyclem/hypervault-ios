@@ -45,7 +45,7 @@ struct MindCompareView: View {
                 Button {
                     Task { await model.compare() }
                 } label: {
-                    if model.phase == .loading { ProgressView().tint(.white) } else { Text("Compare") }
+                    if model.phase == .loading { ProgressView().tint(Palette.onAction) } else { Text("Compare") }
                 }
                 .buttonStyle(.hvPrimary)
                 .disabled(model.phase == .loading)

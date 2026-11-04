@@ -6,9 +6,9 @@ enum Scenario: String, CaseIterable {
     case signedOut
     /// The app, with a few things kept, memories, chats and a connected model.
     case signedIn
-    /// The app with nothing kept and no model: the first run.
+    /// The app with nothing kept, no chats and no model: the first run.
     case signedInEmpty
-    /// The first run of someone with no agent key either, so the Home page asks them to connect one.
+    /// The first run of someone with no agent key either, so Home's starter page asks them to connect one.
     case signedInNoKeys
     /// Signed in but not let in until the invite code is redeemed.
     case waitlisted
@@ -19,7 +19,8 @@ enum Scenario: String, CaseIterable {
     var firstScreen: (identifier: String, description: String) {
         switch self {
         case .signedOut: return ("welcome.pages", "the welcome story")
-        case .signedIn, .signedInEmpty, .signedInNoKeys, .signedInAdmin: return ("canvas.field", "the canvas")
+        // The avatar is on Home in every state it has (the skeleton, the error, the starter page and the list of chats).
+        case .signedIn, .signedInEmpty, .signedInNoKeys, .signedInAdmin: return ("account.avatar", "Home")
         case .waitlisted: return ("waitlist.code", "the waitlist")
         }
     }
@@ -35,8 +36,18 @@ enum Scenario: String, CaseIterable {
 class HyperVaultUITestCase: XCTestCase {
     var app = XCUIApplication()
 
+    /// Whether the Account sheet is up, as far as the helpers know: they open it (the avatar, the Settings row) and close it
+    /// (its Close button, a row that goes to a tab). Nothing on screen tells its screens from a tab's own pushed ones, which
+    /// have a back button too, so the helpers keep count: `openTab` and the like close the sheet first, as a person must
+    /// before the tab bar can be tapped.
+    private var accountSheetIsUp = false
+
     /// How long to wait for something to appear on a slow simulator.
     let patience: TimeInterval = 30
+
+    /// The launch argument of a person who has no chats (`UITestWorld.noChatsFlag`): Home shows its starter page, in a vault that
+    /// has everything else (pages, memories, a connected model).
+    let withoutChats = ["-HV_UITEST_NO_CHATS"]
 
     // MARK: Launching
 
@@ -72,6 +83,7 @@ class HyperVaultUITestCase: XCTestCase {
         ] + (resuming ? ["-HV_UITEST_RESUME"] : []) + extra
         start(application)
         app = application
+        accountSheetIsUp = false
         let first = screen ?? scenario.firstScreen
         require(element(first.identifier), "\(first.description) (\(first.identifier)) after launching \(scenario.rawValue)", file: file, line: line)
         return application
@@ -153,9 +165,12 @@ class HyperVaultUITestCase: XCTestCase {
         app.staticTexts.matching(NSPredicate(format: "label == %@", label)).count
     }
 
-    /// A tab in the tab bar, by its title.
+    /// A tab in the tab bar, by its title. (The Mail tab carries its unread number, which a tab bar may read out after the
+    /// title, so the title followed by a comma counts too.)
     func tab(_ title: String) -> XCUIElement {
-        named(title, in: app.tabBars.buttons)
+        app.tabBars.buttons.matching(
+            NSPredicate(format: "label == %@ OR identifier == %@ OR label BEGINSWITH %@", title, title, title + ",")
+        ).firstMatch
     }
 
     /// A segment of a segmented control, by its title.
@@ -392,6 +407,7 @@ class HyperVaultUITestCase: XCTestCase {
     func openTab(_ title: String, file: StaticString = #filePath, line: UInt = #line) {
         // A tap on the tab bar that lands while the app is still settling (right after the launch, or as a sheet goes) is
         // lost, and a person would tap again: the tab is tapped (up to three times) until it is the one showing.
+        closeTheAccountSheet(file: file, line: line)
         let item = tab(title)
         tap(item, "the \(title) tab", until: { item.isSelected }, file: file, line: line)
     }
@@ -407,15 +423,15 @@ class HyperVaultUITestCase: XCTestCase {
         tap(button(option), "the \(option) choice", file: file, line: line)
     }
 
-    /// Opens a pane of the You tab by its id (`general`, `vault`, `keys`, `backends`, `domain`, `appearance`, `import`):
-    /// back to the list the tab opens on a phone, then the pane's row. A row of the list that is already open still
-    /// opens, which is what going back and choosing the same pane again checks.
+    /// Opens a pane of Settings by its id (`general`, `vault`, `keys`, `backends`, `domain`, `appearance`, `import`): back to
+    /// the list of panes (in the Account sheet, one step behind the pane), then the pane's row. A row of the list that is
+    /// already open still opens, which is what going back and choosing the same pane again checks.
     ///
     /// With a `title` it waits for the pane's heading. Without one it waits for the list to go, which is enough for a
     /// pane whose screen names itself (the caller then looks for what the pane holds).
     func openPane(_ id: String, title: String? = nil, file: StaticString = #filePath, line: UInt = #line) {
         showPaneList(file: file, line: line)
-        let row = element("you.pane.\(id)")
+        let row = element("settings.pane.\(id)")
         // (At a large text size the last panes are below the fold.)
         reveal(row, "the \(id) pane", file: file, line: line)
         // The list can still be settling from the screen that was just popped off it, and a tap on it then comes to nothing.
@@ -427,45 +443,80 @@ class HyperVaultUITestCase: XCTestCase {
         }
     }
 
-    /// The list of panes the You tab opens on a phone one step behind the pane: opens the tab, and goes back until the
-    /// list shows (choosing the tab again takes the person back to the first screen of the pane that is open).
+    /// The list of panes of Settings: the Account sheet, one step in from its menu. Where the sheet is up already (on a pane,
+    /// or on what a pane pushed) it goes back until the list shows; where it is not, it opens the menu with the avatar and
+    /// the Settings row.
     func showPaneList(file: StaticString = #filePath, line: UInt = #line) {
-        openTab("You", file: file, line: line)
         // The list is showing when any of its rows is, not only the first: at a large text size the rows are tall, and a list
         // that was scrolled down to a pane does not draw the rows above it, so a missing first row does not say that the person
         // is somewhere else (and there is no back button to tap on the list itself).
-        let row = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "you.pane.")).firstMatch
+        let row = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "settings.pane.")).firstMatch
+        let menu = element("account.close")
         var goneBack = 0
-        while !row.exists, goneBack < 5 {
+        while accountSheetIsUp, !row.exists, !menu.exists, hasBackButton, goneBack < 5 {
             goBack(file: file, line: line)
             goneBack += 1
+        }
+        if !row.exists {
+            if !menu.exists { openAccountMenu(file: file, line: line) }
+            tap(element("account.settings"), "the Settings row", until: { row.exists }, file: file, line: line)
         }
         require(row, "the list of panes", file: file, line: line)
     }
 
-    /// Opens a row of the Account menu behind the avatar on Home (`library`, `mail`, `taskBoards`, `accountAndKeys`,
-    /// `groupChats`, `tools`, `import`, `dreams`, `truth`, `admin`), scrolling to it first, and waits for the screen it goes
-    /// to to name itself.
+    /// Opens a row of the Account menu behind the avatar (`library`, `groupChats`, `tools`, `dreams`, `truth`, `admin`),
+    /// scrolling to it first, and waits for the screen it goes to to name itself. (Settings is a row too, but it opens a
+    /// step of the sheet and not a screen of a tab: `showPaneList` and `openPane` are the way in. Mail and Projects are tabs.)
     func openFromAccount(_ id: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
         openAccountMenu(file: file, line: line)
         let row = element("account.\(id)")
         reveal(row, "the \(id) row of the Account menu", file: file, line: line)
         tap(row, "the \(id) row", until: { isShowingTitle(title) }, file: file, line: line)
+        // (A row closes the sheet and goes to its screen on a tab.)
+        accountSheetIsUp = false
         waitUntil("the \(title) screen", file: file, line: line) { isShowingTitle(title) }
     }
 
-    /// Opens the Account menu with the avatar on Home, from wherever the person is.
+    /// Opens the Account menu with the avatar that every tab's first screen carries, on the tab that shows (back from
+    /// anything pushed on it first).
     func openAccountMenu(file: StaticString = #filePath, line: UInt = #line) {
-        showHome(file: file, line: line)
+        let menu = element("account.close")
+        if accountSheetIsUp {
+            // Already up, on Settings or a pane of it: back to the menu.
+            var goneBack = 0
+            while !menu.exists, hasBackButton, goneBack < 5 {
+                goBack(file: file, line: line)
+                goneBack += 1
+            }
+            require(menu, "the Account menu", file: file, line: line)
+            return
+        }
+        showFirstScreen(file: file, line: line)
         // A tap that lands while the page is still settling (after the launch, or as the tab changes) is lost, and a person
         // would tap again.
         RunLoop.current.run(until: Date().addingTimeInterval(0.6))
-        tap(element("canvas.account"), "the Account button", until: { element("account.close").exists }, file: file, line: line)
-        require(element("account.close"), "the Account menu", file: file, line: line)
+        tap(element("account.avatar"), "the Account button", until: { menu.exists }, file: file, line: line)
+        require(menu, "the Account menu", file: file, line: line)
+        accountSheetIsUp = true
     }
 
-    /// Opens an item of the More menu of Memory (`Dreams`, `Truth`, `Digest`) or of Chat (`Tools`, `Import your AI history`),
-    /// from the first screen of that tab, and waits for the screen it goes to to name itself.
+    /// Closes the Account sheet, if it is up: back to its menu, then Close. A tap on a tab while the sheet is still going
+    /// would land on the sheet, which covers the tab bar, so the sheet is gone before the next thing is done.
+    func closeTheAccountSheet(file: StaticString = #filePath, line: UInt = #line) {
+        guard accountSheetIsUp else { return }
+        let menu = element("account.close")
+        var goneBack = 0
+        while !menu.exists, hasBackButton, goneBack < 5 {
+            goBack(file: file, line: line)
+            goneBack += 1
+        }
+        tap(menu, "Close", until: { !menu.exists }, file: file, line: line)
+        requireGone(menu, "the Account sheet", file: file, line: line)
+        accountSheetIsUp = false
+    }
+
+    /// Opens an item of the More menu of Memory (`Dreams`, `Truth`, `Digest`) or of Home (`Yours`, `Models`, `Tools`,
+    /// `Import your AI history`), from the first screen of that tab, and waits for the screen it goes to to name itself.
     func openFromMoreMenu(of tabTitle: String, _ item: String, title: String, file: StaticString = #filePath, line: UInt = #line) {
         let more = element(tabTitle == "Memory" ? "memory.more" : "chat.more")
         openTab(tabTitle, file: file, line: line)
@@ -480,7 +531,7 @@ class HyperVaultUITestCase: XCTestCase {
         // again, as a person would, until then.
         let items = tabTitle == "Memory"
             ? ["History", "Compare", "Time travel", "Branches", "Dreams", "Truth", "Digest"]
-            : ["Tools", "Import your AI history"]
+            : ["Yours", "Models", "Tools", "Import your AI history"]
         tap(more, "the More menu of \(tabTitle)", until: { items.contains { button($0).exists } }, file: file, line: line)
         // At the largest text sizes every item of the menu is over a hundred points tall, and the card the menu is drawn in
         // ends about two thirds of the way down the screen: the items below its fold are not drawn until the menu is scrolled,
@@ -508,9 +559,21 @@ class HyperVaultUITestCase: XCTestCase {
         openFromMoreMenu(of: "Memory", item, title: title, file: file, line: line)
     }
 
-    /// Opens the Yours panel over Home with the button in the corner.
-    func openYours(file: StaticString = #filePath, line: UInt = #line) {
+    /// Opens the canvas: Home on its first screen, then the Keep button in its bar, which pushes the canvas, and its field. (The
+    /// button is in the bar whether Home shows the chats or the starter page.)
+    func openCanvas(file: StaticString = #filePath, line: UInt = #line) {
         showHome(file: file, line: line)
+        // A tap that lands while the page is still settling (after the launch, or as the tab changes) is lost, and a person
+        // would tap again.
+        RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+        let field = element("canvas.field")
+        tap(element("home.keep"), "the Keep button", until: { field.exists }, file: file, line: line)
+        require(field, "the canvas", file: file, line: line)
+    }
+
+    /// Opens the Yours panel over the canvas with the button in the corner (the canvas first, from Home's Keep button).
+    func openYours(file: StaticString = #filePath, line: UInt = #line) {
+        openCanvas(file: file, line: line)
         RunLoop.current.run(until: Date().addingTimeInterval(0.6))
         tap(element("canvas.yours"), "the panel button", until: { element("yours.filter").exists }, file: file, line: line)
         require(element("yours.filter"), "the Yours panel", file: file, line: line)
@@ -518,7 +581,7 @@ class HyperVaultUITestCase: XCTestCase {
 
     /// Takes the Yours panel from half the height of the screen to the whole of it, the way a person does: a finger on its
     /// navigation bar, drawn up. (A drag on the rows would scroll them, and a drag back down that starts above a panel of half
-    /// the height lands on Home and puts the panel away.)
+    /// the height lands on the canvas and puts the panel away.)
     func expandThePanel(file: StaticString = #filePath, line: UInt = #line) {
         let more = element("yours.more")
         require(more, "the panel's More menu", file: file, line: line)
@@ -541,12 +604,34 @@ class HyperVaultUITestCase: XCTestCase {
     /// Home, on its first screen: the tab, and back from anything pushed on it.
     func showHome(file: StaticString = #filePath, line: UInt = #line) {
         openTab("Home", file: file, line: line)
+        showFirstScreen(file: file, line: line)
+    }
+
+    /// The first screen of the tab that shows: back from anything pushed on it, until the avatar every first screen carries
+    /// is there.
+    func showFirstScreen(file: StaticString = #filePath, line: UInt = #line) {
+        closeTheAccountSheet(file: file, line: line)
         var goneBack = 0
-        while !element("canvas.account").exists, goneBack < 5 {
-            goBack(file: file, line: line)
+        while !element("account.avatar").exists, goneBack < 5 {
+            // Only a real back button is tapped. `goBack()` falls back to the bar's first button when it finds none, and on a
+            // first screen that is the avatar: a tap on it opens the Account sheet over what the sweep was about to look at.
+            let back = named("BackButton", in: app.navigationBars.buttons)
+            guard back.waitForExistence(timeout: 3) else { break }
+            tap(back, "the back button", file: file, line: line)
             goneBack += 1
+            // A pop is animated, and at a large text size it is slow: the screen behind answers a moment after the tap. Looking
+            // for the avatar at once found nothing, tapped "back" again, and that second tap landed on the avatar.
+            let deadline = Date().addingTimeInterval(3)
+            while Date() < deadline, !element("account.avatar").exists {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+            }
         }
-        require(element("canvas.account"), "Home, on its first screen", file: file, line: line)
+        require(element("account.avatar"), "the first screen of the tab", file: file, line: line)
+    }
+
+    /// Whether a screen is pushed on the navigation bar that shows: it has a back button.
+    var hasBackButton: Bool {
+        named("BackButton", in: app.navigationBars.buttons).exists
     }
 
     /// Goes back one screen with the navigation bar's back button.
@@ -675,7 +760,7 @@ class HyperVaultUITestCase: XCTestCase {
         }
     }
 
-    /// Every write the app has sent since it was launched, oldest first. (Opening the You tab sends one on its own: the
+    /// Every write the app has sent since it was launched, oldest first. (Opening the Account menu sends one on its own: the
     /// check whether this person is an admin is a write to an invite that does not exist, answered 403 for everyone else.
     /// It is not something a journey did, so it is left out.)
     func recordedWrites() -> [RecordedWrite] {

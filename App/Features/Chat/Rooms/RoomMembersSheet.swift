@@ -103,7 +103,7 @@ struct ChatRoomMembersSheet: View {
                 .disabled(backends.backends.isEmpty)
             } footer: {
                 if backends.backends.isEmpty, backends.phase == .loaded {
-                    ChatFooter("Connect a model under Chat, Models, then add it here.")
+                    ChatFooter("Connect a model under Home, More, Models, then add it here.")
                 }
             }
             .hvListRow()
@@ -137,7 +137,7 @@ struct ChatRoomMembersSheet: View {
                     Button {
                         add()
                     } label: {
-                        if isWorking { ProgressView().tint(.white) } else { Text("Add to the room") }
+                        if isWorking { ProgressView().tint(Palette.onAction) } else { Text("Add to the room") }
                     }
                     .buttonStyle(.hvPrimary)
                     .disabled(isWorking || chosenBackend == nil || problem != nil || newHandle.trimmingCharacters(in: .whitespaces).isEmpty)

@@ -2,7 +2,7 @@
 import Foundation
 import HyperVaultKit
 
-/// What the screens behind the You tab (and what they open) are shown, in the shapes the real routes send: the keys, the
+/// What the screens behind Settings (and what they open) are shown, in the shapes the real routes send: the keys, the
 /// address, the ledger, the task boards, a room, the admin's codes. `UITestWorld.routes(for:)` puts these before the
 /// canned answers the previews use, so a route a journey needs is answered here first.
 ///
@@ -155,8 +155,11 @@ extension UITestWorld {
 
     // MARK: The website's theme
 
-    /// The person's profile row, a Pro plan with the website wearing Glassmorphism, and the route that changes the theme. The
-    /// themes it takes are the three the canned capabilities list.
+    /// The person's profile row, a Pro plan with the website on the HyperVault default look, and the routes that read and change
+    /// the theme the way a server that sends kits does: `GET` and `PATCH /api/dashboard-theme` answer `{ theme, kit }`, with the
+    /// kit the server derives for the three themes the canned capabilities list (the server's own golden files). The profile
+    /// starts with no theme, so a launch wears the default look and the layout sweeps measure what they always did; a journey
+    /// that picks a theme sees the app change.
     private static func dashboardThemeRoutes(_ theme: UITestDashboardTheme) -> [MockRoute] {
         let known: Set<String> = ["modern-dark", "glassmorphism", "newsprint"]
         return [
@@ -166,16 +169,40 @@ extension UITestWorld {
                     "theme": theme.current.map(JSONValue.string) ?? .null,
                 ])]))
             },
+            MockRoute(.get, "/api/dashboard-theme") { _ in
+                reply(.object(themeAnswer(theme.current)))
+            },
             MockRoute(.patch, "/api/dashboard-theme") { request in
                 let next = body(request)["theme"]?.string
                 if let next, !known.contains(next) {
                     return reply(.object(["error": .string("Unknown theme. Pick one of: modern-dark, glassmorphism, newsprint - or null for the HyperVault default.")]), status: 400)
                 }
                 theme.set(next)
-                return reply(.object(["theme": next.map(JSONValue.string) ?? .null, "message": .string("Your dashboard now wears \(next ?? "the stock look").")]))
+                var answer = themeAnswer(next)
+                answer["message"] = .string("Your dashboard now wears \(next ?? "the stock look").")
+                return reply(.object(answer))
             },
         ]
     }
+
+    /// `{ theme, kit }`: what `GET /api/dashboard-theme` says for a theme, and the first two keys of the `PATCH` answer.
+    private static func themeAnswer(_ theme: String?) -> [String: JSONValue] {
+        guard let theme else { return ["theme": .null, "kit": .null] }
+        return ["theme": .string(theme), "kit": themeKits[theme] ?? .null]
+    }
+
+    private static let themeKits: [String: JSONValue] = {
+        var kits: [String: JSONValue] = [:]
+        for (id, text) in [("modern-dark", modernDarkKit), ("glassmorphism", glassmorphismKit), ("newsprint", newsprintKit)] {
+            if let value = try? JSONDecoder().decode(JSONValue.self, from: Data(text.utf8)) { kits[id] = value }
+        }
+        return kits
+    }()
+
+    // The server's golden kits (docs/stylekit/fixtures), as the server sends them.
+    private static let modernDarkKit = ##"{"schema_version":1,"id":"modern-dark","name":"Modern Dark","appearance":"dark","colors":{"background":"#0b0f14","foreground":"#e8eef5","card":"#121820","muted":"#1a222d","muted_foreground":"#8b97a8","primary":"#3b82f6","accent":"#38bdf8","destructive":"#ef4444","success":"#00d492","warning":"#ffb900","action":"#3b82f6","action_foreground":"#000000","border":"#243041","ring":"#3b82f6"},"radius":{"base":12},"font":{"design":"system"},"backdrop":{"kind":"glow"},"adjusted":["action_foreground"]}"##
+    private static let glassmorphismKit = ##"{"schema_version":1,"id":"glassmorphism","name":"Glassmorphism","appearance":"dark","colors":{"background":"#0b1120","foreground":"#eef4ff","card":"#1a1f2d","muted":"#1f2432","muted_foreground":"#9db1d4","primary":"#7678f3","accent":"#38bdf8","destructive":"#f04a4a","success":"#00d492","warning":"#ffb900","action":"#6366f1","action_foreground":"#000000","border":"#2d323f","ring":"#38bdf8"},"radius":{"base":12},"font":{"design":"system"},"backdrop":{"kind":"glow"},"adjusted":["primary","destructive","action_foreground"]}"##
+    private static let newsprintKit = ##"{"schema_version":1,"id":"newsprint","name":"Newsprint","appearance":"light","colors":{"background":"#f6f3ea","foreground":"#17150f","card":"#fffdf4","muted":"#eae5d6","muted_foreground":"#5c574a","primary":"#17150f","accent":"#a41623","destructive":"#dd1313","success":"#1b5929","warning":"#843603","action":"#17150f","action_foreground":"#fffdf4","border":"#17150f","ring":"#a41623"},"radius":{"base":12},"font":{"design":"serif"},"backdrop":{"kind":"lines"},"adjusted":["destructive"]}"##
 
     // MARK: Rooms
 
@@ -210,14 +237,17 @@ extension UITestWorld {
             roomMessage("x3", position: 2, kind: "agent", handle: "grok", content: "On it. Contract committed as v3; the importer streams rows in batches of 500.", ago: 700),
         ]
         return [
-            MockRoute(.get, "/api/rooms/r1") { _ in
-                reply(.object([
+            MockRoute(.get, "/api/rooms/r1") { request in
+                // As the server answers a poll: only what the room has said past the place the phone has reached.
+                let after = request.queryValue("after").flatMap(Int.init) ?? -1
+                let said = (started + room.messages()).filter { ($0["position"]?.int ?? 0) > after }
+                return reply(.object([
                     "room": .object([
                         "id": .string("r1"), "title": .string("Features X and Y"), "pending": .array([]), "budget": .int(12), "running": .bool(false),
                         "truth_ledgers": .null, "created_at": .string(date(90_000)), "updated_at": .string(date(600)),
                     ]),
                     "members": .array(roomMembers),
-                    "messages": .array(started + room.messages()),
+                    "messages": .array(said),
                 ]))
             },
             MockRoute(.post, "/api/rooms/r1/messages") { request in
@@ -272,7 +302,7 @@ extension UITestWorld {
 
     // MARK: Admin
 
-    /// The admin check the You tab makes (an empty `PATCH` to an invite that does not exist) and the codes an admin mints.
+    /// The admin check the Account menu makes (an empty `PATCH` to an invite that does not exist) and the codes an admin mints.
     /// Every admin route refuses a person who is not an admin with a 403, which is what the check reads; an admin gets past
     /// the guard and is refused for the empty body (a 400).
     static func adminRoutes(isAdmin: Bool) -> [MockRoute] {
@@ -307,10 +337,10 @@ extension UITestWorld {
 
 // MARK: - What changes while a journey plays
 
-/// The theme the person's website dashboard wears (`profiles.theme`).
+/// The theme the person's website dashboard wears (`profiles.theme`): none, until a journey picks one.
 final class UITestDashboardTheme: @unchecked Sendable {
     private let lock = NSLock()
-    private var theme: String? = "glassmorphism"
+    private var theme: String?
 
     var current: String? {
         lock.lock()

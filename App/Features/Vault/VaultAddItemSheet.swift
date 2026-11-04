@@ -295,7 +295,7 @@ private struct VaultNewItemForm: View {
                         Task { await save() }
                     } label: {
                         HStack(spacing: HV.Space.xs) {
-                            if saving { ProgressView().tint(.white) }
+                            if saving { ProgressView().tint(Palette.onAction) }
                             Text(saving ? VaultScreenCopy.savingLabel : VaultScreenCopy.saveLabel)
                         }
                     }

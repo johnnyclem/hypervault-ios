@@ -1,7 +1,7 @@
 import XCTest
 
-/// The screens the You panes and the Account menu open, and the ones one step beyond them, in the dark and at the largest
-/// accessibility text size (see `LayoutSweepTests`). They are a class of their own so that CI runs them in jobs of their own:
+/// The screens the Settings panes, the Account menu and the Projects and Mail tabs open, and the ones one step beyond them, in
+/// the dark and at the largest accessibility text size (see `LayoutSweepTests`). They are a class of their own so that CI runs them in jobs of their own:
 /// there are many, and each is a screenshot and a scroll.
 @MainActor
 final class LayoutSweepScreensTests: LayoutSweepCase {
@@ -15,10 +15,13 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
 
     /// Where a screen is opened from.
     enum Door {
-        /// A pane of the You tab, by id; the heading to wait for when the screen names itself the same on every build.
+        /// A pane of Settings (in the Account sheet), by id; the heading to wait for when the screen names itself the same on
+        /// every build.
         case pane(String, title: String?)
         /// A row of the Account menu behind the avatar, by id.
         case account(String)
+        /// A tab of the tab bar, by its title, on its first screen.
+        case tab(String)
         /// An item of Memory's More menu.
         case memoryMenu(String)
     }
@@ -29,8 +32,8 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
 
     func testTheThinkAndAccountScreensAtAnAccessibilityTextSize() { sweepYouScreens(Self.large, .thinkAndAccount) }
 
-    /// Goes through the seven panes and the Account menu's screens the way a person would, each one opened and looked at, then
-    /// the screens it leads to.
+    /// Goes through the seven panes, the Account menu's screens and the Projects and Mail tabs the way a person would, each one
+    /// opened and looked at, then the screens it leads to.
     private func sweepYouScreens(_ setting: Mode, _ part: Part) {
         launch(.signedIn, arguments: setting.arguments)
         continueAfterFailure = true
@@ -43,6 +46,10 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
         switch door {
         case .pane(let id, let heading): openPane(id, title: heading)
         case .account(let id): openFromAccount(id, title: title ?? screen)
+        case .tab(let name):
+            openTab(name)
+            showFirstScreen()
+            waitUntil("the \(title ?? screen) screen") { self.isShowingTitle(title ?? screen) }
         case .memoryMenu(let item): openFromMemoryMenu(item, title: title ?? screen)
         }
         look(mode, screen, key: key, what)
@@ -55,13 +62,13 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
         visit(mode, .pane("vault", title: "Vault"), "Vault", key: element("vault.row.github.com"), "the github.com entry") {
             open(element("vault.row.github.com"), "the github.com entry", until: { self.isShowingTitle("github.com") })
             look(mode, "a vault entry", key: shows("How an agent reads it"), "the section that says how an agent reads it")
-            // The entry is a sheet over the list: close it, so the next screen starts from the You tab. A tap that is lost on a
+            // The entry is a sheet over the list: close it, so the next screen starts from Settings. A tap that is lost on a
             // slow runner, or a scroll that lands as a tap on the row for replacing the value (its sheet then stands over
             // this one), leaves a sheet open for every later screen; a person closes again until the entry has gone.
             tap(button("Close"), "the entry's Close button", until: { !self.isShowingTitle("github.com") })
         }
 
-        visit(mode, .account("taskBoards"), "Task boards", key: element("taskboards.row.eurorack-choir"), "the Eurorack Choir board") {
+        visit(mode, .tab("Projects"), "Projects", key: element("taskboards.row.eurorack-choir"), "the Eurorack Choir board") {
             // The overview and the board share a title, so the title cannot say which one is open. The progress is the first row of
             // the page, drawn at every text size; the board's own rows can be below the fold of a large one.
             open(element("taskboards.row.eurorack-choir"), "the Eurorack Choir board", until: { self.element("project.progress").exists })
@@ -106,7 +113,7 @@ final class LayoutSweepScreensTests: LayoutSweepCase {
             look(mode, "a tool server", key: shows("list_issues"), "the list_issues tool")
         }
 
-        visit(mode, .account("mail"), "Mail", key: element("mail.thread.11111111-1111-4111-8111-111111111111"), "the Weekly plan thread") {
+        visit(mode, .tab("Mail"), "Mail", key: element("mail.thread.11111111-1111-4111-8111-111111111111"), "the Weekly plan thread") {
             open(element("mail.thread.11111111-1111-4111-8111-111111111111"), "the Weekly plan thread", until: { self.isShowingTitle("Weekly plan") })
             look(mode, "a mail thread", key: shows("Done. Friday it is, and I updated the page."), "the newest message")
         }

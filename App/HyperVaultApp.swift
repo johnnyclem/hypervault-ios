@@ -12,13 +12,12 @@ struct HyperVaultApp: App {
 
     var body: some Scene {
         WindowGroup {
-            // One accent, the web's primary. The tint is set outright: a Toggle with none draws system green.
-            // The look follows the system. A UI-test launch pins dark, so the layout sweep still measures a dark page.
+            // The accent, the appearance and the font design are the person's theme's, and RootView sets them (`hvAppStyle`) where
+            // reading the look is tracked; with no theme worn the look is the system's. A UI-test launch pins dark there too,
+            // so the layout sweep still measures a dark page.
             RootView()
                 .environment(model)
-                .tint(HVColor.primary)
                 #if DEBUG
-                .preferredColorScheme(UITestHarness.isActive ? .dark : nil)
                 .overlay(alignment: .topLeading) { UITestWritesBeacon() }
                 #endif
                 .onOpenURL { url in model.handle(url: url) }

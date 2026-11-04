@@ -4,12 +4,16 @@
 enum HVSymbol {
     // The dock.
     static let home = "house"
-    static let chat = "bubble.left"
+    /// Projects: a stack of boards. Not the folder (that is the Library's) and not the `point.3` family (that is Memory's, and
+    /// `TabSymbolQuiet` finds the Memory tab's button by it).
+    static let projects = "square.stack.3d.up"
     /// The memory graph. The iconography guide names the family `point.3.connected`; this is the symbol that draws it.
     static let memory = "point.3.connected.trianglepath.dotted"
-    static let you = "person.crop.circle"
+    static let mail = "envelope"
+    /// A conversation: the chat rows and the Memory answers draw it. (It is no longer a tab's glyph.)
+    static let chat = "bubble.left"
 
-    // The panes of You.
+    // The panes of Settings.
     static let general = "gearshape"
     static let vault = "lock"
     static let agentKeys = "key"

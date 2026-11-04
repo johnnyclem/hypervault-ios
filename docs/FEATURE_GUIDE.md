@@ -116,7 +116,7 @@ struct WidgetsView: View {
 - The init of a model is cheap and has no side effects (the parent may build
   throwaway copies); loading happens in `.task` or `.refreshable`.
 - Entry points get `env` from `@Environment(AppEnvironment.self)` and pass
-  `env.client` (and `env.cache`) down. See `AccountPaneView` in `App/Features/Root/YouTabView.swift`.
+  `env.client` (and `env.cache`) down. See `AccountPaneView` in `App/Features/Settings/AccountPaneView.swift`.
 - Lists use `env.load(key) { try await client.send(...) }` for cached-then-fresh
   loading, and show `HVStaleBanner` when the first answer was the saved copy.
 - Every screen that fetches has all four states: loading (`HVListSkeleton` or
@@ -126,7 +126,7 @@ struct WidgetsView: View {
   sentence is shown verbatim. Success is a light haptic (`Haptics.success()`)
   and, when the result is not obvious, a toast.
 - A result that arrives after the screen that asked for it has gone (a page repair, the web's `JobNotifications`) is told by
-  `env.jobNotices`: while the Home canvas or the Library is showing (`.jobNotices()` on the screen) and the app is in
+  `env.jobNotices`: while Home, the canvas pushed on it or the Library is showing (`.jobNotices()` on the screen) and the app is in
   front, it asks `GET /api/jobs` on appearing and every 20 seconds and keeps the newest in a banner until it is
   dismissed, which is what acknowledges it. A job that changed something makes the Library read again; a lost answer
   says nothing. A screen that follows its own job (the repair sheet) acknowledges it itself, and stops when it is closed.
@@ -168,9 +168,10 @@ fonts. `Palette` (colour), `Font.hv*` (type, all Dynamic Type), `HV.Space` /
 `.hvSecondary`, `.hvGhost`), `.hvFieldChrome()` for inputs, `.hvGlass()` only for
 floating chrome (a composer, a legend, a bar of icons), never for lists or a pinned action bar. Lists are plain paper.
 
-- The look follows the system. Dark is the web's stock tokens; light is the same roles with the values in the iOS
-  guides. There is no appearance picker. The one accent is the web's `primary` (the root `.tint(HVColor.primary)` and
-  the `AccentColor` asset). The selected tab is the page's own text in the dark look and `primary` in the light look,
+- The look follows the system unless the person's theme is worn (see "The look is a runtime" below). Dark is the web's
+  stock tokens; light is the same roles with the values in the iOS guides. There is no appearance picker of the app's own.
+  The one accent is the web's `primary` (`.tint(HVColor.primary)` on the root, in `HVAppStyle`, and the `AccentColor`
+  asset). The selected tab is the page's own text in the dark look and `primary` in the light look,
   set through `UITabBarAppearance` (`HVTabBarStyle`) with no background of its own, so the bar stays Liquid Glass.
   A UI-test launch pins dark.
 - Colours are the web's tokens plus that light mirror. `docs/brand/tokens.json` (a copy of the web repo's file) is
@@ -292,6 +293,48 @@ floating chrome (a composer, a legend, a bar of icons), never for lists or a pin
 - iPad: content stays in a readable column (`.hvReadableWidth()`); lists may
   use the full width.
 
+### The look is a runtime
+
+The person's theme (`profiles.theme`) is worn by the app. The server derives an accessible **kit** for it and sends it with
+`GET /api/dashboard-theme`; the Kit reads it (`StyleKit`, `DashboardThemeState`, wire format in the server's
+`docs/stylekit.md`), re-checks the accessibility floors (`StyleKitContract`) and keeps it on disk (`StyleKitLoader`). The
+app's `StyleKitStore` decides whether to wear it (the phone's "Use this theme in the app", on by default) and tells
+`StyleRuntime`, the process's look.
+
+- **Colour goes through `Palette` (or `HVColor`) and nowhere else.** Both are computed from `StyleRuntime`, so a body that
+  reads one is drawn again when the look changes, and nothing at a call site knows about themes. Never write a colour
+  with `Color("asset-name")`, `UIColor(named:)` or a literal `Color.white` on a themed fill: it would not follow
+  (`scripts/check_prompts.py` fails the build on an asset-name lookup outside `StyleRuntime.swift` and the tab bar's stock
+  fallback in `TabBarStyle.swift`, and on a literal white or black text or glyph colour: `.foregroundStyle(.white)`,
+  `.foregroundColor(.white)`, `.tint(.white)`, `Color.white`, `UIColor.white`. A literal that is right under every theme, on a
+  photo or in a brand tile, is listed in that script with its line and the reason). The
+  label on the flat `Palette.action` fill (a bubble, the send button, the filled button, a spinner in one) is
+  `Palette.onAction`, and on the destructive fill `Palette.onDestructive`; both are white in the stock look. Fixed colours
+  (the code panel, the card brands) are listed in `HVColor` and `HVCardBrandTile` and are the same under every theme.
+- **A `ButtonStyle`, a `ViewModifier` or a `UIViewRepresentable` that reads `Palette` in its body carries
+  `let look = StyleStamp()`.** The view that makes it re-evaluates when the look changes (that is Observation in a view
+  body), and the stamp makes what it hands down a different value, which is what makes SwiftUI run the style's own body
+  again. Do not rely on Observation reaching inside a style.
+- **`HV.Radius.card`, `surface` and `sheet` follow the kit's `radius.base`**; the controls (8 and 6), the brand tile and
+  the floating glass do not. Never store one in a `static let`.
+- **The kit pins the appearance.** A worn theme is one palette, light or dark, so `HVAppStyle` pins the window and the
+  hierarchy to it (plain `Text`, a `Form`, the keyboard take the system's black or white). The Kit holds the system label
+  to the floors on the theme's surfaces for that reason. Plain `Text` is not given the theme's `foreground` (a root
+  `foregroundStyle` would also override the tint of every `Button`). The Account sheet (which holds Settings, this pane
+  included) and the pairing page over it are presented inside the root's hierarchy, so they take the window's style and the root's tint;
+  nothing sets a scheme or a tint of its own, and a new sheet should not.
+- **UIKit chrome follows through `StyleRuntime.WindowInk`**, which `HVAppStyle` hands to the window and to the bars in it:
+  the window's tint, the tab bar's quiet and selected items (`HVTabBarStyle`), and the number on the Mail tab, which is the
+  flat `action` fill with its label in a worn theme (the stock look leaves the system's own badge alone). A control that
+  draws its colour in UIKit reads `WindowInk` or `StyleRuntime.uiMutedForeground`, not an asset name.
+- **Increase Contrast** is derived in the Kit (`StyleKitIncreasedContrast`: ink to 7:1 along its own hue, edges to 3:1) and
+  chosen by the trait (`UIColor.hvDynamic`). Reduce Transparency already swaps glass for solid `card` and `border`, which
+  are the theme's. Dynamic Type is untouched: the font design is laid over the text style (`fontDesign`), never a size.
+- **Tests that wear a kit reset the runtime** (`StyleRuntimeTestCase`), because the runtime is the process's. Snapshots of a
+  theme use `StyleKitFixtures` (the server's golden kits) and read a pixel back (`renderSnapshot`, `PixelBuffer`).
+- Widgets and the Share sheet compile `Shared/` and never call `apply`, so they are stock. Theming them needs an
+  app-group copy of the kit and a timeline reload (v1.1).
+
 ## Writing SwiftUI without a compiler at hand
 
 The macOS CI job is the compiler. Keep it happy on the first push:
@@ -330,8 +373,8 @@ nothing can reach. They live in `Tests/UITests` (the `HyperVaultUITests` target,
 **The UI-test mode.** A debug build launched with `-HV_UITEST -HV_UITEST_SCENARIO <name>` builds its `AppModel` on a
 canned server instead of the real one (`App/Core/UITestHarness.swift`, one call in `HyperVaultApp`, compiled out of
 release builds). The scenarios are `signedOut` (the welcome story and the way in), `signedIn` (a few things kept, memories,
-chats, a connected model), `signedInEmpty` (the first run), `signedInNoKeys` (the first run of someone who also has no agent key, so Home shows the connect card), `waitlisted` and `signedInAdmin` (`signedIn`, for a person the
-server knows as an admin; for everyone else the admin check gets the 403 the real routes send). The network is a
+chats, a connected model), `signedInEmpty` (the first run: no chats either, so Home shows its starter page), `signedInNoKeys` (the first run of someone who also has no agent key, so the starter page shows the connect card), `waitlisted` and `signedInAdmin` (`signedIn`, for a person the
+server knows as an admin; for everyone else the admin check gets the 403 the real routes send). A launch flag adds one more state to any of them: `-HV_UITEST_NO_CHATS` (`HyperVaultUITestCase.withoutChats`) empties the list of chats and leaves the rest of the vault, so Home shows the starter page of someone who has pages, memories and a model. The network is a
 `MockTransport` over the routes in `App/Core/UITestWorld.swift` and `UITestWorld+Screens.swift` (the keys, the address,
 a room, Truth, the task boards, the import, sharing, admin: what changes while a journey plays, such as a key being made
 or revoked, lives in a small object that one launch owns; a launch flag adds to the vault what only some journeys need, as
@@ -341,12 +384,14 @@ canned hosts end in `.invalid`; anything that builds its own `URLSession` reques
 `UITestURLProtocol`. Animations are off, so the app settles at once after every tap. CI builds Release only to compile it, which would not show this leaking in, so
 `scripts/check_debug_only.py` (a step of the CI job) fails if any of this is not inside `#if DEBUG`. A run never reaches a real server, the Keychain or anything a person left on the phone.
 
-**Getting to a screen.** The app has four tabs, Home, Chat, Memory and You, and the helpers of `HyperVaultUITestCase` follow
-them: `openPane("keys")` opens a pane of the You tab by its id (`general`, `vault`, `keys`, `backends`, `domain`,
-`appearance`, `import`; on a phone the tab opens on the vault, so the helper goes back to the list first, which is the case
-that a pane chosen again from the list has to open), `openFromAccount("library", title: "Library")` opens a row of the
-Account menu behind the avatar on Home (`account.<row>`), `openFromMemoryMenu("Digest", title: "Digest")` opens an item of
-Memory's More menu, and `openYours()` opens the Yours panel.
+**Getting to a screen.** The app has four tabs, Home, Projects, Memory and Mail, and Settings in the Account sheet behind the
+avatar (`account.avatar`, on the first screen of every tab). The helpers of `HyperVaultUITestCase` follow them: `openTab("Mail")`
+opens a tab (and closes the Account sheet first if the helpers left it up, since it covers the tab bar), `openPane("keys")`
+opens a pane of Settings by its id (`general`, `vault`, `keys`, `backends`, `domain`, `appearance`, `import`; the helper opens
+the Account menu and its Settings row, or goes back to the list of panes if the sheet is up on a pane, which is the case that a
+pane chosen again from the list has to open), `openFromAccount("library", title: "Library")` opens a row of the Account menu
+(`account.<row>`: `library`, `groupChats`, `tools`, `dreams`, `truth`, `admin`; Mail and the task boards are tabs),
+`openFromMemoryMenu("Digest", title: "Digest")` opens an item of Memory's More menu, `openCanvas()` pushes the canvas with Home's Keep button (`home.keep`, in Home's bar whether Home shows the chats or the starter page; Back from it is Home), and `openYours()` opens the Yours panel over the canvas.
 
 **Adding a journey.**
 
@@ -384,8 +429,8 @@ get its session back. When a flow is broken in the app (a screen that does not f
 update after a write), fix the app, not the journey. A write journey that fails is a finding.
 
 **The layout sweep.** `LayoutSweepTests` and `LayoutSweepScreensTests` launch the app dark and at the
-largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the You panes
-and the Account menu open (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
+largest accessibility text size, visit the tabs, what they open, the welcome story, the waitlist and every screen the Settings panes,
+the Account menu and the Projects and Mail tabs open (and the one beyond it), and for each keep a screenshot and a text note (`LayoutReport`: controls under 44 points,
 anything drawn off the screen) beside it. A UI-test launch pins the dark look, so the
 dark sweep takes no launch argument. So that a sweep of the dark never looks at light screens, each dark screenshot is
 first checked: the brightness of a strip down the left edge of the picture, which is the page's own background on every
@@ -398,14 +443,14 @@ in the sweep when it has a layout of its own.
 **Running them.** `make test-ui` (or `xcodebuild ... -scheme HyperVault -only-testing:HyperVaultUITests test`) on
 any iPhone simulator; `make test-unit` runs the rest. CI runs thirteen UI jobs beside the unit tests, each building and
 running on its own: `journeys` (everything not named below, so a new test class runs there until it is given a job),
-`tabs-you` (`YouJourneyTests` and `TabsJourneyTests`), `screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
+`tabs-you` (`YouJourneyTests` and `TabsJourneyTests`: the class names keep the old tab's name, since CI selects them by it), `screens-you` (`YouScreensJourneyTests`), `screens-more` (`AccountAndAdminJourneyTests` and `ContentJourneyTests`),
 `writes-keep` (`MemoryAndVaultWritesJourneyTests` and `PagesWritesJourneyTests`), `writes-vault` (`VaultWritesJourneyTests`),
 `writes-more`
 (`BoardsAndMailWritesJourneyTests` and `SessionAndSettingsWritesJourneyTests`), `writes-think`
 (`ThinkWritesJourneyTests`),
 `sweep-dark` (the tabs, what they open, the welcome and the waitlist in the dark), `sweep-dark-screens` (the screens of the
-You panes and the Account menu in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
-large text size) and `sweep-large-keep` and `sweep-large-think` (the screens of the You panes and the Account menu at the large
+Settings panes, the Account menu and the Projects and Mail tabs in the dark), `sweep-large` (the tabs, what they open, the welcome and the waitlist at the
+large text size) and `sweep-large-keep` and `sweep-large-think` (the screens of the Settings panes, the Account menu and the Projects and Mail tabs at the large
 text size, in two halves). They have taken between 5 and 22 minutes each, depending on the machine GitHub gives the
 job (the same job has taken twice as long on a slow one); the build and the simulator's start are about eight of those
 minutes, and the rest is the tests, of which the large text sizes, which scroll, are the slowest. A job that goes over 30

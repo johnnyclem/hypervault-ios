@@ -236,7 +236,7 @@ struct ChatBackendFormSheet: View {
                 Button(action: submit) {
                     if isWorking {
                         HStack(spacing: HV.Space.xs) {
-                            ProgressView().tint(.white)
+                            ProgressView().tint(Palette.onAction)
                             Text(editing == nil ? "Testing" : "Checking")
                         }
                     } else {

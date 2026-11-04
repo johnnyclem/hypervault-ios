@@ -1,6 +1,6 @@
 import XCTest
 
-/// Every screen the You panes and the Account menu open, against canned answers that give it real things to show (not an error and not an empty
+/// Every screen the Settings panes, the Account menu and the Projects and Mail tabs open, against canned answers that give it real things to show (not an error and not an empty
 /// state): each journey opens the screen, checks one or two pieces of what it was given, goes one level further where
 /// the screen has one, and keeps a screenshot of how it looked.
 @MainActor
@@ -43,7 +43,8 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testMailListsTheInboxAndOpensAThread() {
         launch(.signedIn)
-        openFromAccount("mail", title: "Mail")
+        openTab("Mail")
+        waitUntil("the Mail screen") { isShowingTitle("Mail") }
 
         let thread = "mail.thread.11111111-1111-4111-8111-111111111111"
         step("The inbox lists the mail from agents") {
@@ -160,6 +161,9 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
         step("Pasted text is read as a conversation") {
             tap(element("import.source.other"), "the Something else card")
             let editor = app.textViews["Pasted conversation"]
+            // The box is below the fold (about 270 points under the cards), and the page is a sheet's: a tap on a field whose
+            // middle is off the screen is not scrolled to there, so the page is moved to it first, as a person would.
+            reveal(editor, "the paste box")
             enter("User: What time is the ferry?\nAssistant: It leaves at seven.", into: editor, "the paste box")
             // (A tap that only lets go of the keyboard, or lands while the box is still settling, is made again.)
             tap(button("Check what I pasted"), "Check what I pasted", until: { self.shows("A pasted conversation").exists })
@@ -195,7 +199,8 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testTaskBoardsListBoardsAndOpenOneWithItsTasks() {
         launch(.signedIn)
-        openFromAccount("taskBoards", title: "Task boards")
+        openTab("Projects")
+        waitUntil("the Projects screen") { isShowingTitle("Projects") }
 
         step("The boards are listed with how far along they are") {
             let choir = element("taskboards.row.eurorack-choir")
@@ -237,7 +242,8 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
     func testAProjectShowsItsBoardAndWhatGoesWithItAndWhyEachThingIsThere() {
         launch(.signedIn, arguments: withProjectLinks)
-        openFromAccount("taskBoards", title: "Task boards")
+        openTab("Projects")
+        waitUntil("the Projects screen") { isShowingTitle("Projects") }
         let bakery = element("project.related.page:bakery-landing-page-x1")
         let lisbon = element("project.related.page:trip-to-lisbon-q7")
 
@@ -275,7 +281,10 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
         step("A page opens, and Back lands on the overview") {
             open(bakery, "the Bakery landing page row", until: { self.isShowingTitle("Bakery landing page") })
-            goBack(until: { self.element("project.openBoard").exists })
+            // The overview is known by its title, not by its first row: the steps above have scrolled the list down, and a row
+            // that is off the screen is not in the accessibility tree, so waiting for "Open the full board" here found nothing,
+            // tapped Back a second time, and left the person on the Projects list.
+            goBack(until: { self.isShowingTitle("Eurorack Choir Module") && !self.isShowingTitle("Bakery landing page") })
             waitUntil("the project's title") { isShowingTitle("Eurorack Choir Module") }
         }
 

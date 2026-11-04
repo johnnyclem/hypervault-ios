@@ -1,3 +1,4 @@
+import HyperVaultKit
 import SwiftUI
 import UIKit
 import XCTest
@@ -7,6 +8,12 @@ import XCTest
 /// CI's `gen_tokens.py --check` holds the generated files to that file; these hold what the app compiled to the
 /// generated numbers, so a colour set that was edited by hand or left out of a target fails here and not on a phone.
 final class DesignTokensTests: XCTestCase {
+    /// These hold the stock look. Another test's kit must not be worn when they run, so each starts from the stock look.
+    override func setUp() {
+        super.setUp()
+        StyleRuntime.shared.apply(nil)
+    }
+
     private let bundle = Bundle(for: AppModel.self)
 
     /// The colour a name resolves to under a style, as 0xRRGGBB.
@@ -136,5 +143,22 @@ final class DesignTokensTests: XCTestCase {
         XCTAssertEqual(HVTokens.Fixed.cardMastercardLeft, 0xEB001B)
         XCTAssertEqual(HVTokens.Fixed.cardMastercardRight, 0xF79E1B)
         XCTAssertEqual(HVTokens.Fixed.cardMastercardRightOpacity, 0.9, accuracy: 0.0001)
+    }
+
+    /// The Kit keeps its own copy of the four hues the web has no token for (`StyleKitHues.stock`), so that a kit whose
+    /// surfaces leave them alone draws exactly the stock look's. This holds the copy to the app's: the memory violet is the
+    /// asset catalog's, and the three tones are what `ChatAgentTone` draws with no theme worn, in both looks. A change on
+    /// either side that leaves the other behind fails here and not as a violet that differs between a theme and the stock look.
+    func testTheKitsStockHuesAreTheStockLooksHues() throws {
+        for style in [UIUserInterfaceStyle.dark, .light] {
+            let hues = StyleKitHues.stock(style == .dark ? .dark : .light)
+            let look = style == .dark ? "dark" : "light"
+            let memory = try XCTUnwrap((style == .dark ? HVTokens.appColors : HVTokens.lightColors)["memory"], "No memory token in the \(look) look.")
+            Self.assertSame(hues.memory.hex, memory, "the memory violet in the \(look) look")
+            Self.assertSame(hues.memory.hex, resolveColor(ChatAgentTone.violet.color, style: style).hex, "the violet tone in the \(look) look")
+            Self.assertSame(hues.coral.hex, resolveColor(ChatAgentTone.coral.color, style: style).hex, "coral in the \(look) look")
+            Self.assertSame(hues.cyan.hex, resolveColor(ChatAgentTone.cyan.color, style: style).hex, "cyan in the \(look) look")
+            Self.assertSame(hues.rose.hex, resolveColor(ChatAgentTone.rose.color, style: style).hex, "rose in the \(look) look")
+        }
     }
 }

@@ -199,7 +199,7 @@ struct EmailCodeSheet: View {
                 Button {
                     send()
                 } label: {
-                    if controller.work == .emailSend { ProgressView().tint(.white) } else { Text("Send me a code") }
+                    if controller.work == .emailSend { ProgressView().tint(Palette.onAction) } else { Text("Send me a code") }
                 }
                 .buttonStyle(.hvPrimary)
                 .disabled(email.isEmpty || controller.isWorking)
@@ -224,7 +224,7 @@ struct EmailCodeSheet: View {
                 Button {
                     verify()
                 } label: {
-                    if controller.work == .emailVerify { ProgressView().tint(.white) } else { Text("Sign in") }
+                    if controller.work == .emailVerify { ProgressView().tint(Palette.onAction) } else { Text("Sign in") }
                 }
                 .buttonStyle(.hvPrimary)
                 .disabled(code.count < 6 || controller.isWorking)

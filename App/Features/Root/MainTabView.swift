@@ -1,40 +1,60 @@
 import HyperVaultKit
 import SwiftUI
 
-/// The four tabs, in the order of the web's dock: Home, Chat, Memory, You. Each has its own navigation stack, kept alive
-/// while another tab shows, and every stack resolves the same `Route`s. The You tab is one stack too on a phone (its list
-/// of panes, then the pane pushed on it); where there is the width, a list beside the pane, with the stack in the pane's
-/// column (`YouTabView`).
+/// The four tabs, in the order of the tab bar: Home (the chats), Projects, Memory, Mail. Each has its own navigation stack,
+/// kept alive while another tab shows, and every stack resolves the same `Route`s. Settings is not a tab: it is the Account
+/// sheet behind the avatar on each tab's first screen, with a stack of its own (`AccountMenuSheet`). The canvas, where
+/// something is kept, is not a tab either: it is a screen pushed on Home (`Route.keep`).
 struct MainTabView: View {
     @Environment(AppModel.self) private var model
     @Environment(AppEnvironment.self) private var env
     @Environment(\.scenePhase) private var scenePhase
 
+    /// Unread mail, for the number on the Mail tab. The Mail screen reads it from the environment to say what it found.
+    @State private var mailUnread = MailUnread()
+
     var body: some View {
         @Bindable var router = model.router
         TabView(selection: $router.tab) {
-            TabRoot(tab: .canvas) { CanvasRootView() }
-                .tabItem { Label(AppTab.canvas.title, systemImage: AppTab.canvas.symbol) }
-                .tag(AppTab.canvas)
+            TabRoot(tab: .home) { ChatRootView() }
+                .tabItem { Label(AppTab.home.title, systemImage: AppTab.home.symbol) }
+                .tag(AppTab.home)
 
-            TabRoot(tab: .chat) { ChatRootView() }
-                .tabItem { Label(AppTab.chat.title, systemImage: AppTab.chat.symbol) }
-                .tag(AppTab.chat)
+            TabRoot(tab: .projects) { TaskBoardsRootView() }
+                .tabItem { Label(AppTab.projects.title, systemImage: AppTab.projects.symbol) }
+                .tag(AppTab.projects)
 
             TabRoot(tab: .memory) { MemoryRootView() }
                 .tabItem { Label(AppTab.memory.title, systemImage: AppTab.memory.symbol) }
                 .tag(AppTab.memory)
 
-            YouTabView()
-                .tabItem { Label(AppTab.you.title, systemImage: AppTab.you.symbol) }
-                .tag(AppTab.you)
+            TabRoot(tab: .mail) { MailRootView() }
+                .tabItem {
+                    Label(AppTab.mail.title, systemImage: AppTab.mail.symbol)
+                        // The badge draws the number; VoiceOver is also told what it counts ("2 unread").
+                        .accessibilityValue(mailUnread.count > 0 ? AccountMenu.mailBadgeLabel(mailUnread.count) : "")
+                }
+                .badge(mailUnread.count > 0 ? Text(AccountMenu.badgeText(mailUnread.count)) : nil)
+                .tag(AppTab.mail)
         }
         .tabBarWithoutSidebar()
         .background(TabGlyphQuietHost())
+        .environment(mailUnread)
         // Whatever Siri or the share sheet left waiting is kept once the person is in, not while the lock is up.
         .task(id: model.lock.isLocked) {
             guard !model.lock.isLocked else { return }
             await env.flushOutbox(toasts: model.toasts)
+        }
+        // Chats written on this phone while offline go to the vault once the person is in, wherever they are in the app. (Home
+        // does it too when it shows; a conversation settles its own waiting rows when it opens.)
+        .task(id: model.lock.isLocked) {
+            guard !model.lock.isLocked else { return }
+            _ = await ChatOutboxes.outbox(for: env).flush(client: env.client)
+        }
+        // The Mail tab's number is read here and not when Mail first shows: a tab's first screen is built when it is first visited.
+        .task(id: model.lock.isLocked) {
+            guard !model.lock.isLocked else { return }
+            await mailUnread.refresh(client: env.client)
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
@@ -42,17 +62,26 @@ struct MainTabView: View {
                 guard !model.lock.isLocked else { return }
                 await env.flushOutbox(toasts: model.toasts)
             }
+            Task {
+                guard !model.lock.isLocked else { return }
+                await mailUnread.refresh(client: env.client)
+            }
+        }
+        // Mail read or filed over there is counted when the person leaves it.
+        .onChange(of: router.tab) { old, _ in
+            guard old == .mail else { return }
+            Task { await mailUnread.refresh(client: env.client) }
         }
         .sheet(item: $router.sheet, onDismiss: { router.sheetDidDismiss() }) { sheet in
             switch sheet {
-            case .pair(let code):
-                PairingPageSheet(code: code)
             case .invite:
                 InviteLinkSheet()
             case .connectAgent:
                 ConnectAgentSheet()
             case .account:
+                // A phone's sheet is as tall as it can be; an iPad's form sheet is too small for Settings, so it is a page.
                 AccountMenuSheet()
+                    .presentationSizing(.page)
             }
         }
     }
@@ -81,6 +110,7 @@ struct RouteDestination: View {
 
     var body: some View {
         switch route {
+        case .keep: CanvasRootView()
         case .artifact(let slug): ArtifactDetailView(slug: slug)
         case .memory(let id): MemoryDetailView(id: id)
         case .conversation(let id): ConversationScreen(conversationID: id)
@@ -89,7 +119,6 @@ struct RouteDestination: View {
         case .library: LibraryRootView()
         // A second link to the same screen with other values starts it over, not on the values the first one gave it.
         case .libraryFiltered(let filter, let query): LibraryRootView(filter: filter, query: query).id(route)
-        case .mail: MailRootView()
         case .truth: TruthRootView()
         case .truthReview: TruthReviewView()
         case .truthReviewLedger(let slug): TruthReviewView(ledger: slug).id(route)
@@ -97,7 +126,6 @@ struct RouteDestination: View {
         case .importHistory: ImportRootView()
         case .dreams: DreamsRootView()
         case .digest: DigestRootView()
-        case .taskBoards: TaskBoardsRootView()
         case .taskBoard(let slug, let project, let title):
             TaskBoardView(listing: TaskBoardListing(slug: slug, project: project, title: title))
         // The overview keeps its model from the id it was made with: a link to another project starts it over.
@@ -128,8 +156,8 @@ struct InviteLinkSheet: View {
 }
 
 extension View {
-    /// The tab bar alone, on a phone and on an iPad: no sidebar made of the tabs. The You tab is a split view with a list
-    /// of its own where there is the width, and a second sidebar beside it would leave the panes a sliver.
+    /// The tab bar alone, on a phone and on an iPad: no sidebar made of the tabs, and no tab strip across the top that iPadOS 18
+    /// and later draws for a tab view unless it is told this.
     func tabBarWithoutSidebar() -> some View {
         tabViewStyle(.tabBarOnly)
     }

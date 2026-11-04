@@ -70,11 +70,15 @@ public struct Capabilities: Sendable, Equatable, Codable {
         public var onDeviceInference: Bool
         public var dreaming: Bool
         public var realmHomePage: Bool
+        /// Whether `GET /api/dashboard-theme` answers `{ theme, kit }`, so the app can wear the person's web theme. A Bool
+        /// that is false when the server does not say (an older server has no kit), unlike `realmHomePage`, which is
+        /// true unless the server says otherwise.
+        public var stylekit: Bool
 
         public init(
             configured: Bool = true, deepMemory: Bool = false, keyEncryption: Bool = true,
             smartContext: Bool = true, truthLedger: Bool = true, truthNotary: Bool = false,
-            onDeviceInference: Bool = true, dreaming: Bool = true, realmHomePage: Bool = true
+            onDeviceInference: Bool = true, dreaming: Bool = true, realmHomePage: Bool = true, stylekit: Bool = false
         ) {
             self.configured = configured
             self.deepMemory = deepMemory
@@ -85,6 +89,7 @@ public struct Capabilities: Sendable, Equatable, Codable {
             self.onDeviceInference = onDeviceInference
             self.dreaming = dreaming
             self.realmHomePage = realmHomePage
+            self.stylekit = stylekit
         }
 
         public init(from decoder: Decoder) throws {
@@ -99,11 +104,13 @@ public struct Capabilities: Sendable, Equatable, Codable {
             onDeviceInference = try flag(.onDeviceInference, true)
             dreaming = try flag(.dreaming, true)
             realmHomePage = try flag(.realmHomePage, true)
+            // Anything that is not a Bool is "no": a server's mistake here must not take the whole document down.
+            stylekit = (try? c.decodeIfPresent(Bool.self, forKey: .stylekit)) ?? false
         }
 
         enum Keys: String, CodingKey {
             case configured, deepMemory, keyEncryption, smartContext, truthLedger, truthNotary
-            case onDeviceInference, dreaming, realmHomePage
+            case onDeviceInference, dreaming, realmHomePage, stylekit
         }
     }
 

@@ -2,7 +2,7 @@ import HyperVaultKit
 import XCTest
 @testable import HyperVault
 
-/// What the screens behind the You tab are given by the canned server of the UI-test mode (App/Core/UITestWorld+Screens.swift),
+/// What the screens behind Settings are given by the canned server of the UI-test mode (App/Core/UITestWorld+Screens.swift),
 /// read through the Kit's own endpoints, the way the app reads them. A route that drifts from the shape its screen decodes
 /// fails here in seconds, instead of as a screen that shows its error state in a journey.
 final class UITestScreensTests: XCTestCase {
@@ -118,10 +118,12 @@ final class UITestScreensTests: XCTestCase {
         let net = transport()
         let profiles = rest(net)
         let before = try await profiles.dashboardTheme(userID: UITestWorld.user.id)
-        XCTAssertEqual(before, "glassmorphism")
+        XCTAssertNil(before, "the canned profile starts on the HyperVault default, so a launch wears the default look")
 
         let saved = try await client(net).send(.setDashboardTheme("newsprint"))
         XCTAssertEqual(saved.theme, "newsprint")
+        XCTAssertEqual(saved.state.kit?.id, "newsprint", "the answer carries the look the server derived for the choice")
+        XCTAssertEqual(saved.state.kit?.appearance, .light)
         let after = try await profiles.dashboardTheme(userID: UITestWorld.user.id)
         XCTAssertEqual(after, "newsprint", "the profile holds what the server agreed to")
         let plan = try await profiles.profile(userID: UITestWorld.user.id)
@@ -129,8 +131,29 @@ final class UITestScreensTests: XCTestCase {
 
         let stock = try await client(net).send(.setDashboardTheme(nil))
         XCTAssertNil(stock.theme)
+        XCTAssertNil(stock.state.kit)
         let none = try await profiles.dashboardTheme(userID: UITestWorld.user.id)
         XCTAssertNil(none)
+    }
+
+    /// The canned server sends kits, as a server with `features.stylekit` does: the app reads `GET /api/dashboard-theme`.
+    func testTheCannedServerSendsTheKitOfTheTheme() async throws {
+        let net = transport()
+        let caps = try await client(net).send(.capabilities)
+        XCTAssertTrue(caps.features.stylekit)
+
+        let none = try await client(net).send(.dashboardTheme)
+        XCTAssertEqual(none, .stock, "no theme is the default look")
+
+        _ = try await client(net).send(.setDashboardTheme("glassmorphism"))
+        let glass = try await client(net).send(.dashboardTheme)
+        XCTAssertEqual(glass.theme, "glassmorphism")
+        XCTAssertEqual(glass.kit?.appearance, .dark)
+        XCTAssertEqual(glass.kit?.violations.count, 0, "the canned kits are ones the app may wear")
+
+        _ = try await client(net).send(.setDashboardTheme("newsprint"))
+        let paper = try await client(net).send(.dashboardTheme)
+        XCTAssertEqual(paper.kit?.font, .serif)
     }
 
     func testAnUnknownThemeIsRefusedWithTheServersSentence() async {
@@ -158,8 +181,13 @@ final class UITestScreensTests: XCTestCase {
         XCTAssertEqual(run.messages.last?.content, "Noted: claude, summarise the plan")
         XCTAssertTrue(run.pending.isEmpty)
 
+        let whole = try await api.send(.room(id: "r1"))
+        XCTAssertEqual(whole.messages.count, 5, "What was said stays in the room.")
         let later = try await api.send(.room(id: "r1", after: 2))
-        XCTAssertEqual(later.messages.count, 5, "What was said stays in the room.")
+        XCTAssertEqual(later.messages.map(\.position), [3, 4], "A poll gets only what came past its place.")
+        XCTAssertEqual(later.members.map(\.handle), ["grok", "claude"], "The roster comes with every read.")
+        let caughtUp = try await api.send(.room(id: "r1", after: 4))
+        XCTAssertTrue(caughtUp.messages.isEmpty, "Nothing past the last message, so a follower goes quiet.")
         let idle = try await api.send(.runRoom(id: "r1"))
         XCTAssertTrue(idle.messages.isEmpty)
     }
@@ -263,7 +291,7 @@ final class UITestScreensTests: XCTestCase {
     // MARK: Admin
 
     func testOnlyAnAdminPassesTheAdminCheckAndMintsCodes() async throws {
-        // The check the You tab makes: a 403 says no, a 400 (the empty body refused) says yes.
+        // The check the Account menu makes: a 403 says no, a 400 (the empty body refused) says yes.
         for (scenario, expected) in [(UITestScenario.signedIn, AdminProbe.Verdict.notAdmin), (.signedInEmpty, .notAdmin), (.signedInAdmin, .admin)] {
             let api = client(transport(scenario))
             var verdict = AdminProbe.Verdict.unknown

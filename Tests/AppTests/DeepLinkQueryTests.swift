@@ -59,7 +59,7 @@ final class DeepLinkQueryTests: XCTestCase {
 
     func testDigestModeOpensTheDigestScreenOnTheMemoryTab() throws {
         let router = AppRouter()
-        router.tab = .canvas
+        router.tab = .home
         try open("https://hypervault.store/vault/memory?mode=digest", on: router)
         XCTAssertEqual(router.tab, .memory)
         XCTAssertEqual(router.path(for: .memory).wrappedValue.count, 1)
@@ -69,10 +69,10 @@ final class DeepLinkQueryTests: XCTestCase {
     func testALibraryLinkPushesTheLibraryOnHome() throws {
         let router = AppRouter()
         router.tab = .memory
-        router.push(.artifact(slug: "x"), on: .canvas)
+        router.push(.artifact(slug: "x"), on: .home)
         try open("https://hypervault.store/vault/library?filter=memory&q=trip", on: router)
-        XCTAssertEqual(router.tab, .canvas)
-        XCTAssertEqual(router.path(for: .canvas).wrappedValue.count, 1, "the Library alone, from Home's first screen")
+        XCTAssertEqual(router.tab, .home)
+        XCTAssertEqual(router.path(for: .home).wrappedValue.count, 1, "the Library alone, from Home's first screen")
         let link = DeepLink(url: URL(string: "https://hypervault.store/vault/library?filter=memory&q=trip")!)
         XCTAssertEqual(link?.destination.route, .libraryFiltered(filter: .memory, query: "trip"), "and it carries what the link chose")
     }

@@ -241,7 +241,7 @@ struct WelcomePageTalk: View {
     private func bubble(_ text: String, isUser: Bool) -> some View {
         Text(text)
             .font(.hvCallout)
-            .foregroundStyle(isUser ? Color.white : Palette.textPrimary)
+            .foregroundStyle(isUser ? Palette.onAction : Palette.textPrimary)
             .padding(.horizontal, HV.Space.m)
             .padding(.vertical, HV.Space.s)
             .background(

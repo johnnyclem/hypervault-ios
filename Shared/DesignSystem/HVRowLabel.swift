@@ -37,6 +37,7 @@ extension View {
 
 private struct HVRowLabelModifier: ViewModifier {
     let role: ButtonRole?
+    let look = StyleStamp()
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.isEnabled) private var isEnabled

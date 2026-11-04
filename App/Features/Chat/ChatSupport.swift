@@ -2,8 +2,8 @@ import HyperVaultKit
 import SwiftUI
 import UIKit
 
-/// Screens the chat tab pushes by itself. Conversations and rooms are `Route`s
-/// (other features and links reach them); these are only for this tab.
+/// Screens Home pushes by itself. Conversations and rooms are `Route`s
+/// (other features and links reach them); these are only for Home.
 enum ChatDestination: Hashable {
     case newConversation
     case models
@@ -138,11 +138,12 @@ enum ChatAgentTone: CaseIterable, Hashable {
 
     /// The three tones the palette has no token for. They are a model family's colour and nothing else's: no tile, tag
     /// or glyph takes a hue for being a destination, so `Palette` no longer carries them. Each is its dark shade and, in
-    /// the light look, the 700 the other accents mirror to.
+    /// the light look, the 700 the other accents mirror to; a worn theme keeps the same hues and moves one only as far as
+    /// its surfaces need (`StyleKitHues`), so they come from the runtime and are never stored.
     private enum Ramp {
-        static let coral = Color(dark: 0xF97316, light: 0xC2410C)
-        static let cyan = Color(dark: 0x22D3EE, light: 0x0E7490)
-        static let rose = Color(dark: 0xFB7185, light: 0xBE123C)
+        static var coral: Color { StyleRuntime.shared.colors.coral }
+        static var cyan: Color { StyleRuntime.shared.colors.cyan }
+        static var rose: Color { StyleRuntime.shared.colors.rose }
     }
 
     var color: Color {

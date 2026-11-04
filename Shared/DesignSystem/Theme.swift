@@ -21,17 +21,21 @@ enum HV {
     /// `HVTokens`. Every shape that uses one is `.continuous`. `s` and `m` are aliases of `control` (8) and `card` (16):
     /// the app's older sizes (10 and 14) are gone and the names stay only so call sites compile. New code names the role
     /// it is drawing.
+    ///
+    /// The three that the web derives from `--radius` (`rounded-xl`, `2xl`, `3xl`: `card`, `surface`, `sheet`) follow a worn
+    /// theme's `radius.base` (`StyleRuntime`); in the stock look they are the tokens' 16, 20 and 28. The controls (8 and 6),
+    /// the brand tile and the floating glass are the app's own sizes and no theme moves them.
     enum Radius {
         /// 8, `rounded-lg`: buttons and inputs.
         static let control: CGFloat = 8
         /// 6, `rounded-md`: small buttons.
         static let smallControl: CGFloat = 6
         /// 16, `radius-xl`: the card, the neutral tile and the code panel.
-        static let card = HVTokens.RadiusPx.radiusXl
+        static var card: CGFloat { StyleRuntime.shared.radii.card }
         /// 20, `radius-2xl`: pane surfaces, the list, add-type tiles and the empty state.
-        static let surface = HVTokens.RadiusPx.radius2xl
+        static var surface: CGFloat { StyleRuntime.shared.radii.surface }
         /// 28, `radius-3xl`: the sheet, which the system draws. For reference; nothing sets it.
-        static let sheet = HVTokens.RadiusPx.radius3xl
+        static var sheet: CGFloat { StyleRuntime.shared.radii.sheet }
         /// 5, `rounded-[5px]`: the card-brand tile.
         static let brandTile: CGFloat = 5
         /// 24: glass that floats over content, the composer and the staged chip. `hvGlass` draws it by default.
@@ -40,7 +44,7 @@ enum HV {
         /// Alias of `control` (8). Use `control`.
         static let s: CGFloat = control
         /// Alias of `card` (16). Use `card`.
-        static let m: CGFloat = card
+        static var m: CGFloat { card }
         static let l: CGFloat = 20
         static let xl: CGFloat = 28
 
@@ -104,65 +108,81 @@ extension Color {
 }
 
 /// The HyperVault palette. Dark is the stock look from the web's tokens; light is the same roles with the iOS
-/// guide's mirror values. Every member is a colour set in `HVColor`, so a screen never branches on the colour scheme
+/// guide's mirror values. Every member is a colour of `HVColor`, so a screen never branches on the colour scheme
 /// and both looks keep the same hierarchy. The names are the app's own and stay as they are; the tokens they stand
 /// for are named in each comment.
 ///
-/// Contrast (WCAG, held by `DesignContrastTests`): `textPrimary` is 13.7:1 or better on the page, paper and raised
-/// paper, and the grey text is 5.4:1 or better. Every accent below is 4.5:1 or better on all three, except `blue` as
+/// What they are is the stock look unless the person's theme is worn (`StyleRuntime`, `StyleKitStore`): then each one is
+/// the theme's colour for the same role, and the contrast figures below are the floors the Kit holds the theme to
+/// (`StyleKitContract`) rather than the stock look's own numbers. Members are computed, never stored: a `static let` here
+/// would keep the look it was first read in.
+///
+/// Contrast of the stock look (WCAG, held by `DesignContrastTests`): `textPrimary` is 13.7:1 or better on the page, paper and
+/// raised paper, and the grey text is 5.4:1 or better. Every accent below is 4.5:1 or better on all three, except `blue` as
 /// text on raised paper (4.36) and `danger` as text on raised paper (4.26). White on `blue` is 3.68:1, which holds
-/// bold text only; anything that carries body-size white text is filled with `action` instead (5.17:1 in both looks).
+/// bold text only; anything that carries body-size white text is filled with `action` instead (5.17:1 in both looks), and
+/// its label is `onAction`, which is white in the stock look and the theme's own label on its fill in a worn one.
 /// `blue` over its own 10% tint is 4.31:1 on paper, so small text on a tint of `blue` is `sky`.
 enum Palette {
+    private static var worn: PaletteColors { StyleRuntime.shared.colors }
+
     /// The page: `background`.
-    static let background = HVColor.background
+    static var background: Color { HVColor.background }
     /// Paper, for cards and grouped lists: `card`.
-    static let surface = HVColor.card
+    static var surface: Color { HVColor.card }
     /// Raised paper, for fields, tiles and the selected pill: `muted`.
-    static let surfaceRaised = HVColor.muted
+    static var surfaceRaised: Color { HVColor.muted }
     /// A 1pt edge on a surface (a card, a list, a tile): `border` at 60%, as the web draws them. At full strength it
     /// is 1.34:1 on paper, and the web never uses it so.
-    static let border = HVColor.border.opacity(0.6)
+    static var border: Color { worn.borderEdge }
     /// A 1pt edge on a control (a secondary button, an input): `border` at 70%.
-    static let controlBorder = HVColor.border.opacity(0.7)
+    static var controlBorder: Color { worn.controlEdge }
     /// Between rows: `border` at 50%.
-    static let divider = HVColor.border.opacity(0.5)
-    static let hairline = divider
+    static var divider: Color { worn.dividerLine }
+    static var hairline: Color { divider }
 
     /// Body text and row names: `foreground`.
-    static let textPrimary = HVColor.foreground
+    static var textPrimary: Color { HVColor.foreground }
     /// Hints, descriptions, counts and labels: `muted-foreground`. The web has one grey, so the second tier is the
     /// same colour, and it stays at full strength (at 85% it would be 4.29:1 on raised paper).
-    static let textSecondary = HVColor.mutedForeground
-    static let textTertiary = HVColor.mutedForeground
+    static var textSecondary: Color { HVColor.mutedForeground }
+    static var textTertiary: Color { HVColor.mutedForeground }
 
     /// The block a loading placeholder is drawn in: `border`, clearly there on the page and quiet beside content.
-    static let skeleton = HVColor.border
+    static var skeleton: Color { HVColor.border }
 
     // The accents. The stock ones are the web's tokens and follow the appearance. Violet is the memory kind (a colour
     // set, so it follows too). The three hues with no token (cyan, coral and rose) are gone from the palette: a model
     // family's colour is `ChatAgentTone`'s, and nothing else takes a hue for being a destination.
-    static let violet = HVColor.memory
+    static var violet: Color { HVColor.memory }
     /// The web's `primary`, which is also the accent colour of the app.
-    static let blue = HVColor.primary
+    static var blue: Color { HVColor.primary }
     /// The web's `accent`: tinted text on raised paper, where `blue` falls under 4.5:1.
-    static let sky = HVColor.accent
+    static var sky: Color { HVColor.accent }
     /// Emerald-400, the Agent keys chips' success shade.
-    static let mint = HVColor.emerald400
+    static var mint: Color { HVColor.emerald400 }
     /// Amber-400, the Agent keys chips' warning shade.
-    static let amber = HVColor.amber400
+    static var amber: Color { HVColor.amber400 }
 
-    static let success = mint
-    static let warning = amber
+    static var success: Color { mint }
+    static var warning: Color { amber }
     /// The web's `destructive`.
-    static let danger = HVColor.destructive
+    static var danger: Color { HVColor.destructive }
 
-    /// The one flat fill for anything that carries white text or a white glyph at body size: the person's chat bubbles,
-    /// the send buttons, the prominent icon button, the count in the Account menu, and the filled button
-    /// (`HVPrimaryButtonStyle`, whose semibold label this is what allows). #2563EB in both looks (the web's
-    /// light-look `primary`); white on it is 5.17:1. It is the accent of an action, so it is never a tile, a tag or a
-    /// decoration, and nothing is laid over it but white.
-    static let action = HVColor.action
+    /// The one flat fill for anything that carries a label or a glyph at body size: the person's chat bubbles, the send
+    /// buttons, the prominent icon button, the count in the Account menu, and the filled button (`HVPrimaryButtonStyle`,
+    /// whose semibold label this is what allows). #2563EB in both stock looks (the web's light-look `primary`), where white
+    /// on it is 5.17:1; a worn theme's own button colour, with the label the server fixed up to read on it. It is the accent
+    /// of an action, so it is never a tile, a tag or a decoration, and nothing is laid over it but `onAction`.
+    static var action: Color { HVColor.action }
+
+    /// The label or glyph on `action`, at body size: white in the stock look (the literal `Color.white` the app used to
+    /// write), and in a worn look the theme's own `primary-foreground`, or black or white where that would not read.
+    static var onAction: Color { worn.onAction }
+
+    /// The label on a destructive fill (`HVDestructiveButtonStyle`'s red): white in the stock look, and in a worn one black
+    /// or white, whichever reads better on the theme's red.
+    static var onDestructive: Color { worn.onDestructive }
 }
 
 /// Type. Text styles, so everything scales with Dynamic Type, in the system face (SF Pro), which is what the web's

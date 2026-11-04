@@ -57,7 +57,7 @@ struct KeepTextIntent: AppIntent {
 
 struct OpenCanvasIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Home"
-    static let description = IntentDescription("Opens HyperVault, ready to keep or ask.")
+    static let description = IntentDescription("Opens HyperVault on your chats.")
     static let openAppWhenRun = true
 
     func perform() async throws -> some IntentResult {

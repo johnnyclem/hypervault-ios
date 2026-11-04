@@ -1,0 +1,8 @@
+dark / Chat, group chats
+
+small target  Button "Models" (cpu)  20,51 56x36
+small target  Button "More" (chat.more)  238,51 58x36
+small target  Button  238,51 58x36
+small target  Button "New room" (plus)  312,51 58x36
+small target  Button "Chats"  16,109 179x32
+small target  Button "Group chats"  195,109 179x32

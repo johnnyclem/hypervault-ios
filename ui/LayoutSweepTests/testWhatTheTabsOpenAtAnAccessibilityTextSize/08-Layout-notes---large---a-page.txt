@@ -1,0 +1,3 @@
+large / a page
+
+small target  Button "Reload" (arrow.clockwise)  336,51 32x36

@@ -1,0 +1,4 @@
+large / You, the vault
+
+small target  Button "Add to your vault" (plus)  336,51 33x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

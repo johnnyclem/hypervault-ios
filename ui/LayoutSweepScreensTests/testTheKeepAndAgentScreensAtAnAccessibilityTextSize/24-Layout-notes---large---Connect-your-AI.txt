@@ -1,0 +1,5 @@
+large / Connect your AI
+
+off screen    Image (AdditionalDimmingOverlay)  -120,-151 630x302
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  Button "Cancel"  20,67 88x36

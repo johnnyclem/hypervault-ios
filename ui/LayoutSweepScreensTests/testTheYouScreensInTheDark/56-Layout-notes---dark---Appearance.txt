@@ -1,0 +1,3 @@
+dark / Appearance
+
+Nothing to note: every control is at least 44 points and nothing is off the screen.

@@ -275,7 +275,10 @@ final class YouScreensJourneyTests: HyperVaultUITestCase {
 
         step("A page opens, and Back lands on the overview") {
             open(bakery, "the Bakery landing page row", until: { self.isShowingTitle("Bakery landing page") })
-            goBack(until: { self.element("project.openBoard").exists })
+            // The overview is known by its title, not by its first row: the steps above have scrolled the list down, and a row
+            // that is off the screen is not in the accessibility tree, so waiting for "Open the full board" here found nothing,
+            // tapped Back a second time, and left the person on the Projects list.
+            goBack(until: { self.isShowingTitle("Eurorack Choir Module") && !self.isShowingTitle("Bakery landing page") })
             waitUntil("the project's title") { isShowingTitle("Eurorack Choir Module") }
         }
 

@@ -1,0 +1,3 @@
+large / an address
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

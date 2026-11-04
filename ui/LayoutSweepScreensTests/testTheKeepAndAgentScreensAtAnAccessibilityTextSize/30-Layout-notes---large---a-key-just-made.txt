@@ -1,0 +1,5 @@
+large / a key, just made
+
+off screen    Image (AdditionalDimmingOverlay)  -120,-151 630x302
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+off screen    Image (AdditionalDimmingOverlay)  -120,-73 630x240

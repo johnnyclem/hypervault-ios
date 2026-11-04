@@ -1,0 +1,7 @@
+large / Truth
+
+small target  Button "Ledger: Default"  160,51 70x36
+small target  Button  160,51 70x36
+small target  Button "More"  322,51 48x36
+small target  Button  322,51 48x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286

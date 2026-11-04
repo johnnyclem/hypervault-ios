@@ -217,10 +217,12 @@ final class DesignSystemSnapshotTests: XCTestCase {
 
     /// Wears `kit`, builds the screen under it (a page reads some of its colours as it is built), draws it pinned to the kit's
     /// appearance, and always puts the stock look back.
-    private func render<V: View>(in kit: StyleKit, named name: String, size: CGSize, _ screen: () -> V) throws -> PixelBuffer {
+    private func render<V: View>(
+        in kit: StyleKit, named name: String, size: CGSize, until ready: (@MainActor () -> Bool)? = nil, _ screen: () -> V
+    ) throws -> PixelBuffer {
         StyleRuntime.shared.apply(kit)
         defer { StyleRuntime.shared.apply(nil) }
-        let images = try renderSnapshot(screen(), named: name, size: size, schemes: [kit.appearance.userInterfaceStyle])
+        let images = try renderSnapshot(screen(), named: name, size: size, schemes: [kit.appearance.userInterfaceStyle], until: ready)
         return try XCTUnwrap(images.first.flatMap(PixelBuffer.init), "\(name) was not drawn")
     }
 
@@ -257,11 +259,13 @@ final class DesignSystemSnapshotTests: XCTestCase {
         capabilities.features.stylekit = true
         let body = String(decoding: try JSONEncoder().encode(kit), as: UTF8.self)
         let routes: [MockRoute] = [.json(.get, "/api/dashboard-theme", #"{"theme":"newsprint","kit":\#(body)}"#)]
-        let pixels = try render(in: kit, named: "pane-appearance-newsprint", size: CGSize(width: 393, height: 852)) {
+        // The pane asks the server when it appears, and the answer is what the store then wears. The render waits for it: on a
+        // busy runner the first second shows the pane's skeleton, and the published render should be the pane, loaded.
+        let pixels = try render(in: kit, named: "pane-appearance-newsprint", size: CGSize(width: 393, height: 852), until: { store.look != .standard }) {
             PreviewHost(routes: routes, capabilities: capabilities, style: store) { AppearancePane() }
         }
         let edge = try XCTUnwrap(pixels.color(x: 2, y: 840))
         XCTAssertTrue(PixelBuffer.same(edge, kit.colors.background.hex), "the pane is on the theme's page")
-        XCTAssertEqual(store.look, .worn(name: "Newsprint", adjusted: false), "and says what the app is wearing")
+        XCTAssertEqual(store.look, .worn(name: "Newsprint", adjusted: false), "and says what the app is wearing (the pane had not heard from the server after the wait)")
     }
 }

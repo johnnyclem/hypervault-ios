@@ -1,0 +1,13 @@
+large / a vault entry
+
+small target  Button "Account" (account.avatar)  20,51 44x36
+small target  Button "Keep" (home.keep)  164,51 58x36
+small target  Button "New chat" (square.and.pencil)  238,51 58x36
+small target  Button "More" (chat.more)  312,51 58x36
+small target  Button  312,51 58x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  Button "Add to your vault" (plus)  336,67 33x36
+off screen    Image (AdditionalDimmingOverlay)  -120,-73 630x240
+off screen    Image (AdditionalDimmingOverlay)  -120,687 630x313
+small target  Button "Sheet Grabber"  159,394 73x24
+small target  Button "Close" (xmark)  29,418 31x34

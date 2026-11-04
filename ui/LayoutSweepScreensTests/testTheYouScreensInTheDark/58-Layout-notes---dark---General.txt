@@ -1,0 +1,15 @@
+dark / General
+
+small target  Button "Account" (account.avatar)  20,51 46x36
+small target  Button "Branch: main"  82,51 76x36
+small target  Button  82,51 76x36
+small target  Button "Memorize something" (memory.memorize)  276,51 38x36
+small target  Button "More" (memory.more)  330,51 40x36
+small target  Button  330,51 40x36
+small target  Button "Search"  16,109 119x32
+small target  Button "Ask"  135,109 119x32
+small target  Button "Graph"  254,109 120x32
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  TextField (memory.search)  56,168 306x22
+small target  Switch  297,706 63x28
+small target  Switch  297,814 63x28

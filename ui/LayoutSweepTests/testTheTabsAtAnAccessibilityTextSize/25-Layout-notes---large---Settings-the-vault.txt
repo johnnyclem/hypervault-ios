@@ -1,0 +1,13 @@
+large / Settings, the vault
+
+small target  Button "Account" (account.avatar)  20,51 44x36
+small target  Button "More"  238,51 58x36
+small target  Button  238,51 58x36
+small target  Button "New note" (square.and.pencil)  312,51 58x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+off screen    Button "Unread, 2"  181,373 210x59
+off screen    Button "Sent"  399,373 120x59
+off screen    Button "Archive"  528,373 180x59
+off screen    Button "Trash"  716,373 137x59
+small target  Button "Add to your vault" (plus)  336,67 33x36
+off screen    Image (AdditionalDimmingOverlay)  -120,687 630x313

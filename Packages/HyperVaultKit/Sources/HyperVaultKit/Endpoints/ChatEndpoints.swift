@@ -188,11 +188,24 @@ public struct ChatContext: Sendable, Decodable, Equatable {
     public let smartContext: Bool
     public let deepMemory: [String]?
     public let truth: ChatTruthSummary?
+    /// `"compact"` when the server wrote the context for a small window, as asked (`profile: "compact"`). Absent on
+    /// the full profile and on a server that predates it, which is how the two are told apart.
+    public let profile: String?
+    /// Compact profile only: what a small model is told, apart from `notes`.
+    public let instructions: String?
+    /// Compact profile only: what the model may use as background, fitted to the budget asked for. Empty when none
+    /// of it is worth giving. Every list in a compact answer (`recalledMemories`, `pulled`, `deepMemory`, `truth`,
+    /// `smartContext`) names only what these notes hold, and `recalled` (page links) is empty.
+    public let notes: String?
+
+    /// Whether the server wrote this for a small window, so `notes` is the background and `system` is not to be taken apart.
+    public var isCompact: Bool { profile == "compact" }
 
     public init(
         conversationID: String? = nil, system: String, messages: [ChatWireMessage], nextPosition: Int = 0,
         recalled: [ChatRecalledPage] = [], recalledMemories: [String] = [], pulled: [ChatPulledUse] = [],
-        smartContext: Bool = false, deepMemory: [String]? = nil, truth: ChatTruthSummary? = nil
+        smartContext: Bool = false, deepMemory: [String]? = nil, truth: ChatTruthSummary? = nil,
+        profile: String? = nil, instructions: String? = nil, notes: String? = nil
     ) {
         self.conversationID = conversationID
         self.system = system
@@ -204,6 +217,9 @@ public struct ChatContext: Sendable, Decodable, Equatable {
         self.smartContext = smartContext
         self.deepMemory = deepMemory
         self.truth = truth
+        self.profile = profile
+        self.instructions = instructions
+        self.notes = notes
     }
 
     public init(from decoder: Decoder) throws {
@@ -218,12 +234,15 @@ public struct ChatContext: Sendable, Decodable, Equatable {
         smartContext = try c.decodeIfPresent(Bool.self, forKey: .smartContext) ?? false
         deepMemory = try c.decodeIfPresent([String].self, forKey: .deepMemory)
         truth = try c.decodeIfPresent(ChatTruthSummary.self, forKey: .truth)
+        profile = try c.decodeIfPresent(String.self, forKey: .profile)
+        instructions = try c.decodeIfPresent(String.self, forKey: .instructions)
+        notes = try c.decodeIfPresent(String.self, forKey: .notes)
     }
 
     enum Keys: String, CodingKey {
         case conversationID = "conversation_id", system, messages, nextPosition = "next_position"
         case recalled, recalledMemories = "recalled_memories", pulled, smartContext = "smart_context"
-        case deepMemory = "deep_memory", truth
+        case deepMemory = "deep_memory", truth, profile, instructions, notes
     }
 
     public var grounding: ChatGrounding {
@@ -237,11 +256,19 @@ public struct ChatContext: Sendable, Decodable, Equatable {
 extension Endpoint where Response == ChatContext {
     /// The context for a turn answered by a model on this device. Sent with
     /// the same switches as a server turn; tools are never part of it.
+    ///
+    /// `compactBudget` asks the server to write the context for a small window (`profile: "compact"`): the notes
+    /// fitted to that many characters, apart from the instructions. A server that does not know the profile ignores
+    /// the two fields and answers with the full prompt, so check `ChatContext.isCompact` before relying on it.
     public static func chatContext(
-        message: String, conversationID: String? = nil, options: ChatSendOptions = ChatSendOptions()
+        message: String, conversationID: String? = nil, options: ChatSendOptions = ChatSendOptions(), compactBudget: Int? = nil
     ) -> Endpoint<ChatContext> {
         var object: [String: JSONValue] = ["message": .string(message)]
         if let conversationID, !conversationID.isEmpty { object["conversation_id"] = .string(conversationID) }
+        if let compactBudget {
+            object["profile"] = .string("compact")
+            object["budget_chars"] = .int(compactBudget)
+        }
         options.fill(&object, includeTools: false)
         return Endpoint(.post, "/api/chat/context", body: .jsonValue(.object(object)), keys: .verbatim, timeout: 60, idempotent: true)
     }

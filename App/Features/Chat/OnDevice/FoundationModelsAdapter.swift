@@ -95,8 +95,17 @@ struct ChatFoundationModelsProvider: ChatModelProvider {
     let contextBudget = 7_000
 
     func generate(system: String, messages: [ChatWireMessage]) -> AsyncThrowingStream<String, Error> {
-        let instructions = OnDevicePrompt.instructions(system: system)
-        let prompt = OnDevicePrompt.prompt(messages: messages)
+        stream(instructions: OnDevicePrompt.instructions(system: system), prompt: OnDevicePrompt.prompt(messages: messages))
+    }
+
+    /// What the person saved goes in the prompt, not the instructions. Apple's model is trained to obey its
+    /// instructions over its prompt, and a note is text the person saved (some of it pasted from elsewhere): it is
+    /// background to read, never an order to follow.
+    func generate(instructions: String, notes: String, messages: [ChatWireMessage]) -> AsyncThrowingStream<String, Error> {
+        stream(instructions: OnDevicePrompt.instructions(system: instructions), prompt: OnDevicePrompt.prompt(notes: notes, messages: messages))
+    }
+
+    private func stream(instructions: String, prompt: String) -> AsyncThrowingStream<String, Error> {
         return AsyncThrowingStream { continuation in
             let task = Task {
                 // Default guardrails insert a safety-guardrail token the phone

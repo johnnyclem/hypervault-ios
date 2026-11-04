@@ -38,6 +38,9 @@ func snapshot<V: View>(
 }
 
 /// `snapshot`, handing back the images it drew (one per scheme, in the order drawn), so a test can look at what a pixel is.
+/// The fixed `settle` is long enough for a screen that loads from canned routes on a quiet machine. A test that asserts on
+/// what the load did passes `ready`, and the render waits (up to `patience`) until it holds, so a runner that is busy does
+/// not draw a skeleton and fail the assertion; whether it held is the test's to check.
 @MainActor
 func renderSnapshot<V: View>(
     _ view: V,
@@ -45,6 +48,8 @@ func renderSnapshot<V: View>(
     size: CGSize = CGSize(width: 393, height: 852),
     settle: TimeInterval = 1.0,
     schemes: [UIUserInterfaceStyle]? = nil,
+    until ready: (@MainActor () -> Bool)? = nil,
+    patience: TimeInterval = 20,
     file: StaticString = #filePath,
     line: UInt = #line
 ) throws -> [UIImage] {
@@ -68,6 +73,14 @@ func renderSnapshot<V: View>(
 
         // Let `.task` loads, animations and layout settle.
         RunLoop.main.run(until: Date().addingTimeInterval(settle))
+        if let ready, !ready() {
+            let deadline = Date().addingTimeInterval(patience)
+            while !ready(), Date() < deadline {
+                RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+            }
+            // What the answer made is laid out and drawn on the turns after it arrives.
+            RunLoop.main.run(until: Date().addingTimeInterval(0.5))
+        }
         host.view.layoutIfNeeded()
 
         let format = UIGraphicsImageRendererFormat()

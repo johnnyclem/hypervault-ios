@@ -1,0 +1,10 @@
+dark / a vault entry
+
+small target  Button "Add to your vault" (plus)  338,51 27x36
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+off screen    Button "Keys, 1"  381,307 71x44
+off screen    StaticText "Keys"  393,320 33x18
+off screen    StaticText "1"  432,322 8x16
+small target  Button "Sheet Grabber"  159,389 73x24
+small target  Button "Close" (xmark)  32,413 26x34
+small target  Switch  293,830 60x27

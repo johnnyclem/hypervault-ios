@@ -1,0 +1,4 @@
+dark / a key, just made
+
+off screen    Image (AdditionalDimmingOverlay)  -120,701 630x286
+small target  Button "https://cursor.com/docs/context/mcp"  16,1771 209x14

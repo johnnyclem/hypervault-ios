@@ -1,0 +1,5 @@
+dark / the canvas with its hints
+
+small target  Button "Open panel" (canvas.yours)  336,51 32x36
+small target  Button "Paste"  151,335 87x34
+small target  TextField (canvas.field)  76,714 290x22

@@ -5,6 +5,10 @@
 //   HV_BUNDLE_PREFIX = com.example.hypervault
 //
 HV_BUNDLE_PREFIX = store.hypervault
+// The team builds are signed with when nothing says otherwise. It is here and not in project.yml because a project-level
+// build setting beats an xcconfig, and Local.xcconfig (a Mac's own team, or the one ci_scripts/ci_post_clone.sh writes for
+// Xcode Cloud and CI) has to be able to replace it.
+DEVELOPMENT_TEAM = GV49AHY2S2
 HV_APP_GROUP = group.$(HV_BUNDLE_PREFIX).app
 HV_KEYCHAIN_GROUP = $(HV_BUNDLE_PREFIX).shared
 HV_DEFAULT_SERVER = https:/$()/hypervault.store

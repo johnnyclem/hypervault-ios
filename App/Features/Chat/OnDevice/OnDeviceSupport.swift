@@ -82,6 +82,12 @@ enum ChatOnDeviceModels {
     static let toolFreeLine = "Answering on this iPhone. Tools need a connected model."
 
     static func status() -> ChatOnDeviceStatus {
+        #if DEBUG
+        // A UI-test run answers the same on every runner. Whether Apple Intelligence is on the Mac the simulator runs on is
+        // not something a journey can depend on: where it is, a conversation with nothing connected offers "On this iPhone"
+        // and a message field, and the journeys that expect the connect card (FirstRunJourneyTests) fail on that runner only.
+        if UITestHarness.isActive { return .unavailable(needsNewerSystem) }
+        #endif
         #if canImport(FoundationModels)
         return ChatFoundationModelsAdapter.status()
         #else
@@ -91,7 +97,7 @@ enum ChatOnDeviceModels {
 
     static func provider() -> ChatModelProvider? {
         #if canImport(FoundationModels)
-        if ChatFoundationModelsAdapter.status().isAvailable {
+        if status().isAvailable {
             return ChatFoundationModelsProvider()
         }
         #endif

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "id": "hypervault-light",
+  "name": "HyperVault Light",
+  "appearance": "light",
+  "colors": {
+    "background": "#f6f1e7",
+    "foreground": "#2a2118",
+    "card": "#fffdf8",
+    "muted": "#f1e4c6",
+    "muted_foreground": "#6b5e4b",
+    "primary": "#845300",
+    "accent": "#426558",
+    "destructive": "#9b1c36",
+    "success": "#1b5929",
+    "warning": "#843603",
+    "action": "#845300",
+    "action_foreground": "#fffdf8",
+    "border": "#e6dcc6",
+    "ring": "#845300"
+  },
+  "radius": {
+    "base": 12
+  },
+  "font": {
+    "design": "system"
+  },
+  "backdrop": {
+    "kind": "glow"
+  },
+  "adjusted": []
+}

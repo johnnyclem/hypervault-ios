@@ -59,10 +59,15 @@ final class DashboardThemeTests: XCTestCase {
 
     // MARK: Words
 
-    func testNoWordSaysTheAppRestyledOrThatItWasSavedWithATick() {
+    func testNoWordIsTheWebsOrADecorationAndEveryOneIsPlainText() {
         let said = [
             DashboardThemeCopy.line, DashboardThemeCopy.sectionTitle, DashboardThemeCopy.pickerLabel, DashboardThemeCopy.footer,
-            DashboardThemeCopy.confirmation(for: nil, in: catalog), DashboardThemeCopy.confirmation(for: "newsprint", in: catalog),
+            DashboardThemeCopy.saving, DashboardThemeCopy.inAppTitle, DashboardThemeCopy.inAppToggle, DashboardThemeCopy.inAppFooter,
+            DashboardThemeCopy.resetRow, DashboardThemeCopy.undo, DashboardThemeCopy.wearingDefault, DashboardThemeCopy.wearing("Newsprint"),
+            DashboardThemeCopy.adjusted, DashboardThemeCopy.off, DashboardThemeCopy.cannotShow("Retro"), DashboardThemeCopy.offline,
+            DashboardThemeCopy.confirmation(for: nil, in: catalog, inApp: true),
+            DashboardThemeCopy.confirmation(for: "newsprint", in: catalog, inApp: true),
+            DashboardThemeCopy.confirmation(for: "newsprint", in: catalog, inApp: false),
         ]
         for line in said {
             XCTAssertFalse(line.contains("\u{2713}"), line)
@@ -71,13 +76,26 @@ final class DashboardThemeTests: XCTestCase {
             XCTAssertFalse(line.contains("\u{2014}"), line)
             XCTAssertTrue(line.allSatisfy { $0.isASCII }, line)
         }
-        XCTAssertTrue(DashboardThemeCopy.footer.contains("This app keeps the HyperVault default look"))
+    }
+
+    func testTheWordsNoLongerSayTheAppKeepsItsOwnLookWhateverIsPicked() {
+        XCTAssertFalse(DashboardThemeCopy.footer.contains("This app keeps the HyperVault default look"))
+        XCTAssertTrue(DashboardThemeCopy.footer.contains("this app wear it"))
+        XCTAssertTrue(DashboardThemeCopy.line.contains("in this app"))
     }
 
     func testTheConfirmationNamesTheThemeTheCatalogGivesIt() {
-        XCTAssertEqual(DashboardThemeCopy.confirmation(for: "newsprint", in: catalog), "Your website now wears Newsprint.")
-        XCTAssertEqual(DashboardThemeCopy.confirmation(for: nil, in: catalog), "Your website is back on the HyperVault default look.")
-        XCTAssertEqual(DashboardThemeCopy.confirmation(for: "retired-theme", in: catalog), "Your website now wears retired-theme.")
+        XCTAssertEqual(DashboardThemeCopy.confirmation(for: "newsprint", in: catalog, inApp: true), "Your website and this app now wear Newsprint.")
+        XCTAssertEqual(DashboardThemeCopy.confirmation(for: "newsprint", in: catalog, inApp: false), "Your website now wears Newsprint.")
+        XCTAssertEqual(DashboardThemeCopy.confirmation(for: nil, in: catalog, inApp: false), "Your website and this app are back on the HyperVault default look.")
+        XCTAssertEqual(DashboardThemeCopy.confirmation(for: nil, in: catalog, inApp: true), "Your website and this app are back on the HyperVault default look.")
+        XCTAssertEqual(DashboardThemeCopy.confirmation(for: "retired-theme", in: catalog, inApp: false), "Your website now wears retired-theme.")
+    }
+
+    func testWhatTheAppIsWearingIsSaidInWords() {
+        XCTAssertEqual(DashboardThemeCopy.wearing("Newsprint"), "The app is wearing Newsprint.")
+        XCTAssertEqual(DashboardThemeCopy.cannotShow("Retro"), "Retro can't be shown in the app, so it keeps the HyperVault default look. Your website still wears it.")
+        XCTAssertEqual(DashboardThemeCopy.off, "The app keeps the HyperVault default look.")
     }
 
     // MARK: Wire

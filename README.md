@@ -16,7 +16,7 @@ talks to `hypervault.store` with a bearer token.
 | **Chats** | (On Home.) Conversations and group chats (rooms) with several agents, your own models (connected through the server, or on your own network and called by the phone directly; Settings > Models, and the Models link on a chat that has none), replies you can keep, save as a memory, rate and read aloud, and on-device chat where Apple Intelligence exists. Tools (MCP servers) and the import of ChatGPT, Claude, Gemini and Grok histories are under Home's More. |
 | **Memory** | The memory wiki (search with recall, ask, a force-directed graph; an answer to Ask says what the truth ledger and your conversations added to it, shows the tool steps it took, and has copy, keep, thumbs, read aloud and share under it), memorize from text, a file or a link, and "Git for a Mind": branches, commit log, compare, merge with conflict resolution, time travel, restore and undelete. Dreams, Truth (the ledger and its swipeable review docket) and Digest are under More. |
 | **Mail** | Notes between you and the agents you connect, in a mailbox you share: an inbox with search, threads, compose, held mail and the mailbox settings. The tab carries the number of unread messages. |
-| **Settings** | Not a tab: the first row of the Account menu, on the same stack inside the Account sheet (a page-sized sheet on an iPad). The web's You page, as a list of seven panes: **General** (the account, its plan, signing out, and under "On this phone" what belongs to this phone), **Vault** (saved logins, cards and keys), **Agent keys** (and the Connect picker for 33 clients), **Models**, **Domain** (your address), **Appearance** (the theme of your dashboard on the website, which the app does not wear) and **Import** (your AI history; and any one file, which goes where it belongs by its type: a running page, a stored PDF or image, or a memory). Settings opens on the list; a pane is one step further in, on a phone and on an iPad alike. |
+| **Settings** | Not a tab: the first row of the Account menu, on the same stack inside the Account sheet (a page-sized sheet on an iPad). The web's You page, as a list of seven panes: **General** (the account, its plan, signing out, and under "On this phone" what belongs to this phone), **Vault** (saved logins, cards and keys), **Agent keys** (and the Connect picker for 33 clients), **Models**, **Domain** (your address), **Appearance** (the theme of your account: the website wears it, and so does the app unless this phone says not to) and **Import** (your AI history; and any one file, which goes where it belongs by its type: a running page, a stored PDF or image, or a memory). Settings opens on the list; a pane is one step further in, on a phone and on an iPad alike. |
 
 Only a phone can do these, so the app does them:
 
@@ -237,10 +237,18 @@ server change if you want the app to do more:
   stored value again.
 - **Payment is on the web.** Upgrading opens the web page; there is no In-App Purchase, and General shows the plan
   with no price and no Upgrade button.
-- **The Appearance pane is the website's theme.** It reads `profiles.theme` and sets it with `PATCH /api/dashboard-theme`;
-  it says so. Changing it restyles the website. This app follows the system: the dark look is the web's stock tokens, and the light look is the same roles.
-- **The web's 38 style themes** are CSS looks for web pages and are not ported. The app keeps that one stock hierarchy
-  in both appearances, with one accent (the web's `primary`).
+- **The Appearance pane is the account's theme, and the app wears it.** It reads and sets `profiles.theme` (`GET` and
+  `PATCH /api/dashboard-theme`). The server derives an accessible look for the theme (the CSS cascade applied, translucent
+  colours flattened, every text colour moved until it reads on the surfaces it is drawn on) and sends it as a `kit`; the app
+  re-checks the floors, wears the kit, and keeps it on disk for the next launch. A worn theme pins the app light or dark,
+  whatever the phone is set to. "Use this theme in the app" (on by default, a preference of this phone) takes the app back
+  to its own look and leaves the website's theme alone. `retro` has no accessible look, so the app says it cannot show it.
+  Widgets and the Share sheet keep the stock look in this version. So does the system's launch frame (`LaunchBackground`,
+  drawn by iOS before any of the app runs, in the phone's light or dark), and the app's own first frame: the theme kept on disk
+  is read once the app is running, so a person with a light theme on a dark phone sees the stock page for a moment at launch.
+  Details: `docs/FEATURE_GUIDE.md` ("The look is a runtime").
+- **Without a theme, the app follows the system:** the dark look is the web's stock tokens, and the light look is the
+  same roles. The web's per-address looks (Domain) are for the site and are not worn by the app.
 - **Models on your own network** (Ollama, LM Studio) are called by the phone directly,
   because the server refuses private addresses. They stream, take no tools and need the
   local network permission.

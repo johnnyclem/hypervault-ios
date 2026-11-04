@@ -95,7 +95,7 @@ struct AccountMenuSheet: View {
                 if badge > 0 {
                     Text(AccountMenu.badgeText(badge))
                         .font(.hvCaption.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Palette.onAction)
                         .padding(.horizontal, HV.Space.xs)
                         .padding(.vertical, 2)
                         // Small white text: on the flat action fill it is 5.17:1 in both looks (on the primary 3.68).

@@ -13,7 +13,9 @@ let package = Package(
     ],
     targets: [
         .target(name: "HyperVaultKit"),
-        .testTarget(name: "HyperVaultKitTests", dependencies: ["HyperVaultKit"]),
+        // `Fixtures/stylekit` holds the JSON the server's StyleKit builder emits (docs/stylekit/fixtures on the server),
+        // which the StyleKit tests decode as they are.
+        .testTarget(name: "HyperVaultKitTests", dependencies: ["HyperVaultKit"], resources: [.copy("Fixtures")]),
     ],
     swiftLanguageModes: [.v6]
 )

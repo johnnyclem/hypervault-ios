@@ -177,7 +177,7 @@ struct NewBranchSheet: View {
                 }
                 Spacer()
                 Button(action: create) {
-                    if isWorking { ProgressView().tint(.white) } else { Text("Create branch") }
+                    if isWorking { ProgressView().tint(Palette.onAction) } else { Text("Create branch") }
                 }
                 .buttonStyle(.hvPrimary)
                 .disabled(normalized.isEmpty || hint != nil || isWorking)

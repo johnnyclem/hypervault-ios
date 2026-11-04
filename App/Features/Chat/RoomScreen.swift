@@ -326,7 +326,7 @@ struct ChatRoomMessageView: View {
                 Spacer(minLength: 56)
                 Text(message.content)
                     .font(.hvBody)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.onAction)
                     .multilineTextAlignment(.leading)
                     .textSelection(.enabled)
                     .padding(.horizontal, HV.Space.m)

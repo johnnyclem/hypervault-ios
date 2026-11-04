@@ -7,6 +7,8 @@ enum PrefKey {
     static let biometricLock = "pref.biometricLock"
     static let onboarded = "pref.onboarded.v1"
     static let onDeviceChat = "pref.onDeviceChat"
+    /// "Use this theme in the app", a preference of this phone (the website keeps the theme either way). On unless turned off.
+    static let styleKitInApp = StyleKitStore.appliesToAppKey
     static let approvedUser = "hv.approvedUser"
     /// Whose traces are on this phone: set when someone signs in, removed once everything they left is gone. It
     /// outlives the process, so what a session left in the outbox is still known to be theirs at the next launch: it
@@ -56,6 +58,9 @@ final class AppModel {
     let lock = AppLock()
     /// Puts the lock screen and the app-switcher shield in a window above every sheet.
     let privacy: PrivacyCoverController
+    /// The look the app wears for the person's theme. Here and not in the signed-in environment: it wears the look on disk
+    /// before the environment exists, and every way a session ends empties it (`wipeLocalState`).
+    let style: StyleKitStore
 
     /// An invite code that arrived in a link before anyone was signed in.
     var pendingInviteCode: String?
@@ -82,9 +87,11 @@ final class AppModel {
         transport: HTTPTransport = URLSessionTransport(),
         cacheDirectory: URL = AppModel.cacheDirectory(),
         installMarker: InstallMarker = InstallMarker(),
-        router: AppRouter? = nil
+        router: AppRouter? = nil,
+        style: StyleKitStore? = nil
     ) {
         self.router = router ?? AppRouter()
+        self.style = style ?? StyleKitStore()
         self.secureStore = secureStore
         self.server = server
         self.transport = transport
@@ -104,6 +111,11 @@ final class AppModel {
     func start() async {
         guard !started else { return }
         started = true
+        // The last session's look, before anything waits on the network: the launch view is drawn in it (from its second frame;
+        // the first is drawn before this runs). Who that was is known without asking the server, and a session that ended took
+        // its cache with it. This is one small read and it goes first: behind the walk of every cached file below, the cache's
+        // actor would make it, and then the first request, wait for it.
+        if let namespace = sessionUserID { await style.preload(cache: cache, userID: namespace) }
         // What an older build cached carries the system's default protection; this gives it the rule new files get.
         Task { [cache] in await cache.protectExistingFiles() }
         await bootstrap()
@@ -253,6 +265,7 @@ final class AppModel {
             if case .ready = phase, env?.user.id == user.id { return }
             if let previous = sessionUserID, previous != user.id { await wipeLocalState(namespace: previous) }
             SharedConfig.defaults.set(user.id, forKey: PrefKey.sessionUser)
+            await style.preload(cache: cache, userID: user.id)
             await resolveAccess(for: user)
         }
     }
@@ -326,8 +339,13 @@ final class AppModel {
     }
 
     private func activate(user: AuthUser, client: HVClient, auth: AuthService, capabilities: Capabilities) {
-        env = AppEnvironment(client: client, auth: auth, capabilities: capabilities, user: user, server: server, cache: cache)
+        let environment = AppEnvironment(client: client, auth: auth, capabilities: capabilities, user: user, server: server, cache: cache, style: style)
+        env = environment
         phase = .ready
+        // The theme is most often changed on the website: ask what it is now. The look on disk is worn until the answer comes,
+        // and a failure leaves it so.
+        let loader = environment.styleLoader
+        Task { [style] in try? await style.refresh(using: loader) }
         // Widgets that were waiting for someone to sign in, or showing the last account, read the new one now.
         WidgetRefresh.reload()
         if let link = pendingLink {
@@ -358,6 +376,8 @@ final class AppModel {
     /// the person on the sheet, so it waits, and the marker of whose it is waits with it; once the outbox is empty the
     /// marker has nothing left to guard and goes too.
     private func wipeLocalState(namespace: String?, keepingOutbox: Bool = false) async {
+        // The look goes back to the app's own with the account; the phone's switch for it stays, as the other preferences do.
+        style.reset()
         if let namespace { await cache.clear(namespace: namespace) }
         if !keepingOutbox { OutboxStore.save([]) }
         SpotlightIndexer.clear()

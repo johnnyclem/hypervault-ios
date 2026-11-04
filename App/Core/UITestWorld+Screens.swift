@@ -155,8 +155,11 @@ extension UITestWorld {
 
     // MARK: The website's theme
 
-    /// The person's profile row, a Pro plan with the website wearing Glassmorphism, and the route that changes the theme. The
-    /// themes it takes are the three the canned capabilities list.
+    /// The person's profile row, a Pro plan with the website on the HyperVault default look, and the routes that read and change
+    /// the theme the way a server that sends kits does: `GET` and `PATCH /api/dashboard-theme` answer `{ theme, kit }`, with the
+    /// kit the server derives for the three themes the canned capabilities list (the server's own golden files). The profile
+    /// starts with no theme, so a launch wears the default look and the layout sweeps measure what they always did; a journey
+    /// that picks a theme sees the app change.
     private static func dashboardThemeRoutes(_ theme: UITestDashboardTheme) -> [MockRoute] {
         let known: Set<String> = ["modern-dark", "glassmorphism", "newsprint"]
         return [
@@ -166,16 +169,40 @@ extension UITestWorld {
                     "theme": theme.current.map(JSONValue.string) ?? .null,
                 ])]))
             },
+            MockRoute(.get, "/api/dashboard-theme") { _ in
+                reply(.object(themeAnswer(theme.current)))
+            },
             MockRoute(.patch, "/api/dashboard-theme") { request in
                 let next = body(request)["theme"]?.string
                 if let next, !known.contains(next) {
                     return reply(.object(["error": .string("Unknown theme. Pick one of: modern-dark, glassmorphism, newsprint - or null for the HyperVault default.")]), status: 400)
                 }
                 theme.set(next)
-                return reply(.object(["theme": next.map(JSONValue.string) ?? .null, "message": .string("Your dashboard now wears \(next ?? "the stock look").")]))
+                var answer = themeAnswer(next)
+                answer["message"] = .string("Your dashboard now wears \(next ?? "the stock look").")
+                return reply(.object(answer))
             },
         ]
     }
+
+    /// `{ theme, kit }`: what `GET /api/dashboard-theme` says for a theme, and the first two keys of the `PATCH` answer.
+    private static func themeAnswer(_ theme: String?) -> [String: JSONValue] {
+        guard let theme else { return ["theme": .null, "kit": .null] }
+        return ["theme": .string(theme), "kit": themeKits[theme] ?? .null]
+    }
+
+    private static let themeKits: [String: JSONValue] = {
+        var kits: [String: JSONValue] = [:]
+        for (id, text) in [("modern-dark", modernDarkKit), ("glassmorphism", glassmorphismKit), ("newsprint", newsprintKit)] {
+            if let value = try? JSONDecoder().decode(JSONValue.self, from: Data(text.utf8)) { kits[id] = value }
+        }
+        return kits
+    }()
+
+    // The server's golden kits (docs/stylekit/fixtures), as the server sends them.
+    private static let modernDarkKit = ##"{"schema_version":1,"id":"modern-dark","name":"Modern Dark","appearance":"dark","colors":{"background":"#0b0f14","foreground":"#e8eef5","card":"#121820","muted":"#1a222d","muted_foreground":"#8b97a8","primary":"#3b82f6","accent":"#38bdf8","destructive":"#ef4444","success":"#00d492","warning":"#ffb900","action":"#3b82f6","action_foreground":"#000000","border":"#243041","ring":"#3b82f6"},"radius":{"base":12},"font":{"design":"system"},"backdrop":{"kind":"glow"},"adjusted":["action_foreground"]}"##
+    private static let glassmorphismKit = ##"{"schema_version":1,"id":"glassmorphism","name":"Glassmorphism","appearance":"dark","colors":{"background":"#0b1120","foreground":"#eef4ff","card":"#1a1f2d","muted":"#1f2432","muted_foreground":"#9db1d4","primary":"#7678f3","accent":"#38bdf8","destructive":"#f04a4a","success":"#00d492","warning":"#ffb900","action":"#6366f1","action_foreground":"#000000","border":"#2d323f","ring":"#38bdf8"},"radius":{"base":12},"font":{"design":"system"},"backdrop":{"kind":"glow"},"adjusted":["primary","destructive","action_foreground"]}"##
+    private static let newsprintKit = ##"{"schema_version":1,"id":"newsprint","name":"Newsprint","appearance":"light","colors":{"background":"#f6f3ea","foreground":"#17150f","card":"#fffdf4","muted":"#eae5d6","muted_foreground":"#5c574a","primary":"#17150f","accent":"#a41623","destructive":"#dd1313","success":"#1b5929","warning":"#843603","action":"#17150f","action_foreground":"#fffdf4","border":"#17150f","ring":"#a41623"},"radius":{"base":12},"font":{"design":"serif"},"backdrop":{"kind":"lines"},"adjusted":["destructive"]}"##
 
     // MARK: Rooms
 
@@ -307,10 +334,10 @@ extension UITestWorld {
 
 // MARK: - What changes while a journey plays
 
-/// The theme the person's website dashboard wears (`profiles.theme`).
+/// The theme the person's website dashboard wears (`profiles.theme`): none, until a journey picks one.
 final class UITestDashboardTheme: @unchecked Sendable {
     private let lock = NSLock()
-    private var theme: String? = "glassmorphism"
+    private var theme: String?
 
     var current: String? {
         lock.lock()

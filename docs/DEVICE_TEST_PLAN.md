@@ -97,7 +97,7 @@ page, share it, edit its source), Memory (search, ask, graph, a branch and a mer
 a connected model, a room), Agent keys (Connect an agent, make a key and copy it: the paste is gone after a
 minute and never reaches another device; revoke a key: Revoke, then Really revoke?), Logins, cards & keys
 (add one; its value is never shown again), Mail (its tab), Truth, Projects (its tab: a row opens the project's overview, with what is Linked, Tagged or Mentions it, and Open the full board), Tools (add an MCP server), Import (a
-ChatGPT export zip), Domain, and Appearance (the website's theme: choose one and see it on the website; the app does not change). Anything that shows the server's own refusal on a session-only route means the deployment predates #180.
+ChatGPT export zip), Domain, and Appearance (the account's theme: choose one and see it on the website and in the app). Anything that shows the server's own refusal on a session-only route means the deployment predates #180.
 
 ### The tabs and Settings, on a device
 
@@ -138,8 +138,15 @@ them on glass (handoff 2.3, 4.1, 9):
   (Dreams with its waiting count, Truth), Admin for an admin, and Sign out. Mail and the task boards are tabs and are not
   in it. A row other than Settings closes it and goes there, on the tab that has it (Library, Tools on Home; Dreams, Truth on
   Memory). Sign out with something waiting in the outbox asks first. At the largest text size the list scrolls to Sign out.
-- **Appearance says it is the website's.** Choosing a theme changes your dashboard on the website and nothing in the app:
-  open the website to see it, and check the app's own look did not change.
+- **Appearance changes the website and the app.** Choosing a theme changes your dashboard on the website and, at once, the
+  app: the colours, the light or dark of the whole app (keyboard, alerts and sheets included, whatever the phone is set
+  to), the corner radius and the font design of the theme. Check on a device: a light theme on a phone set to dark, then a
+  dark one on a phone set to light; the tab bar and the Mail tab's number, the Account sheet that holds Settings (this
+  pane included), the pairing page opened from Agent keys, an alert, the keyboard and the lock screen all agree with the
+  page. "Use this theme in the app" off takes the app back to its own look and leaves the website's theme. "Back to the
+  HyperVault default" and Undo work. In Airplane Mode the pane shows the theme the phone kept and says it is offline. Turn
+  on Increase Contrast: text and edges get stronger. Retro cannot be shown, and the pane says so. Sign out: the next
+  launch is the app's own look.
 - **iPad.** The tabs stay a tab bar with no sidebar of their own. The Account sheet is page-sized (not the small form
   sheet), and Settings is the same stack as on a phone: there is no list beside the pane any more. Open Agent keys > Connect
   an agent (a key is on screen), then drag the Split View divider and bring Slide Over in and out: the sheet, the key and

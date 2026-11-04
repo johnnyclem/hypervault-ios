@@ -107,6 +107,8 @@ struct ArtifactCodeView: UIViewRepresentable {
     var identifier: String?
     /// Drawn inside the field while it is empty, so it cannot sit in front of a tap.
     var placeholder: String?
+    /// The placeholder's grey follows the look; a view made after it changed is told, and redraws it.
+    let look = StyleStamp()
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -172,7 +174,7 @@ private final class CodeTextView: UITextView {
         label.numberOfLines = 0
         label.isUserInteractionEnabled = false
         label.isAccessibilityElement = false
-        label.textColor = UIColor(named: "muted-foreground") ?? .secondaryLabel
+        label.textColor = StyleRuntime.shared.uiMutedForeground
         return label
     }()
 
@@ -203,6 +205,7 @@ private final class CodeTextView: UITextView {
     func refreshPlaceholder() {
         placeholderLabel.isHidden = placeholder == nil || !text.isEmpty
         placeholderLabel.font = font
+        placeholderLabel.textColor = StyleRuntime.shared.uiMutedForeground
         accessibilityHint = text.isEmpty ? placeholder : nil
     }
 

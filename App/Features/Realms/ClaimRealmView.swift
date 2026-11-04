@@ -124,7 +124,7 @@ struct ClaimRealmView: View {
         Button {
             Task { await flow.claim(name: name, base: chosenBase) }
         } label: {
-            if flow.claiming { ProgressView().tint(.white) } else { Text("Claim my address") }
+            if flow.claiming { ProgressView().tint(Palette.onAction) } else { Text("Claim my address") }
         }
         .buttonStyle(.hvPrimary)
         .disabled(flow.availability != .available || flow.claiming)

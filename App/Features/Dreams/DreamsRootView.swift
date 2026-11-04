@@ -309,6 +309,7 @@ private extension View {
 /// short of 4.5:1 for some of the accents a person can choose.
 struct DreamTintedButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    let look = StyleStamp()
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

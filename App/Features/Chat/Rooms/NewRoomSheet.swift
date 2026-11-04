@@ -198,7 +198,7 @@ struct ChatNewRoomSheet: View {
                         }
                     } label: {
                         if model.isCreating {
-                            ProgressView().tint(.white)
+                            ProgressView().tint(Palette.onAction)
                         } else {
                             Text("Start room with \(model.chosen.count) member\(model.chosen.count == 1 ? "" : "s")")
                         }

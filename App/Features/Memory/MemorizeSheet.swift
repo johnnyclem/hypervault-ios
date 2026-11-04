@@ -66,7 +66,7 @@ struct MemorizeSheet: View {
                     }
 
                     Button(action: submit) {
-                        if isWorking { ProgressView().tint(.white) } else { Text(actionTitle) }
+                        if isWorking { ProgressView().tint(Palette.onAction) } else { Text(actionTitle) }
                     }
                     .buttonStyle(.hvPrimary)
                     .disabled(!canSubmit || isWorking)

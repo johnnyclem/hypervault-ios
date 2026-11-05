@@ -120,24 +120,37 @@ public struct Capabilities: Sendable, Equatable, Codable {
         public var chatMessageChars: Int
         public var memoryBytes: Int
         public var importBytes: Int
+        /// The most a file import (a PDF, a Word document, Markdown or text becoming a memory) may be. A file over
+        /// `importInlineFileBytes` is staged to storage first. A server that does not say (every one before staged
+        /// imports) takes 4 MB, multipart only, so the default is that server's behaviour.
+        public var importFileBytes: Int
+        /// The most a file may be to ride inside the import request itself: the platform turns away a request body
+        /// of about 4.5 MB before the route runs.
+        public var importInlineFileBytes: Int
         public var maxBackends: Int
         public var maxMcpServers: Int
         public var maxProSubdomains: Int
 
         public init(
             artifactBytes: Int = 1_000_000, sourcePromptChars: Int = 10_000, chatMessageChars: Int = 100_000,
-            memoryBytes: Int = 500_000, importBytes: Int = 50_000_000, maxBackends: Int = 20,
-            maxMcpServers: Int = 20, maxProSubdomains: Int = 10
+            memoryBytes: Int = 500_000, importBytes: Int = 50_000_000,
+            importFileBytes: Int = Limits.oldServerImportFileBytes, importInlineFileBytes: Int = Limits.oldServerImportFileBytes,
+            maxBackends: Int = 20, maxMcpServers: Int = 20, maxProSubdomains: Int = 10
         ) {
             self.artifactBytes = artifactBytes
             self.sourcePromptChars = sourcePromptChars
             self.chatMessageChars = chatMessageChars
             self.memoryBytes = memoryBytes
             self.importBytes = importBytes
+            self.importFileBytes = importFileBytes
+            self.importInlineFileBytes = importInlineFileBytes
             self.maxBackends = maxBackends
             self.maxMcpServers = maxMcpServers
             self.maxProSubdomains = maxProSubdomains
         }
+
+        /// What `POST /api/memories/import` took before staged imports: 4 MB in the request, nothing else.
+        public static let oldServerImportFileBytes = 4_000_000
 
         public init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: Keys.self)
@@ -147,6 +160,15 @@ public struct Capabilities: Sendable, Equatable, Codable {
             chatMessageChars = try number(.chatMessageChars, 100_000)
             memoryBytes = try number(.memoryBytes, 500_000)
             importBytes = try number(.importBytes, 50_000_000)
+            // Anything that is not a whole number is "the server did not say": the answer for a server that did not
+            // say is the stricter old behaviour, and a mistake here must not take the whole document down.
+            func fileLimit(_ key: Keys) -> Int {
+                let value = (try? c.decodeIfPresent(Int.self, forKey: key)) ?? nil
+                guard let value, value > 0 else { return Limits.oldServerImportFileBytes }
+                return value
+            }
+            importFileBytes = fileLimit(.importFileBytes)
+            importInlineFileBytes = fileLimit(.importInlineFileBytes)
             maxBackends = try number(.maxBackends, 20)
             maxMcpServers = try number(.maxMcpServers, 20)
             maxProSubdomains = try number(.maxProSubdomains, 10)
@@ -154,6 +176,7 @@ public struct Capabilities: Sendable, Equatable, Codable {
 
         enum Keys: String, CodingKey {
             case artifactBytes, sourcePromptChars, chatMessageChars, memoryBytes, importBytes
+            case importFileBytes, importInlineFileBytes
             case maxBackends, maxMcpServers, maxProSubdomains
         }
     }

@@ -755,8 +755,8 @@ public enum MemoryLimits {
 ///
 /// The limits are the server's to say (`Capabilities.Limits.importFileBytes` and `importInlineFileBytes`), so every
 /// check here takes them. The default is `Capabilities.Limits()`, which is a server that predates staged imports:
-/// 4 MB, in the request. A caller that can only send the file in the request (the Settings importer) leaves them
-/// out and is held to that.
+/// 4 MB, in the request. Every caller in the app passes what the server said; leaving them out is what a server that
+/// predates staged imports looks like (the tests, and the capabilities of an older server).
 public enum MemoryImportPolicy {
     public static let extensions = ["pdf", "docx", "md", "markdown", "mdx", "txt", "text"]
     public static let unsupportedTypeMessage = "Unsupported file type — import a PDF, DOCX, .md, or .txt file."

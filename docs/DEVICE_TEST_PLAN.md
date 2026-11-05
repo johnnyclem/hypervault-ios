@@ -181,6 +181,8 @@ them on glass (handoff 2.3, 4.1, 9):
   refresh). Cancelling a note or a link does not stop it: it is kept and the toast says so. With VoiceOver on, "Uploading the
   file..." and then "Reading the file..." are spoken as they change. Settings > Import > A file takes the same 6 MB
   .docx (and a .md): it is uploaded to storage first, opens as a memory, and a file over 10 MB is turned away by name.
+  Start a 6 MB import on a throttled connection, tap Bring memories from another AI while it uploads, and go back: the
+  import still finishes and its toast appears (opening that page must not cancel the upload; only Cancel and a swipe down do).
 - **Large text.** At the largest accessibility size the Settings list shows each pane's symbol above its name (no name breaks
   in the middle of a word) and no chevron, General shows the whole email address, wrapped, and the Yours panel opens at
   full height with its first rows visible. The Dreams badge in the Account menu is white on the flat blue `action` fill.

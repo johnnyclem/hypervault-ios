@@ -79,7 +79,7 @@ public struct MemoryFileImporter: Sendable {
 
     private func put(_ data: Data, to ticket: MemoryUploadTicket, filename: String, kind: MemoryImportPolicy.FileKind) async throws {
         guard let address = SignedUpload.address(from: ticket.signedUrl) else {
-            throw HVError.decoding("The upload address was not a link.")
+            throw SignedUpload.refusal(forAddress: ticket.signedUrl)
         }
         let response: HTTPResponse
         do {

@@ -99,6 +99,7 @@ final class ImportFileModelTests: XCTestCase {
         XCTAssertEqual(sent, ["POST /api/memories/import/upload-url", "PUT \(storagePath)", "POST /api/memories/import"])
 
         let requests = await transport.requests
+        guard requests.count == 3 else { return XCTFail("expected the ask, the PUT and the import, got \(requests.count) requests") }
         let put = requests[1]
         XCTAssertEqual(put.value(forHTTPHeaderField: "Content-Type"), docxType)
         XCTAssertNil(put.value(forHTTPHeaderField: "Authorization"), "the signed address carries its own permission")
@@ -182,6 +183,15 @@ final class ImportFileModelTests: XCTestCase {
         let (model, _) = model([.json(.post, "/api/memories/import", "Request Entity Too Large", status: 413)])
         let outcome = await model.keep(name: "Notes.md", data: Data("x".utf8))
         XCTAssertEqual(outcome, .refused("That upload is too large \u{2014} the import limit is 4 MB."))
+    }
+
+    func testABareTooBigAnswerNamesTheLimitOfTheRequestThisServerStated() async {
+        // The platform's plain-text 413 can only come from a request that carried the file, so the number in the sentence
+        // is the request's limit as the server stated it, not the 10 MB that staging allows and not a built-in 4 MB.
+        let limits = Capabilities.Limits(importFileBytes: 10_000_000, importInlineFileBytes: 4_500_000)
+        let (model, _) = model([.json(.post, "/api/memories/import", "Request Entity Too Large", status: 413)], limits: limits)
+        let outcome = await model.keep(name: "Notes.md", data: Data("x".utf8))
+        XCTAssertEqual(outcome, .refused("That upload is too large \u{2014} the import limit is 4.5 MB."))
     }
 
     func testAPdfOrImageOverTheCeilingIsRefusedBeforeAnythingIsSentAndAnEmptyOneIsToo() async {

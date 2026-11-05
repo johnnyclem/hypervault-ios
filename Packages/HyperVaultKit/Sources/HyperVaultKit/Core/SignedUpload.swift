@@ -18,7 +18,7 @@ public enum SignedUpload {
 
     /// Whether this is an address worth sending a file to: a link with a host, over https, or over http only when the
     /// host is this machine (`localhost`, `127.0.0.1` or `[::1]`), which is where a server run in development puts its
-    /// storage. The same rule `ServerConfig` holds the app's own server to. Any other http address is refused: the
+    /// storage. Like the rule `ServerConfig` holds the app's own server to, with the IPv6 loopback too. Any other http address is refused: the
     /// bytes of a person's file would cross the network in the clear.
     public static func address(from text: String) -> URL? {
         guard let url = URL(string: text), let scheme = url.scheme?.lowercased(), let host = url.host?.lowercased(), !host.isEmpty
@@ -33,6 +33,16 @@ public enum SignedUpload {
     /// `URL.host` gives an IPv6 address with its brackets on some platforms and without on others.
     private static func isThisMachine(_ host: String) -> Bool {
         ["localhost", "127.0.0.1", "::1", "[::1]"].contains(host)
+    }
+
+    /// What to throw for an address `address(from:)` refused. A text that is not a link at all is the server answering in
+    /// a way this version of the app does not understand. Plain http to another machine is a link that was refused on
+    /// purpose, and says so, because updating the app would not help.
+    public static func refusal(forAddress text: String) -> HVError {
+        if let url = URL(string: text), url.scheme?.lowercased() == "http", let host = url.host, !host.isEmpty {
+            return .invalidRequest("The upload address is not secure, so the file was not sent.")
+        }
+        return .decoding("The upload address was not a link.")
     }
 
     public static func request(to url: URL, contentType: String, data: Data, timeout: TimeInterval = defaultTimeout) -> URLRequest {

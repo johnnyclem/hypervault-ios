@@ -25,7 +25,7 @@ public struct ArtifactUploader: Sendable {
 
         let ticket = try await client.send(.artifactUploadTicket(filename: filename, size: data.count))
         guard let address = SignedUpload.address(from: ticket.signedUrl) else {
-            throw HVError.decoding("The upload address was not a link.")
+            throw SignedUpload.refusal(forAddress: ticket.signedUrl)
         }
         if let limit = ticket.maxBytes, data.count > limit {
             throw HVError.api(APIFailure(status: 413, message: "That file is too large."))

@@ -216,7 +216,10 @@ final class MemoryFileImporterTests: XCTestCase {
             let (importer, transport) = setup(routes(ticket: ticket(signedURL: bad)))
             let log = StageLog()
             let error = await failure { try await importer.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) { log.add($0) } }
-            XCTAssertEqual(error, .decoding("The upload address was not a link."), bad)
+            // Not a link at all is the server answering oddly; plain http to another machine is refused on purpose, in words
+            // that do not tell the person to update the app.
+            let expected: HVError = bad.hasPrefix("http://") ? .invalidRequest("The upload address is not secure, so the file was not sent.") : .decoding("The upload address was not a link.")
+            XCTAssertEqual(error, expected, bad)
             let sent = await paths(transport)
             XCTAssertEqual(sent, ["POST /api/memories/import/upload-url"], bad)
             XCTAssertEqual(log.stages, [.uploading], bad)
@@ -458,6 +461,18 @@ final class SignedUploadTests: XCTestCase {
         XCTAssertNotNil(SignedUpload.address(from: "HTTPS://P.SUPABASE.CO/storage/x"))
         for bad in ["", "not a link", "ftp://p.supabase.co/x", "file:///etc/hosts", "/storage/x", "https://", "javascript:alert(1)"] {
             XCTAssertNil(SignedUpload.address(from: bad), bad)
+        }
+    }
+
+    /// A refused address says why. A text that is not a link is the server answering oddly; plain http to another machine
+    /// is refused on purpose, and the sentence must not tell the person to update the app, which would not help.
+    func testARefusedAddressSaysWhyItWasRefused() {
+        XCTAssertEqual(SignedUpload.refusal(forAddress: "not a link").userMessage, HVError.decoding("").userMessage)
+        XCTAssertEqual(SignedUpload.refusal(forAddress: "ftp://p.supabase.co/x").userMessage, HVError.decoding("").userMessage)
+        for insecure in ["http://192.168.1.20:54321/storage/x", "HTTP://p.supabase.co/storage/x"] {
+            let error = SignedUpload.refusal(forAddress: insecure)
+            XCTAssertEqual(error.userMessage, "The upload address is not secure, so the file was not sent.", insecure)
+            XCTAssertFalse(error.userMessage.contains("Update the app"), insecure)
         }
     }
 

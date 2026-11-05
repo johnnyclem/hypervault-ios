@@ -244,7 +244,10 @@ final class ArtifactRealmsTests: XCTestCase {
                 _ = try await ArtifactUploader(client: client(transport), transport: transport).upload(data: Data("x".utf8), filename: "a.png")
                 XCTFail("expected a refusal for \(bad)")
             } catch {
-                XCTAssertEqual(error as? HVError, .decoding("The upload address was not a link."), bad)
+                // Not a link at all is the server answering oddly; plain http to another machine is refused on purpose.
+                let insecure = bad.hasPrefix("http://")
+                let expected: HVError = insecure ? .invalidRequest("The upload address is not secure, so the file was not sent.") : .decoding("The upload address was not a link.")
+                XCTAssertEqual(error as? HVError, expected, bad)
             }
             let sent = await transport.requests.map { ($0.httpMethod ?? "") + " " + ($0.url?.path ?? "") }
             XCTAssertEqual(sent, ["POST /api/artifacts/upload-url"], "no bytes go anywhere (\(bad))")

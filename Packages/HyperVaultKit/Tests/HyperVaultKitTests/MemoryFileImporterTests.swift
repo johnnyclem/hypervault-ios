@@ -375,9 +375,27 @@ final class SignedUploadTests: XCTestCase {
 
     func testOnlyAWebAddressWithAHostIsOneToSendAFileTo() {
         XCTAssertNotNil(SignedUpload.address(from: "https://p.supabase.co/storage/v1/object/upload/sign/b/p?token=t"))
-        XCTAssertNotNil(SignedUpload.address(from: "http://localhost:54321/storage/x"))
+        XCTAssertNotNil(SignedUpload.address(from: "HTTPS://P.SUPABASE.CO/storage/x"))
         for bad in ["", "not a link", "ftp://p.supabase.co/x", "file:///etc/hosts", "/storage/x", "https://", "javascript:alert(1)"] {
             XCTAssertNil(SignedUpload.address(from: bad), bad)
+        }
+    }
+
+    /// Plain http is for a storage that runs on the same machine as the app (a server in development, as `ServerConfig`
+    /// allows for the app's own), and for nothing else: a file would cross the network in the clear.
+    func testPlainHttpIsOnlyForTheMachineItselfAndNeverForAnotherHost() {
+        for local in [
+            "http://localhost:54321/storage/x", "http://127.0.0.1:54321/storage/x", "http://[::1]:54321/storage/x",
+            "http://LOCALHOST/storage/x", "HTTP://127.0.0.1/storage/x",
+        ] {
+            XCTAssertNotNil(SignedUpload.address(from: local), local)
+        }
+        for remote in [
+            "http://p.supabase.co/storage/x", "http://192.168.1.20:54321/storage/x", "http://10.0.0.5/storage/x",
+            "http://0.0.0.0:54321/storage/x", "http://localhost.example.com/storage/x", "http://127.0.0.1.example.com/storage/x",
+            "http://localhost@example.com/storage/x", "http://[::2]:54321/storage/x",
+        ] {
+            XCTAssertNil(SignedUpload.address(from: remote), remote)
         }
     }
 }

@@ -9,19 +9,30 @@ import FoundationNetworking
 /// to every request, and a signed address that also gets an `Authorization` header can be refused by storage, which
 /// reads that header as a second, different credential. So this builds the request by hand with a `Content-Type`
 /// and nothing else, and sends it through the same `HTTPTransport` seam as everything else, which keeps it testable
-/// with `MockTransport`.
+/// with `MockTransport`. It is the one PUT in the app: a memory file import (`MemoryFileImporter`) and a stored PDF or
+/// image (`ArtifactUploader`) both go through it.
 public enum SignedUpload {
     /// A PUT can take a while for a large file on a slow connection. The timeout of a `URLRequest` is the time the
     /// connection may go quiet, not the whole transfer, so this is generous without being unbounded.
     public static let defaultTimeout: TimeInterval = 300
 
-    /// Whether this is an address worth sending a file to: a link with a host, over https (or http, which a server
-    /// on the same machine uses in development).
+    /// Whether this is an address worth sending a file to: a link with a host, over https, or over http only when the
+    /// host is this machine (`localhost`, `127.0.0.1` or `[::1]`), which is where a server run in development puts its
+    /// storage. The same rule `ServerConfig` holds the app's own server to. Any other http address is refused: the
+    /// bytes of a person's file would cross the network in the clear.
     public static func address(from text: String) -> URL? {
-        guard let url = URL(string: text), let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
-              let host = url.host, !host.isEmpty
+        guard let url = URL(string: text), let scheme = url.scheme?.lowercased(), let host = url.host?.lowercased(), !host.isEmpty
         else { return nil }
-        return url
+        switch scheme {
+        case "https": return url
+        case "http": return isThisMachine(host) ? url : nil
+        default: return nil
+        }
+    }
+
+    /// `URL.host` gives an IPv6 address with its brackets on some platforms and without on others.
+    private static func isThisMachine(_ host: String) -> Bool {
+        ["localhost", "127.0.0.1", "::1", "[::1]"].contains(host)
     }
 
     public static func request(to url: URL, contentType: String, data: Data, timeout: TimeInterval = defaultTimeout) -> URLRequest {

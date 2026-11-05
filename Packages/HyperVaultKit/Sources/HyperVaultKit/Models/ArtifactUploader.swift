@@ -24,20 +24,19 @@ public struct ArtifactUploader: Sendable {
         guard !data.isEmpty else { throw HVError.invalidRequest("That file is empty.") }
 
         let ticket = try await client.send(.artifactUploadTicket(filename: filename, size: data.count))
-        guard let address = URL(string: ticket.signedUrl) else {
-            throw HVError.decoding("The upload address was not a link.")
+        guard let address = SignedUpload.address(from: ticket.signedUrl) else {
+            throw SignedUpload.refusal(forAddress: ticket.signedUrl)
         }
         if let limit = ticket.maxBytes, data.count > limit {
             throw HVError.api(APIFailure(status: 413, message: "That file is too large."))
         }
 
-        var request = URLRequest(url: address, timeoutInterval: 300)
-        request.httpMethod = "PUT"
-        request.setValue(ticket.contentType.isEmpty ? type.mime : ticket.contentType, forHTTPHeaderField: "Content-Type")
-        request.httpBody = data
         let response: HTTPResponse
         do {
-            response = try await transport.send(request)
+            // The same PUT a memory file import makes: the type the server named, and no token of the app's.
+            response = try await SignedUpload.put(
+                data, to: address, contentType: ticket.contentType.isEmpty ? type.mime : ticket.contentType, using: transport
+            )
         } catch {
             throw HVError.transport(error.localizedDescription)
         }

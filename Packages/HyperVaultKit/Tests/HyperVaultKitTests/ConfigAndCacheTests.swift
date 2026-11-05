@@ -38,6 +38,51 @@ final class ConfigAndCacheTests: XCTestCase {
         XCTAssertTrue(future.features.smartContext)
     }
 
+    func testCapabilitiesReadTheFileImportLimitsTheServerSays() throws {
+        let json = #"{"limits":{"memory_bytes":500000,"import_bytes":50000000,"import_file_bytes":10000000,"import_inline_file_bytes":4000000}}"#
+        let limits = try HVCoding.decoder().decode(Capabilities.self, from: Data(json.utf8)).limits
+        XCTAssertEqual(limits.importFileBytes, 10_000_000)
+        XCTAssertEqual(limits.importInlineFileBytes, 4_000_000)
+        XCTAssertEqual(limits.importBytes, 50_000_000, "the history importer's limit is a different number and is left as it was")
+        XCTAssertEqual(limits.memoryBytes, 500_000)
+
+        // Whatever the server says is what is used, in either field.
+        let other = try HVCoding.decoder().decode(Capabilities.self, from: Data(#"{"limits":{"import_file_bytes":25000000,"import_inline_file_bytes":3000000}}"#.utf8)).limits
+        XCTAssertEqual(other.importFileBytes, 25_000_000)
+        XCTAssertEqual(other.importInlineFileBytes, 3_000_000)
+    }
+
+    func testAServerThatDoesNotSayHowBigAFileMayBeIsTheOldOneWith4MBInTheRequest() throws {
+        // The shape before staged imports, and nothing at all, and a limits object with nothing of these in it.
+        for json in [
+            #"{"limits":{"artifact_bytes":1000000,"memory_bytes":500000,"import_bytes":50000000}}"#,
+            #"{"limits":{}}"#,
+            "{}",
+        ] {
+            let limits = try HVCoding.decoder().decode(Capabilities.self, from: Data(json.utf8)).limits
+            XCTAssertEqual(limits.importFileBytes, 4_000_000, json)
+            XCTAssertEqual(limits.importInlineFileBytes, 4_000_000, json)
+        }
+        XCTAssertEqual(Capabilities.Limits().importFileBytes, 4_000_000)
+        XCTAssertEqual(Capabilities.Limits().importInlineFileBytes, 4_000_000)
+        XCTAssertEqual(Capabilities().limits.importFileBytes, 4_000_000)
+        // Only the size of the whole file is raised: a server that names one number and not the other leaves the other old.
+        let half = try HVCoding.decoder().decode(Capabilities.self, from: Data(#"{"limits":{"import_file_bytes":10000000}}"#.utf8)).limits
+        XCTAssertEqual(half.importFileBytes, 10_000_000)
+        XCTAssertEqual(half.importInlineFileBytes, 4_000_000)
+    }
+
+    func testAMistakenFileImportLimitIsTheOldLimitAndDoesNotTakeTheDocumentDown() throws {
+        for value in [#""10 MB""#, "null", "0", "-5", "true", "[]"] {
+            let json = #"{"features":{"dreaming":false},"limits":{"memory_bytes":500000,"import_file_bytes":\#(value),"import_inline_file_bytes":\#(value)}}"#
+            let caps = try HVCoding.decoder().decode(Capabilities.self, from: Data(json.utf8))
+            XCTAssertEqual(caps.limits.importFileBytes, 4_000_000, value)
+            XCTAssertEqual(caps.limits.importInlineFileBytes, 4_000_000, value)
+            XCTAssertEqual(caps.limits.memoryBytes, 500_000, value)
+            XCTAssertFalse(caps.features.dreaming, "the rest of the document is read (\(value))")
+        }
+    }
+
     func testServerConfigInput() {
         XCTAssertEqual(ServerConfig(userInput: "hypervault.store")?.baseURL.absoluteString, "https://hypervault.store")
         XCTAssertEqual(ServerConfig(userInput: " https://my.host/ ")?.baseURL.absoluteString, "https://my.host")

@@ -193,6 +193,8 @@ final class ArtifactRealmsTests: XCTestCase {
         XCTAssertEqual(put.httpMethod, "PUT")
         XCTAssertEqual(put.value(forHTTPHeaderField: "Content-Type"), "application/pdf")
         XCTAssertNil(put.value(forHTTPHeaderField: "Authorization"), "the signed address carries its own permission; the app's token stays home")
+        XCTAssertEqual(put.allHTTPHeaderFields?.keys.sorted(), ["Content-Type"], "nothing else that storage could read as a second credential")
+        XCTAssertEqual(put.timeoutInterval, SignedUpload.defaultTimeout, "a big file on a slow connection")
         XCTAssertEqual(put.httpBody, Data("%PDF-1.4".utf8))
 
         let ticketBody = try XCTUnwrap(JSONSerialization.jsonObject(with: try XCTUnwrap(requests[0].httpBody)) as? [String: Any])
@@ -227,6 +229,42 @@ final class ArtifactRealmsTests: XCTestCase {
         } catch {
             XCTAssertEqual((error as? HVError)?.userMessage, "File is over the 1 MB limit.")
         }
+    }
+
+    func testAnAddressThatIsNotSafeToSendAFileToGetsNoFile() async {
+        // The same rule a memory file import holds its storage address to (`SignedUpload.address`): https, or http only for
+        // this machine. A page's file is as private as a document.
+        for bad in ["not a link", "ftp://p.supabase.test/storage/up", "http://p.supabase.test/storage/up", "http://192.168.1.20:54321/storage/up"] {
+            let transport = MockTransport(routes: [
+                .json(.post, "/api/artifacts/upload-url", #"{"path":"u/f.png","signed_url":"\#(bad)","token":"t","content_type":"image/png","max_bytes":1000000}"#),
+                MockRoute(.put, "/storage/up") { _ in HTTPResponse(status: 200, data: Data()) },
+                .json(.post, "/api/artifacts/import-file", "{}"),
+            ])
+            do {
+                _ = try await ArtifactUploader(client: client(transport), transport: transport).upload(data: Data("x".utf8), filename: "a.png")
+                XCTFail("expected a refusal for \(bad)")
+            } catch {
+                // Not a link at all is the server answering oddly; plain http to another machine is refused on purpose.
+                let insecure = bad.hasPrefix("http://")
+                let expected: HVError = insecure ? .invalidRequest("The upload address is not secure, so the file was not sent.") : .decoding("The upload address was not a link.")
+                XCTAssertEqual(error as? HVError, expected, bad)
+            }
+            let sent = await transport.requests.map { ($0.httpMethod ?? "") + " " + ($0.url?.path ?? "") }
+            XCTAssertEqual(sent, ["POST /api/artifacts/upload-url"], "no bytes go anywhere (\(bad))")
+        }
+    }
+
+    func testAStorageThatRunsOnThisMachineIsStillReachedOverHttp() async throws {
+        // A server in development puts its storage at 127.0.0.1, which is what the local end-to-end run does.
+        let transport = MockTransport(routes: [
+            .json(.post, "/api/artifacts/upload-url", #"{"path":"u/f.png","signed_url":"http://127.0.0.1:54321/object/upload/sign/artifact-files/u/f.png?token=t","token":"t","content_type":"image/png","max_bytes":1000000}"#),
+            MockRoute(.put, "/object/upload/sign/artifact-files/u/f.png") { _ in HTTPResponse(status: 200, data: Data()) },
+            .json(.post, "/api/artifacts/import-file", #"{"url":"https://hv.test/a/dot-abc","slug":"dot-abc","is_jsx":false,"visibility":"private","connections":{"manual":0,"auto":0},"message":"Saved!"}"#),
+        ])
+        let result = try await ArtifactUploader(client: client(transport), transport: transport).upload(data: Data("x".utf8), filename: "dot.png")
+        XCTAssertEqual(result.slug, "dot-abc")
+        let sent = await transport.requests.map { $0.url?.host ?? "" }
+        XCTAssertEqual(sent, ["hv.test", "127.0.0.1", "hv.test"])
     }
 
     func testAFailedPutNeverImports() async {

@@ -63,7 +63,7 @@ struct ImportPane: View {
             guard case .success(let urls) = result, let url = urls.first else { return }
             Task { await keep(url) }
         }
-        .onAppear { if model == nil { model = ImportFileModel(client: env.client) } }
+        .onAppear { if model == nil { model = ImportFileModel(client: env.client, limits: env.limits) } }
     }
 
     private func importRow(
@@ -86,7 +86,7 @@ struct ImportPane: View {
 
     /// Keeps the file the person picked, and opens what it became.
     private func keep(_ url: URL) async {
-        let model = model ?? ImportFileModel(client: env.client)
+        let model = model ?? ImportFileModel(client: env.client, limits: env.limits)
         self.model = model
         problem = nil
         switch await model.keep(url, branch: MemoryBranchStore.current(for: env.user.id)) {

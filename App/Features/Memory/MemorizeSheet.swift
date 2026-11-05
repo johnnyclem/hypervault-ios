@@ -33,6 +33,9 @@ struct MemorizeSheet: View {
     @State private var isWorking = false
     /// Where a file that goes by way of storage is: the long part of a big import, with a line to say so.
     @State private var stage: MemoryFileImporter.Stage?
+    /// The file import in flight, so that Cancel and a swipe down can stop it: a big file is on its way up a phone connection,
+    /// and nothing else would end it. A note or a link is a small request the person expects to be kept, so it is not stopped.
+    @State private var fileImport: Task<Void, Never>?
     @State private var problem: String?
     @FocusState private var focus: Field?
 
@@ -90,7 +93,10 @@ struct MemorizeSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") {
+                        stopFileImport()
+                        dismiss()
+                    }
                 }
             }
             .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.importTypes, allowsMultipleSelection: false) { result in
@@ -99,6 +105,8 @@ struct MemorizeSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        // On the stack and not on its first screen, which also disappears when "Bring memories from another AI" is pushed.
+        .onDisappear { stopFileImport() }
     }
 
     // MARK: Forms
@@ -291,6 +299,12 @@ struct MemorizeSheet: View {
 
     // MARK: Sending
 
+    /// Ends a file import that is still going. It finishes as a cancellation, which `submit` shows no sentence for.
+    private func stopFileImport() {
+        fileImport?.cancel()
+        fileImport = nil
+    }
+
     private func submit() {
         guard canSubmit, !isWorking else { return }
         if kind == .write, let refusal = draft.problem(limitBytes: list.env.limits.memoryBytes) {
@@ -307,7 +321,7 @@ struct MemorizeSheet: View {
         let draft = self.draft
         let picked = self.picked
         let link = MemoryImportPolicy.normalizedURL(self.link)
-        Task {
+        let work = Task {
             do {
                 let kept: MemoryKept
                 switch kind {
@@ -340,5 +354,6 @@ struct MemorizeSheet: View {
                 }
             }
         }
+        if kind == .file { fileImport = work }
     }
 }

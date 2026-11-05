@@ -175,7 +175,12 @@ them on glass (handoff 2.3, 4.1, 9):
   app: a line under the picker reads "Uploading the file..." and then "Reading the file...", and the sheet closes with the
   memory's toast and the PDF's text in the new memory. A 3 MB PDF still imports. A file over 10 MB is turned away with
   its name and "over the 10 MB import limit" before anything is sent. With Airplane Mode on after the file is chosen, the
-  failure is a sentence about the connection and not a status code.
+  failure is a sentence about the connection and not a status code. Cancel (and a swipe down) while "Uploading the file..." is
+  showing, on a throttled connection, closes the sheet with no error sentence and no toast, and the memory does not appear
+  (cancelling while "Reading the file..." shows may still leave the memory on the server; it is in the list on the next
+  refresh). Cancelling a note or a link does not stop it: it is kept and the toast says so. With VoiceOver on, "Uploading the
+  file..." and then "Reading the file..." are spoken as they change. Settings > Import > A file takes the same 6 MB
+  .docx (and a .md): it is uploaded to storage first, opens as a memory, and a file over 10 MB is turned away by name.
 - **Large text.** At the largest accessibility size the Settings list shows each pane's symbol above its name (no name breaks
   in the middle of a word) and no chevron, General shows the whole email address, wrapped, and the Yours panel opens at
   full height with its first rows visible. The Dreams badge in the Account menu is white on the flat blue `action` fill.

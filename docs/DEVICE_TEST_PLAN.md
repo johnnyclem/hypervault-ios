@@ -170,6 +170,12 @@ them on glass (handoff 2.3, 4.1, 9):
   really holds for the project, so check them against a project you know; a section the server could not read says so
   ("Couldn't read this.") rather than looking empty. Look at all of it at the largest accessibility size: the Open the full
   board row and the Show possibly related toggle keep their words and the page scrolls to the last section.
+- **A big file becomes a memory.** Memory > Memorize > File says "Up to 10 MB." (a deployment from before staged imports says
+  4 MB, and then everything here is capped at it). Import a 6 MB PDF from Files, from iCloud Drive and not a copy kept in the
+  app: a line under the picker reads "Uploading the file..." and then "Reading the file...", and the sheet closes with the
+  memory's toast and the PDF's text in the new memory. A 3 MB PDF still imports. A file over 10 MB is turned away with
+  its name and "over the 10 MB import limit" before anything is sent. With Airplane Mode on after the file is chosen, the
+  failure is a sentence about the connection and not a status code.
 - **Large text.** At the largest accessibility size the Settings list shows each pane's symbol above its name (no name breaks
   in the middle of a word) and no chevron, General shows the whole email address, wrapped, and the Yours panel opens at
   full height with its first rows visible. The Dreams badge in the Account menu is white on the flat blue `action` fill.

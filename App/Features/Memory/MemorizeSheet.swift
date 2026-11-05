@@ -31,6 +31,8 @@ struct MemorizeSheet: View {
     @State private var picked: PickedFile?
     @State private var showImporter = false
     @State private var isWorking = false
+    /// Where a file that goes by way of storage is: the long part of a big import, with a line to say so.
+    @State private var stage: MemoryFileImporter.Stage?
     @State private var problem: String?
     @FocusState private var focus: Field?
 
@@ -103,6 +105,9 @@ struct MemorizeSheet: View {
 
     private var limitLabel: String { MemoryLimits.label(forBytes: list.env.limits.memoryBytes) }
 
+    /// The most a file may be, as the server says it ("10 MB"; "4 MB" from a server that does not say).
+    private var fileLimitLabel: String { MemoryImportPolicy.fileLabel(limits: list.env.limits) }
+
     private var writeForm: some View {
         VStack(alignment: .leading, spacing: HV.Space.m) {
             Text("Paste anything from a chat or a coding session. It is titled, tagged, summarized and linked for you.")
@@ -165,7 +170,7 @@ struct MemorizeSheet: View {
 
     private var fileForm: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
-            Text("A PDF, a Word document, Markdown or plain text becomes a memory. Up to \(MemoryImportPolicy.maxFileLabel).")
+            Text("A PDF, a Word document, Markdown or plain text becomes a memory. Up to \(fileLimitLabel).")
                 .font(.hvCallout)
                 .foregroundStyle(Palette.textSecondary)
             Button {
@@ -196,6 +201,14 @@ struct MemorizeSheet: View {
                 .hvCard()
             }
             .buttonStyle(.plain)
+            .disabled(isWorking)
+
+            // A big file is put in storage before the server reads it, which takes a while on a phone connection.
+            if isWorking, let stage {
+                Text(stage.line)
+                    .font(.hvFootnote)
+                    .foregroundStyle(Palette.textSecondary)
+            }
         }
     }
 
@@ -263,7 +276,7 @@ struct MemorizeSheet: View {
             do {
                 let data = try Data(contentsOf: url)
                 let name = url.lastPathComponent
-                if let refusal = MemoryImportPolicy.problem(filename: name, byteCount: data.count) {
+                if let refusal = MemoryImportPolicy.problem(filename: name, byteCount: data.count, limits: list.env.limits) {
                     picked = nil
                     problem = refusal
                 } else {
@@ -289,6 +302,7 @@ struct MemorizeSheet: View {
         isWorking = true
         let client = list.client
         let branch = list.branch
+        let limits = list.env.limits
         let kind = self.kind
         let draft = self.draft
         let picked = self.picked
@@ -301,19 +315,23 @@ struct MemorizeSheet: View {
                     kept = try await client.send(.memoryCreate(draft, branch: branch))
                 case .file:
                     guard let picked else { return }
-                    kept = try await client.send(.memoryImport(filename: picked.name, data: picked.data, branch: branch))
+                    // The importer sends a file in the request when it fits and by way of storage when it does not.
+                    kept = try await MemoryFileImporter(client: client, limits: limits)
+                        .importFile(filename: picked.name, data: picked.data, branch: branch) { stage = $0 }
                 case .link:
                     guard let link else { return }
                     kept = try await client.send(.memoryImport(url: link, branch: branch))
                 }
                 isWorking = false
+                stage = nil
                 list.didKeep(kept)
                 app.toasts.success(kept.message.isEmpty ? HVCopy.keptInMemoryLine : kept.message)
                 dismiss()
             } catch {
                 isWorking = false
+                stage = nil
                 if !MemoryErrors.isCancelled(error) {
-                    problem = (error as? HVError).map { MemoryImportPolicy.message(for: $0) } ?? error.localizedDescription
+                    problem = (error as? HVError).map { MemoryImportPolicy.message(for: $0, limits: limits) } ?? error.localizedDescription
                     Haptics.failure()
                 }
             }

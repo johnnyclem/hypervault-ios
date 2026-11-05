@@ -1,0 +1,95 @@
+Attributes: Application, 0x118291540, pid: 4477, label: 'HyperVault'
+Element subtree:
+ →Application, 0x118291540, pid: 4477, label: 'HyperVault'
+    Window (Main), 0x118290c80, {{0.0, 0.0}, {390.0, 844.0}}
+      Other, 0x118291f40, {{0.0, 0.0}, {390.0, 844.0}}
+        Other, 0x1182926c0, {{0.0, 0.0}, {390.0, 844.0}}
+          Other, 0x118292800, {{0.0, 0.0}, {390.0, 844.0}}
+            Other, 0x118292940, {{0.0, 0.0}, {390.0, 844.0}}
+              Other, 0x118292a80, {{0.0, 47.0}, {390.0, 763.0}}
+              Other, 0x118292bc0, {{0.0, 47.0}, {390.0, 763.0}}
+              Other, 0x118292d00, {{0.0, 0.0}, {390.0, 844.0}}
+                Other, 0x118292e40, {{0.0, 0.0}, {390.0, 844.0}}
+                  Other, 0x118292f80, {{0.0, 0.0}, {390.0, 844.0}}
+                    Other, 0x1182930c0, {{0.0, 0.0}, {390.0, 844.0}}
+                      Other, 0x118293200, {{0.0, 0.0}, {390.0, 844.0}}
+                        Other, 0x118293340, {{0.0, 0.0}, {390.0, 844.0}}
+                          Other, 0x118290a00, {{0.0, 0.0}, {390.0, 844.0}}
+                            NavigationBar, 0x118291400, {{0.0, 47.0}, {390.0, 54.0}}, identifier: '_TtGC7SwiftUI32NavigationStackHosting'
+                              Button, 0x118291680, {{16.0, 47.0}, {44.0, 44.0}}, identifier: 'BackButton', label: 'Home'
+                              Other, 0x1182917c0, {{334.0, 51.0}, {36.0, 36.0}}, identifier: 'canvas.yours', label: 'Open panel'
+                                Other, 0x118291cc0, {{334.0, 51.0}, {36.0, 36.0}}
+                                  Button, 0x118291e00, {{336.0, 51.0}, {32.0, 36.0}}, identifier: 'canvas.yours', label: 'Open panel'
+                            Other, 0x118293d40, {{0.0, 0.0}, {390.0, 844.0}}
+                              Other, 0x1182921c0, {{0.0, 0.0}, {390.0, 844.0}}
+                                Other, 0x118292300, {{0.0, 0.0}, {390.0, 844.0}}
+                                  Other, 0x118292440, {{0.0, 0.0}, {390.0, 844.0}}
+                                    Other, 0x118292580, {{0.0, 0.0}, {390.0, 844.0}}
+                                    ScrollView, 0x11829ebc0, {{0.0, 0.0}, {390.0, 844.0}}
+                                      Other, 0x11829ed00, {{0.0, 0.0}, {390.0, 844.0}}
+                                        Other, 0x11829ee40, {{0.0, 0.0}, {390.0, 155.8}}
+                                        Other, 0x11829ef80, {{0.0, 696.2}, {390.0, 147.8}}
+                                      Other, 0x11829f0c0, {{0.0, 0.0}, {390.0, 844.0}}
+                                      Other, 0x11829f200, {{0.0, 101.0}, {390.0, 415.7}}
+                                        StaticText, 0x11829f340, {{48.7, 229.0}, {292.7, 54.3}}, label: 'Keep what your AI just made. Only you can open it.'
+                                        StaticText, 0x11829f480, {{85.5, 303.3}, {219.0, 19.3}}, identifier: 'canvas.hint', label: 'Paste anything here to keep it.'
+                                        Button, 0x11829f5c0, {{151.3, 334.7}, {87.3, 34.3}}, label: 'Paste'
+                                        Button, 0x11829f700, {{102.3, 381.0}, {185.3, 44.0}}, identifier: 'canvas.starter', label: 'Copy a starter prompt'
+                                          Image, 0x11829f840, {{104.3, 393.7}, {15.7, 19.0}}, identifier: 'doc.on.doc', label: 'Copy'
+                                          StaticText, 0x11829f980, {{102.3, 381.0}, {185.3, 44.0}}, label: 'Copy a starter prompt'
+                                        StaticText, 0x11829fac0, {{36.3, 459.2}, {19.3, 15.7}}, label: 'Try'
+                                        Button, 0x11829fc00, {{63.7, 445.0}, {161.0, 44.0}}, label: 'Show my memories'
+                                        Button, 0x11829fd40, {{232.7, 445.0}, {121.0, 44.0}}, label: 'Show my files'
+                                        StaticText, 0x11829fe80, {{64.7, 501.0}, {260.7, 15.7}}, label: 'Ask anything else and your model answers.'
+                                      Other, 0x11829e440, {{357.0, 101.0}, {30.0, 584.0}}, label: 'Vertical scroll bar, 1 page', value: 0%
+                                        Other, 0x11829e300, {{384.0, 334.3}, {3.0, 347.7}}
+                                      Other, 0x11829de00, {{357.0, 101.0}, {30.0, 584.0}}, label: 'Vertical scroll bar, 1 page', value: 0%
+                                        Other, 0x11829df40, {{384.0, 334.3}, {3.0, 347.7}}
+                                    Button, 0x11829e080, {{24.0, 701.0}, {44.0, 44.0}}, identifier: 'canvas.more', label: 'More'
+                                      Button, 0x11829e940, {{24.0, 701.0}, {44.0, 44.0}}
+                                        Image, 0x11829ea80, {{39.0, 716.0}, {14.3, 14.3}}, identifier: 'plus', label: 'Add'
+                                    TextField, 0x118294000, {{76.0, 714.0}, {238.0, 22.0}}, identifier: 'canvas.field', placeholderValue: 'Ask, or paste something to keep.'
+                                      Other, 0x118294140, {{76.0, 722.0}, {238.0, 11.0}}, label: 'Horizontal scroll bar, 1 page', value: 0%
+                                        Other, 0x118294280, {{79.0, 730.0}, {232.0, 3.0}}
+                                    Button, 0x1182943c0, {{322.0, 701.0}, {44.0, 44.0}}, identifier: 'mic', label: 'Dictate'
+                            Other, 0x118294500, {{0.0, 0.0}, {390.0, 844.0}}
+                              Other, 0x118294640, {{0.0, 0.0}, {390.0, 844.0}}
+                Other, 0x118294780, {{0.0, 761.0}, {390.0, 83.0}}
+                  Other, 0x1182948c0, {{0.0, 0.0}, {390.0, 844.0}}
+                    TabBar, 0x118294a00, {{0.0, 761.0}, {390.0, 83.0}}, label: 'Tab Bar'
+                      Other, 0x118294b40, {{21.0, 761.0}, {348.0, 62.0}}
+                        Other, 0x118294c80, {{21.0, 761.0}, {95.0, 54.0}}
+                        Other, 0x118294dc0, {{21.0, 761.0}, {348.0, 62.0}}
+                          Button, 0x118294f00, {{25.0, 765.0}, {95.0, 54.0}}, label: 'Home', Selected
+                            Image, 0x118295040, {{56.0, 771.0}, {33.3, 28.0}}, identifier: 'house.fill', label: 'home'
+                          Button, 0x118295180, {{106.7, 765.0}, {95.0, 54.0}}, label: 'Projects'
+                            Image, 0x1182952c0, {{139.7, 767.7}, {28.7, 32.0}}, identifier: 'square.stack.3d.up.fill', label: 'hdr'
+                          Button, 0x118295400, {{188.3, 765.0}, {95.0, 54.0}}, label: 'Memory'
+                            Image, 0x118295540, {{220.3, 772.7}, {30.7, 24.3}}, identifier: 'tab-glyph-quiet', label: 'Memory'
+                          Button, 0x118295680, {{270.0, 765.0}, {95.0, 54.0}}, label: 'Mail', value: 2 unread
+                            Image, 0x1182957c0, {{301.0, 773.0}, {33.7, 23.7}}, identifier: 'envelope.fill', label: 'get mail'
+                        Other, 0x118295900, {{25.0, 765.0}, {95.0, 54.0}}
+                          Other, 0x118295a40, {{25.0, 765.0}, {95.0, 54.0}}
+                            Other, 0x118295b80, {{25.0, 765.0}, {95.0, 54.0}}
+                            Other, 0x118295cc0, {{25.0, 765.0}, {95.0, 54.0}}
+                              Other, 0x118295e00, {{25.0, 765.0}, {95.0, 54.0}}
+                                Other, 0x118295f40, {{25.0, 765.0}, {95.0, 54.0}}
+                                  Other, 0x118296080, {{25.0, 765.0}, {95.0, 54.0}}
+                                Other, 0x1182961c0, {{25.0, 765.0}, {95.0, 54.0}}
+                              Other, 0x118296300, {{25.0, 765.0}, {95.0, 54.0}}
+                  Other, 0x118296440, {{0.0, 761.0}, {390.0, 83.0}}
+                    Other, 0x118296580, {{0.0, 761.0}, {390.0, 83.0}}
+                      Other, 0x1182966c0, {{0.0, 761.0}, {390.0, 83.0}}
+                        Other, 0x118296800, {{0.0, 761.0}, {390.0, 83.0}}
+                          Other, 0x118296940, {{0.0, 761.0}, {390.0, 83.0}}
+                            Other, 0x118296a80, {{0.0, 761.0}, {390.0, 83.0}}
+                        Other, 0x118296bc0, {{0.0, 761.0}, {390.0, 83.0}}
+                          Other, 0x118296d00, {{0.0, 761.0}, {390.0, 83.0}}
+              Other, 0x118296e40, {{0.0, 47.0}, {3.0, 3.0}}, identifier: 'uitest.writes', label: 'no writes'
+Path to element:
+ →Application, 0x118291540, pid: 4477, label: 'HyperVault'
+Query chain:
+ →Find: Target Application 'store.hypervault.app'
+  Output: {
+    Application, 0x118296f80, pid: 4477, label: 'HyperVault'
+  }

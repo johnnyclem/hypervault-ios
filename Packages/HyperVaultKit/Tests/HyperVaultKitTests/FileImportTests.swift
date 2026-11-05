@@ -78,6 +78,29 @@ final class FileImportTests: XCTestCase {
         XCTAssertEqual(FileImport.refusal(forFilename: "x.zip", kind: .export, byteCount: 10), FileImport.exportElsewhere)
     }
 
+    func testADocumentIsHeldToTheLimitsTheServerStatesAndToTheOldOnesWhenItStatesNone() {
+        let newServer = Capabilities.Limits(importFileBytes: 10_000_000, importInlineFileBytes: 4_000_000)
+        // Past the 4 MB a request carries and up to the 10 MB the server takes: kept, by way of storage.
+        XCTAssertNil(FileImport.refusal(forFilename: "book.docx", kind: .document, byteCount: 4_000_001, limits: newServer))
+        XCTAssertNil(FileImport.refusal(forFilename: "book.docx", kind: .document, byteCount: 10_000_000, limits: newServer))
+        XCTAssertEqual(
+            FileImport.refusal(forFilename: "book.docx", kind: .document, byteCount: 10_000_001, limits: newServer),
+            "\"book.docx\" is over the 10 MB import limit \u{2014} split it or trim it down."
+        )
+        // A server that states nothing is the one that took 4 MB, with the sentence an older build said.
+        let old = Capabilities.Limits()
+        XCTAssertNil(FileImport.refusal(forFilename: "a.md", kind: .document, byteCount: 4_000_000, limits: old))
+        XCTAssertEqual(
+            FileImport.refusal(forFilename: "book.docx", kind: .document, byteCount: 4_000_001, limits: old),
+            "\"book.docx\" is over the 4 MB import limit \u{2014} split it or trim it down."
+        )
+        XCTAssertEqual(FileImport.refusal(forFilename: "book.docx", kind: .document, byteCount: 4_000_001, limits: old),
+                       FileImport.refusal(forFilename: "book.docx", kind: .document, byteCount: 4_000_001))
+        // The limits are about documents: a PDF or an image keeps its own ceiling.
+        XCTAssertNil(FileImport.refusal(forFilename: "a.png", kind: .image, byteCount: 20_000_000, limits: old))
+        XCTAssertEqual(FileImport.refusal(forFilename: "a.pdf", kind: .pdf, byteCount: 50_000_001, limits: newServer), FileImport.pdfTooBig)
+    }
+
     func testTheTitleIsTheNameWithoutItsExtension() {
         XCTAssertEqual(FileImport.title(ofComponent: "Pomodoro.jsx"), "Pomodoro")
         XCTAssertEqual(FileImport.title(ofComponent: "Pomodoro.TSX"), "Pomodoro")

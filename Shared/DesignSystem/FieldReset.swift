@@ -50,8 +50,24 @@ struct HVFieldResetModifier<Value: Hashable>: ViewModifier {
                 // Read in the pass that swaps the field: the old one still holds the keyboard.
                 guard focus.wrappedValue == field else { return }
                 Task { @MainActor in
-                    // By now SwiftUI has either moved the keyboard to the new field (nothing to do) or let it go.
-                    if focus.wrappedValue != field { focus.wrappedValue = field }
+                    // By now SwiftUI has either moved the keyboard to the new field (nothing to do) or let it go. A request
+                    // for the keyboard made before the new field is in the hierarchy is dropped, and on a busy machine the
+                    // field can be a few frames late (a UI-test run on a loaded CI runner finished sending a message with
+                    // an empty field and no keyboard), so the request is made again, a little later each time, until the
+                    // keyboard has been seen where it should be on two looks in a row. Under a second in all, and it only
+                    // ever asks for the keyboard that the swapped field had.
+                    var held = 0
+                    for pause in [0, 80, 200, 500] as [Int] {
+                        if pause > 0 { try? await Task.sleep(for: .milliseconds(pause)) }
+                        if Task.isCancelled { return }
+                        if focus.wrappedValue == field {
+                            held += 1
+                            if held >= 2 { return }
+                        } else {
+                            held = 0
+                            focus.wrappedValue = field
+                        }
+                    }
                 }
             }
     }

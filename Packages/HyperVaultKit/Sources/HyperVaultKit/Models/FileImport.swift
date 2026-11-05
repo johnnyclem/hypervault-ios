@@ -60,7 +60,9 @@ public enum FileImport {
     public static var fileTooBig: String { "That file is over the \(maxPDFLabel) limit." }
 
     /// The sentence for a file that would be refused before it is sent, or nil: the kind says what is checked. A document
-    /// is held to the memory import's own limit and its own sentence.
+    /// is held to the memory import's own limit and its own sentence. This pane sends a document in the request and never
+    /// by way of storage (`MemoryFileImporter` does that), so it is held to the 4 MB a request carries, whatever else the
+    /// server takes.
     public static func refusal(forFilename name: String, kind: Kind, byteCount: Int) -> String? {
         switch kind {
         case .pdf: return isOverTheCeiling(bytes: byteCount) ? pdfTooBig : nil

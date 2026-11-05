@@ -752,9 +752,12 @@ public enum MemoryLimits {
 // MARK: Importing
 
 /// What the import route takes (app/api/memories/import/route.ts, lib/ingest/files.ts).
+///
+/// The limits are the server's to say (`Capabilities.Limits.importFileBytes` and `importInlineFileBytes`), so every
+/// check here takes them. The default is `Capabilities.Limits()`, which is a server that predates staged imports:
+/// 4 MB, in the request. A caller that can only send the file in the request (the Settings importer) leaves them
+/// out and is held to that.
 public enum MemoryImportPolicy {
-    public static let maxFileBytes = 4_000_000
-    public static let maxFileLabel = "4 MB"
     public static let extensions = ["pdf", "docx", "md", "markdown", "mdx", "txt", "text"]
     public static let unsupportedTypeMessage = "Unsupported file type — import a PDF, DOCX, .md, or .txt file."
 
@@ -782,10 +785,34 @@ public enum MemoryImportPolicy {
         }
     }
 
+    /// How a file travels to the server.
+    public enum Route: Sendable, Equatable {
+        /// Inside the import request (multipart), as every file did before staged imports.
+        case inline
+        /// Put in storage first, then named in the import request. For a file the request cannot carry.
+        case staged
+    }
+
+    /// "10 MB": the most a file may be, in the words the help line and the refusal use.
+    public static func fileLabel(limits: Capabilities.Limits = Capabilities.Limits()) -> String {
+        MemoryLimits.label(forBytes: limits.importFileBytes)
+    }
+
+    /// How a file of this size is sent, or nil when it is over the most the server takes.
+    public static func route(byteCount: Int, limits: Capabilities.Limits = Capabilities.Limits()) -> Route? {
+        guard byteCount <= limits.importFileBytes else { return nil }
+        return byteCount <= limits.importInlineFileBytes ? .inline : .staged
+    }
+
+    /// The sentence for a file that is over the limit, as the web's import says it.
+    static func overTheLimit(filename: String, label: String) -> String {
+        "\"\(filename)\" is over the \(label) import limit — split it or trim it down."
+    }
+
     /// The sentence for a file that would be refused before it is sent, or nil.
-    public static func problem(filename: String, byteCount: Int) -> String? {
-        if byteCount > maxFileBytes {
-            return "\"\(filename)\" is over the \(maxFileLabel) import limit — split it or trim it down."
+    public static func problem(filename: String, byteCount: Int, limits: Capabilities.Limits = Capabilities.Limits()) -> String? {
+        if route(byteCount: byteCount, limits: limits) == nil {
+            return overTheLimit(filename: filename, label: fileLabel(limits: limits))
         }
         if kind(forFilename: filename) == nil { return unsupportedTypeMessage }
         return nil
@@ -793,10 +820,13 @@ public enum MemoryImportPolicy {
 
     /// What to say for a refused import. The server's sentence goes through as
     /// written; a 413 that never reached it (the platform's plain-text answer
-    /// to a body that is too big) gets the sentence the web app uses.
-    public static func message(for error: HVError) -> String {
-        if case .api(let failure) = error, failure.status == 413, failure.body == nil {
-            return "That upload is too large — the import limit is \(maxFileLabel)."
+    /// to a body that is too big, which only a request that carries the file
+    /// can get) gets the sentence the web app uses, with the limit of such a
+    /// request. A failure that has a code was worded by the app or the server,
+    /// not by the platform, and goes through as it is.
+    public static func message(for error: HVError, limits: Capabilities.Limits = Capabilities.Limits()) -> String {
+        if case .api(let failure) = error, failure.status == 413, failure.body == nil, failure.code == nil {
+            return "That upload is too large — the import limit is \(MemoryLimits.label(forBytes: limits.importInlineFileBytes))."
         }
         return error.userMessage
     }
@@ -811,6 +841,28 @@ public enum MemoryImportPolicy {
         else { return nil }
         return trimmed
     }
+}
+
+/// `POST /api/memories/import/upload-url`: where to PUT a file too big for the import request. The address carries its
+/// own permission, so the PUT takes no token; the `path` is what the import names afterwards.
+public struct MemoryUploadTicket: Sendable, Decodable, Equatable {
+    public let path: String
+    public let signedUrl: String
+    public let token: String?
+    /// The `Content-Type` the PUT must carry: storage only takes the four types a file import reads.
+    public let contentType: String?
+    public let maxBytes: Int?
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: Keys.self)
+        path = try c.decode(String.self, forKey: .path)
+        signedUrl = try c.decode(String.self, forKey: .signedUrl)
+        token = try c.decodeIfPresent(String.self, forKey: .token)
+        contentType = try c.decodeIfPresent(String.self, forKey: .contentType)
+        maxBytes = try c.decodeIfPresent(Int.self, forKey: .maxBytes)
+    }
+
+    enum Keys: String, CodingKey { case path, signedUrl, token, contentType, maxBytes }
 }
 
 // MARK: Recall, on the device
@@ -1120,6 +1172,23 @@ extension Endpoint where Response == MemoryKept {
     /// A GitHub repository becomes a project digest; any other page becomes a note.
     public static func memoryImport(url: String, branch: String? = nil) -> Endpoint<MemoryKept> {
         Endpoint(.post, "/api/memories/import", query: .make([("branch", branch)]), body: .jsonValue(["url": .string(url)]), timeout: 90)
+    }
+
+    /// A file already put in storage (see `memoryImportUploadURL`) becomes a memory, the same one the multipart call
+    /// would have made. The server reads the file from storage and removes it, whatever the outcome.
+    public static func memoryImport(upload path: String, filename: String, branch: String? = nil) -> Endpoint<MemoryKept> {
+        Endpoint(
+            .post, "/api/memories/import", query: .make([("branch", branch)]),
+            body: .jsonValue(["upload": .string(path), "filename": .string(filename)]), timeout: 90
+        )
+    }
+}
+
+extension Endpoint where Response == MemoryUploadTicket {
+    /// Asks where to PUT a file that is over what the import request carries. Not repeated on a failure: a try that
+    /// went through used one of the few addresses a person may ask for in an hour.
+    public static func memoryImportUploadURL(filename: String, size: Int) -> Endpoint<MemoryUploadTicket> {
+        Endpoint(.post, "/api/memories/import/upload-url", body: .jsonValue(["filename": .string(filename), "size": .int(size)]))
     }
 }
 

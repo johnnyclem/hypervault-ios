@@ -350,6 +350,89 @@ final class MemoryTests: XCTestCase {
         }
     }
 
+    func testStagedImportNamesTheUploadAndTheFileInJSON() async throws {
+        let (api, transport) = client([.json(.post, "/api/memories/import", #"{"id":"m7","title":"Quarterly report","summary":"s","tags":["pdf"],"source":"file","links":2,"branch":"draft","commit_id":"c7","message":"Imported the file."}"#)])
+        let kept = try await api.send(.memoryImport(upload: "u1/3f2a.pdf", filename: "Quarterly report.pdf", branch: "draft"))
+        XCTAssertEqual(kept.source, "file")
+        XCTAssertEqual(kept.branch, "draft")
+        let allSent = await transport.requests
+        let sent = try XCTUnwrap(allSent.first)
+        XCTAssertEqual(sent.httpMethod, "POST")
+        XCTAssertEqual(sent.url?.query, "branch=draft")
+        XCTAssertEqual(sent.value(forHTTPHeaderField: "Content-Type"), "application/json")
+        XCTAssertEqual(String(decoding: sent.httpBody ?? Data(), as: UTF8.self), #"{"filename":"Quarterly report.pdf","upload":"u1/3f2a.pdf"}"#, "the path keeps its slash")
+        // The branch is optional, as it is for the other two ways in.
+        _ = try await api.send(.memoryImport(upload: "u1/3f2a.pdf", filename: "a.pdf"))
+        let after = await transport.requests
+        XCTAssertNil(after.last?.url?.query)
+    }
+
+    func testTheUploadAddressIsAskedForWithTheNameAndTheSize() async throws {
+        let (api, transport) = client([.json(.post, "/api/memories/import/upload-url", #"{"path":"u1/3f2a.pdf","signed_url":"https://p.supabase.test/storage/v1/object/upload/sign/import-staging/u1/3f2a.pdf?token=t","token":"t","content_type":"application/pdf","max_bytes":10000000}"#)])
+        let ticket = try await api.send(.memoryImportUploadURL(filename: "Quarterly report.pdf", size: 6_200_000))
+        XCTAssertEqual(ticket.path, "u1/3f2a.pdf")
+        XCTAssertEqual(ticket.signedUrl, "https://p.supabase.test/storage/v1/object/upload/sign/import-staging/u1/3f2a.pdf?token=t")
+        XCTAssertEqual(ticket.token, "t")
+        XCTAssertEqual(ticket.contentType, "application/pdf")
+        XCTAssertEqual(ticket.maxBytes, 10_000_000)
+        let allSent = await transport.requests
+        let sent = try XCTUnwrap(allSent.first)
+        XCTAssertEqual(sent.httpMethod, "POST")
+        XCTAssertEqual(sent.url?.path, "/api/memories/import/upload-url")
+        XCTAssertEqual(String(decoding: sent.httpBody ?? Data(), as: UTF8.self), #"{"filename":"Quarterly report.pdf","size":6200000}"#)
+        XCTAssertEqual(sent.value(forHTTPHeaderField: "Authorization"), "Bearer preview-token", "this one is the app's own call, signed in")
+    }
+
+    func testATicketNeedsOnlyAPathAndAnAddress() throws {
+        let bare = try decode(MemoryUploadTicket.self, #"{"path":"u1/a.md","signed_url":"https://s.test/up"}"#)
+        XCTAssertNil(bare.token)
+        XCTAssertNil(bare.contentType)
+        XCTAssertNil(bare.maxBytes)
+        XCTAssertThrowsError(try decode(MemoryUploadTicket.self, #"{"path":"u1/a.md"}"#))
+    }
+
+    func testImportPolicyFollowsTheLimitsItIsGiven() {
+        let newServer = Capabilities.Limits(importFileBytes: 10_000_000, importInlineFileBytes: 4_000_000)
+        XCTAssertEqual(MemoryImportPolicy.fileLabel(limits: newServer), "10 MB")
+        XCTAssertEqual(MemoryImportPolicy.fileLabel(limits: Capabilities.Limits(importFileBytes: 2_500_000)), "2.5 MB")
+        XCTAssertEqual(MemoryImportPolicy.fileLabel(), "4 MB", "no limits given is an older server")
+
+        XCTAssertEqual(MemoryImportPolicy.route(byteCount: 0, limits: newServer), .inline)
+        XCTAssertEqual(MemoryImportPolicy.route(byteCount: 4_000_000, limits: newServer), .inline)
+        XCTAssertEqual(MemoryImportPolicy.route(byteCount: 4_000_001, limits: newServer), .staged)
+        XCTAssertEqual(MemoryImportPolicy.route(byteCount: 10_000_000, limits: newServer), .staged)
+        XCTAssertNil(MemoryImportPolicy.route(byteCount: 10_000_001, limits: newServer))
+
+        XCTAssertNil(MemoryImportPolicy.problem(filename: "ok.pdf", byteCount: 4_000_001, limits: newServer))
+        XCTAssertNil(MemoryImportPolicy.problem(filename: "ok.pdf", byteCount: 10_000_000, limits: newServer))
+        XCTAssertEqual(MemoryImportPolicy.problem(filename: "big.pdf", byteCount: 10_000_001, limits: newServer), "\"big.pdf\" is over the 10 MB import limit — split it or trim it down.")
+        XCTAssertEqual(MemoryImportPolicy.problem(filename: "pic.png", byteCount: 10, limits: newServer), "Unsupported file type — import a PDF, DOCX, .md, or .txt file.")
+        XCTAssertEqual(MemoryImportPolicy.problem(filename: "pic.png", byteCount: 20_000_000, limits: newServer), "\"pic.png\" is over the 10 MB import limit — split it or trim it down.", "too big is said first, as it always was")
+
+        // An older server: the file limit and the request limit are the same 4 MB, and nothing is staged.
+        let old = Capabilities.Limits()
+        XCTAssertEqual(MemoryImportPolicy.route(byteCount: 4_000_000, limits: old), .inline)
+        XCTAssertNil(MemoryImportPolicy.route(byteCount: 4_000_001, limits: old))
+        XCTAssertEqual(MemoryImportPolicy.problem(filename: "big.pdf", byteCount: 4_000_001, limits: old), "\"big.pdf\" is over the 4 MB import limit — split it or trim it down.")
+
+        // A server that names an inline limit above its own file limit has nothing to stage; the file limit rules.
+        let odd = Capabilities.Limits(importFileBytes: 3_000_000, importInlineFileBytes: 5_000_000)
+        XCTAssertEqual(MemoryImportPolicy.route(byteCount: 3_000_000, limits: odd), .inline)
+        XCTAssertNil(MemoryImportPolicy.route(byteCount: 3_000_001, limits: odd))
+    }
+
+    func testAPlainTextTooLargeNamesTheLimitOfARequestThatCarriesTheFile() {
+        let platform = HVError.api(APIFailure(status: 413, message: "That is too large."))
+        XCTAssertEqual(MemoryImportPolicy.message(for: platform), "That upload is too large — the import limit is 4 MB.", "unchanged for a caller that names no limits")
+        let newServer = Capabilities.Limits(importFileBytes: 10_000_000, importInlineFileBytes: 4_000_000)
+        XCTAssertEqual(MemoryImportPolicy.message(for: platform, limits: newServer), "That upload is too large — the import limit is 4 MB.", "the request is what the platform measured")
+        let server = HVError.api(APIFailure(status: 413, message: "That file is over the 10 MB import limit.", body: .object(["error": .string("That file is over the 10 MB import limit.")])))
+        XCTAssertEqual(MemoryImportPolicy.message(for: server, limits: newServer), "That file is over the 10 MB import limit.")
+        let ours = HVError.api(APIFailure(status: 413, message: "Our own sentence.", code: "storage_file_too_large"))
+        XCTAssertEqual(MemoryImportPolicy.message(for: ours, limits: newServer), "Our own sentence.")
+        XCTAssertEqual(MemoryImportPolicy.message(for: .transport("x"), limits: newServer), "Network hiccup. Check your connection and try again.")
+    }
+
     func testImportPolicy() {
         XCTAssertEqual(MemoryImportPolicy.kind(forFilename: "Report.PDF"), .pdf)
         XCTAssertEqual(MemoryImportPolicy.kind(forFilename: "notes.md"), .markdown)

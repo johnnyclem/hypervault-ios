@@ -94,18 +94,22 @@ final class MemoryFileImporterTests: XCTestCase {
         XCTAssertEqual(allowed.count, 3)
 
         let (strict, untouched) = setup(routes())
-        let error = await failure { try await strict.importFile(filename: "book.pdf", data: Data(count: 10_000_001)) }
+        let log = StageLog()
+        let error = await failure { try await strict.importFile(filename: "book.pdf", data: Data(count: 10_000_001)) { log.add($0) } }
         XCTAssertEqual(error?.userMessage, "\"book.pdf\" is over the 10 MB import limit — split it or trim it down.")
         let none = await paths(untouched)
         XCTAssertEqual(none, [])
+        XCTAssertEqual(log.stages, [], "a refusal before anything is sent says nothing about uploading")
     }
 
     func testAFileOfAnotherKindIsRefusedBeforeAnythingIsSent() async {
         let (importer, transport) = setup(routes())
-        let error = await failure { try await importer.importFile(filename: "photo.png", data: Data(count: 6_000_000)) }
+        let log = StageLog()
+        let error = await failure { try await importer.importFile(filename: "photo.png", data: Data(count: 6_000_000)) { log.add($0) } }
         XCTAssertEqual(error?.userMessage, "Unsupported file type — import a PDF, DOCX, .md, or .txt file.")
         let none = await paths(transport)
         XCTAssertEqual(none, [])
+        XCTAssertEqual(log.stages, [])
     }
 
     // MARK: The staged import, request by request
@@ -177,10 +181,12 @@ final class MemoryFileImporterTests: XCTestCase {
             [.failure(.post, "/api/memories/import/upload-url", status: 503, message: "Storage is not available right now.")],
             retry: RetryPolicy(maxAttempts: 3, baseDelay: 0, maxDelay: 0)
         )
-        let error = await failure { try await importer.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) }
+        let log = StageLog()
+        let error = await failure { try await importer.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) { log.add($0) } }
         XCTAssertEqual(error?.userMessage, "Storage is not available right now.")
         let sent = await paths(transport)
         XCTAssertEqual(sent, ["POST /api/memories/import/upload-url"])
+        XCTAssertEqual(log.stages, [.uploading])
     }
 
     // MARK: Each step failing, in words
@@ -195,41 +201,49 @@ final class MemoryFileImporterTests: XCTestCase {
         ]
         for (status, sentence) in cases {
             let (importer, transport) = setup([.failure(.post, "/api/memories/import/upload-url", status: status, message: sentence)])
-            let error = await failure { try await importer.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) }
+            let log = StageLog()
+            let error = await failure { try await importer.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) { log.add($0) } }
             XCTAssertEqual(error?.userMessage, sentence, "\(status)")
             XCTAssertEqual(error?.status, status)
             let sent = await paths(transport)
             XCTAssertEqual(sent, ["POST /api/memories/import/upload-url"], "nothing is put when there was nowhere to put it (\(status))")
+            XCTAssertEqual(log.stages, [.uploading], "asking for the address is the uploading stage, and it never got to reading (\(status))")
         }
     }
 
     func testAnAddressThatIsNotALinkIsNotSentAFile() async {
-        for bad in ["not a link", "ftp://p.supabase.test/x", "file:///etc/hosts", "/relative/path"] {
+        for bad in ["not a link", "ftp://p.supabase.test/x", "file:///etc/hosts", "/relative/path", "http://p.supabase.test\(storagePath)?token=t"] {
             let (importer, transport) = setup(routes(ticket: ticket(signedURL: bad)))
-            let error = await failure { try await importer.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) }
+            let log = StageLog()
+            let error = await failure { try await importer.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) { log.add($0) } }
             XCTAssertEqual(error, .decoding("The upload address was not a link."), bad)
             let sent = await paths(transport)
             XCTAssertEqual(sent, ["POST /api/memories/import/upload-url"], bad)
+            XCTAssertEqual(log.stages, [.uploading], bad)
         }
     }
 
     func testStorageTurningThePutAwayIsSaidInWordsAndNothingIsImported() async throws {
         for status in [400, 401, 403, 404, 500, 503] {
             let (importer, transport) = setup(routes(put: status))
-            let refusal = await failure { try await importer.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) }
+            let log = StageLog()
+            let refusal = await failure { try await importer.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) { log.add($0) } }
             let error = try XCTUnwrap(refusal)
             XCTAssertEqual(error.userMessage, "The upload to storage didn't go through. Try again in a moment.", "\(status)")
             XCTAssertEqual(MemoryImportPolicy.message(for: error, limits: newServer), MemoryFileImporter.storageFailedLine)
             XCTAssertFalse(error.userMessage.contains("\(status)"), "a status code means nothing to a person")
             let sent = await paths(transport)
             XCTAssertEqual(sent.count, 2, "the import is not asked for a file that is not there (\(status))")
+            XCTAssertEqual(log.stages, [.uploading], "the server is never said to be reading a file that did not get there (\(status))")
         }
     }
 
     func testStorageSayingTheFileIsTooBigNamesTheLimitItEnforces() async throws {
         let (importer, _) = setup(routes(ticket: ticket(maxBytes: 10_000_000), put: 413))
-        let refusal = await failure { try await importer.importFile(filename: "big.pdf", data: Data(count: 5_000_000)) }
+        let log = StageLog()
+        let refusal = await failure { try await importer.importFile(filename: "big.pdf", data: Data(count: 5_000_000)) { log.add($0) } }
         let error = try XCTUnwrap(refusal)
+        XCTAssertEqual(log.stages, [.uploading])
         XCTAssertEqual(error.userMessage, "\"big.pdf\" is over the 10 MB import limit — split it or trim it down.")
         // Not the sentence for the platform's plain-text 413, which this is not.
         XCTAssertEqual(MemoryImportPolicy.message(for: error, limits: newServer), error.userMessage)
@@ -243,11 +257,13 @@ final class MemoryFileImporterTests: XCTestCase {
         let inner = MockTransport(routes: routes())
         let client = HVClient(baseURL: base, transport: inner, tokens: StaticTokenProvider(), retry: .none)
         let offline = MemoryFileImporter(client: client, limits: newServer, transport: FailingPut(inner: inner, error: URLError(.networkConnectionLost)))
-        let error = await failure { try await offline.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) }
+        let log = StageLog()
+        let error = await failure { try await offline.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) { log.add($0) } }
         XCTAssertEqual(error?.isOffline, true)
         XCTAssertEqual(error?.userMessage, "Network hiccup. Check your connection and try again.")
         let sent = await paths(inner)
         XCTAssertEqual(sent, ["POST /api/memories/import/upload-url"])
+        XCTAssertEqual(log.stages, [.uploading])
     }
 
     func testCancellingDuringThePutIsACancellationAndNotAProblemToShow() async {
@@ -255,9 +271,52 @@ final class MemoryFileImporterTests: XCTestCase {
             let inner = MockTransport(routes: routes())
             let client = HVClient(baseURL: base, transport: inner, tokens: StaticTokenProvider(), retry: .none)
             let cancelled = MemoryFileImporter(client: client, limits: newServer, transport: FailingPut(inner: inner, error: thrown))
-            let error = await failure { try await cancelled.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) }
+            let log = StageLog()
+            let error = await failure { try await cancelled.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) { log.add($0) } }
             XCTAssertEqual(error, .cancelled)
+            XCTAssertEqual(log.stages, [.uploading])
         }
+    }
+
+    /// What the Memorize sheet's Cancel and a swipe down do: cancel the task the import runs in. Whichever request is in
+    /// flight ends as `.cancelled`, which the sheet shows no sentence for, and nothing is sent after it.
+    func testCancellingTheTaskEndsTheImportQuietlyWhicheverRequestIsInFlight() async {
+        let ask = "POST /api/memories/import/upload-url"
+        let put = "PUT \(storagePath)"
+        let name = "POST /api/memories/import"
+        let steps: [(HTTPMethod, String, [String], [MemoryFileImporter.Stage])] = [
+            (.post, "/api/memories/import/upload-url", [ask], [.uploading]),
+            (.put, storagePath, [ask, put], [.uploading]),
+            // The request was sent, so the server may still make the memory; the app just stops waiting for it.
+            (.post, "/api/memories/import", [ask, put, name], [.uploading, .reading]),
+        ]
+        for (method, path, expectedPaths, expectedStages) in steps {
+            let inner = MockTransport(routes: routes())
+            let network = CancelsTheTask(inner: inner, method: method, path: path, answers: false)
+            let client = HVClient(baseURL: base, transport: network, tokens: StaticTokenProvider(), retry: .none)
+            let importer = MemoryFileImporter(client: client, limits: newServer, transport: network)
+            let log = StageLog()
+            let result = await Task { try await importer.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) { log.add($0) } }.result
+            guard case .failure(let error) = result else { return XCTFail("a cancelled import made a memory (\(path))") }
+            XCTAssertEqual(error as? HVError, .cancelled, path)
+            let sent = await paths(inner)
+            XCTAssertEqual(sent, expectedPaths, "nothing is sent after the cancel (\(path))")
+            XCTAssertEqual(log.stages, expectedStages, path)
+        }
+    }
+
+    func testACancelThatLandsAsTheFileFinishesGoingUpSendsNothingMoreAndSaysNothingMore() async {
+        let inner = MockTransport(routes: routes())
+        let network = CancelsTheTask(inner: inner, method: .put, path: storagePath, answers: true)
+        let client = HVClient(baseURL: base, transport: network, tokens: StaticTokenProvider(), retry: .none)
+        let importer = MemoryFileImporter(client: client, limits: newServer, transport: network)
+        let log = StageLog()
+        let result = await Task { try await importer.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) { log.add($0) } }.result
+        guard case .failure(let error) = result else { return XCTFail("a cancelled import made a memory") }
+        XCTAssertEqual(error as? HVError, .cancelled)
+        let sent = await paths(inner)
+        XCTAssertEqual(sent, ["POST /api/memories/import/upload-url", "PUT \(storagePath)"], "the file is up, and the server is not asked to read it")
+        XCTAssertEqual(log.stages, [.uploading], "the server is not said to be reading a file nobody is waiting for")
     }
 
     func testTheServersRefusalsToReadTheStagedFileAreItsOwnSentences() async {
@@ -274,10 +333,12 @@ final class MemoryFileImporterTests: XCTestCase {
                 MockRoute(.put, storagePath) { _ in HTTPResponse(status: 200) },
                 .failure(.post, "/api/memories/import", status: status, message: sentence),
             ])
-            let error = await failure { try await importer.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) }
+            let log = StageLog()
+            let error = await failure { try await importer.importFile(filename: "a.pdf", data: Data(count: 5_000_000)) { log.add($0) } }
             XCTAssertEqual(error.map { MemoryImportPolicy.message(for: $0, limits: self.newServer) }, sentence, "\(status)")
             let sent = await paths(transport)
             XCTAssertEqual(sent.count, 3, "the import ran last (\(status))")
+            XCTAssertEqual(log.stages, [.uploading, .reading], "uploading, then reading, and in that order, even when reading fails (\(status))")
         }
     }
 
@@ -340,6 +401,25 @@ private final class StageLog: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return seen
+    }
+}
+
+/// A network that cancels the task that sent a request, as a person's Cancel does, when it gets the one named. With
+/// `answers` the request still gets its answer (the cancel landed just as it completed); without, it is left waiting the
+/// way a connection is that was cancelled, which ends at once because the task is cancelled.
+private struct CancelsTheTask: HTTPTransport {
+    let inner: MockTransport
+    let method: HTTPMethod
+    let path: String
+    let answers: Bool
+
+    func send(_ request: URLRequest) async throws -> HTTPResponse {
+        let response = try await inner.send(request)
+        guard request.httpMethod == method.rawValue, request.url?.path == path else { return response }
+        withUnsafeCurrentTask { $0?.cancel() }
+        if answers { return response }
+        try await Task.sleep(nanoseconds: 60_000_000_000)
+        return response
     }
 }
 

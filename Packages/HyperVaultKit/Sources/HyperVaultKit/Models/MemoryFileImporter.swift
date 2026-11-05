@@ -13,6 +13,10 @@ import FoundationNetworking
 ///   2. the bytes are PUT to that address with no token of the app's (the address carries its own permission);
 ///   3. `POST /api/memories/import` with `{ upload, filename }` reads the file from storage and makes the memory.
 ///
+/// Cancelling the task stops it: the request in flight ends as `HVError.cancelled` (not a failure to word: the person
+/// asked for it) and nothing is sent after it. A cancel that comes after the import was asked for cannot undo it; the
+/// server may still make the memory.
+///
 /// Every step fails with a sentence a person can read: the server's own for steps 1 and 3 (`HVError.userMessage`),
 /// the app's for step 2, which storage answers in a way that means nothing to a person.
 public struct MemoryFileImporter: Sendable {
@@ -65,6 +69,9 @@ public struct MemoryFileImporter: Sendable {
             await progress?(.uploading)
             let ticket = try await client.send(.memoryImportUploadURL(filename: filename, size: data.count))
             try await put(data, to: ticket, filename: filename, kind: kind)
+            // Cancelled just as the last byte went: the file stays in storage for the sweep, and nobody is told the
+            // server is reading it.
+            if Task.isCancelled { throw HVError.cancelled }
             await progress?(.reading)
             return try await client.send(.memoryImport(upload: ticket.path, filename: filename, branch: branch))
         }

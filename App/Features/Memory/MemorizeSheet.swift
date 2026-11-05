@@ -317,7 +317,11 @@ struct MemorizeSheet: View {
                     guard let picked else { return }
                     // The importer sends a file in the request when it fits and by way of storage when it does not.
                     kept = try await MemoryFileImporter(client: client, limits: limits)
-                        .importFile(filename: picked.name, data: picked.data, branch: branch) { stage = $0 }
+                        .importFile(filename: picked.name, data: picked.data, branch: branch) {
+                            // The line is on the screen, and a line that appears or changes is not read out by itself.
+                            stage = $0
+                            VoiceOverAnnouncer.shared.announce(stage: $0)
+                        }
                 case .link:
                     guard let link else { return }
                     kept = try await client.send(.memoryImport(url: link, branch: branch))

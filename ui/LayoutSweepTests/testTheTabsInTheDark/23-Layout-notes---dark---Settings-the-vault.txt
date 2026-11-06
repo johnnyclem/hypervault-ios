@@ -1,0 +1,13 @@
+dark / Settings, the vault
+
+small target  Button "Account" (account.avatar)  20,51 44x36
+small target  Button "More"  238,51 58x36
+small target  Button  238,51 58x36
+small target  Button "New note" (square.and.pencil)  312,51 58x36
+off screen    Button "Trash"  346,269 62x44
+small target  Button "Add to your vault" (plus)  338,67 27x36
+off screen    Image (AdditionalDimmingOverlay)  -120,708 630x272
+off screen    Button "Keys, 1"  381,263 71x44
+off screen    StaticText "Keys"  393,276 33x18
+off screen    StaticText "1"  432,278 8x16
+small target  SearchField "Search"  33,773 324x38

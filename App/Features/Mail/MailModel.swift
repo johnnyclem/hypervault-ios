@@ -62,6 +62,11 @@ final class MailModel {
 
     var threads: [MailThread] { MailThreads.group(messages) }
 
+    /// "No mail yet" may be said only when there is none: no rows, none the app could not read, and no older page.
+    /// Archiving the thread that filled the first page leaves no rows with older mail still behind the cursor, and
+    /// the screen has to offer it (Load older) instead.
+    var hasNothingToShow: Bool { messages.isEmpty && skipped == 0 && nextCursor == nil }
+
     var agentsSeeOwnerMail: Bool { active?.agentsSeeOwnerMail ?? true }
 
     var heldCount: Int { active?.heldCount ?? 0 }

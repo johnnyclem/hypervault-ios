@@ -212,8 +212,8 @@ struct MailInboxScreen: View {
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
         case .loaded:
-            // Rows the app could not read are not "No mail yet": say how many, and show the rest.
-            if model.threads.isEmpty && model.skipped == 0 {
+            // Rows the app could not read, or an older page still to load, are not "No mail yet".
+            if model.hasNothingToShow {
                 emptyState
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)

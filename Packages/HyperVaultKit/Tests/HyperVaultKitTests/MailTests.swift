@@ -259,9 +259,54 @@ final class MailTests: XCTestCase {
         XCTAssertTrue(list.messages.isEmpty)
         XCTAssertTrue(list.hasMore)
         XCTAssertFalse(list.isNothing, "the rest are still held, on the next page: the screen offers them, it does not say 'Nothing is held.'")
-        list.append(try heldPage(["h3"], count: 30))
+        // The next page is the last one, and the server's count has come down with the two released.
+        list.append(try heldPage(["h3"], count: 1))
         XCTAssertEqual(list.messages.map(\.id), ["h3"])
         XCTAssertFalse(list.isNothing)
+        XCTAssertNil(list.disagreementSentence)
+    }
+
+    // The server counts held mail twice: `held_count` on the mailbox row and `count` on the held page. When the page's
+    // own count says there is more than the page sent, and there is no next page, the screen must not say "Nothing is
+    // held." (or show the rows as if they were all of it).
+
+    func testTheServersCountIsHeldUpAgainstTheRows() throws {
+        let none = MailHeldList(page: try heldPage([], count: 3))
+        XCTAssertFalse(none.isNothing, "the server counts 3 and sent none")
+        XCTAssertEqual(none.unaccounted, 3)
+        XCTAssertEqual(none.disagreementSentence, "3 held messages did not come through. Pull down to try again.")
+
+        let some = MailHeldList(page: try heldPage(["h1"], count: 3))
+        XCTAssertEqual(some.unaccounted, 2)
+        XCTAssertEqual(some.disagreementSentence, "2 held messages did not come through. Pull down to try again.")
+        XCTAssertEqual(MailHeldList(page: try heldPage(["h1"], count: 2)).disagreementSentence, "1 held message did not come through. Pull down to try again.")
+
+        let agrees = MailHeldList(page: try heldPage(["h1", "h2"], count: 2))
+        XCTAssertEqual(agrees.unaccounted, 0)
+        XCTAssertNil(agrees.disagreementSentence)
+
+        let paging = MailHeldList(page: try heldPage(["h1", "h2"], count: 30, cursor: "c"))
+        XCTAssertEqual(paging.unaccounted, 0, "more pages are coming: the rows so far are not all of it, and that is fine")
+        XCTAssertNil(paging.disagreementSentence)
+
+        let dropped = MailHeldList(page: try heldPage(["h1", "h2"], count: 3, extra: [unreadable[0]]))
+        XCTAssertEqual(dropped.unaccounted, 0, "a row that could not be read is accounted for by `skipped`")
+        XCTAssertEqual(dropped.unreadableSentence, "1 held message could not be shown.")
+
+        let pageSizeCount = MailHeldList(page: try heldPage(["h1", "h2"], count: 1))
+        XCTAssertEqual(pageSizeCount.unaccounted, 0, "a count below the rows is never a disagreement")
+    }
+
+    func testReleasingBringsTheCountDownWithTheRows() throws {
+        var list = MailHeldList(page: try heldPage(["h1", "h2"], count: 2))
+        list.remove("h1")
+        XCTAssertEqual(list.count, 1)
+        list.remove("not there")
+        XCTAssertEqual(list.count, 1, "an id that was not on the list changes nothing")
+        list.remove("h2")
+        XCTAssertEqual(list.count, 0)
+        XCTAssertTrue(list.isNothing, "everything on the list was let through, and the server's count came down with it")
+        XCTAssertNil(list.disagreementSentence)
     }
 
     func testReleasingTakesTheMessageOffTheHeldList() throws {
@@ -287,16 +332,24 @@ final class MailTests: XCTestCase {
         XCTAssertEqual(heldBack.skipped, 1)
     }
 
-    func testAListThatIsNotAListIsAnErrorNotAnEmptyBox() {
-        // The key is there and is not an array: the server said something this app does not understand. Saying "no mail"
-        // would be a guess; failing the load says so, and the screen shows the error with Try again.
-        for body in [#"{"messages":{"items":[]}}"#, #"{"messages":"none"}"#, #"{"messages":7}"#] {
+    func testAnAnswerWithoutItsListIsAnErrorNotAnEmptyBox() throws {
+        // The list is not there, is null, or is not an array: the server said something this app does not understand
+        // (a 200 that carries an error, a renamed or wrapped key). Saying "no mail" would be a guess; failing the load
+        // says so, and the screen shows the error with Try again. The server's own fixtures always send the key, an
+        // empty box included, and its errors arrive as non-2xx.
+        for body in [#"{"messages":{"items":[]}}"#, #"{"messages":"none"}"#, #"{"messages":7}"#,
+                     #"{"box":"inbox"}"#, #"{"messages":null}"#, "{}", #"{"error":"Something broke."}"#, #"{"count":2}"#] {
             XCTAssertThrowsError(try HVCoding.decoder().decode(MailMessagePage.self, from: Data(body.utf8)), body)
             XCTAssertThrowsError(try HVCoding.decoder().decode(MailHeldPage.self, from: Data(body.utf8)), body)
+            XCTAssertThrowsError(try HVCoding.decoder().decode(MailSearchResult.self, from: Data(body.utf8)), body)
         }
-        // A missing or null list is an empty one, as it always was.
-        XCTAssertEqual(try? HVCoding.decoder().decode(MailMessagePage.self, from: Data(#"{"box":"inbox"}"#.utf8)).messages.count, 0)
-        XCTAssertEqual(try? HVCoding.decoder().decode(MailMessagePage.self, from: Data(#"{"messages":null}"#.utf8)).messages.count, 0)
+        XCTAssertThrowsError(try HVCoding.decoder().decode(OwnerMailboxList.self, from: Data(#"{"error":"nope"}"#.utf8)), "no mailboxes key")
+        XCTAssertThrowsError(try HVCoding.decoder().decode(OwnerMailboxList.self, from: Data(#"{"mailboxes":null}"#.utf8)))
+        XCTAssertThrowsError(try HVCoding.decoder().decode(MailboxSummary.self, from: Data(#"{"unread_count":1,"held_count":0}"#.utf8)), "no latest key")
+        // A list that is there and empty is an empty box.
+        XCTAssertEqual(try HVCoding.decoder().decode(MailMessagePage.self, from: Data(#"{"box":"inbox","messages":[]}"#.utf8)).messages.count, 0)
+        XCTAssertEqual(try HVCoding.decoder().decode(MailHeldPage.self, from: Data(#"{"count":0,"messages":[]}"#.utf8)).messages.count, 0)
+        XCTAssertEqual(try HVCoding.decoder().decode(OwnerMailboxList.self, from: Data(#"{"mailboxes":[]}"#.utf8)).mailboxes.count, 0)
     }
 
     func testSearchHitsCarryASnippet() throws {

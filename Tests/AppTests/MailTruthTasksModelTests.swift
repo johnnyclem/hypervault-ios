@@ -326,6 +326,30 @@ final class MailModelTests: XCTestCase {
         XCTAssertEqual(model.skipped, 1)
     }
 
+    /// A page is 50 messages, not 50 threads. Archiving the thread that filled it leaves no rows with older mail still
+    /// behind the cursor: that is not "No mail yet", the screen has to offer Load older.
+    func testArchivingWhatFilledTheFirstPageLeavesOlderMailToLoadNotAnEmptyInbox() async throws {
+        let row = #"{"id":"m1","thread_id":"t1","folder":"inbox","subject":"A long thread","author":{"type":"key","name":"Claude Code"}}"#
+        let messages = MockRoute(.get, "/api/mail/messages") { request in
+            let isThread = request.url?.query?.contains("thread_id") == true
+            let body = isThread ? #"{"messages":[\#(row)],"next_cursor":null}"# : #"{"box":"inbox","messages":[\#(row)],"next_cursor":"c1"}"#
+            return HTTPResponse(status: 200, data: Data(body.utf8))
+        }
+        let mailboxes = MockRoute.json(.get, "/api/mail/owner/mailboxes", MailPreviewData.mailboxes)
+        let busy = model([messages, mailboxes, .json(.patch, "/api/mail/messages/*", #"{"message":{"id":"m1"}}"#)])
+        await busy.start()
+        XCTAssertFalse(busy.hasNothingToShow)
+        let thread = try XCTUnwrap(busy.threads.first)
+        _ = try await busy.move(thread, to: .archive)
+        XCTAssertTrue(busy.threads.isEmpty)
+        XCTAssertNotNil(busy.nextCursor, "older mail is still behind the cursor")
+        XCTAssertFalse(busy.hasNothingToShow, "so the screen offers Load older instead of saying there is no mail")
+
+        let empty = model([mailboxes, .json(.get, "/api/mail/messages", #"{"box":"inbox","messages":[],"next_cursor":null}"#)])
+        await empty.start()
+        XCTAssertTrue(empty.hasNothingToShow, "a box that is empty all the way is empty")
+    }
+
     /// With several addresses one is on screen. Mail in another must be said somewhere on this one.
     func testMailWaitingInAnotherAddressIsSaidAndTheRowOpensIt() async throws {
         let mailboxes = #"{"mailboxes":[{"id":"a","claim_id":"c1","address":"a@vault.cool","is_primary":true,"unread_count":0,"held_count":0,"agents_see_owner_mail":true},{"id":"b","claim_id":"c2","address":"b@vault.cool","is_primary":false,"unread_count":1,"held_count":2,"agents_see_owner_mail":true}]}"#

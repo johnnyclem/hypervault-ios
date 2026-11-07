@@ -15,11 +15,13 @@ private extension KeyedDecodingContainer {
     /// `id` that is missing, null or a number) failed the whole array, the `try?` swallowed it and the box read as
     /// empty, with no error anywhere. Here such a row costs that row and is counted in `skipped`.
     ///
-    /// A missing or null list is an empty one. A list that is there and is not an array throws, so the load fails
-    /// with "the server answered in a way this version of the app does not understand" and the screen offers
-    /// Try again, instead of passing a guess off as "No mail yet".
+    /// The list has to be there. A box with nothing in it is `"messages": []`; a key that is missing, null or not an
+    /// array (a 200 that carries an error, a renamed or wrapped key) throws, so the load fails with "the server
+    /// answered in a way this version of the app does not understand" and the screen offers Try again, instead of
+    /// passing a guess off as "No mail yet". The server's own fixtures always send the key, an empty box included,
+    /// and its errors arrive as non-2xx; a saved copy has it too, because the encoder writes every list.
     func lossyRows<T: Decodable>(_ type: T.Type, _ key: Key) throws -> (rows: [T], skipped: Int) {
-        guard let all = try decodeIfPresent([LossyRow<T>].self, forKey: key) else { return ([], 0) }
+        let all = try decode([LossyRow<T>].self, forKey: key)
         let rows = all.compactMap(\.value)
         return (rows, all.count - rows.count)
     }
@@ -405,11 +407,14 @@ public struct MailHeldList: Sendable, Equatable {
     public private(set) var nextCursor: String?
     /// Rows the server sent that this app could not read, over every page read.
     public private(set) var skipped: Int
+    /// How many the server says are held, as of the last page read, brought down as messages are let through.
+    public private(set) var count: Int
 
     public init(page: MailHeldPage) {
         messages = page.messages
         nextCursor = page.nextCursor
         skipped = page.skipped
+        count = page.count
     }
 
     /// A later page: rows already on the list are not added twice.
@@ -417,18 +422,32 @@ public struct MailHeldList: Sendable, Equatable {
         messages = MailThreads.appendUnique(messages, page.messages)
         nextCursor = page.nextCursor
         skipped += page.skipped
+        count = page.count
     }
 
-    /// A message let through to the agents is no longer held.
+    /// A message let through to the agents is no longer held (and the server's count has come down with it).
     public mutating func remove(_ id: String) {
+        let before = messages.count
         messages.removeAll { $0.id == id }
+        count = max(0, count - (before - messages.count))
     }
 
     public var hasMore: Bool { nextCursor != nil }
 
-    /// Nothing is held, as far as the pages read say: no rows, none that were dropped, and no page left to read
-    /// (a person can release every row on screen while more wait on the next page).
-    public var isNothing: Bool { messages.isEmpty && skipped == 0 && nextCursor == nil }
+    /// Held messages the server counts that neither the rows nor the unreadable rows account for, once there is no
+    /// page left to read (until then the rows so far are only part of it). A count below the rows is never one.
+    public var unaccounted: Int { hasMore ? 0 : max(0, count - messages.count - skipped) }
+
+    /// Nothing is held, as far as the pages read say: no rows, none that were dropped, no page left to read (a person
+    /// can release every row on screen while more wait on the next page), and a count that agrees.
+    public var isNothing: Bool { messages.isEmpty && skipped == 0 && nextCursor == nil && unaccounted == 0 }
+
+    /// Said when the server counts more held mail than it sent: not "Nothing is held.", and not the rows as all of it.
+    public var disagreementSentence: String? {
+        guard unaccounted > 0 else { return nil }
+        let what = unaccounted == 1 ? "1 held message" : "\(unaccounted) held messages"
+        return "\(what) did not come through. Pull down to try again."
+    }
 
     /// Said under the rows (or instead of them) when some could not be read; nil when none were dropped.
     public var unreadableSentence: String? { MailText.unreadableSentence(skipped, noun: "held message") }

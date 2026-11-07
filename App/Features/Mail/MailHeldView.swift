@@ -137,6 +137,13 @@ struct MailHeldScreen: View {
                             .foregroundStyle(Palette.textSecondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    // The server counts more held mail than it sent: the rows above are not all of it.
+                    if let sentence = list.disagreementSentence {
+                        Text(sentence)
+                            .font(.hvCallout)
+                            .foregroundStyle(Palette.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     if list.hasMore {
                         Button("Load more") { loadMore() }
                             .buttonStyle(.hvGhost)

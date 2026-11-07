@@ -10,6 +10,28 @@ private extension KeyedDecodingContainer {
     func soft<T: Decodable>(_ type: T.Type, _ key: Key) -> T? {
         (try? decodeIfPresent(type, forKey: key)) ?? nil
     }
+
+    /// A list read one row at a time. `soft([T].self, key)` is all or nothing: one row that cannot be read (an
+    /// `id` that is missing, null or a number) failed the whole array, the `try?` swallowed it and the box read as
+    /// empty, with no error anywhere. Here such a row costs that row and is counted in `skipped`.
+    ///
+    /// A missing or null list is an empty one. A list that is there and is not an array throws, so the load fails
+    /// with "the server answered in a way this version of the app does not understand" and the screen offers
+    /// Try again, instead of passing a guess off as "No mail yet".
+    func lossyRows<T: Decodable>(_ type: T.Type, _ key: Key) throws -> (rows: [T], skipped: Int) {
+        guard let all = try decodeIfPresent([LossyRow<T>].self, forKey: key) else { return ([], 0) }
+        let rows = all.compactMap(\.value)
+        return (rows, all.count - rows.count)
+    }
+}
+
+/// Decodes one element or nothing, so a bad element is skipped (`TaskBoards.swift` keeps the same idiom, private to
+/// it). Its `init` never throws, so a list always moves on to the next element.
+private struct LossyRow<Value: Decodable>: Decodable {
+    let value: Value?
+    init(from decoder: Decoder) throws {
+        value = try? Value(from: decoder)
+    }
 }
 
 // MARK: Boxes, filters, folders
@@ -280,21 +302,27 @@ public struct MailMessagePage: Sendable, Codable, Equatable {
     public let box: MailBox?
     public let messages: [MailMessage]
     public let nextCursor: String?
+    /// Rows the server sent that this app could not read (and so left out of `messages`).
+    public let skipped: Int
 
-    public init(box: MailBox? = nil, messages: [MailMessage] = [], nextCursor: String? = nil) {
+    public init(box: MailBox? = nil, messages: [MailMessage] = [], nextCursor: String? = nil, skipped: Int = 0) {
         self.box = box
         self.messages = messages
         self.nextCursor = nextCursor
+        self.skipped = skipped
     }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Keys.self)
         box = c.soft(MailBox.self, .box)
-        messages = c.soft([MailMessage].self, .messages) ?? []
+        let read = try c.lossyRows(MailMessage.self, .messages)
+        messages = read.rows
+        // The server has no `skipped`; a saved copy of this page does, and says what was left out when it was made.
+        skipped = read.skipped + (c.soft(Int.self, .skipped) ?? 0)
         nextCursor = c.soft(String.self, .nextCursor)
     }
 
-    enum Keys: String, CodingKey { case box, messages, nextCursor }
+    enum Keys: String, CodingKey { case box, messages, nextCursor, skipped }
 }
 
 /// `GET /api/mail/search`.
@@ -310,7 +338,7 @@ public struct MailSearchResult: Sendable, Codable, Equatable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Keys.self)
         query = c.soft(String.self, .query) ?? ""
-        messages = c.soft([MailMessage].self, .messages) ?? []
+        messages = try c.lossyRows(MailMessage.self, .messages).rows
     }
 
     enum Keys: String, CodingKey { case query, messages }
@@ -343,24 +371,67 @@ public struct MailTrashEmptied: Sendable, Codable, Equatable {
 
 /// Mail waiting for the person: from someone other than them, unreadable to agents.
 public struct MailHeldPage: Sendable, Codable, Equatable {
+    /// How many messages are held in all, as the server counts them (more than a page holds).
     public let count: Int
     public let messages: [MailMessage]
     public let nextCursor: String?
+    /// Rows the server sent that this app could not read (and so left out of `messages`).
+    public let skipped: Int
 
-    public init(count: Int = 0, messages: [MailMessage] = [], nextCursor: String? = nil) {
+    public init(count: Int = 0, messages: [MailMessage] = [], nextCursor: String? = nil, skipped: Int = 0) {
         self.count = count
         self.messages = messages
         self.nextCursor = nextCursor
+        self.skipped = skipped
     }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Keys.self)
-        messages = c.soft([MailMessage].self, .messages) ?? []
-        count = c.soft(Int.self, .count) ?? messages.count
+        let read = try c.lossyRows(MailMessage.self, .messages)
+        messages = read.rows
+        skipped = read.skipped + (c.soft(Int.self, .skipped) ?? 0)
+        count = c.soft(Int.self, .count) ?? (read.rows.count + skipped)
         nextCursor = c.soft(String.self, .nextCursor)
     }
 
-    enum Keys: String, CodingKey { case count, messages, nextCursor }
+    enum Keys: String, CodingKey { case count, messages, nextCursor, skipped }
+}
+
+/// What the Held screen has read so far. Held mail comes a page at a time, newest first. The screen used to read the
+/// first page and stop (so the 21st held message was never shown) and to say "Nothing is held." about any empty
+/// answer, including one whose rows it could not read.
+public struct MailHeldList: Sendable, Equatable {
+    public private(set) var messages: [MailMessage]
+    public private(set) var nextCursor: String?
+    /// Rows the server sent that this app could not read, over every page read.
+    public private(set) var skipped: Int
+
+    public init(page: MailHeldPage) {
+        messages = page.messages
+        nextCursor = page.nextCursor
+        skipped = page.skipped
+    }
+
+    /// A later page: rows already on the list are not added twice.
+    public mutating func append(_ page: MailHeldPage) {
+        messages = MailThreads.appendUnique(messages, page.messages)
+        nextCursor = page.nextCursor
+        skipped += page.skipped
+    }
+
+    /// A message let through to the agents is no longer held.
+    public mutating func remove(_ id: String) {
+        messages.removeAll { $0.id == id }
+    }
+
+    public var hasMore: Bool { nextCursor != nil }
+
+    /// Nothing is held, as far as the pages read say: no rows, none that were dropped, and no page left to read
+    /// (a person can release every row on screen while more wait on the next page).
+    public var isNothing: Bool { messages.isEmpty && skipped == 0 && nextCursor == nil }
+
+    /// Said under the rows (or instead of them) when some could not be read; nil when none were dropped.
+    public var unreadableSentence: String? { MailText.unreadableSentence(skipped, noun: "held message") }
 }
 
 // MARK: Mailboxes
@@ -423,6 +494,57 @@ public struct OwnerMailbox: Sendable, Codable, Hashable, Identifiable {
     }
 }
 
+extension OwnerMailbox {
+    /// Counts in words ("2 unread, 1 held"), nil when there is nothing to say.
+    public static func waitingSentence(unread: Int, held: Int) -> String? {
+        var parts: [String] = []
+        if unread > 0 { parts.append("\(unread) unread") }
+        if held > 0 { parts.append("\(held) held") }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    }
+
+    /// What is waiting in this mailbox in words, nil when nothing is.
+    public var waitingSentence: String? { Self.waitingSentence(unread: unreadCount, held: heldCount) }
+
+    /// How the picker names a mailbox: the address, then what is waiting in it.
+    public var pickerTitle: String {
+        waitingSentence.map { "\(displayAddress) (\($0))" } ?? displayAddress
+    }
+}
+
+/// Mail waiting in the mailboxes the person is not looking at. An account with several addresses shows one mailbox
+/// at a time, so mail (or held mail) for another address would sit there with nothing on screen to say so: an empty
+/// inbox looked the same as one whose mail went to the other address.
+public struct MailElsewhere: Sendable, Equatable {
+    /// The other mailboxes with something waiting, in the order the server lists them.
+    public let boxes: [OwnerMailbox]
+
+    /// Nil when nothing waits anywhere but in the mailbox on screen.
+    public init?(mailboxes: [OwnerMailbox], active: OwnerMailbox?) {
+        let waiting = mailboxes.filter { $0.id != active?.id && ($0.unreadCount > 0 || $0.heldCount > 0) }
+        guard !waiting.isEmpty else { return nil }
+        boxes = waiting
+    }
+
+    public var unread: Int { boxes.reduce(0) { $0 + $1.unreadCount } }
+    public var held: Int { boxes.reduce(0) { $0 + $1.heldCount } }
+
+    /// Where a tap goes: the first with held mail (it is what needs the person), else the first.
+    public var target: OwnerMailbox { boxes.first(where: { $0.heldCount > 0 }) ?? boxes[0] }
+
+    public var title: String {
+        boxes.count == 1 ? "Mail in another address" : "Mail in \(boxes.count) other addresses"
+    }
+
+    /// One other mailbox: its address and what waits in it. Several: the totals.
+    public var subtitle: String {
+        if boxes.count == 1, let only = boxes.first {
+            return "\(only.displayAddress): \(only.waitingSentence ?? "")"
+        }
+        return OwnerMailbox.waitingSentence(unread: unread, held: held) ?? ""
+    }
+}
+
 public struct OwnerMailboxList: Sendable, Codable, Equatable {
     public let mailboxes: [OwnerMailbox]
 
@@ -430,7 +552,7 @@ public struct OwnerMailboxList: Sendable, Codable, Equatable {
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: Keys.self)
-        let all = c.soft([OwnerMailbox].self, .mailboxes) ?? []
+        let all = try c.lossyRows(OwnerMailbox.self, .mailboxes).rows
         // The route lists the primary first; keep that whatever else changes.
         mailboxes = all.enumerated()
             .sorted { lhs, rhs in
@@ -464,7 +586,7 @@ public struct MailboxSummary: Sendable, Codable, Equatable {
         address = c.soft(String.self, .address)
         unreadCount = c.soft(Int.self, .unreadCount) ?? 0
         heldCount = c.soft(Int.self, .heldCount) ?? 0
-        latest = c.soft([MailMessage].self, .latest) ?? []
+        latest = try c.lossyRows(MailMessage.self, .latest).rows
         mailboxId = c.soft(String.self, .mailboxId)
         agentsSeeOwnerMail = c.soft(Bool.self, .agentsSeeOwnerMail)
     }
@@ -552,6 +674,13 @@ public enum MailText {
         }
         let bare = rest.trimmingCharacters(in: .whitespacesAndNewlines)
         return bare.isEmpty ? noSubject : bare
+    }
+
+    /// What a list says when the server sent rows this app could not read ("1 message could not be shown."), so a
+    /// row that is dropped is never dropped silently. Nil for none.
+    public static func unreadableSentence(_ count: Int, noun: String = "message") -> String? {
+        guard count > 0 else { return nil }
+        return count == 1 ? "1 \(noun) could not be shown." : "\(count) \(noun)s could not be shown."
     }
 
     /// The route's sentence without its leading code: the routes answer

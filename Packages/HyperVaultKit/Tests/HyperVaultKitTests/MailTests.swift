@@ -49,6 +49,52 @@ final class MailTests: XCTestCase {
         XCTAssertEqual(OwnerMailbox.choose(from: list.mailboxes, preferring: nil)?.id, "b")
     }
 
+    // An account with several addresses shows one mailbox at a time. Mail (or held mail) in another one used to be
+    // invisible from the one on screen: the picker named unread counts only, and the "N held" row was the active
+    // mailbox's alone.
+
+    func testThePickerNamesWhatIsWaitingInEachMailbox() {
+        XCTAssertEqual(OwnerMailbox(id: "a", address: "a@vault.cool").pickerTitle, "a@vault.cool")
+        XCTAssertEqual(OwnerMailbox(id: "a", address: "a@vault.cool", unreadCount: 2).pickerTitle, "a@vault.cool (2 unread)")
+        XCTAssertEqual(OwnerMailbox(id: "a", address: "a@vault.cool", heldCount: 1).pickerTitle, "a@vault.cool (1 held)")
+        XCTAssertEqual(OwnerMailbox(id: "a", address: "a@vault.cool", unreadCount: 2, heldCount: 1).pickerTitle, "a@vault.cool (2 unread, 1 held)")
+        XCTAssertEqual(OwnerMailbox(id: "a", address: nil, unreadCount: 1).pickerTitle, "No address yet (1 unread)")
+    }
+
+    func testNothingElsewhereWhenTheOtherMailboxesAreQuiet() {
+        let a = OwnerMailbox(id: "a", address: "a@vault.cool", unreadCount: 5, heldCount: 2)
+        let b = OwnerMailbox(id: "b", address: "b@vault.cool")
+        XCTAssertNil(MailElsewhere(mailboxes: [a, b], active: a), "what waits in the mailbox on screen is not 'elsewhere'")
+        XCTAssertNil(MailElsewhere(mailboxes: [a], active: a))
+        XCTAssertNil(MailElsewhere(mailboxes: [], active: nil))
+    }
+
+    func testMailWaitingInOneOtherAddressIsNamed() throws {
+        let a = OwnerMailbox(id: "a", address: "a@vault.cool")
+        let b = OwnerMailbox(id: "b", address: "b@vault.cool", unreadCount: 2, heldCount: 1)
+        let elsewhere = try XCTUnwrap(MailElsewhere(mailboxes: [a, b], active: a))
+        XCTAssertEqual(elsewhere.target.id, "b")
+        XCTAssertEqual(elsewhere.unread, 2)
+        XCTAssertEqual(elsewhere.held, 1)
+        XCTAssertEqual(elsewhere.title, "Mail in another address")
+        XCTAssertEqual(elsewhere.subtitle, "b@vault.cool: 2 unread, 1 held")
+    }
+
+    func testMailWaitingInSeveralOtherAddressesIsTotalledAndOpensTheOneWithHeldMail() throws {
+        let a = OwnerMailbox(id: "a", address: "a@vault.cool", unreadCount: 9)
+        let b = OwnerMailbox(id: "b", address: "b@vault.cool", unreadCount: 3)
+        let c = OwnerMailbox(id: "c", address: "c@vault.cool", unreadCount: 1, heldCount: 4)
+        let quiet = OwnerMailbox(id: "d", address: "d@vault.cool")
+        let elsewhere = try XCTUnwrap(MailElsewhere(mailboxes: [a, b, quiet, c], active: a))
+        XCTAssertEqual(elsewhere.boxes.map(\.id), ["b", "c"], "quiet mailboxes are left out, the server's order is kept")
+        XCTAssertEqual(elsewhere.title, "Mail in 2 other addresses")
+        XCTAssertEqual(elsewhere.subtitle, "4 unread, 4 held")
+        XCTAssertEqual(elsewhere.target.id, "c", "held mail is what needs the person, so that is where a tap goes")
+        let onlyUnread = try XCTUnwrap(MailElsewhere(mailboxes: [a, b, OwnerMailbox(id: "e", address: "e@vault.cool", unreadCount: 1)], active: a))
+        XCTAssertEqual(onlyUnread.target.id, "b")
+        XCTAssertEqual(onlyUnread.subtitle, "4 unread")
+    }
+
     func testChoosingAMailbox() {
         let a = OwnerMailbox(id: "a", address: nil)
         let b = OwnerMailbox(id: "b", address: "b@vault.cool")
@@ -117,6 +163,140 @@ final class MailTests: XCTestCase {
         XCTAssertEqual(m.threadId, "x")
         XCTAssertEqual(m.folder, .inbox)
         XCTAssertEqual(m.displaySubject, "(no subject)")
+    }
+
+    // A list used to decode all or nothing: one row without a usable id threw, the page's `try?` swallowed it and the
+    // whole box read as empty, so the screen said "No mail yet" about a mailbox that held mail. A row the app cannot
+    // read now costs that row, and is counted so the screen can say so.
+
+    private let unreadable = [
+        #"{"thread_id":"t","subject":"no id at all"}"#,
+        #"{"id":42,"thread_id":"t","subject":"an id that is a number"}"#,
+        #"{"id":null,"subject":"an id that is null"}"#,
+        "null",
+        #""not even an object""#,
+    ]
+
+    func testOneUnreadableRowDoesNotEmptyTheList() throws {
+        let rows = ([message("m1")] + unreadable + [message("m2")]).joined(separator: ",")
+        let page = try HVCoding.decoder().decode(MailMessagePage.self, from: Data(#"{"box":"inbox","messages":[\#(rows)],"next_cursor":"c"}"#.utf8))
+        XCTAssertEqual(page.messages.map(\.id), ["m1", "m2"], "the rows that can be read are all kept, in order")
+        XCTAssertEqual(page.skipped, unreadable.count)
+        XCTAssertEqual(page.nextCursor, "c", "and paging carries on past them")
+    }
+
+    func testAListOfOnlyUnreadableRowsIsCountedNotPassedOffAsEmpty() throws {
+        let page = try HVCoding.decoder().decode(MailMessagePage.self, from: Data(#"{"box":"inbox","messages":[\#(unreadable[0]),\#(unreadable[1])]}"#.utf8))
+        XCTAssertTrue(page.messages.isEmpty)
+        XCTAssertEqual(page.skipped, 2, "an empty list that dropped rows is not the same answer as an empty list")
+        let empty = try HVCoding.decoder().decode(MailMessagePage.self, from: Data(#"{"box":"inbox","messages":[]}"#.utf8))
+        XCTAssertEqual(empty.skipped, 0)
+    }
+
+    func testHeldMailKeepsWhatCanBeReadAndTheServersOwnCount() throws {
+        let rows = [unreadable[0], message("h1"), message("h2")].joined(separator: ",")
+        let held = try HVCoding.decoder().decode(MailHeldPage.self, from: Data(#"{"count":3,"messages":[\#(rows)],"next_cursor":null}"#.utf8))
+        XCTAssertEqual(held.messages.map(\.id), ["h1", "h2"])
+        XCTAssertEqual(held.count, 3, "the server's count is what the screen holds the rows up against")
+        XCTAssertEqual(held.skipped, 1)
+    }
+
+    func testSearchAndTheSummaryAndTheMailboxListKeepWhatCanBeRead() throws {
+        let hits = try HVCoding.decoder().decode(MailSearchResult.self, from: Data(#"{"query":"plan","messages":[\#(unreadable[0]),\#(message("m1"))]}"#.utf8))
+        XCTAssertEqual(hits.messages.map(\.id), ["m1"])
+        let summary = try HVCoding.decoder().decode(MailboxSummary.self, from: Data(#"{"unread_count":1,"held_count":0,"latest":[\#(unreadable[1]),\#(message("m2"))]}"#.utf8))
+        XCTAssertEqual(summary.latest.map(\.id), ["m2"])
+        let list = try HVCoding.decoder().decode(OwnerMailboxList.self, from: Data(#"{"mailboxes":[{"address":"no-id@vault.cool"},{"id":"b1","address":"ana@vault.cool","is_primary":true}]}"#.utf8))
+        XCTAssertEqual(list.mailboxes.map(\.id), ["b1"], "a mailbox without an id cannot be asked for, and does not take the others with it")
+    }
+
+    // The Held screen read the first page (20) and stopped, and said "Nothing is held." about any empty answer,
+    // including one whose rows it could not read.
+
+    func heldPage(_ ids: [String], count: Int? = nil, cursor: String? = nil, extra: [String] = []) throws -> MailHeldPage {
+        let rows = (extra + ids.map { message($0) }).joined(separator: ",")
+        let next = cursor.map { #""\#($0)""# } ?? "null"
+        return try HVCoding.decoder().decode(MailHeldPage.self, from: Data(#"{"count":\#(count ?? ids.count),"messages":[\#(rows)],"next_cursor":\#(next)}"#.utf8))
+    }
+
+    func testTheWordsForRowsThatCouldNotBeRead() {
+        XCTAssertNil(MailText.unreadableSentence(0))
+        XCTAssertNil(MailText.unreadableSentence(-1))
+        XCTAssertEqual(MailText.unreadableSentence(1), "1 message could not be shown.")
+        XCTAssertEqual(MailText.unreadableSentence(3), "3 messages could not be shown.")
+        XCTAssertEqual(MailText.unreadableSentence(1, noun: "held message"), "1 held message could not be shown.")
+    }
+
+    func testTheHeldListPagesOnPastTheFirstTwenty() throws {
+        var list = MailHeldList(page: try heldPage(["h1", "h2"], count: 5, cursor: "c1"))
+        XCTAssertTrue(list.hasMore)
+        XCTAssertEqual(list.messages.map(\.id), ["h1", "h2"])
+        list.append(try heldPage(["h2", "h3", "h4"], count: 5, cursor: "c2"))
+        XCTAssertEqual(list.messages.map(\.id), ["h1", "h2", "h3", "h4"], "a row the first page already had is not shown twice")
+        XCTAssertEqual(list.nextCursor, "c2")
+        list.append(try heldPage(["h5"], count: 5))
+        XCTAssertEqual(list.messages.count, 5)
+        XCTAssertFalse(list.hasMore, "the last page has no cursor")
+    }
+
+    func testTheHeldListSaysNothingIsHeldOnlyWhenNothingIs() throws {
+        XCTAssertTrue(MailHeldList(page: try heldPage([])).isNothing)
+        XCTAssertNil(MailHeldList(page: try heldPage([])).unreadableSentence)
+        let dropped = MailHeldList(page: try heldPage([], count: 2, extra: [unreadable[0], unreadable[1]]))
+        XCTAssertFalse(dropped.isNothing, "rows that could not be read are not 'nothing held'")
+        XCTAssertEqual(dropped.unreadableSentence, "2 held messages could not be shown.")
+        var one = MailHeldList(page: try heldPage(["h1"], count: 2, extra: [unreadable[0]]))
+        XCTAssertFalse(one.isNothing)
+        XCTAssertEqual(one.unreadableSentence, "1 held message could not be shown.")
+        one.append(try heldPage([], extra: [unreadable[0]]))
+        XCTAssertEqual(one.unreadableSentence, "2 held messages could not be shown.", "what each page dropped adds up")
+    }
+
+    func testReleasingTheLastVisibleMessageWhileMoreAreHeldIsNotNothing() throws {
+        var list = MailHeldList(page: try heldPage(["h1", "h2"], count: 30, cursor: "c1"))
+        list.remove("h1")
+        list.remove("h2")
+        XCTAssertTrue(list.messages.isEmpty)
+        XCTAssertTrue(list.hasMore)
+        XCTAssertFalse(list.isNothing, "the rest are still held, on the next page: the screen offers them, it does not say 'Nothing is held.'")
+        list.append(try heldPage(["h3"], count: 30))
+        XCTAssertEqual(list.messages.map(\.id), ["h3"])
+        XCTAssertFalse(list.isNothing)
+    }
+
+    func testReleasingTakesTheMessageOffTheHeldList() throws {
+        var list = MailHeldList(page: try heldPage(["h1", "h2"]))
+        list.remove("h1")
+        XCTAssertEqual(list.messages.map(\.id), ["h2"])
+        list.remove("not there")
+        XCTAssertEqual(list.messages.map(\.id), ["h2"])
+        list.remove("h2")
+        XCTAssertTrue(list.isNothing)
+    }
+
+    func testWhatWasDroppedSurvivesTheSavedCopy() throws {
+        // The saved copy is shown first and the fresh answer after: the count must not read zero in between.
+        let rows = [unreadable[0], message("m1")].joined(separator: ",")
+        let page = try HVCoding.decoder().decode(MailMessagePage.self, from: Data(#"{"box":"inbox","messages":[\#(rows)]}"#.utf8))
+        let back = try HVCoding.decoder(.verbatim).decode(MailMessagePage.self, from: try HVCoding.encoder(.verbatim).encode(page))
+        XCTAssertEqual(back, page)
+        XCTAssertEqual(back.skipped, 1)
+        let held = try HVCoding.decoder().decode(MailHeldPage.self, from: Data(#"{"count":2,"messages":[\#(rows)]}"#.utf8))
+        let heldBack = try HVCoding.decoder(.verbatim).decode(MailHeldPage.self, from: try HVCoding.encoder(.verbatim).encode(held))
+        XCTAssertEqual(heldBack, held)
+        XCTAssertEqual(heldBack.skipped, 1)
+    }
+
+    func testAListThatIsNotAListIsAnErrorNotAnEmptyBox() {
+        // The key is there and is not an array: the server said something this app does not understand. Saying "no mail"
+        // would be a guess; failing the load says so, and the screen shows the error with Try again.
+        for body in [#"{"messages":{"items":[]}}"#, #"{"messages":"none"}"#, #"{"messages":7}"#] {
+            XCTAssertThrowsError(try HVCoding.decoder().decode(MailMessagePage.self, from: Data(body.utf8)), body)
+            XCTAssertThrowsError(try HVCoding.decoder().decode(MailHeldPage.self, from: Data(body.utf8)), body)
+        }
+        // A missing or null list is an empty one, as it always was.
+        XCTAssertEqual(try? HVCoding.decoder().decode(MailMessagePage.self, from: Data(#"{"box":"inbox"}"#.utf8)).messages.count, 0)
+        XCTAssertEqual(try? HVCoding.decoder().decode(MailMessagePage.self, from: Data(#"{"messages":null}"#.utf8)).messages.count, 0)
     }
 
     func testSearchHitsCarryASnippet() throws {

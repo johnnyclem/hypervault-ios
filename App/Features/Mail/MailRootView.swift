@@ -16,6 +16,7 @@ struct MailInboxScreen: View {
     @Environment(AppModel.self) private var app
     /// The number on the Mail tab. Optional so the screen drawn without the tab bar (a preview) asks for nothing.
     @Environment(MailUnread.self) private var unread: MailUnread?
+    @Environment(\.scenePhase) private var scenePhase
     @State private var model: MailModel
     private let client: HVClient
     @State private var searchText = ""
@@ -42,6 +43,11 @@ struct MailInboxScreen: View {
             .onChange(of: model.totalUnread) { _, count in unread?.set(count) }
             .task(id: searchText) { await model.search(searchText) }
             .onAppear { Task { await model.refreshIfStarted() } }
+            // Back from another app (say, the one the person sent an email from): read the box again, as Memory does.
+            // The tab's number is refreshed by the tab bar, which left the list behind it saying "No mail yet".
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { Task { await model.refreshIfStarted() } }
+            }
             .navigationDestination(for: MailThreadRef.self) { ref in
                 MailThreadScreen(
                     client: client, threadID: ref.threadID, mailbox: ref.mailbox, agentsSeeOwnerMail: ref.agentsSeeOwnerMail
@@ -136,6 +142,7 @@ struct MailInboxScreen: View {
                     .listRowBackground(Color.clear)
                 }
                 if model.heldCount > 0 { Section { heldRow } }
+                if let elsewhere = model.elsewhere { Section { elsewhereRow(elsewhere) } }
                 Section { threadRows }
             }
         }
@@ -145,22 +152,25 @@ struct MailInboxScreen: View {
         .refreshable { await model.refresh() }
     }
 
-    /// The address under the large title; with several addresses it is a menu to pick one.
+    /// The address under the large title; with several mailboxes it is a menu to pick one. Every mailbox is in the
+    /// menu, the account's own (which has no address) too: one that holds mail has to be reachable, and the menu used
+    /// to list only mailboxes with an address, so mail filed in the other one could never be opened.
     @ViewBuilder
     private var mailboxLine: some View {
-        if let address = model.active?.address {
+        if let active = model.active, active.address != nil || model.mailboxes.count > 1 {
+            let address = active.displayAddress
             Group {
-                if model.mailboxes.filter({ $0.address != nil }).count > 1 {
+                if model.mailboxes.count > 1 {
                     Menu {
-                        ForEach(model.mailboxes.filter { $0.address != nil }) { box in
+                        ForEach(model.mailboxes) { box in
                             Button {
                                 Haptics.select()
                                 Task { await model.select(mailbox: box.id) }
                             } label: {
                                 if box.id == model.active?.id {
-                                    Label(boxTitle(box), systemImage: "checkmark")
+                                    Label(box.pickerTitle, systemImage: "checkmark")
                                 } else {
-                                    Text(boxTitle(box))
+                                    Text(box.pickerTitle)
                                 }
                             }
                         }
@@ -202,7 +212,8 @@ struct MailInboxScreen: View {
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
         case .loaded:
-            if model.threads.isEmpty {
+            // Rows the app could not read are not "No mail yet": say how many, and show the rest.
+            if model.threads.isEmpty && model.skipped == 0 {
                 emptyState
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
@@ -216,6 +227,14 @@ struct MailInboxScreen: View {
                     .swipeActions(edge: .leading, allowsFullSwipe: true) { leadingActions(thread) }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) { trailingActions(thread) }
                     .contextMenu { menuActions(thread) }
+                }
+                if let sentence = MailText.unreadableSentence(model.skipped) {
+                    Text(sentence)
+                        .font(.hvCallout)
+                        .foregroundStyle(Palette.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                 }
                 footerRows
             }
@@ -250,6 +269,24 @@ struct MailInboxScreen: View {
         }
         .buttonStyle(.plain)
         .hvListRow()
+    }
+
+    /// Mail waiting in an address that is not the one on screen: a tap opens it. Without this an inbox that is empty
+    /// because the mail went to the other address looks the same as one that never got any.
+    private func elsewhereRow(_ elsewhere: MailElsewhere) -> some View {
+        Button {
+            Haptics.select()
+            Task { await model.select(mailbox: elsewhere.target.id) }
+        } label: {
+            HVRow(symbol: "tray.2", title: elsewhere.title, subtitle: elsewhere.subtitle) {
+                HVIcon(HVSymbol.open).font(.footnote.weight(.semibold)).foregroundStyle(Palette.textTertiary)
+            }
+            .frame(minHeight: 44)
+        }
+        .buttonStyle(.plain)
+        .hvListRow()
+        .accessibilityIdentifier("mail.elsewhere")
+        .accessibilityHint("Switches to that address")
     }
 
     @ViewBuilder
@@ -372,7 +409,10 @@ struct MailInboxScreen: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .topBarTrailing) {
             Menu {
+                // Held mail is a mailbox's own: until the mailboxes are known the screen would ask the server for
+                // "the default" while the address on screen names another.
                 Button { showHeld = true } label: { Label("Held mail", systemImage: "hand.raised") }
+                    .disabled(model.active == nil)
                 Button { showSettings = true } label: { Label("Mailbox settings", systemImage: "gearshape") }
                     .disabled(model.active == nil)
             } label: {
@@ -388,10 +428,6 @@ struct MailInboxScreen: View {
             .disabled(model.isMailUnavailable)
             .accessibilityLabel("New note")
         }
-    }
-
-    private func boxTitle(_ box: OwnerMailbox) -> String {
-        box.unreadCount > 0 ? "\(box.displayAddress) (\(box.unreadCount) unread)" : box.displayAddress
     }
 
     // MARK: Actions

@@ -33,6 +33,9 @@ final class MailModel {
     private(set) var listState: Load = .idle
     private(set) var messages: [MailMessage] = []
     private(set) var nextCursor: String?
+    /// Rows the server sent that this app could not read, over the pages loaded. The screen says so: a list that
+    /// dropped rows is not an empty list.
+    private(set) var skipped = 0
     private(set) var isLoadingMore = false
 
     private(set) var searchState: Load = .idle
@@ -59,9 +62,18 @@ final class MailModel {
 
     var threads: [MailThread] { MailThreads.group(messages) }
 
+    /// "No mail yet" may be said only when there is none: no rows, none the app could not read, and no older page.
+    /// Archiving the thread that filled the first page leaves no rows with older mail still behind the cursor, and
+    /// the screen has to offer it (Load older) instead.
+    var hasNothingToShow: Bool { messages.isEmpty && skipped == 0 && nextCursor == nil }
+
     var agentsSeeOwnerMail: Bool { active?.agentsSeeOwnerMail ?? true }
 
     var heldCount: Int { active?.heldCount ?? 0 }
+
+    /// Mail (or held mail) waiting in the other mailboxes: with several addresses only one is on screen, and nothing
+    /// else says that another has mail. Nil when everything that waits is on screen.
+    var elsewhere: MailElsewhere? { MailElsewhere(mailboxes: mailboxes, active: active) }
 
     /// What is on screen came from the phone, not the server (yet, or because the server could not be reached).
     var isShowingSavedCopy: Bool { mailboxesAreSaved || listIsSaved }
@@ -127,7 +139,14 @@ final class MailModel {
             for try await loaded in stream {
                 mailboxes = loaded.value.mailboxes
                 mailboxesAreSaved = loaded.isStale
-                mailboxState = .loaded
+                if let failure = loaded.refreshError, loaded.value.mailboxes.isEmpty {
+                    // A saved list with no mailbox in it says nothing about the account: the refresh behind it failed,
+                    // and the screen says so (with Try again) instead of drawing an empty Mail tab.
+                    mailboxProblem = Self.problem(for: failure)
+                    mailboxState = .failed(Self.sentence(failure))
+                } else {
+                    mailboxState = .loaded
+                }
             }
         } catch {
             if !quiet || mailboxState != .loaded {
@@ -153,9 +172,22 @@ final class MailModel {
             }
             for try await loaded in stream {
                 guard mine == generation else { return }
+                // A saved empty inbox is not an answer: while the fresh one is on its way the screen keeps its
+                // skeleton, so a slow connection never paints "No mail yet" over mail that has just arrived. If the
+                // fresh read fails, the element that follows carries `refreshError` and is handled below.
+                if loaded.source == .cache, loaded.refreshError == nil, loaded.value.messages.isEmpty, loaded.value.skipped == 0 {
+                    continue
+                }
                 messages = loaded.value.messages
                 nextCursor = loaded.value.nextCursor
-                listState = .loaded
+                skipped = loaded.value.skipped
+                if let failure = loaded.refreshError, loaded.value.messages.isEmpty, loaded.value.skipped == 0 {
+                    // The refresh failed and all there is to show is a saved empty inbox. That is not "No mail yet":
+                    // it is a box the app could not read, and a small "saved copy" pill is too quiet to say so.
+                    listState = .failed(Self.sentence(failure))
+                } else {
+                    listState = .loaded
+                }
                 listIsSaved = loaded.isStale
             }
         } catch {
@@ -168,6 +200,7 @@ final class MailModel {
         generation += 1
         messages = []
         nextCursor = nil
+        skipped = 0
         listState = .loading
         listIsSaved = false
     }
@@ -197,6 +230,7 @@ final class MailModel {
         guard mine == generation else { return }
         messages = MailThreads.appendUnique(messages, page.messages)
         nextCursor = page.nextCursor
+        skipped += page.skipped
     }
 
     // MARK: Search
@@ -283,6 +317,7 @@ final class MailModel {
         let result = try await client.send(.mailEmptyTrash(mailbox: mailboxParam))
         messages = []
         nextCursor = nil
+        skipped = 0
         await loadMailboxes(quiet: true)
         return result.deleted
     }

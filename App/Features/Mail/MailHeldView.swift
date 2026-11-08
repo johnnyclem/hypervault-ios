@@ -25,8 +25,10 @@ final class MailHeldModel {
     }
 
     private(set) var phase: Phase = .loading
-    private(set) var messages: [MailMessage] = []
+    /// What has been read of the held mail: every page so far, and what could not be read (`MailHeldList`).
+    private(set) var list: MailHeldList?
     private(set) var releasing: String?
+    private(set) var isLoadingMore = false
     @ObservationIgnored private let client: HVClient
     @ObservationIgnored private let mailbox: String?
 
@@ -38,18 +40,29 @@ final class MailHeldModel {
     func load() async {
         do {
             let page = try await client.send(.mailHeld(mailbox: mailbox))
-            messages = page.messages
+            list = MailHeldList(page: page)
             phase = .loaded
         } catch {
             phase = .failed(MailModel.sentence(error))
         }
     }
 
+    /// The next page of held mail. Held mail used to stop at the first page, so the 21st message was never shown.
+    func loadMore() async throws {
+        guard let cursor = list?.nextCursor, !isLoadingMore else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        let page = try await client.send(.mailHeld(mailbox: mailbox, cursor: cursor))
+        // A refresh that landed while this was in flight has its own list and its own cursor.
+        guard list?.nextCursor == cursor else { return }
+        list?.append(page)
+    }
+
     func release(_ message: MailMessage) async throws {
         releasing = message.id
         defer { releasing = nil }
         _ = try await client.send(.mailRelease(id: message.id, mailbox: mailbox))
-        messages.removeAll { $0.id == message.id }
+        list?.remove(message.id)
     }
 }
 
@@ -102,21 +115,49 @@ struct MailHeldScreen: View {
         case .failed(let message):
             HVErrorState(message: message) { Task { await model.load() } }
         case .loaded:
-            if model.messages.isEmpty {
-                HVEmptyState(symbol: "tray", title: "Nothing is held.")
-            } else {
-                ForEach(model.messages) { message in
-                    VStack(alignment: .leading, spacing: HV.Space.s) {
-                        MailMessageCard(message: message, style: .held)
-                        Button("Let agents see this") {
-                            Haptics.tap()
-                            candidate = message
+            if let list = model.list {
+                if list.isNothing {
+                    HVEmptyState(symbol: "tray", title: "Nothing is held.")
+                } else {
+                    ForEach(list.messages) { message in
+                        VStack(alignment: .leading, spacing: HV.Space.s) {
+                            MailMessageCard(message: message, style: .held)
+                            Button("Let agents see this") {
+                                Haptics.tap()
+                                candidate = message
+                            }
+                            .buttonStyle(.hvSecondary)
+                            .disabled(model.releasing == message.id)
                         }
-                        .buttonStyle(.hvSecondary)
-                        .disabled(model.releasing == message.id)
+                    }
+                    // Said, not hidden: held mail the app could not read is not "Nothing is held."
+                    if let sentence = list.unreadableSentence {
+                        Text(sentence)
+                            .font(.hvCallout)
+                            .foregroundStyle(Palette.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    // The server counts more held mail than it sent: the rows above are not all of it.
+                    if let sentence = list.disagreementSentence {
+                        Text(sentence)
+                            .font(.hvCallout)
+                            .foregroundStyle(Palette.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    if list.hasMore {
+                        Button("Load more") { loadMore() }
+                            .buttonStyle(.hvGhost)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .disabled(model.isLoadingMore)
                     }
                 }
             }
+        }
+    }
+
+    private func loadMore() {
+        Task {
+            do { try await model.loadMore() } catch { app.toasts.show(mailError: error) }
         }
     }
 

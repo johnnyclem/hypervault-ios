@@ -277,6 +277,94 @@ final class MailModelTests: XCTestCase {
         await model.start()
         XCTAssertFalse(model.isMailUnavailable)
     }
+
+    /// A saved copy that is empty says nothing about the mailbox. When the refresh behind it fails (a 403, a 404, a 500,
+    /// an answer the app cannot read) the screen used to show "No mail yet" with a small saved-copy pill and no sentence.
+    func testAFailedRefreshBehindASavedEmptyInboxIsAFailureNotAnEmptyInbox() async throws {
+        let cache = DiskCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-mail-\(UUID().uuidString)"))
+        func model(_ routes: [MockRoute]) -> MailModel {
+            let client = HVClient(baseURL: URL(string: "https://preview.hypervault.test")!, transport: MockTransport(routes: routes), tokens: StaticTokenProvider(), retry: .none)
+            return MailModel(client: client, cache: cache, namespace: "tests")
+        }
+        let mailboxes = MockRoute.json(.get, "/api/mail/owner/mailboxes", MailPreviewData.mailboxes)
+
+        let first = model([mailboxes, .json(.get, "/api/mail/messages", #"{"box":"inbox","messages":[],"next_cursor":null}"#)])
+        await first.start()
+        XCTAssertEqual(first.listState, .loaded, "a fresh empty inbox is an empty inbox")
+        XCTAssertTrue(first.messages.isEmpty)
+
+        let second = model([mailboxes, .failure(.get, "/api/mail/messages", status: 500, message: "Something broke.")])
+        await second.start()
+        guard case .failed(let message) = second.listState else { return XCTFail("a saved empty inbox must not stand in for a failed refresh") }
+        XCTAssertFalse(message.isEmpty)
+    }
+
+    /// The same, for a saved copy that does have mail: it stays on screen under its pill, as before.
+    func testAFailedRefreshBehindASavedInboxWithMailKeepsTheMail() async throws {
+        let cache = DiskCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent("hv-mail-\(UUID().uuidString)"))
+        func model(_ routes: [MockRoute]) -> MailModel {
+            let client = HVClient(baseURL: URL(string: "https://preview.hypervault.test")!, transport: MockTransport(routes: routes), tokens: StaticTokenProvider(), retry: .none)
+            return MailModel(client: client, cache: cache, namespace: "tests")
+        }
+        let mailboxes = MockRoute.json(.get, "/api/mail/owner/mailboxes", MailPreviewData.mailboxes)
+        await model([mailboxes, .json(.get, "/api/mail/messages", MailPreviewData.inbox)]).start()
+
+        let offline = model([mailboxes, .failure(.get, "/api/mail/messages", status: 500, message: "Something broke.")])
+        await offline.start()
+        XCTAssertEqual(offline.listState, .loaded)
+        XCTAssertEqual(offline.threads.count, 4)
+        XCTAssertTrue(offline.isShowingSavedCopy)
+    }
+
+    /// A row the app cannot read costs that row and is counted: it used to empty the whole inbox without a word.
+    func testRowsTheAppCouldNotReadAreCountedNotPassedOffAsAnEmptyInbox() async throws {
+        let inbox = #"{"box":"inbox","messages":[{"subject":"no id at all"}],"next_cursor":null}"#
+        let model = model([.json(.get, "/api/mail/owner/mailboxes", MailPreviewData.mailboxes), .json(.get, "/api/mail/messages", inbox)])
+        await model.start()
+        XCTAssertEqual(model.listState, .loaded)
+        XCTAssertTrue(model.threads.isEmpty)
+        XCTAssertEqual(model.skipped, 1)
+    }
+
+    /// A page is 50 messages, not 50 threads. Archiving the thread that filled it leaves no rows with older mail still
+    /// behind the cursor: that is not "No mail yet", the screen has to offer Load older.
+    func testArchivingWhatFilledTheFirstPageLeavesOlderMailToLoadNotAnEmptyInbox() async throws {
+        let row = #"{"id":"m1","thread_id":"t1","folder":"inbox","subject":"A long thread","author":{"type":"key","name":"Claude Code"}}"#
+        let messages = MockRoute(.get, "/api/mail/messages") { request in
+            let isThread = request.url?.query?.contains("thread_id") == true
+            let body = isThread ? #"{"messages":[\#(row)],"next_cursor":null}"# : #"{"box":"inbox","messages":[\#(row)],"next_cursor":"c1"}"#
+            return HTTPResponse(status: 200, data: Data(body.utf8))
+        }
+        let mailboxes = MockRoute.json(.get, "/api/mail/owner/mailboxes", MailPreviewData.mailboxes)
+        let busy = model([messages, mailboxes, .json(.patch, "/api/mail/messages/*", #"{"message":{"id":"m1"}}"#)])
+        await busy.start()
+        XCTAssertFalse(busy.hasNothingToShow)
+        let thread = try XCTUnwrap(busy.threads.first)
+        _ = try await busy.move(thread, to: .archive)
+        XCTAssertTrue(busy.threads.isEmpty)
+        XCTAssertNotNil(busy.nextCursor, "older mail is still behind the cursor")
+        XCTAssertFalse(busy.hasNothingToShow, "so the screen offers Load older instead of saying there is no mail")
+
+        let empty = model([mailboxes, .json(.get, "/api/mail/messages", #"{"box":"inbox","messages":[],"next_cursor":null}"#)])
+        await empty.start()
+        XCTAssertTrue(empty.hasNothingToShow, "a box that is empty all the way is empty")
+    }
+
+    /// With several addresses one is on screen. Mail in another must be said somewhere on this one.
+    func testMailWaitingInAnotherAddressIsSaidAndTheRowOpensIt() async throws {
+        let mailboxes = #"{"mailboxes":[{"id":"a","claim_id":"c1","address":"a@vault.cool","is_primary":true,"unread_count":0,"held_count":0,"agents_see_owner_mail":true},{"id":"b","claim_id":"c2","address":"b@vault.cool","is_primary":false,"unread_count":1,"held_count":2,"agents_see_owner_mail":true}]}"#
+        let empty = #"{"box":"inbox","messages":[],"next_cursor":null}"#
+        let model = model([.json(.get, "/api/mail/owner/mailboxes", mailboxes), .json(.get, "/api/mail/messages", empty)])
+        await model.start()
+        XCTAssertEqual(model.active?.id, "a")
+        XCTAssertEqual(model.heldCount, 0, "the held row is the mailbox on screen's alone")
+        let elsewhere = try XCTUnwrap(model.elsewhere)
+        XCTAssertEqual(elsewhere.target.id, "b")
+        XCTAssertEqual(elsewhere.held, 2)
+        await model.select(mailbox: elsewhere.target.id)
+        XCTAssertEqual(model.active?.id, "b")
+        XCTAssertNil(model.elsewhere, "nothing waits in the other address, so there is nothing to say")
+    }
 }
 
 /// Says whether the reply route has been called, for a route that must answer differently afterwards.

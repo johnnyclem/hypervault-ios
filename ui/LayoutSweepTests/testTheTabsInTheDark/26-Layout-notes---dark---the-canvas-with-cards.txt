@@ -1,0 +1,4 @@
+dark / the canvas with cards
+
+small target  Button "Open panel" (canvas.yours)  336,51 32x36
+small target  TextField (canvas.field)  76,462 290x22

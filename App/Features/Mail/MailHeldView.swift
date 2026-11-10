@@ -105,7 +105,8 @@ struct MailHeldScreen: View {
             Button("Let agents see it") { release(message) }
             Button("Cancel", role: .cancel) {}
         } message: { _ in
-            Text("They will be able to read it. Nothing else changes.")
+            // A reply you wrote under it, which was waiting for this, becomes readable too (D17 in the web repo's docs).
+            Text("They will be able to read it, and any reply you wrote under it. Nothing else changes.")
         }
     }
 

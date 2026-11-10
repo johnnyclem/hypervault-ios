@@ -337,11 +337,15 @@ extension MailMessage {
     }
 
     /// The sender's own name for themselves, for a card that shows it beside the address: only on mail from outside, and
-    /// only when it says more than the address does (the server stores the address as the name when there is none).
+    /// only when it says more than the address does. The server stores the address as the name when there is none, cut to
+    /// 60 code points, so an address longer than that is not a name either.
     public var outsideDisplayName: String? {
         guard isFromOutside else { return nil }
         let name = author.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        return name.isEmpty || name.lowercased() == from.lowercased() ? nil : name
+        let lowered = name.lowercased()
+        let address = from.lowercased()
+        let cut = String(String.UnicodeScalarView(address.unicodeScalars.prefix(60))).trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty || lowered == address || lowered == cut ? nil : name
     }
 
     /// The tags beside the sender of mail from outside, in the order they are shown; none for any other mail.

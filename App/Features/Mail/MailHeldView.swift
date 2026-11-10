@@ -2,9 +2,11 @@ import HyperVaultKit
 import SwiftUI
 
 /// Mail that came from someone other than the person, which their agents
-/// cannot see. In this version nothing creates such mail, so this is usually
-/// an explanation and "Nothing is held."; when something is, the person can
-/// let their agents see it.
+/// cannot see: mail from the internet, when the server is set up to receive it
+/// (docs/agent-mail.md, "Internet mail in" in the web repo). Until then this is
+/// an explanation and "Nothing is held."; when something is held, the person can
+/// let their agents see it. Each card says who it is from, whether it is from the
+/// person's own address, and whether the sender was verified.
 struct MailHeldView: View {
     @Environment(AppEnvironment.self) private var env
     let mailbox: String?

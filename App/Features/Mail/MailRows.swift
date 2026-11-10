@@ -60,10 +60,40 @@ struct MailNotSharedTag: View {
     }
 }
 
+/// One tag of mail from outside: "From your address" (blue) or "Not verified" (amber). Like the agent tag, it is part of the
+/// screen and not of the sender's words, so nothing a sender writes can switch it off.
+struct MailSenderTagView: View {
+    let tag: MailSenderTag
+
+    var body: some View {
+        HVTag(text: tag.title, tint: tag == .fromYourAddress ? Palette.blue : Palette.amber)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+    }
+}
+
+/// The tags of mail from outside, side by side when they fit and stacked when they do not (at larger text sizes).
+struct MailSenderTags: View {
+    let tags: [MailSenderTag]
+
+    var body: some View {
+        if !tags.isEmpty {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: HV.Space.xs) {
+                    ForEach(tags, id: \.self) { MailSenderTagView(tag: $0) }
+                }
+                VStack(alignment: .leading, spacing: HV.Space.xxs) {
+                    ForEach(tags, id: \.self) { MailSenderTagView(tag: $0) }
+                }
+            }
+        }
+    }
+}
+
 /// Who wrote it (with the agent tag) and when, for the inbox and for search hits. On one line when they
 /// fit together, and with the time under the name when they do not, which is the case at larger text sizes.
 private struct MailRowHeader: View {
-    let author: MailAuthor
+    let message: MailMessage
     let date: Date?
     var weight: Font.Weight = .semibold
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -90,11 +120,13 @@ private struct MailRowHeader: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: HV.Space.xxs))
             : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: HV.Space.xs))
         return layout {
-            Text(author.label)
+            // Mail from outside is named by its address (Mail.swift: senderLabel), so a long one is cut in the middle.
+            Text(message.senderLabel)
                 .font(.system(.body, weight: weight))
                 .foregroundStyle(Palette.textPrimary)
                 .lineLimit(stacked ? 3 : 1)
-            if author.isAgent { MailAgentTag() }
+                .truncationMode(message.isFromOutside ? .middle : .tail)
+            if message.author.isAgent { MailAgentTag() }
         }
     }
 
@@ -120,7 +152,8 @@ struct MailThreadRow: View {
                 .padding(.top, 6)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
-                MailRowHeader(author: newest.author, date: newest.createdAt, weight: thread.unread ? .bold : .semibold)
+                MailRowHeader(message: newest, date: newest.createdAt, weight: thread.unread ? .bold : .semibold)
+                MailSenderTags(tags: newest.senderTags)
                 Text(newest.displaySubject)
                     .font(.system(.subheadline, weight: thread.unread ? .semibold : .regular))
                     .foregroundStyle(thread.unread ? Palette.textPrimary : Palette.textSecondary)
@@ -142,7 +175,10 @@ struct MailThreadRow: View {
         let newest = thread.newest
         var parts: [String] = []
         if thread.unread { parts.append("Unread") }
-        parts.append(newest.author.isAgent ? "From \(newest.author.label), an agent" : "From \(newest.author.label)")
+        var from = "From \(newest.senderLabel)"
+        if newest.author.isAgent { from += ", an agent" }
+        for tag in newest.senderTags { from += ", " + tag.title.lowercased() }
+        parts.append(from)
         parts.append(newest.displaySubject)
         let when = MailTimeFormat.string(for: newest.createdAt)
         if !when.isEmpty { parts.append(when) }
@@ -158,7 +194,8 @@ struct MailHitRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.xxs) {
-            MailRowHeader(author: message.author, date: message.createdAt)
+            MailRowHeader(message: message, date: message.createdAt)
+            MailSenderTags(tags: message.senderTags)
             Text(message.displaySubject)
                 .font(.hvSubheadline)
                 .foregroundStyle(Palette.textPrimary)
@@ -195,6 +232,7 @@ struct MailMessageCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.s) {
             header
+            if style == .thread { MailSenderTags(tags: message.senderTags) }
             if message.isHiddenFromAgents { MailNotSharedTag() }
             Text(verbatim: message.text ?? "")
                 .font(.hvBody)
@@ -240,9 +278,10 @@ struct MailMessageCard: View {
 
     private var sender: some View {
         HStack(alignment: .firstTextBaseline, spacing: HV.Space.xs) {
-            Text(message.author.label)
+            Text(message.senderLabel)
                 .font(.hvHeadline)
                 .lineLimit(2)
+                .truncationMode(message.isFromOutside ? .middle : .tail)
             if message.author.isAgent { MailAgentTag() }
         }
     }
@@ -257,23 +296,36 @@ struct MailMessageCard: View {
     }
 
     /// The subject first, then who sent it. For held mail the sender's address is what tells the person
-    /// whether to trust it, so it stands where the agent tag would.
+    /// whether to trust it, so it stands where the agent tag would. Mail from the internet shows the name the
+    /// sender gave themselves only when it adds to the address, and says whether it is from the person's own address
+    /// and whether the sender could be verified: the name is the sender's words, the tags are the app's.
     private var heldHeader: some View {
         VStack(alignment: .leading, spacing: HV.Space.xxs) {
             Text(message.displaySubject)
                 .font(.hvHeadline)
                 .foregroundStyle(Palette.textPrimary)
             VStack(alignment: .leading, spacing: HV.Space.xxs) {
-                Text(message.author.label)
-                    .font(.hvSubheadline)
-                    .foregroundStyle(Palette.textPrimary)
+                if let name = message.outsideDisplayName {
+                    Text(name)
+                        .font(.hvSubheadline)
+                        .foregroundStyle(Palette.textPrimary)
+                } else if !message.isFromOutside {
+                    Text(message.author.label)
+                        .font(.hvSubheadline)
+                        .foregroundStyle(Palette.textPrimary)
+                }
                 if !message.from.isEmpty {
                     Text(message.from)
                         .font(.hvMono)
                         .foregroundStyle(Palette.textSecondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
+                } else if message.isFromOutside {
+                    Text(message.senderLabel)
+                        .font(.hvSubheadline)
+                        .foregroundStyle(Palette.textSecondary)
                 }
+                MailSenderTags(tags: message.senderTags)
                 timestamp
             }
         }

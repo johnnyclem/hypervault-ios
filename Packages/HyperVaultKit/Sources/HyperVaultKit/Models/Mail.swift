@@ -751,6 +751,15 @@ public enum MailText {
         return bare.isEmpty ? noSubject : bare
     }
 
+    /// Said beside the reply box of a conversation that began outside HyperVault. Agent Mail sends no mail out, so a reply
+    /// is a note that stays here; without this, answering a stranger's email looks like emailing them back.
+    public static let replyNotEmailed = "Not emailed: replies stay in HyperVault."
+
+    /// Whether any message of the conversation came in from the internet (the newest may be the person's own reply).
+    public static func repliesAreNotEmailed(in messages: [MailMessage]) -> Bool {
+        messages.contains(where: \.isFromOutside)
+    }
+
     /// What a list says when the server sent rows this app could not read ("1 message could not be shown."), so a
     /// row that is dropped is never dropped silently. Nil for none.
     public static func unreadableSentence(_ count: Int, noun: String = "message") -> String? {

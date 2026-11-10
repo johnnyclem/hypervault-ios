@@ -110,6 +110,13 @@ struct MailThreadScreen: View {
                 MailNotSharedTag()
                     .padding(.leading, HV.Space.xxs)
             }
+            // A conversation that began outside HyperVault: the reply is not sent to the sender (there is no mail out).
+            if MailText.repliesAreNotEmailed(in: model.messages) {
+                Text(MailText.replyNotEmailed)
+                    .font(.hvCaption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .padding(.leading, HV.Space.xxs)
+            }
             HStack(alignment: .bottom, spacing: HV.Space.s) {
                 TextField("Write a reply", text: $draft, prompt: Text.hvPrompt("Write a reply"), axis: .vertical)
                     .accessibilityIdentifier("mail.reply")

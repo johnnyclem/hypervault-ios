@@ -298,6 +298,62 @@ public struct MailMessage: Sendable, Codable, Hashable, Identifiable {
     }
 }
 
+/// The labels the server puts on mail that came in from the internet (docs/agent-mail.md, "Internet mail in"). They are
+/// informational there, and here they decide only what a row says about the mail, never what the app does with it.
+public enum MailLabel {
+    public static let fromOutside = "from-outside"
+    public static let fromYourAddress = "from-your-address"
+    public static let senderVerified = "sender-verified"
+    public static let senderUnverified = "sender-unverified"
+}
+
+/// What a row says beside the sender of mail from outside.
+public enum MailSenderTag: String, Sendable, Equatable, CaseIterable {
+    /// The From line is the account's own email address. Anyone can write that line, so it is a flag and not a fact:
+    /// the mail is held and cleaned like the rest, and "not verified" says what the provider could vouch for.
+    case fromYourAddress
+    /// The provider did not report a DMARC pass for the sender. (A pass would not make it safe: a taken-over mailbox passes.)
+    case notVerified
+
+    public var title: String {
+        switch self {
+        case .fromYourAddress: return "From your address"
+        case .notVerified: return "Not verified"
+        }
+    }
+}
+
+extension MailMessage {
+    /// It came in from the internet: a stranger wrote it, and it is held until the person lets agents see it. The server
+    /// stores it under the author `system`, which is also a word for the system's own notices, so the label is what says so.
+    public var isFromOutside: Bool { labels.contains(MailLabel.fromOutside) }
+
+    /// Who wrote it, for a row. Mail from outside is named by the address it came from (the bare address the server read
+    /// from the From line, never a display name: a sender can call themselves "You"), or "Unknown sender" when none could be
+    /// read. Everything else is named as `author.label` names it.
+    public var senderLabel: String {
+        guard isFromOutside else { return author.label }
+        return from.isEmpty ? "Unknown sender" : from
+    }
+
+    /// The sender's own name for themselves, for a card that shows it beside the address: only on mail from outside, and
+    /// only when it says more than the address does (the server stores the address as the name when there is none).
+    public var outsideDisplayName: String? {
+        guard isFromOutside else { return nil }
+        let name = author.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty || name.lowercased() == from.lowercased() ? nil : name
+    }
+
+    /// The tags beside the sender of mail from outside, in the order they are shown; none for any other mail.
+    public var senderTags: [MailSenderTag] {
+        guard isFromOutside else { return [] }
+        var tags: [MailSenderTag] = []
+        if labels.contains(MailLabel.fromYourAddress) { tags.append(.fromYourAddress) }
+        if !labels.contains(MailLabel.senderVerified) { tags.append(.notVerified) }
+        return tags
+    }
+}
+
 /// A page of messages: a box (`box` set) or a thread (`box` nil, full bodies,
 /// oldest to newest within the page, `nextCursor` pointing at older ones).
 public struct MailMessagePage: Sendable, Codable, Equatable {

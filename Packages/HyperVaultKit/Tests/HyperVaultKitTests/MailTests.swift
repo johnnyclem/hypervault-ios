@@ -352,6 +352,55 @@ final class MailTests: XCTestCase {
         XCTAssertEqual(try HVCoding.decoder().decode(OwnerMailboxList.self, from: Data(#"{"mailboxes":[]}"#.utf8)).mailboxes.count, 0)
     }
 
+    // Mail that came in from the internet is a stranger's. The server stores it under the author `system` and labels it
+    // (from-outside, from-your-address, sender-verified or sender-unverified); the app used to draw every such row as
+    // "System", with nothing to say who it was from or whether to trust it.
+
+    private func outside(_ labels: [String], from: String = "ana@example.com", name: String = "Ana") -> MailMessage {
+        MailMessage(id: "o1", threadId: "t", from: from, subject: "Hi", labels: labels, author: MailAuthor(type: .system, name: name))
+    }
+
+    func testMailFromOutsideIsNamedByItsAddressAndNotByAnythingTheSenderChose() {
+        // A display name is whatever the sender typed: "You" must not read as the person.
+        let posing = outside(["from-outside", "sender-unverified"], name: "You")
+        XCTAssertTrue(posing.isFromOutside)
+        XCTAssertEqual(posing.senderLabel, "ana@example.com")
+        XCTAssertEqual(posing.author.label, "System", "the author's own label is unchanged")
+        XCTAssertEqual(outside(["from-outside"], from: "").senderLabel, "Unknown sender", "no readable address: not the sender's own words either")
+    }
+
+    func testOtherMailIsNamedAsBefore() {
+        let agent = MailMessage(id: "a", threadId: "t", from: "johnny@vault.cool", labels: ["from-agent"], author: MailAuthor(type: .key, name: "Claude Code"))
+        XCTAssertFalse(agent.isFromOutside)
+        XCTAssertEqual(agent.senderLabel, "Claude Code")
+        XCTAssertEqual(agent.senderTags, [])
+        let mine = MailMessage(id: "m", threadId: "t", labels: ["from-owner"], author: MailAuthor(type: .owner))
+        XCTAssertEqual(mine.senderLabel, "You")
+        // The labels of an outside message on a row that is not from outside do nothing.
+        let forged = MailMessage(id: "f", threadId: "t", from: "x@y.example", labels: ["from-your-address", "sender-unverified"], author: MailAuthor(type: .key, name: "Agent"))
+        XCTAssertEqual(forged.senderTags, [], "the tags are for mail from outside only")
+        XCTAssertEqual(forged.senderLabel, "Agent")
+    }
+
+    func testTheTagsSayWhetherItIsFromYourAddressAndWhetherTheSenderWasVerified() {
+        XCTAssertEqual(outside(["from-outside", "sender-verified"]).senderTags, [])
+        XCTAssertEqual(outside(["from-outside", "sender-unverified"]).senderTags, [.notVerified])
+        XCTAssertEqual(outside(["from-outside"]).senderTags, [.notVerified], "no verdict is not a verified sender")
+        XCTAssertEqual(outside(["from-outside", "from-your-address", "sender-unverified"], from: "me@example.com").senderTags, [.fromYourAddress, .notVerified])
+        // Verified is still held: it only drops the second tag.
+        XCTAssertEqual(outside(["from-outside", "from-your-address", "sender-verified"], from: "me@example.com").senderTags, [.fromYourAddress])
+        XCTAssertEqual(MailSenderTag.fromYourAddress.title, "From your address")
+        XCTAssertEqual(MailSenderTag.notVerified.title, "Not verified")
+    }
+
+    func testAHeldCardShowsTheSendersNameOnlyWhenItAddsToTheAddress() {
+        XCTAssertEqual(outside(["from-outside"], name: "Ana Lopez").outsideDisplayName, "Ana Lopez")
+        XCTAssertNil(outside(["from-outside"], name: "ana@example.com").outsideDisplayName, "the server uses the address when there is no name")
+        XCTAssertNil(outside(["from-outside"], name: "ANA@Example.com").outsideDisplayName)
+        XCTAssertNil(outside(["from-outside"], name: "").outsideDisplayName)
+        XCTAssertNil(MailMessage(id: "a", threadId: "t", labels: ["from-agent"], author: MailAuthor(type: .key, name: "Claude Code")).outsideDisplayName)
+    }
+
     func testSearchHitsCarryASnippet() throws {
         let json = #"{"query":"plan","messages":[\#(message("m1", extra: #","snippet":"…the plan for the week…""#))]}"#
         let result = try HVCoding.decoder().decode(MailSearchResult.self, from: Data(json.utf8))

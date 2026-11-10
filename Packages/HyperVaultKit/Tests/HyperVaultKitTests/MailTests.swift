@@ -398,6 +398,10 @@ final class MailTests: XCTestCase {
         XCTAssertNil(outside(["from-outside"], name: "ana@example.com").outsideDisplayName, "the server uses the address when there is no name")
         XCTAssertNil(outside(["from-outside"], name: "ANA@Example.com").outsideDisplayName)
         XCTAssertNil(outside(["from-outside"], name: "").outsideDisplayName)
+        // An address longer than the name limit is stored cut: the cut copy is not a name.
+        let long = String(repeating: "a", count: 70) + "@vendor.example"
+        XCTAssertNil(outside(["from-outside"], from: long, name: String(long.prefix(60))).outsideDisplayName)
+        XCTAssertEqual(outside(["from-outside"], from: long, name: "Vendor Billing").outsideDisplayName, "Vendor Billing")
         XCTAssertNil(MailMessage(id: "a", threadId: "t", labels: ["from-agent"], author: MailAuthor(type: .key, name: "Claude Code")).outsideDisplayName)
     }
 

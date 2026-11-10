@@ -401,6 +401,18 @@ final class MailTests: XCTestCase {
         XCTAssertNil(MailMessage(id: "a", threadId: "t", labels: ["from-agent"], author: MailAuthor(type: .key, name: "Claude Code")).outsideDisplayName)
     }
 
+    // Agent Mail sends no mail out: a reply to mail from outside is a note that stays in HyperVault, and the reply box says so.
+    func testAConversationThatBeganOutsideSaysItsRepliesAreNotEmailed() {
+        let stranger = outside(["from-outside", "sender-unverified"])
+        let mine = MailMessage(id: "r1", threadId: "t", labels: ["from-owner"], author: MailAuthor(type: .owner))
+        XCTAssertTrue(MailText.repliesAreNotEmailed(in: [stranger]))
+        XCTAssertTrue(MailText.repliesAreNotEmailed(in: [stranger, mine]), "the newest message may be your own reply: the conversation is still the stranger's")
+        XCTAssertFalse(MailText.repliesAreNotEmailed(in: [mine]))
+        XCTAssertFalse(MailText.repliesAreNotEmailed(in: [MailMessage(id: "a", threadId: "t", labels: ["from-agent"], author: MailAuthor(type: .key, name: "Claude Code"))]))
+        XCTAssertFalse(MailText.repliesAreNotEmailed(in: []))
+        XCTAssertEqual(MailText.replyNotEmailed, "Not emailed: replies stay in HyperVault.")
+    }
+
     func testSearchHitsCarryASnippet() throws {
         let json = #"{"query":"plan","messages":[\#(message("m1", extra: #","snippet":"…the plan for the week…""#))]}"#
         let result = try HVCoding.decoder().decode(MailSearchResult.self, from: Data(json.utf8))

@@ -1,0 +1,9 @@
+dark / Home, group chats
+
+small target  Button "Account" (account.avatar)  20,51 44x36
+small target  Button "Keep" (home.keep)  164,51 58x36
+small target  Button "New room" (plus)  238,51 58x36
+small target  Button "More" (chat.more)  312,51 58x36
+small target  Button  312,51 58x36
+small target  Button "Chats"  16,109 179x32
+small target  Button "Group chats"  195,109 179x32

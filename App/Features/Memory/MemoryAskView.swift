@@ -259,38 +259,78 @@ private struct MemoryAskTurnView: View {
         turn.recallMessage.isEmpty ? "Nothing in memory matches that yet. Keep something first." : turn.recallMessage
     }
 
+    /// Closed unless the sources are all there is to read: with no model connected they are the answer, not its footnote.
     private var sources: some View {
+        MemoryAskSourcesView(turn: turn, startsOpen: !hasModel)
+    }
+}
+
+/// The memories an answer drew from. Always there, folded away until the person opens them: a recall can run to twenty
+/// memories, and listed in full they push the answer off the screen.
+private struct MemoryAskSourcesView: View {
+    let turn: MemoryAskModel.Turn
+    @State private var isOpen: Bool
+
+    init(turn: MemoryAskModel.Turn, startsOpen: Bool) {
+        self.turn = turn
+        _isOpen = State(initialValue: startsOpen)
+    }
+
+    private var count: String { "\(turn.hits.count) \(turn.hits.count == 1 ? "memory" : "memories")" }
+
+    var body: some View {
         VStack(alignment: .leading, spacing: HV.Space.xs) {
-            HVSectionHeader(title: "Drew from", detail: turn.recallMode.label)
-            let usedTitles = Set(turn.answer?.recalled ?? [])
-            ForEach(turn.hits) { hit in
-                NavigationLink(value: Route.memory(id: hit.id)) {
-                    HStack(alignment: .top, spacing: HV.Space.s) {
-                        Image(systemName: usedTitles.contains(hit.title) ? "checkmark.circle.fill" : "doc.text")
-                            .foregroundStyle(usedTitles.contains(hit.title) ? Palette.success : Palette.textTertiary)
-                            .hvIconSlot(22)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: HV.Space.xxs) {
-                            Text(hit.title)
-                                .font(.hvSubheadline.weight(.semibold))
-                                .foregroundStyle(Palette.textPrimary)
-                                .multilineTextAlignment(.leading)
-                            Text(hit.excerpt(limit: 200) ?? hit.summary)
-                                .font(.hvFootnote)
-                                .foregroundStyle(Palette.textSecondary)
-                                .lineLimit(3)
-                                .multilineTextAlignment(.leading)
-                        }
-                        Spacer(minLength: 0)
-                        MemoryChevron()
-                    }
-                    .padding(HV.Space.s)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+            Button {
+                HV.Motion.animate { isOpen.toggle() }
+            } label: {
+                HStack(spacing: HV.Space.xs) {
+                    Image(systemName: "arrowtriangle.right.fill")
+                        .font(.system(.caption2))
+                        .foregroundStyle(Palette.textTertiary)
+                        .rotationEffect(.degrees(isOpen ? 90 : 0))
+                        .hvIconSlot(22)
+                        .accessibilityHidden(true)
+                    HVSectionHeader(title: "Drew from", detail: "\(count) \u{00B7} \(turn.recallMode.label)")
                 }
-                .buttonStyle(.plain)
-                .accessibilityElement(children: .combine)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("ask.sources")
+            .accessibilityValue(isOpen ? "Expanded" : "Collapsed")
+            .accessibilityHint(isOpen ? "Hides the memories" : "Shows the memories this drew from")
+
+            if isOpen {
+                let usedTitles = Set(turn.answer?.recalled ?? [])
+                ForEach(turn.hits) { hit in
+                    NavigationLink(value: Route.memory(id: hit.id)) {
+                        HStack(alignment: .top, spacing: HV.Space.s) {
+                            Image(systemName: usedTitles.contains(hit.title) ? "checkmark.circle.fill" : "doc.text")
+                                .foregroundStyle(usedTitles.contains(hit.title) ? Palette.success : Palette.textTertiary)
+                                .hvIconSlot(22)
+                                .accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: HV.Space.xxs) {
+                                Text(hit.title)
+                                    .font(.hvSubheadline.weight(.semibold))
+                                    .foregroundStyle(Palette.textPrimary)
+                                    .multilineTextAlignment(.leading)
+                                Text(hit.excerpt(limit: 200) ?? hit.summary)
+                                    .font(.hvFootnote)
+                                    .foregroundStyle(Palette.textSecondary)
+                                    .lineLimit(3)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            Spacer(minLength: 0)
+                            MemoryChevron()
+                        }
+                        .padding(HV.Space.s)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Palette.surface, in: RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: HV.Radius.card, style: .continuous).strokeBorder(Palette.border, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityElement(children: .combine)
+                }
             }
         }
     }

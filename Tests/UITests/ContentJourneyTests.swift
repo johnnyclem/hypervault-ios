@@ -32,7 +32,11 @@ final class ContentJourneyTests: HyperVaultUITestCase {
             waitUntil("the question to leave the question box once it is asked") { self.fieldNoLongerHolds(self.textField("ask.field"), question) }
             require(text("What did I plan for the ferry?"), "the question, kept above its answer")
             require(shows("Your Lisbon notes say to book the Friday ferry"), "the answer", timeout: 40)
-            require(shows("Drew from"), "the list of sources")
+            require(shows("Drew from"), "the sources heading")
+            // The sources are folded away until opened, so the answer is not buried under them.
+            reveal(element("ask.sources"), "the sources toggle")
+            XCTAssertFalse(shows("Trip to Lisbon: ferry and passports").exists, "the sources start folded")
+            tap(element("ask.sources"), "the sources toggle", until: { self.shows("Trip to Lisbon: ferry and passports").exists })
             require(shows("Trip to Lisbon: ferry and passports"), "the memory the answer drew from")
         }
 

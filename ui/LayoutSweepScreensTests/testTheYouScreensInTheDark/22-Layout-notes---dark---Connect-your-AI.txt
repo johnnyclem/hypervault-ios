@@ -1,0 +1,6 @@
+dark / Connect your AI
+
+small target  Button "Account" (account.avatar)  20,51 44x36
+small target  Button "New board" (plus)  322,51 48x36
+small target  Button "Settings" (BackButton)  31,62 40x40
+small target  Button "Cancel"  20,77 77x36
